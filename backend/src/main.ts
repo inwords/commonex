@@ -1,5 +1,6 @@
 import './otel';
-import {NestFactory} from '@nestjs/core';
+import {HttpAdapterHost, NestFactory} from '@nestjs/core';
+import {FastifyAdapter} from '@nestjs/platform-fastify';
 import {AppModule} from './app.module';
 import {ValidationPipe} from '@nestjs/common';
 import {DocumentBuilder, SwaggerModule} from '@nestjs/swagger';
@@ -9,7 +10,8 @@ import {BusinessErrorFilter} from './api/http/filters/business-error.filter';
 import {ValidationExceptionFilter} from './api/http/filters/validation-exception.filter';
 
 async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, new FastifyAdapter({http2: true}));
+  const {httpAdapter} = app.get(HttpAdapterHost);
 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -22,7 +24,7 @@ async function bootstrap(): Promise<void> {
     }),
   );
 
-  app.useGlobalFilters(new ValidationExceptionFilter(), new BusinessErrorFilter());
+  app.useGlobalFilters(new ValidationExceptionFilter(httpAdapter), new BusinessErrorFilter(httpAdapter));
 
   const config = new DocumentBuilder()
     .setTitle('Expenses Swagger')
@@ -53,7 +55,7 @@ async function bootstrap(): Promise<void> {
   });
 
   await app.startAllMicroservices();
-  await app.listen(3001);
+  await app.listen(3001, '0.0.0.0');
 }
 
 bootstrap();

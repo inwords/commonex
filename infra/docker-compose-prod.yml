@@ -1,6 +1,6 @@
 services:
   db:
-    image: postgres:17-alpine3.22
+    image: postgres:17-alpine3.23
     deploy:
       resources:
         limits:
@@ -42,7 +42,7 @@ services:
       - OPEN_EXCHANGE_RATES_API_ID=${OPEN_EXCHANGE_RATES_API_ID}
       - DEVTOOLS_SECRET=${DEVTOOLS_SECRET}
     healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3001/health', r => r.statusCode === 200 ? process.exit(0) : process.exit(1)).on('error', () => process.exit(1))"]
+      test: ["CMD", "node", "-e", "const http2=require('http2');const c=http2.connect('http://localhost:3001');c.on('error',()=>process.exit(1));const r=c.request({':path':'/health'});r.on('response',h=>{c.close();process.exit(h[':status']===200?0:1)});r.on('error',()=>{c.close();process.exit(1)});r.end();"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -73,7 +73,7 @@ services:
       - OPEN_EXCHANGE_RATES_API_ID=${OPEN_EXCHANGE_RATES_API_ID}
       - DEVTOOLS_SECRET=${DEVTOOLS_SECRET}
     healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3001/health', r => r.statusCode === 200 ? process.exit(0) : process.exit(1)).on('error', () => process.exit(1))"]
+      test: ["CMD", "node", "-e", "const http2=require('http2');const c=http2.connect('http://localhost:3001');c.on('error',()=>process.exit(1));const r=c.request({':path':'/health'});r.on('response',h=>{c.close();process.exit(h[':status']===200?0:1)});r.on('error',()=>{c.close();process.exit(1)});r.end();"]
       interval: 30s
       timeout: 10s
       retries: 3

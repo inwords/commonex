@@ -1,5 +1,5 @@
 # https://nginx.org/en/CHANGES
-ARG NGINX_VERSION=1.29.1
+ARG NGINX_VERSION=1.29.5
 
 # https://github.com/nginxinc/nginx-otel/releases
 ARG NGINX_OTEL_VERSION=0.1.2
@@ -8,7 +8,7 @@ ARG NGINX_OTEL_VERSION=0.1.2
 ARG NGX_BROTLI_COMMIT=a71f9312c2deb28875acc7bacfdd5695a111aa53
 
 # https://github.com/openssl/openssl/releases
-ARG OPENSSL_VERSION=3.6.0
+ARG OPENSSL_VERSION=3.6.1
 
 # NGINX UID / GID
 ARG NGINX_USER_UID=1000
@@ -43,7 +43,7 @@ ARG CONFIG="\
     --add-module=/usr/src/ngx_brotli \
 "
 
-FROM alpine:3.22 AS base
+FROM alpine:3.23 AS base
 
 ARG NGINX_VERSION
 ARG NGINX_OTEL_VERSION
@@ -125,6 +125,7 @@ RUN \
     && cd build \
     && cmake \
              -DNGX_OTEL_NGINX_BUILD_DIR=/usr/src/nginx-$NGINX_VERSION/objs \
+             -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
              -DCMAKE_CXX_STANDARD=17 \
              -DCMAKE_BUILD_TYPE=Release \
              -DCMAKE_C_FLAGS_RELEASE="-O2 -fPIC -ffunction-sections -fdata-sections" \
@@ -153,7 +154,7 @@ RUN \
          | xargs -r apk info --installed \
          | sort -u > /tmp/nginx-runDeps.txt
 
-FROM alpine:3.22
+FROM alpine:3.23
 ARG NGINX_VERSION
 ARG NGINX_USER_UID
 ARG NGINX_GROUP_GID
