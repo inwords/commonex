@@ -1,5 +1,5 @@
 # Build stage
-FROM node:24-alpine3.22 AS build-stage
+FROM node:24-alpine3.23 AS build-stage
 
 WORKDIR /app
 
@@ -15,7 +15,7 @@ ENV NODE_ENV=production
 RUN npm run build
 
 # Production stage with Nginx (unprivileged for security)
-FROM nginxinc/nginx-unprivileged:1.29.1-alpine3.22
+FROM nginxinc/nginx-unprivileged:1.29.5-alpine3.23
 
 # Install curl for health checks (as root, then switch back)
 USER root

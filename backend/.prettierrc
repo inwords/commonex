@@ -4,6 +4,7 @@
   "bracketSpacing": false,
   "printWidth": 120,
   "tabWidth": 2,
+  "endOfLine": "crlf",
   "importOrder": [
     "react(?=[a-zA-Z\\-\\/]+$)*",
     "^[a-zA-Z\\-\\/]+$",

@@ -1,14 +1,10 @@
 import {RelationalDataService} from '#frameworks/relational-data-service/postgres/relational-data-service';
 import {appDbConfig} from '#frameworks/relational-data-service/postgres/config';
-import {SaveUsersToEventV2UseCase} from '../save-users-to-event-v2.usecase';
+import {SaveUsersToEventV2UseCase} from '#usecases/users/v2';
 import {EventServiceAbstract} from '#domain/abstracts/event-service/event-service';
-import {
-  TestCase,
-  prepareInitRelationalState,
-  validateRelationalStateChanges,
-} from '../../../__tests__/test-helpers';
-import {Result, error, success} from '#packages/result';
-import {EventNotFoundError, EventDeletedError, InvalidPinCodeError} from '#domain/errors/errors';
+import {prepareInitRelationalState, TestCase, validateRelationalStateChanges} from '../../../__tests__/test-helpers';
+import {error, Result, success} from '#packages/result';
+import {EventDeletedError, EventNotFoundError, InvalidPinCodeError} from '#domain/errors/errors';
 import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-service/relational-data-service';
 import {EventService} from '#frameworks/event-service/event-service';
 

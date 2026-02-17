@@ -1,13 +1,13 @@
-import {ExceptionFilter, Catch, ArgumentsHost} from '@nestjs/common';
-import {Response} from 'express';
+import {ArgumentsHost, Catch, ExceptionFilter} from '@nestjs/common';
+import {AbstractHttpAdapter} from '@nestjs/core';
 import {
-  EventNotFoundError,
+  CurrencyNotFoundError,
+  CurrencyRateNotFoundError,
   EventDeletedError,
+  EventNotFoundError,
   InvalidPinCodeError,
   InvalidTokenError,
   TokenExpiredError,
-  CurrencyNotFoundError,
-  CurrencyRateNotFoundError,
 } from '#domain/errors/errors';
 
 type BusinessError =
@@ -29,14 +29,19 @@ type BusinessError =
   CurrencyRateNotFoundError,
 )
 export class BusinessErrorFilter implements ExceptionFilter {
+  constructor(private readonly httpAdapter: AbstractHttpAdapter) {}
+
   catch(exception: BusinessError, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
-    const response = ctx.getResponse<Response>();
 
-    response.status(exception.httpCode).json({
-      statusCode: exception.httpCode,
-      code: exception.code,
-      message: exception.message,
-    });
+    this.httpAdapter.reply(
+      ctx.getResponse(),
+      {
+        statusCode: exception.httpCode,
+        code: exception.code,
+        message: exception.message,
+      },
+      exception.httpCode,
+    );
   }
 }

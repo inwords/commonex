@@ -50,7 +50,7 @@ export class SaveEventExpenseV2UseCase implements UseCase<Input, Output> {
         return notDeletedResult;
       }
 
-      const pinCodeResult = this.eventService.isValidPinCode(event, input.pinCode);
+      const pinCodeResult = this.eventService.isValidPinCode(event, pinCode);
 
       if (isError(pinCodeResult)) {
         return pinCodeResult;

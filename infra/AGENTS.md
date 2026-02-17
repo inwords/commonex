@@ -25,10 +25,11 @@ blue-green deployment for backend services.
 ### Nginx
 
 - Custom build with OpenTelemetry module (`ngx_otel_module`)
-- HTTP1.1, HTTP/2 and HTTP/3 (QUIC) support
+- HTTP1.1, HTTP/2 and HTTP/3 (QUIC) support for clients and h2c (HTTP/2 cleartext) to upstream backends
 - Brotli compression
-- SSL/TLS termination
+- SSL/TLS termination with certificate compression (`ssl_certificate_compression on`)
 - Upstream load balancing for backend services
+- Security headers defined at `http` level and inherited via `add_header_inherit merge`
 
 ### OpenTelemetry Collector
 
@@ -38,7 +39,8 @@ blue-green deployment for backend services.
 
 ### Docker Compose
 
-- **Production**: `docker-compose-prod.yml` - production deployment with blue-green backend
+- **Production**: `docker-compose-prod.yml` - production deployment with blue-green backend and an internal-only
+  PostgreSQL network (DB port is not published to the host by default)
 
 ## Prerequisites
 
@@ -137,9 +139,10 @@ docker compose -f infra/docker-compose-prod.yml ps
 
 ### Local Development
 
-1. Use development compose file if available
-2. Configure local environment variables
-3. Start services for local testing
+1. Use `infra/docker-compose-prod.yml` for parity checks when needed.
+2. For host-based backend tests, temporarily publish DB port `5432:5432` in the `db` service and use host DB env values
+   in `backend/` tests.
+3. Remove temporary DB port publishing after tests to keep production topology unchanged.
 
 ## Configuration
 
@@ -156,6 +159,13 @@ docker compose -f infra/docker-compose-prod.yml ps
 - **Certificate renewal** uses DNS-01 challenge (no HTTP ACME challenge location required)
 - **Main domain** (`commonex.ru`, `www.commonex.ru`): HTTP port 80 and HTTPS port 443
 - **API and gRPC subdomains** (`dev-api.commonex.ru`, `grpc.commonex.ru`): HTTPS-only; no plain HTTP access expected
+- **TLS certificate compression** enabled (`ssl_certificate_compression on`) — reduces TLS handshake size
+- **HTTP/2 to upstream (h2c)**: gateway nginx proxies to backends via `proxy_http_version 2`. Backend (NestJS) uses the
+  **Fastify** adapter with `http2: true` (h2c) in `main.ts`; web container (static export) uses embedded nginx with
+  `http2 on`. Backend Docker health checks use Node’s `http2` client (h2c prior knowledge).
+- **Encrypted Client Hello (ECH)**: not yet enabled; requires OpenSSL 4.0 (expected April 2026). When available,
+  configure with `ssl_ech_file` directive per server block. ECH encrypts SNI in the TLS handshake for privacy.
+  See [nginx ECH docs](https://nginx.org/en/docs/http/ngx_http_ssl_module.html#ssl_ech_file)
 
 ### OpenTelemetry Configuration
 
@@ -246,6 +256,8 @@ docker compose -f infra/docker-compose-prod.yml exec backend ping nginx
 
 - **Services can't communicate**: Verify Docker network exists: `docker network ls`
 - **Connection refused**: Check service is running and listening on correct port
+- **Host tests cannot reach DB**: `docker-compose-prod.yml` keeps DB on an internal network; temporarily publish
+  `5432:5432` only for local test runs.
 - **DNS resolution**: Verify service names match in docker-compose.yml
 
 ### Logging Issues

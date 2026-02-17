@@ -1,12 +1,17 @@
-import {Injectable, CanActivate, ExecutionContext, UnauthorizedException} from '@nestjs/common';
-import {Request} from 'express';
+import {CanActivate, ExecutionContext, Injectable, UnauthorizedException} from '@nestjs/common';
+import {IncomingHttpHeaders} from 'http';
 import {env} from '../../../../config';
+
+type RequestWithHeaders = {
+  headers: IncomingHttpHeaders;
+};
 
 @Injectable()
 export class DevtoolsSecretGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
-    const request = context.switchToHttp().getRequest<Request>();
-    const secret = request.headers['x-devtools-secret'];
+    const request = context.switchToHttp().getRequest<RequestWithHeaders>();
+    const secretHeader = request.headers['x-devtools-secret'];
+    const secret = Array.isArray(secretHeader) ? secretHeader[0] : secretHeader;
 
     if (!env.DEVTOOLS_SECRET) {
       throw new UnauthorizedException('Devtools secret is not configured');
