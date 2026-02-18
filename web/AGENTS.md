@@ -2,7 +2,8 @@
 
 ## Project Overview
 
-CommonEx web is a **Next.js** application providing the web interface for the expense sharing platform. It uses Material UI for components, MobX for state management, and follows a strict feature-sliced architecture.
+CommonEx web is a **Next.js** application providing the web interface for the expense sharing platform. It uses Material
+UI for components, MobX for state management, and follows a strict feature-sliced architecture.
 
 ## Technology Stack
 
@@ -15,6 +16,7 @@ CommonEx web is a **Next.js** application providing the web interface for the ex
 ## Architecture
 
 Feature-driven with strict folder structure (Feature-Sliced Design):
+
 - **`2-pages`**: Page components (routes)
 - **`3-widgets`**: Composite UI components
 - **`4-features`**: Business logic components
@@ -22,6 +24,7 @@ Feature-driven with strict folder structure (Feature-Sliced Design):
 - **`6-shared`**: Shared utilities and types
 
 ### Key File Locations
+
 - **App entry**: `src/app/`
 - **Pages**: `src/2-pages/`
 - **Widgets**: `src/3-widgets/`
@@ -141,11 +144,11 @@ export interface Example {
 }
 
 // src/5-entities/example/store.ts
-import { makeAutoObservable } from 'mobx';
+import {makeAutoObservable} from 'mobx';
 
 export class ExampleStore {
   examples: Example[] = [];
-  
+
   constructor() {
     makeAutoObservable(this);
   }
@@ -197,10 +200,14 @@ npm run lint
 ### Build Issues
 
 - **Next.js cache issues**: Clear `.next` directory
-  - Bash: `rm -rf .next`
-  - PowerShell: `Remove-Item -Recurse -Force .next`
+    - Bash: `rm -rf .next`
+    - PowerShell: `Remove-Item -Recurse -Force .next`
 - **TypeScript errors**: Check `tsconfig.json` configuration
 - **Module resolution**: Verify import paths use `src/` prefix
+- **PowerShell script execution blocked**: If `npm run lint` or `npm run build` fails with `node_modules\.bin\next.ps1`
+  execution policy errors, run Next via CMD shim:
+    - `.\node_modules\.bin\next.cmd lint`
+    - `.\node_modules\.bin\next.cmd build`
 
 ### Runtime Issues
 

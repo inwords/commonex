@@ -10,7 +10,7 @@ CommonEx backend is a NestJS service that provides REST and gRPC APIs for the ex
 - Swagger static assets: `@fastify/static` runtime dependency (pinned; currently `9.0.0`)
 - Database: PostgreSQL with TypeORM
 - APIs: REST and gRPC
-- Observability: OpenTelemetry
+- Observability: OpenTelemetry (`@fastify/otel` + allowlisted Node auto-instrumentations)
 - Linting: ESLint 9 flat config (`eslint.config.js`)
 - Testing: Jest 30 with ts-jest
 - Language: TypeScript 5.9
@@ -61,8 +61,8 @@ Flow direction: API -> use cases -> domain abstractions -> frameworks implementa
       `POSTGRES_SCHEMA`
     - `OPEN_EXCHANGE_RATES_API_ID`
     - `DEVTOOLS_SECRET`
-    - optional `OTEL_SERVICE_NAME` (defaults to `commonex-backend` in `src/config.ts`; production sets it in
-      `infra/docker-compose-prod.yml`)
+    - optional `OTEL_SERVICE_NAME` (defaults to `commonex-backend` in `src/config.ts`; set it only when you need a
+      non-default service name)
 
 ## Essential Commands
 
@@ -96,6 +96,19 @@ npm run db:drop
 - Health endpoint: `/health`
 - gRPC listener: `0.0.0.0:5000`
 - OTLP gRPC exporter target in backend runtime: `http://otelcollector:4317` (`src/otel.ts`)
+
+## OpenTelemetry Runtime
+
+- Bootstrap file: `src/otel.ts`
+- Fastify server tracing: `@fastify/otel` with `registerOnInitialization: true`
+- Enabled auto-instrumentations are allowlisted to:
+  `@opentelemetry/instrumentation-http`,
+  `@opentelemetry/instrumentation-grpc`,
+  `@opentelemetry/instrumentation-pg`,
+  `@opentelemetry/instrumentation-nestjs-core`,
+  `@opentelemetry/instrumentation-runtime-node`
+- Metrics export interval: `5000` ms (`PeriodicExportingMetricReader`)
+- Graceful SDK shutdown hooks are registered for `SIGTERM` and `SIGINT` via `process.once(...)`
 
 ## Development Workflow
 
@@ -157,13 +170,14 @@ npm run db:drop
 - Backend container runs migrations before app start (`db:migrate:docker_prod` then `start:prod`).
 - HTTP service runs on `3001`; gRPC service runs on `5000`.
 - Health endpoint: `/health`.
-- OpenTelemetry service name is provided in production via `OTEL_SERVICE_NAME` on both blue/green backend services.
+- Production compose currently does not set `OTEL_SERVICE_NAME` on blue/green backend services, so the backend default
+  (`commonex-backend`) is used unless explicitly overridden.
 
 ## Troubleshooting
 
 - Missing `@fastify/static`: app can fail during Swagger setup on Fastify.
-- Missing HTTP spans after Fastify migration: ensure `@opentelemetry/instrumentation-fastify` is explicitly enabled in
-  `src/otel.ts`.
+- Missing HTTP/Fastify spans after migration: ensure `@fastify/otel` is registered and
+  `@opentelemetry/instrumentation-http` remains in the allowlist in `src/otel.ts`.
 - Env parsing errors on startup: verify required `.env` keys are present and non-empty.
 - DB connection failures: verify PostgreSQL availability and credentials, then run `npm run db:migrate`.
 - PowerShell script-policy issues on local machine: invoke local binaries through `node` (for example, Nest CLI path)
