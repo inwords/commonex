@@ -19,9 +19,7 @@ const metricReader = new PeriodicExportingMetricReader({
   exportIntervalMillis: 5000,
 });
 
-const fastifyOtelInstrumentation = new FastifyOtelInstrumentation({
-  registerOnInitialization: true,
-});
+export const fastifyOtelInstrumentation = new FastifyOtelInstrumentation();
 
 const allowedAutoInstrumentationNames = new Set<string>([
   '@opentelemetry/instrumentation-http',

@@ -100,7 +100,8 @@ npm run db:drop
 ## OpenTelemetry Runtime
 
 - Bootstrap file: `src/otel.ts`
-- Fastify server tracing: `@fastify/otel` with `registerOnInitialization: true`
+- Fastify server tracing: `@fastify/otel` instrumentation is created in `src/otel.ts` and its plugin is manually
+  registered in `src/main.ts` before `NestFactory.create(...)`
 - Enabled auto-instrumentations are allowlisted to:
   `@opentelemetry/instrumentation-http`,
   `@opentelemetry/instrumentation-grpc`,
@@ -176,7 +177,8 @@ npm run db:drop
 ## Troubleshooting
 
 - Missing `@fastify/static`: app can fail during Swagger setup on Fastify.
-- Missing HTTP/Fastify spans after migration: ensure `@fastify/otel` is registered and
+- Missing HTTP/Fastify spans after migration: ensure `fastifyOtelInstrumentation.plugin()` is registered in
+  `src/main.ts` before Nest app creation and
   `@opentelemetry/instrumentation-http` remains in the allowlist in `src/otel.ts`.
 - Env parsing errors on startup: verify required `.env` keys are present and non-empty.
 - DB connection failures: verify PostgreSQL availability and credentials, then run `npm run db:migrate`.

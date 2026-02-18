@@ -1,16 +1,19 @@
-import './otel';
+import {fastifyOtelInstrumentation} from './otel';
 import {HttpAdapterHost, NestFactory} from '@nestjs/core';
-import {FastifyAdapter} from '@nestjs/platform-fastify';
+import {FastifyAdapter, NestFastifyApplication} from '@nestjs/platform-fastify';
 import {AppModule} from './app.module';
 import {ValidationPipe} from '@nestjs/common';
 import {DocumentBuilder, SwaggerModule} from '@nestjs/swagger';
 import {MicroserviceOptions, Transport} from '@nestjs/microservices';
 import {join} from 'path';
-import {BusinessErrorFilter} from './api/http/filters/business-error.filter';
-import {ValidationExceptionFilter} from './api/http/filters/validation-exception.filter';
+import {BusinessErrorFilter} from '#api/http/filters/business-error.filter';
+import {ValidationExceptionFilter} from '#api/http/filters/validation-exception.filter';
 
 async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create(AppModule, new FastifyAdapter({http2: true}));
+  const fastifyAdapter = new FastifyAdapter({http2: true});
+  await fastifyAdapter.getInstance().register(fastifyOtelInstrumentation.plugin());
+
+  const app = await NestFactory.create<NestFastifyApplication>(AppModule, fastifyAdapter);
   const {httpAdapter} = app.get(HttpAdapterHost);
 
   app.useGlobalPipes(
