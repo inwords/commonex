@@ -10,7 +10,7 @@ export class CurrencyRateRepository extends BaseRepository implements CurrencyRa
 
   private readonly queryName = 'currency_rate';
 
-  constructor({dataSource, showQueryDetails}: {dataSource: DataSource; showQueryDetails: boolean}) {
+  constructor({dataSource, showQueryDetails}: { dataSource: DataSource; showQueryDetails: boolean }) {
     super(showQueryDetails);
     this.dataSource = dataSource;
   }
@@ -53,7 +53,11 @@ export class CurrencyRateRepository extends BaseRepository implements CurrencyRa
   ): Promise<[result: undefined, queryDetails: IQueryDetails]> => {
     const ctx = trx?.ctx instanceof EntityManager ? trx.ctx : undefined;
 
-    const query = this.getRepository(ctx).createQueryBuilder().insert().values(input);
+    const query = this.getRepository(ctx)
+      .createQueryBuilder()
+      .insert()
+      .values(input)
+      .orUpdate(['rate', 'updated_at'], ['date']);
     const queryDetails = this.getQueryDetails(query);
 
     await query.execute();

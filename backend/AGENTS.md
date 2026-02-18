@@ -29,6 +29,8 @@ Flow direction: API -> use cases -> domain abstractions -> frameworks implementa
 ## Key File Locations
 
 - Main entry: `src/main.ts`
+- OpenTelemetry bootstrap: `src/otel.ts`
+- Env parsing and defaults: `src/config.ts`
 - App module: `src/app.module.ts`
 - Domain entities: `src/domain/entities/`
 - Value objects: `src/domain/value-objects/`
@@ -59,6 +61,8 @@ Flow direction: API -> use cases -> domain abstractions -> frameworks implementa
       `POSTGRES_SCHEMA`
     - `OPEN_EXCHANGE_RATES_API_ID`
     - `DEVTOOLS_SECRET`
+    - optional `OTEL_SERVICE_NAME` (defaults to `commonex-backend` in `src/config.ts`; production sets it in
+      `infra/docker-compose-prod.yml`)
 
 ## Essential Commands
 
@@ -85,6 +89,13 @@ npm run db:drop
 ```
 
 `npm run test:e2e` points to `./test/jest-e2e.json`; this config file is currently missing in this repository.
+
+## Runtime Endpoints
+
+- Swagger UI: `/swagger/api`
+- Health endpoint: `/health`
+- gRPC listener: `0.0.0.0:5000`
+- OTLP gRPC exporter target in backend runtime: `http://otelcollector:4317` (`src/otel.ts`)
 
 ## Development Workflow
 
@@ -135,6 +146,7 @@ npm run db:drop
   $env:POSTGRES_PASSWORD='postgres'
   $env:POSTGRES_DATABASE='postgres'
   $env:POSTGRES_SCHEMA='public'
+  $env:OPEN_EXCHANGE_RATES_API_ID='test'
   $env:DEVTOOLS_SECRET='test-secret'
   npm run db:migrate
   npm run test
@@ -145,10 +157,13 @@ npm run db:drop
 - Backend container runs migrations before app start (`db:migrate:docker_prod` then `start:prod`).
 - HTTP service runs on `3001`; gRPC service runs on `5000`.
 - Health endpoint: `/health`.
+- OpenTelemetry service name is provided in production via `OTEL_SERVICE_NAME` on both blue/green backend services.
 
 ## Troubleshooting
 
 - Missing `@fastify/static`: app can fail during Swagger setup on Fastify.
+- Missing HTTP spans after Fastify migration: ensure `@opentelemetry/instrumentation-fastify` is explicitly enabled in
+  `src/otel.ts`.
 - Env parsing errors on startup: verify required `.env` keys are present and non-empty.
 - DB connection failures: verify PostgreSQL availability and credentials, then run `npm run db:migrate`.
 - PowerShell script-policy issues on local machine: invoke local binaries through `node` (for example, Nest CLI path)

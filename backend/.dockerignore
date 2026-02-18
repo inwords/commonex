@@ -8,9 +8,12 @@ npm-debug.log*
 
 # Environment variables
 .env
+.env.*
 
 # Build output
 dist
+coverage
+*.tsbuildinfo
 
 # Docker files
 Dockerfile
@@ -19,3 +22,8 @@ Dockerfile.*
 # Miscellaneous
 .DS_Store
 *.swp
+.git
+.gitignore
+.idea
+.vscode
+.eslintcache

@@ -13,6 +13,7 @@ const envSchema = z.object({
   POSTGRES_SCHEMA: z.string(),
   OPEN_EXCHANGE_RATES_API_ID: z.string(),
   DEVTOOLS_SECRET: z.string(),
+  OTEL_SERVICE_NAME: z.string().default('commonex-backend'),
 });
 
 const validatedEnv = envSchema.parse(process.env);
@@ -30,6 +31,7 @@ export const config = (): {
   POSTGRES_POOL_IDLE_TIMEOUT_MS: number;
   OPEN_EXCHANGE_RATES_API_ID: string;
   DEVTOOLS_SECRET: string;
+  OTEL_SERVICE_NAME: string;
 } => {
   return {
     POSTGRES_PORT: validatedEnv.POSTGRES_PORT,
@@ -44,6 +46,7 @@ export const config = (): {
     POSTGRES_POOL_IDLE_TIMEOUT_MS: 10_000,
     OPEN_EXCHANGE_RATES_API_ID: validatedEnv.OPEN_EXCHANGE_RATES_API_ID,
     DEVTOOLS_SECRET: validatedEnv.DEVTOOLS_SECRET,
+    OTEL_SERVICE_NAME: validatedEnv.OTEL_SERVICE_NAME,
   } as const;
 };
 

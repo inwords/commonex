@@ -143,6 +143,12 @@ docker compose -f infra/docker-compose-prod.yml ps
 2. For host-based backend tests, temporarily publish DB port `5432:5432` in the `db` service and use host DB env values
    in `backend/` tests.
 3. Remove temporary DB port publishing after tests to keep production topology unchanged.
+4. Quick local Postgres option for host tests (without editing compose):
+   ```bash
+   docker run --name commonex-postgres-test -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=postgres -p 5432:5432 -d postgres:17-alpine3.23
+   # cleanup
+   docker rm -f commonex-postgres-test
+   ```
 
 ## Configuration
 

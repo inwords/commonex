@@ -40,6 +40,6 @@ exports[`CurrencyRateRepository insert should insert currency rate correctly 1`]
     "orm_param_2": 2023-01-01T00:00:00.000Z,
     "orm_param_3": 2023-01-01T00:00:00.000Z,
   },
-  "queryString": "INSERT INTO "currency_rate" AS "CurrencyRateEntity"("date", "rate", "created_at", "updated_at") VALUES (:orm_param_0, :orm_param_1, :orm_param_2, :orm_param_3)",
+  "queryString": "INSERT INTO "currency_rate" AS "CurrencyRateEntity"("date", "rate", "created_at", "updated_at") VALUES (:orm_param_0, :orm_param_1, :orm_param_2, :orm_param_3) ON CONFLICT ( "date" ) DO UPDATE SET "rate" = EXCLUDED."rate", "updated_at" = EXCLUDED."updated_at"",
 }
 `;

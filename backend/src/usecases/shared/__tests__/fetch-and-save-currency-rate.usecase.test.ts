@@ -103,7 +103,9 @@ describe('FetchAndSaveCurrencyRateSharedUseCase', () => {
         initState: testCase.initRelationalState,
       });
 
-      jest.spyOn(currencyRateService, 'getCurrencyRate').mockResolvedValue(testCase.mockCurrencyRateService.getCurrencyRate);
+      jest
+        .spyOn(currencyRateService, 'getCurrencyRate')
+        .mockResolvedValue(testCase.mockCurrencyRateService.getCurrencyRate);
 
       if (testCase.expectError) {
         await expect(useCase.execute(testCase.input)).rejects.toThrow();
