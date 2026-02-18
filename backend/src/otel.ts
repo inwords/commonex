@@ -3,6 +3,7 @@ import {getNodeAutoInstrumentations} from '@opentelemetry/auto-instrumentations-
 import {OTLPTraceExporter} from '@opentelemetry/exporter-trace-otlp-grpc';
 import {OTLPMetricExporter} from '@opentelemetry/exporter-metrics-otlp-grpc';
 import {PeriodicExportingMetricReader} from '@opentelemetry/sdk-metrics';
+import FastifyOtelInstrumentation from '@fastify/otel';
 import {env} from './config';
 
 const traceExporter = new OTLPTraceExporter({
@@ -18,14 +19,26 @@ const metricReader = new PeriodicExportingMetricReader({
   exportIntervalMillis: 5000,
 });
 
+const fastifyOtelInstrumentation = new FastifyOtelInstrumentation({
+  registerOnInitialization: true,
+});
+
+const allowedAutoInstrumentationNames = new Set<string>([
+  '@opentelemetry/instrumentation-http',
+  '@opentelemetry/instrumentation-grpc',
+  '@opentelemetry/instrumentation-pg',
+  '@opentelemetry/instrumentation-nestjs-core',
+  '@opentelemetry/instrumentation-runtime-node',
+]);
+
+const autoInstrumentations = getNodeAutoInstrumentations().filter(({instrumentationName}) =>
+  allowedAutoInstrumentationNames.has(instrumentationName),
+);
+
 const sdk = new NodeSDK({
   serviceName: env.OTEL_SERVICE_NAME,
   traceExporter: traceExporter,
-  instrumentations: [
-    getNodeAutoInstrumentations({
-      '@opentelemetry/instrumentation-fastify': {enabled: true},
-    }),
-  ],
+  instrumentations: [...autoInstrumentations, fastifyOtelInstrumentation],
   metricReaders: [metricReader],
 });
 
