@@ -24,7 +24,7 @@ export class ValidationExceptionFilter implements ExceptionFilter {
 
   catch(exception: BadRequestException, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
-    const exceptionResponse = exception.getResponse() as { message: unknown };
+    const exceptionResponse = exception.getResponse() as {message: unknown};
 
     const validationErrors = this.formatMessage(exceptionResponse.message);
 

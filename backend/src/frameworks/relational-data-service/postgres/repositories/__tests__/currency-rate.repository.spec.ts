@@ -42,6 +42,43 @@ describe('CurrencyRateRepository', () => {
 
       expect(queryDetails).toMatchSnapshot();
     });
+
+    it('should upsert currency rate by date', async () => {
+      const initialCurrencyRate = {
+        date: '2023-01-01',
+        rate: {
+          EUR: 1,
+          USD: 1.05,
+          RUB: 80.5,
+        },
+        createdAt: new Date('2023-01-01T00:00:00Z'),
+        updatedAt: new Date('2023-01-01T00:00:00Z'),
+      };
+      const updatedCurrencyRate = {
+        date: '2023-01-01',
+        rate: {
+          EUR: 1,
+          USD: 1.2,
+          RUB: 90.5,
+        },
+        createdAt: new Date('2023-01-02T00:00:00Z'),
+        updatedAt: new Date('2023-01-02T00:00:00Z'),
+      };
+
+      await relationalDataService.currencyRate.insert(initialCurrencyRate);
+      await relationalDataService.currencyRate.insert(updatedCurrencyRate);
+
+      const [result] = await relationalDataService.currencyRate.findByDate('2023-01-01');
+
+      expect(result).toEqual(
+        expect.objectContaining({
+          date: '2023-01-01',
+          rate: expect.objectContaining(updatedCurrencyRate.rate),
+          createdAt: initialCurrencyRate.createdAt,
+          updatedAt: updatedCurrencyRate.updatedAt,
+        }),
+      );
+    });
   });
 
   describe('findByDate', () => {

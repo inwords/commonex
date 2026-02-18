@@ -22,7 +22,7 @@ Run from the `android/` directory.
 ## Prerequisites
 
 - Device or emulator running (`adb devices` should list one)
-- Android SDK path set (`ANDROID_SDK_ROOT`)
+- Android SDK path set (`ANDROID_SDK_ROOT`). If not set, derive it from `android/local.properties` (`sdk.dir`, e.g., `C:\Android\sdk`).
 - Marathon configuration file: `android/Marathonfile`
 - Tests must use JUnit 4 annotations for Marathon local discovery
 
@@ -37,6 +37,12 @@ set ANDROID_SDK_ROOT=C:\Users\vasia\AppData\Local\Android\Sdk
 
 rem Run Marathon using the local distribution
 .\marathon\bin\marathon
+```
+
+PowerShell note: if Gradle reports task `.android.tools.r8.disableApiModeling` not found, run the Gradle command via `cmd /c`:
+
+```powershell
+cmd /c ".\\gradlew :app:assembleAutotest :app:assembleAutotestAndroidTest -Dcom.android.tools.r8.disableApiModeling"
 ```
 
 ## Run (bash)

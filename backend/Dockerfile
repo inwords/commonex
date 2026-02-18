@@ -42,8 +42,8 @@ RUN npm run build
 # Set NODE_ENV environment variable
 ENV NODE_ENV=production
 
-# Running `npm ci` removes the existing node_modules directory and passing in --only=production ensures that only the production dependencies are installed. This ensures that the node_modules directory is as optimized as possible
-RUN npm ci --only=production && npm cache clean --force
+# Running `npm ci` removes the existing node_modules directory and `--omit=dev` ensures only production dependencies are installed.
+RUN npm ci --omit=dev && npm cache clean --force
 
 USER node
 
@@ -64,5 +64,5 @@ COPY --chown=node:node --from=build /usr/src/app/package*.json ./
 EXPOSE 3001
 EXPOSE 5000
 
-# Command to run the app
-CMD ls && npm run db:migrate:docker_prod && npm run start:prod
+# Command to run migrations and then the app
+CMD ["sh", "-c", "npm run db:migrate:docker_prod && exec npm run start:prod"]
