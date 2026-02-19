@@ -2,7 +2,7 @@ import {NodeSDK} from '@opentelemetry/sdk-node';
 import {getNodeAutoInstrumentations} from '@opentelemetry/auto-instrumentations-node';
 import {OTLPTraceExporter} from '@opentelemetry/exporter-trace-otlp-grpc';
 import {OTLPMetricExporter} from '@opentelemetry/exporter-metrics-otlp-grpc';
-import {PeriodicExportingMetricReader} from '@opentelemetry/sdk-metrics';
+import {AggregationType, InstrumentType, PeriodicExportingMetricReader} from '@opentelemetry/sdk-metrics';
 import FastifyOtelInstrumentation from '@fastify/otel';
 import {env} from './config';
 
@@ -19,10 +19,11 @@ const metricReader = new PeriodicExportingMetricReader({
   exportIntervalMillis: 5000,
 });
 
+const httpServerRequestDurationBucketsSeconds = [0.005, 0.01, 0.025, 0.05, 0.075, 0.1, 0.25, 0.5, 0.75, 1, 2.5, 5, 7.5, 10];
+
 export const fastifyOtelInstrumentation = new FastifyOtelInstrumentation();
 
 const allowedAutoInstrumentationNames = new Set<string>([
-  '@opentelemetry/instrumentation-http',
   '@opentelemetry/instrumentation-grpc',
   '@opentelemetry/instrumentation-pg',
   '@opentelemetry/instrumentation-nestjs-core',
@@ -38,6 +39,19 @@ const sdk = new NodeSDK({
   traceExporter: traceExporter,
   instrumentations: [...autoInstrumentations, fastifyOtelInstrumentation],
   metricReaders: [metricReader],
+  views: [
+    {
+      meterName: 'commonex-backend.fastify-http',
+      instrumentName: 'http.server.request.duration',
+      instrumentType: InstrumentType.HISTOGRAM,
+      aggregation: {
+        type: AggregationType.EXPLICIT_BUCKET_HISTOGRAM,
+        options: {
+          boundaries: httpServerRequestDurationBucketsSeconds,
+        },
+      },
+    },
+  ],
 });
 
 sdk.start();

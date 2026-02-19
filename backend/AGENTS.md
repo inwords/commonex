@@ -103,11 +103,14 @@ npm run db:drop
 - Fastify server tracing: `@fastify/otel` instrumentation is created in `src/otel.ts` and its plugin is manually
   registered in `src/main.ts` before `NestFactory.create(...)`
 - Enabled auto-instrumentations are allowlisted to:
-  `@opentelemetry/instrumentation-http`,
   `@opentelemetry/instrumentation-grpc`,
   `@opentelemetry/instrumentation-pg`,
   `@opentelemetry/instrumentation-nestjs-core`,
   `@opentelemetry/instrumentation-runtime-node`
+- HTTP server metrics are produced by `src/frameworks/observability/fastify-http-metrics.plugin.ts`, registered in
+  `src/main.ts` before Nest app creation.
+- `http.server.request.duration` histogram boundaries are configured via `NodeSDK` views in `src/otel.ts`
+  (meter `commonex-backend.fastify-http`).
 - Metrics export interval: `5000` ms (`PeriodicExportingMetricReader`)
 - Graceful SDK shutdown hooks are registered for `SIGTERM` and `SIGINT` via `process.once(...)`
 
@@ -178,8 +181,10 @@ npm run db:drop
 
 - Missing `@fastify/static`: app can fail during Swagger setup on Fastify.
 - Missing HTTP/Fastify spans after migration: ensure `fastifyOtelInstrumentation.plugin()` is registered in
-  `src/main.ts` before Nest app creation and
-  `@opentelemetry/instrumentation-http` remains in the allowlist in `src/otel.ts`.
+  `src/main.ts` before Nest app creation and `fastifyOtelInstrumentation` is included in NodeSDK instrumentations in
+  `src/otel.ts` (`@opentelemetry/instrumentation-http` is intentionally disabled).
+- Missing HTTP request metrics: ensure `fastifyHttpMetricsPlugin` is registered in `src/main.ts` and `src/otel.ts`
+  still defines the `http.server.request.duration` view for meter `commonex-backend.fastify-http`.
 - Env parsing errors on startup: verify required `.env` keys are present and non-empty.
 - DB connection failures: verify PostgreSQL availability and credentials, then run `npm run db:migrate`.
 - PowerShell script-policy issues on local machine: invoke local binaries through `node` (for example, Nest CLI path)

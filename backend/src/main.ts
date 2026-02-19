@@ -8,13 +8,15 @@ import {MicroserviceOptions, Transport} from '@nestjs/microservices';
 import {join} from 'path';
 import {BusinessErrorFilter} from '#api/http/filters/business-error.filter';
 import {ValidationExceptionFilter} from '#api/http/filters/validation-exception.filter';
-import {fastifyHttp2MetricsPlugin} from '#frameworks/observability/fastify-http2-metrics.plugin';
+import {fastifyHttpMetricsPlugin} from '#frameworks/observability/fastify-http-metrics.plugin';
 
 async function bootstrap(): Promise<void> {
   const fastifyAdapter = new FastifyAdapter({http2: true});
   const fastifyInstance = fastifyAdapter.getInstance();
 
-  await fastifyInstance.register(fastifyHttp2MetricsPlugin);
+  await fastifyInstance.register(fastifyHttpMetricsPlugin, {
+    applicationRoot: '/',
+  });
   await fastifyInstance.register(fastifyOtelInstrumentation.plugin());
 
   const app = await NestFactory.create<NestFastifyApplication>(AppModule, fastifyAdapter);

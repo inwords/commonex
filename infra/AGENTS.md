@@ -178,6 +178,10 @@ docker compose -f infra/docker-compose-prod.yml ps
 - **Config file**: `infra/otel-collector/otel-collector-config.yaml`
 - **Dockerfile**: `infra/otel-collector/Dockerfile`
 - **Manifest**: `infra/otel-collector/manifest.yaml`
+- Metrics are exported to VictoriaMetrics via OTLP HTTP (`/opentelemetry/v1/metrics`) with cumulative temporality as
+  the default expectation.
+- `deltatocumulative` is not configured in the current collector pipeline; add it only if an upstream source starts
+  emitting delta metrics.
 
 ### Docker Compose Files
 
@@ -278,6 +282,9 @@ docker compose -f infra/docker-compose-prod.yml exec backend ping nginx
 - **No traces appearing**: Check collector configuration and service connectivity
 - **Collector not receiving data**: Verify service instrumentation and collector endpoints
 - **Review collector logs**: `docker compose -f infra/docker-compose-prod.yml logs otel-collector`
+- **Delta metrics with VictoriaMetrics**: If a source is configured to emit delta temporality (for example via
+  `OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=delta`), add `deltatocumulativeprocessor` in the collector
+  metrics pipeline before `otlphttp/victoriametrics`.
 
 ### Common Errors
 
