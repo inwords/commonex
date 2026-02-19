@@ -285,6 +285,10 @@ docker compose -f infra/docker-compose-prod.yml exec backend ping nginx
 - **Delta metrics with VictoriaMetrics**: If a source is configured to emit delta temporality (for example via
   `OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=delta`), add `deltatocumulativeprocessor` in the collector
   metrics pipeline before `otlphttp/victoriametrics`.
+- **Metrics appear in Grafana after ~1 minute**:
+    - check `spanmetrics` flush cadence (`metrics_flush_interval`) in `infra/otel-collector/otel-collector-config.yaml`
+    - check VictoriaMetrics query-side delay (`-search.latencyOffset`) in `infra/docker-compose-prod.yml`
+    - check panel/query window (`$__rate_interval`, step/min-interval), especially for `rate(...)` queries
 
 ### Common Errors
 

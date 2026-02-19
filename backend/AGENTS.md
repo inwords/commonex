@@ -185,6 +185,9 @@ npm run db:drop
   `src/otel.ts` (`@opentelemetry/instrumentation-http` is intentionally disabled).
 - Missing HTTP request metrics: ensure `fastifyHttpMetricsPlugin` is registered in `src/main.ts` and `src/otel.ts`
   still defines the `http.server.request.duration` view for meter `commonex-backend.fastify-http`.
+- Grafana query note: `sum by(http.route, http.request.method, http.response.status_code) (rate(http.server.request.duration_count[$__rate_interval]))`
+  is valid for request-rate panels; timeout/client-abort points can have missing `http.response.status_code`, which
+  may produce an empty-status series unless filtered.
 - Env parsing errors on startup: verify required `.env` keys are present and non-empty.
 - DB connection failures: verify PostgreSQL availability and credentials, then run `npm run db:migrate`.
 - PowerShell script-policy issues on local machine: invoke local binaries through `node` (for example, Nest CLI path)
