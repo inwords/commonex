@@ -20,6 +20,11 @@ export interface DbConfig extends DbConnectionStringConfig {
   idleTimeoutMs: number;
   tcpKeepAlive: boolean;
   tcpKeepAliveInitialDelayMs: number;
+  applicationName: string;
+  statementTimeoutMs: number;
+  lockTimeoutMs: number;
+  idleInTransactionSessionTimeoutMs: number;
+  queryTimeoutMs: number;
   schema: string;
   logging: boolean;
 }
@@ -37,6 +42,11 @@ export const appDbConfig: DbConfig = {
   idleTimeoutMs: env.POSTGRES_POOL_IDLE_TIMEOUT_MS,
   tcpKeepAlive: env.POSTGRES_TCP_KEEPALIVE,
   tcpKeepAliveInitialDelayMs: env.POSTGRES_TCP_KEEPALIVE_INITIAL_DELAY_MS,
+  applicationName: env.POSTGRES_APPLICATION_NAME,
+  statementTimeoutMs: env.POSTGRES_STATEMENT_TIMEOUT_MS,
+  lockTimeoutMs: env.POSTGRES_LOCK_TIMEOUT_MS,
+  idleInTransactionSessionTimeoutMs: env.POSTGRES_IDLE_IN_TRANSACTION_SESSION_TIMEOUT_MS,
+  queryTimeoutMs: env.POSTGRES_QUERY_TIMEOUT_MS,
   schema: env.POSTGRES_SCHEMA,
   logging: false,
 };
@@ -58,6 +68,11 @@ export const createTypeormConfigDefault = (config: DbConfig): DataSourceOptions 
       idleTimeoutMillis: config.idleTimeoutMs,
       keepAlive: config.tcpKeepAlive,
       keepAliveInitialDelayMillis: config.tcpKeepAliveInitialDelayMs,
+      application_name: config.applicationName,
+      statement_timeout: config.statementTimeoutMs,
+      lock_timeout: config.lockTimeoutMs,
+      idle_in_transaction_session_timeout: config.idleInTransactionSessionTimeoutMs,
+      query_timeout: config.queryTimeoutMs,
     },
     namingStrategy: new PostgresNamingStrategy(),
     ...(config.schema === 'public' ? {} : {schema: config.schema}),

@@ -63,6 +63,9 @@ Flow direction: API -> use cases -> domain abstractions -> frameworks implementa
     - `DEVTOOLS_SECRET`
     - optional `OTEL_SERVICE_NAME` (defaults to `commonex-backend` in `src/config.ts`; set it only when you need a
       non-default service name)
+    - PostgreSQL pool and timeout/keepalive defaults are defined in `src/config.ts` and applied in
+      `src/frameworks/relational-data-service/postgres/config.ts` (pool min/idle timeout, TCP keepalive, statement,
+      lock, idle-in-transaction, and client query timeouts)
 
 ## Essential Commands
 
@@ -185,11 +188,17 @@ npm run db:drop
   `src/otel.ts` (`@opentelemetry/instrumentation-http` is intentionally disabled).
 - Missing HTTP request metrics: ensure `fastifyHttpMetricsPlugin` is registered in `src/main.ts` and `src/otel.ts`
   still defines the `http.server.request.duration` view for meter `commonex-backend.fastify-http`.
-- Grafana query note: `sum by(http.route, http.request.method, http.response.status_code) (rate(http.server.request.duration_count[$__rate_interval]))`
+- Grafana query note:
+  `sum by(http.route, http.request.method, http.response.status_code) (rate(http.server.request.duration_count[$__rate_interval]))`
   is valid for request-rate panels; timeout/client-abort points can have missing `http.response.status_code`, which
   may produce an empty-status series unless filtered.
 - Env parsing errors on startup: verify required `.env` keys are present and non-empty.
 - DB connection failures: verify PostgreSQL availability and credentials, then run `npm run db:migrate`.
+- Frequent PG reconnects: check `src/config.ts` and
+  `src/frameworks/relational-data-service/postgres/config.ts` for pool/connection settings (`min`, `idleTimeout`,
+  `keepAlive`, `keepAliveInitialDelayMillis`, `connectionTimeoutMillis`).
+- Query timeout layering: backend config sets client-side `query_timeout` slightly above server-side
+  `statement_timeout` to avoid client timeout racing before PostgreSQL statement timeout.
 - PowerShell script-policy issues on local machine: invoke local binaries through `node` (for example, Nest CLI path)
   when needed.
 
