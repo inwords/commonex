@@ -15,8 +15,11 @@ interface DbConnectionStringConfig {
 
 export interface DbConfig extends DbConnectionStringConfig {
   poolSize: number;
+  poolMinSize: number;
   connectionTimeoutMs: number;
   idleTimeoutMs: number;
+  tcpKeepAlive: boolean;
+  tcpKeepAliveInitialDelayMs: number;
   schema: string;
   logging: boolean;
 }
@@ -29,8 +32,11 @@ export const appDbConfig: DbConfig = {
   password: env.POSTGRES_PASSWORD,
   target_session_attrs: env.POSTGRES_MASTER_TARGET_SESSION_ATTRS,
   poolSize: env.POSTGRES_POOL_SIZE,
+  poolMinSize: env.POSTGRES_POOL_MIN_SIZE,
   connectionTimeoutMs: env.POSTGRES_POOL_CONNECTION_TIMEOUT_MS,
   idleTimeoutMs: env.POSTGRES_POOL_IDLE_TIMEOUT_MS,
+  tcpKeepAlive: env.POSTGRES_TCP_KEEPALIVE,
+  tcpKeepAliveInitialDelayMs: env.POSTGRES_TCP_KEEPALIVE_INITIAL_DELAY_MS,
   schema: env.POSTGRES_SCHEMA,
   logging: false,
 };
@@ -46,9 +52,12 @@ export const createTypeormConfigDefault = (config: DbConfig): DataSourceOptions 
     entities: allEntities,
     migrations: [join(__dirname, '../../../../migrations/**/*.{ts,js}')],
     extra: {
-      max: env.POSTGRES_POOL_SIZE,
+      max: config.poolSize,
+      min: config.poolMinSize,
       connectionTimeoutMillis: config.connectionTimeoutMs,
       idleTimeoutMillis: config.idleTimeoutMs,
+      keepAlive: config.tcpKeepAlive,
+      keepAliveInitialDelayMillis: config.tcpKeepAliveInitialDelayMs,
     },
     namingStrategy: new PostgresNamingStrategy(),
     ...(config.schema === 'public' ? {} : {schema: config.schema}),
