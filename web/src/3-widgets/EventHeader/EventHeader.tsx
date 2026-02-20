@@ -1,4 +1,4 @@
-import {Button, Stack, Typography} from '@mui/material';
+import {Button, Stack, Typography, Box} from '@mui/material';
 import {observer} from 'mobx-react-lite';
 import {useState} from 'react';
 import {userStore} from '@/5-entities/user/stores/user-store';
@@ -7,6 +7,8 @@ import {eventService} from '@/5-entities/event/services/event-service';
 import {notificationStore} from '@/6-shared/stores/notification-store';
 import {CurrentUserBadge} from '@/6-shared/ui/CurrentUserBadge';
 import {PinCodeDisplay} from '@/6-shared/ui/PinCodeDisplay';
+import {expenseStore} from '@/5-entities/expense/stores/expense-store';
+import {currencyStore} from '@/5-entities/currency/stores/currency-store';
 import copy from 'copy-to-clipboard';
 
 export const EventHeader = observer(() => {
@@ -56,6 +58,15 @@ export const EventHeader = observer(() => {
           onToggle={() => setShouldHidePinCode(!shouldHidePinCode)}
         />
       </Typography>
+
+      <Box marginBottom={'16px'}>
+        <Typography variant="h6" align="center" color="text.secondary">
+          Всего потрачено: {expenseStore.totalExpensesAmount.toFixed(2)} {currencyStore.getCurrencyCode(eventStore.currentEvent.currencyId)}
+        </Typography>
+        <Typography variant="body1" align="center" color="text.secondary">
+          Вы потратили: {expenseStore.currentUserPaidAmount.toFixed(2)} {currencyStore.getCurrencyCode(eventStore.currentEvent.currencyId)}
+        </Typography>
+      </Box>
 
       <Stack direction={'row'} justifyContent={'center'} marginBottom={'16px'}>
         <Button variant="outlined" onClick={handleShareLink}>
