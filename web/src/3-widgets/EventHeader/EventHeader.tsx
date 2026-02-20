@@ -64,7 +64,7 @@ export const EventHeader = observer(() => {
           Всего потрачено: {expenseStore.totalExpensesAmount.toFixed(2)} {currencyStore.getCurrencyCode(eventStore.currentEvent.currencyId)}
         </Typography>
         <Typography variant="body1" align="center" color="text.secondary">
-          Вы потратили: {expenseStore.currentUserPaidAmount.toFixed(2)} {currencyStore.getCurrencyCode(eventStore.currentEvent.currencyId)}
+          Вы потратили: {expenseStore.currentUserSpentAmount.toFixed(2)} {currencyStore.getCurrencyCode(eventStore.currentEvent.currencyId)}
         </Typography>
       </Box>
 

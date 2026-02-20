@@ -74,10 +74,14 @@ export class ExpenseStore {
     return this.expensesToView.reduce((sum, expense) => sum + expense.amount, 0);
   }
 
-  get currentUserPaidAmount() {
-    return this.expensesToView
-      .filter((e) => e.userWhoPaidId === userStore.currentUser?.id)
-      .reduce((sum, expense) => sum + expense.amount, 0);
+  get currentUserSpentAmount() {
+    return this.expenses.reduce((sum, expense) => {
+      const userSplit = expense.splitInformation.find((split) => split.userId === userStore.currentUser?.id);
+      if (userSplit) {
+        sum += userSplit.exchangedAmount;
+      }
+      return sum;
+    }, 0);
   }
 
   setExpenses(expenses: Array<Expense>) {
