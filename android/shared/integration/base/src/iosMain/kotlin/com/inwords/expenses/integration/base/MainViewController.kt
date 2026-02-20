@@ -7,9 +7,15 @@ import com.inwords.expenses.core.navigation.DeeplinkProvider
 import com.inwords.expenses.core.ui.design.theme.CommonExTheme
 import platform.UIKit.UIViewController
 
+private val deeplinkProvider = DeeplinkProvider()
+
 fun MainViewController(): UIViewController = ComposeUIViewController {
     CommonExTheme {
-        // FIXME deeplinks
-        MainNavHost(modifier = Modifier.fillMaxSize(), deeplinkProvider = DeeplinkProvider())
+        MainNavHost(modifier = Modifier.fillMaxSize(), deeplinkProvider = deeplinkProvider)
     }
+}
+
+fun supplyDeeplink(deeplink: String) {
+    if (deeplink.isBlank()) return
+    deeplinkProvider.supplyDeeplink(deeplink)
 }

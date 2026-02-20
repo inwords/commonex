@@ -1,0 +1,8 @@
+aspect,sample_count,median_variant_vs_baseline_pct,avg_variant_vs_baseline_pct,min_variant_vs_baseline_pct,max_variant_vs_baseline_pct
+PragmasMixed,25,2.330356,2.361804,-5.722314,11.142861
+PragmasRead,25,1.933357,2.331810,-1.612504,10.255820
+PragmasWrite,25,1.450589,2.069928,-9.362885,13.003448
+SyncMixed,25,-1.655841,-3.587040,-18.034953,4.003861
+SyncRead,25,-0.763709,-0.656473,-17.322022,21.786563
+SyncWrite,25,0.563784,0.385208,-17.193669,14.646477
+Transactions,25,-95.906058,-95.919545,-96.528081,-95.144218

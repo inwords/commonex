@@ -43,6 +43,8 @@ rootProject.name = "Expenses"
 include(":app")
 
 include(":baselineprofile")
+include(":benchmarks")
+include(":benchmarks:databases")
 
 include(":shared")
 include(":shared:core")

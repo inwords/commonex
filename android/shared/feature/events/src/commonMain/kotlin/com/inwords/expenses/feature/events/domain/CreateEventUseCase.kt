@@ -5,7 +5,6 @@ import com.inwords.expenses.feature.events.domain.model.EventDetails
 import com.inwords.expenses.feature.events.domain.model.Person
 import com.inwords.expenses.feature.events.domain.store.local.EventsLocalStore
 import com.inwords.expenses.feature.settings.api.SettingsRepository
-import kotlin.random.Random
 
 class CreateEventUseCase internal constructor(
     eventsLocalStoreLazy: Lazy<EventsLocalStore>,
@@ -28,8 +27,7 @@ class CreateEventUseCase internal constructor(
             id = 0L,
             serverId = null,
             name = stateHolder.getDraftEventName(),
-            // FIXME secure
-            pinCode = Random.nextLong(1000, 9999).toString(),
+            pinCode = SecureRandomPinCode.nextPinCode(length = 4),
             primaryCurrencyId = stateHolder.getDraftPrimaryCurrencyId()
         )
 

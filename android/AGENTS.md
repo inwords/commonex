@@ -54,6 +54,10 @@ architecture with feature-based organization.
 
 - `android/marathon/README.md` - Local Marathon runner usage and setup notes (library extracted manually; binaries not in git). Requires JUnit 4 annotations for test discovery; config in `android/Marathonfile`.
 - `android/gradle/README.md` - Gradle Profiler benchmarks and scenarios (`android/gradle/performance.scenarios`; profiler distribution in `android/gradle/profiler`).
+- `android/docs/database-benchmarking.md` - Room benchmark workflow and correctness checklist. Run DB benchmarks from dedicated module `:benchmarks:databases` (AndroidBenchmarkRunner + non-debuggable release test build type). Standard flow: template ->
+  scenario classes -> full-suite process-level runs -> aggregate artifacts -> log conclusions.
+- `android/docs/database-research-log.md` - Latest decision-grade database benchmark conclusions and artifact references.
+- `android/docs/database-research-log-template.md` - Canonical entry template for new items in the database research log.
 
 ## Build Instructions (Workflow)
 
@@ -268,7 +272,7 @@ See `android/docs/patterns.md` for ViewModel, Compose UI, state modeling, and fo
 - **Unit tests:** JUnit 6 for host/JVM tests
 - **Instrumented tests (non-UI):** Android Tests with JUnit 6
 - **Instrumented tests (Compose UI E2E tests):** Android Tests with JUnit 4 And Marathon. `ComposeTestRule` with context receivers pattern. Run against the real backend; avoid mocks and hardcoded remote fixtures by creating required data in-test.
-- **Room tests:** androidx.room:room-testing (example `MigrationTest.kt` in `androidDeviceTest` source set)
+- **Room tests:** use `androidx.room:room-testing`/`MigrationTestHelper` for migration validation only (example `MigrationTest.kt` in `androidDeviceTest` source set).
 - **Device testing:** Managed devices configured in `pixel6Api35*` tasks
 - **Marathon runner:** Cross-platform test runner for CI with retries and sharding
 
@@ -358,6 +362,12 @@ app/src/androidTest/kotlin/ru/commonex/
 - Database setup is in `shared/integration/databases`
 - **Database migrations** are in `shared/integration/databases/src/commonMain/kotlin/.../data/migrations/`
 - **Initial data seeding** is in `RoomOnCreateCallback` for new installs
+- **Database performance research**: follow `android/docs/database-benchmarking.md`; run in `:benchmarks:databases` only.
+- **Benchmark execution policy**: decision-grade DB results run on connected real device; emulator runs are provisional and must be marked as such.
+- **Benchmark run mode**: default is full-suite batch run (`connectedReleaseAndroidTest` or managed-device equivalent) repeated 5 independent process-level runs; class-by-class runs are only for disputed/noisy metrics validation.
+- **Benchmark code lifecycle**: keep a maintainable permanent suite in `android/benchmarks/databases/src/androidTest/.../benchmark/` (`core`, `template`, `scenarios/*`). Refactor classes as scenarios evolve; do not delete scenario classes after a run.
+- **Benchmark artifacts**: save benchmark outputs under `android/docs/artifacts/<research-id>/`; for multi-batch studies keep per-batch minimal pairs (`combined-summary-timeNs.csv`, `readable-ab-deltas.csv`) plus cross-batch aggregates (
+  `aggregate-<N>runs-ab-deltas.csv`, `aggregate-<N>runs-absolute-medians.csv`). Use `android/benchmarks/databases/tools/run_connected_benchmark_suite.py` as the primary runner.
 
 #### Database Migrations
 
@@ -392,7 +402,8 @@ When adding new data or schema changes for existing users:
 
 4. **For new installs**: Add data to `RoomOnCreateCallback.onCreate()` so new users get it immediately
 
-**Migration tests (Android instrumented)**: MigrationTestHelper.createDatabase() bypasses Room callbacks, so seed base data manually (e.g., currencies) or invoke RoomOnCreateCallback.onCreate() with the SQLite connection before running migrations.
+**Migration tests (Android instrumented)**: `MigrationTestHelper.createDatabase()` bypasses Room callbacks, so seed base data manually (e.g., currencies) or invoke `RoomOnCreateCallback.onCreate()` with the SQLite connection before running migrations. Keep
+this helper scoped to migration verification, not performance benchmarking.
 
 ### Adding Dependencies
 
