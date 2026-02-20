@@ -20,10 +20,10 @@ export class ExpenseService {
       splitInformation:
         expenseStore.splitOption === '1'
           ? userStore.users.map((u) => {
-              return {userId: u.id, amount: Number(data.amount) / userStore.users.length};
+              return {userId: u.id, amount: Number((Number(data.amount) / userStore.users.length).toFixed(2))};
             })
           : data.splitInformation.map((i) => {
-              return {...i, amount: Number(i.amount)};
+              return {...i, amount: Number(Number(i.amount).toFixed(2))};
             }),
     };
     const resp = await createExpenseApi({...body, expenseType: ExpenseType.Expense}, pinCode);
@@ -44,7 +44,7 @@ export class ExpenseService {
     const resp = await createExpenseApi({
       ...rest,
       expenseType: ExpenseType.Refund,
-      splitInformation: [{userId: userWhoReceiveId, amount}],
+      splitInformation: [{userId: userWhoReceiveId, amount: Number(Number(amount).toFixed(2))}],
     }, pinCode);
 
     expenseStore.setExpenseRefunds([...expenseStore.expenseRefunds, resp]);

@@ -73,7 +73,7 @@ export const ExpensesList = observer(() => {
                     {e.description}
 
                     <div>
-                      {e.amount} {currencyStore.getCurrencyCode(eventStore.currentEvent?.currencyId)}
+                      {e.amount.toFixed(2)} {currencyStore.getCurrencyCode(eventStore.currentEvent?.currencyId)}
                     </div>
                   </Stack>
                 </Typography>
@@ -108,7 +108,7 @@ export const ExpensesList = observer(() => {
                       event.stopPropagation();
                       expenseStore.setCurrentExpenseRefund({
                         description: `Возврат за ${e.description}`,
-                        amount: currentUserDebt,
+                        amount: Number(currentUserDebt.toFixed(2)),
                         userWhoPaidId: userStore.currentUser?.id,
                         currencyId: eventStore.currentEvent?.currencyId,
                         userWhoReceiveId: e.userWhoPaidId,

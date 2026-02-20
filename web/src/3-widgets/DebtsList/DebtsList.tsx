@@ -51,7 +51,7 @@ export const DebtsList = observer(() => {
                   onClick={() => {
                     expenseStore.setCurrentExpenseRefund({
                       description: `Возврат долга для ${creditorUser.name}`,
-                      amount: debtAmount,
+                      amount: Number(debtAmount.toFixed(2)),
                       userWhoPaidId: userStore.currentUser?.id,
                       currencyId: eventStore.currentEvent?.currencyId,
                       userWhoReceiveId: creditorUser.id,

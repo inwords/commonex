@@ -25,7 +25,7 @@ export const ExpenseRefundsList = observer(() => {
                     {e.description}
 
                     <div>
-                      {e.amount} {currencyStore.getCurrencyCode(eventStore.currentEvent?.currencyId)}
+                      {e.amount.toFixed(2)} {currencyStore.getCurrencyCode(eventStore.currentEvent?.currencyId)}
                     </div>
                   </Stack>
                 </Typography>
