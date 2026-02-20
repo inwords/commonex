@@ -138,6 +138,7 @@ jobs:
       - name: Create .env file on server
         run: |
           ssh ${{ secrets.SSH_USERNAME }}@${{ secrets.SERVER_IP }} "cd ${{ secrets.APP_PATH }} && cat > .env" << 'ENVEOF'
+          ENVIRONMENT=prod
           POSTGRES_PORT=${{ secrets.POSTGRES_PORT }}
           POSTGRES_USER_NAME=${{ secrets.POSTGRES_USER_NAME }}
           POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
