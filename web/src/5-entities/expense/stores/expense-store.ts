@@ -9,6 +9,8 @@ export class ExpenseStore {
   currentTab: Tabs = 0;
   isExpenseRefundModalOpen: boolean = false;
   currentExpenseRefund: Partial<CreateExpenseRefundForm> = {};
+  isExpenseDetailsModalOpen: boolean = false;
+  selectedExpenseForDetails: Expense | null = null;
 
   constructor() {
     makeAutoObservable(this);
@@ -90,6 +92,14 @@ export class ExpenseStore {
 
   setCurrentExpenseRefund(expenseRefund: Partial<CreateExpenseRefundForm>) {
     this.currentExpenseRefund = expenseRefund;
+  }
+
+  setIsExpenseDetailsModalOpen(isOpen: boolean) {
+    this.isExpenseDetailsModalOpen = isOpen;
+  }
+
+  setSelectedExpenseForDetails(expense: Expense | null) {
+    this.selectedExpenseForDetails = expense;
   }
 }
 

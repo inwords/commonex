@@ -1,7 +1,11 @@
 import {RadioButtonGroup} from 'react-hook-form-mui';
 import {expenseService} from '@/5-entities/expense/services/expense-service';
 
-export const SplitOptions = () => {
+interface Props {
+  disabled?: boolean;
+}
+
+export const SplitOptions = ({disabled}: Props) => {
   return (
     <RadioButtonGroup
       label="Варинт деления траты"
@@ -20,6 +24,7 @@ export const SplitOptions = () => {
           label: 'Внести вручную',
         },
       ]}
+      disabled={disabled}
     />
   );
 };

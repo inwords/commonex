@@ -3,7 +3,7 @@ import {ExpensesList} from '@/3-widgets/ExpensesList/ExpensesList';
 import {expenseStore} from '@/5-entities/expense/stores/expense-store';
 import {expenseService} from '@/5-entities/expense/services/expense-service';
 import {observer} from 'mobx-react-lite';
-import {CreateExpense} from '@/4-features/CreateExpense/ui/CreateExpense';
+import {CreateExpense} from '@/4-features/Expense/ui/CreateExpense';
 import {AddExpenseModal} from '@/3-widgets/AddExpenseModal/AddExpenseModal';
 import {useState} from 'react';
 import {AddExpenseRefundModal} from '@/3-widgets/AddExpenseRefundModal/AddExpenseRefundModal';
