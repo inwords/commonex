@@ -54,6 +54,9 @@ architecture with feature-based organization.
 
 - `android/marathon/README.md` - Local Marathon runner usage and setup notes (library extracted manually; binaries not in git). Requires JUnit 4 annotations for test discovery; config in `android/Marathonfile`.
 - `android/gradle/README.md` - Gradle Profiler benchmarks and scenarios (`android/gradle/performance.scenarios`; profiler distribution in `android/gradle/profiler`).
+- `android/docs/database-benchmarking.md` - Room database benchmark workflow and template; use `androidx.benchmark` as primary harness for decision-grade DB performance research, with `androidDeviceTest` timing as auxiliary.
+- `android/docs/database-research-log.md` - Completed database researches and outcomes after benchmark code cleanup.
+- `android/docs/database-research-log-template.md` - Canonical entry template for new items in the database research log.
 
 ## Build Instructions (Workflow)
 

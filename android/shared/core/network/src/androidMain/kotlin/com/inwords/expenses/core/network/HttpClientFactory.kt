@@ -18,12 +18,12 @@ internal actual class HttpClientFactory(
 
     actual suspend fun createHttpClient(): HttpClient {
         return withContext(IO) {
-            val cronet = createCronet(context)
+            val cronet = createCronet()
             createKtor(cronet)
         }
     }
 
-    private fun createCronet(context: Context): CronetEngine {
+    private fun createCronet(): CronetEngine {
         val storagePath = context.cacheDir.absolutePath + "/cronet"
         val storageFile = File(storagePath)
         if (!storageFile.exists()) {
