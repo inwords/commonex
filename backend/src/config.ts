@@ -5,6 +5,7 @@ import {z} from 'zod';
 dotenv.config();
 
 const envSchema = z.object({
+  ENVIRONMENT: z.enum(['local', 'prod']),
   POSTGRES_PORT: z.string(),
   POSTGRES_USER_NAME: z.string(),
   POSTGRES_PASSWORD: z.string(),
@@ -19,6 +20,7 @@ const envSchema = z.object({
 const validatedEnv = envSchema.parse(process.env);
 
 export const config = (): {
+  ENVIRONMENT: 'local' | 'prod';
   POSTGRES_PORT: string;
   POSTGRES_USER_NAME: string;
   POSTGRES_PASSWORD: string;
@@ -42,6 +44,7 @@ export const config = (): {
   OTEL_SERVICE_NAME: string;
 } => {
   return {
+    ENVIRONMENT: validatedEnv.ENVIRONMENT,
     POSTGRES_PORT: validatedEnv.POSTGRES_PORT,
     POSTGRES_USER_NAME: validatedEnv.POSTGRES_USER_NAME,
     POSTGRES_PASSWORD: validatedEnv.POSTGRES_PASSWORD,
