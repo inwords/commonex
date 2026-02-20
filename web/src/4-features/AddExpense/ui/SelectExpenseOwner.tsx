@@ -1,5 +1,9 @@
 import {SelectUser} from '@/5-entities/user/ui/SelectUser';
 
-export const SelectExpenseOwner = () => {
-  return <SelectUser label="Кто оплачивал" name="userWhoPaidId" />;
+interface Props {
+  disabled?: boolean;
+}
+
+export const SelectExpenseOwner = ({disabled}: Props) => {
+  return <SelectUser label="Кто оплачивал" name="userWhoPaidId" disabled={disabled} />;
 };

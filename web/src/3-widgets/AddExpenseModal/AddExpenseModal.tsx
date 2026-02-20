@@ -1,7 +1,8 @@
 import {Dialog, DialogContent, DialogTitle} from '@mui/material';
-import {AddExpenseForm} from '@/4-features/CreateExpense/ui/AddExpenseForm';
+import {ExpenseForm} from '@/4-features/Expense/ui/ExpenseForm';
 import {expenseService} from '@/5-entities/expense/services/expense-service';
 import {eventStore} from '@/5-entities/event/stores/event-store';
+import {useEffect} from 'react';
 
 interface Props {
   isOpen: boolean;
@@ -9,12 +10,19 @@ interface Props {
 }
 
 export const AddExpenseModal = ({isOpen, setIsOpen}: Props) => {
+  // Сбрасываем splitOption при открытии модалки
+  useEffect(() => {
+    if (isOpen) {
+      expenseService.setSplitOption('1');
+    }
+  }, [isOpen]);
+
   return (
     <Dialog open={isOpen} fullWidth={true} onClose={() => setIsOpen(false)}>
       <DialogTitle id="alert-dialog-title">Добавление траты</DialogTitle>
 
       <DialogContent>
-        <AddExpenseForm
+        <ExpenseForm
           onSuccess={async (isOpen, d, id) => {
             setIsOpen(isOpen);
             if (eventStore.currentEvent?.pinCode) {
