@@ -13,6 +13,13 @@ struct iOSApp: App {
         WindowGroup {
             ContentView()
                 .ignoresSafeArea()
+                .onOpenURL { url in
+                    MainViewControllerKt.supplyDeeplink(deeplink: url.absoluteString)
+                }
+                .onContinueUserActivity(NSUserActivityTypeBrowsingWeb) { userActivity in
+                    guard let url = userActivity.webpageURL else { return }
+                    MainViewControllerKt.supplyDeeplink(deeplink: url.absoluteString)
+                }
         }
     }
 }

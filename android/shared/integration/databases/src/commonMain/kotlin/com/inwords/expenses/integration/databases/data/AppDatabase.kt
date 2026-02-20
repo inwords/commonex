@@ -51,5 +51,6 @@ internal fun createAppDatabase(
         .addMigrations(MIGRATION_1_2)
         .setDriver(BundledSQLiteDriver())
         .addCallback(RoomOnCreateCallback())
+        .addCallback(RoomOnOpenPragmasCallback())
         .build()
 }
