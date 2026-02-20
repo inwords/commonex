@@ -70,6 +70,16 @@ export class ExpenseStore {
     return debts;
   }
 
+  get totalExpensesAmount() {
+    return this.expensesToView.reduce((sum, expense) => sum + expense.amount, 0);
+  }
+
+  get currentUserPaidAmount() {
+    return this.expensesToView
+      .filter((e) => e.userWhoPaidId === userStore.currentUser?.id)
+      .reduce((sum, expense) => sum + expense.amount, 0);
+  }
+
   setExpenses(expenses: Array<Expense>) {
     this.expenses = expenses;
   }

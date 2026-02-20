@@ -42,8 +42,19 @@ export const ExpensesList = observer(() => {
             return prev;
           }, 0);
 
-          const shouldShowReturnButton =
-            userStore.currentUser?.id !== e.userWhoPaidId && currentUserDebt > 0;
+          const shouldShowReturnButton = userStore.currentUser?.id !== e.userWhoPaidId && currentUserDebt > 0;
+
+          // Вычисляем курс валюты (если трата была в другой валюте)
+          const isMultiCurrency = e.currencyId !== eventStore.currentEvent?.currencyId;
+          const expenseCurrencyCode = currencyStore.getCurrencyCode(e.currencyId);
+
+          let exchangeRate = 1;
+          if (isMultiCurrency && e.splitInformation.length > 0) {
+            const firstSplit = e.splitInformation[0];
+            if (firstSplit.amount > 0) {
+              exchangeRate = firstSplit.exchangedAmount / firstSplit.amount;
+            }
+          }
 
           const handleCardClick = () => {
             // Найдем оригинальный Expense объект
@@ -71,9 +82,15 @@ export const ExpensesList = observer(() => {
                   Оплатил: {userStore.usersDictIdToName[e.userWhoPaidId] || 'Неизвестно'}
                 </Typography>
 
+                {isMultiCurrency && (
+                  <Typography variant="body2" sx={{mt: 0.5, color: 'text.secondary'}}>
+                    Валюта траты: {expenseCurrencyCode} (курс: {exchangeRate.toFixed(2)})
+                  </Typography>
+                )}
+
                 {currentUserDebt > 0 && (
                   <Typography variant="body2" sx={{mt: 0.5, color: 'primary.main', fontWeight: 'medium'}}>
-                    Ваша доля: {currentUserDebt.toFixed(2)}{' '}
+                    Ваша доля: {currentUserDebt.toFixed(2)}
                     {currencyStore.getCurrencyCode(eventStore.currentEvent?.currencyId)}
                   </Typography>
                 )}
