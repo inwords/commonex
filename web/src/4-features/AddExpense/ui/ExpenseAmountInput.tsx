@@ -5,5 +5,5 @@ interface Props {
 }
 
 export const ExpenseAmountInput = ({disabled}: Props) => {
-  return <TextFieldElement name={'amount'} label={'Сумма траты'} required disabled={disabled} />;
+  return <TextFieldElement name={'amount'} label={'Сумма траты'} required disabled={disabled} type="number" />;
 };

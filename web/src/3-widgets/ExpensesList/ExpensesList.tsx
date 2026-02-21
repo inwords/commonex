@@ -1,4 +1,5 @@
 import {Box, Button, Card, CardActions, CardContent, Stack, Typography} from '@mui/material';
+import {ChevronRight} from '@mui/icons-material';
 import {observer} from 'mobx-react-lite';
 import {expenseStore} from '@/5-entities/expense/stores/expense-store';
 import {userStore} from '@/5-entities/user/stores/user-store';
@@ -56,7 +57,7 @@ export const ExpensesList = observer(() => {
             }
           }
 
-          const handleCardClick = () => {
+          const handleIconClick = () => {
             // Найдем оригинальный Expense объект
             const originalExpense = expenseStore.expenses.find((exp) => exp.id === e.id);
             if (originalExpense) {
@@ -66,15 +67,21 @@ export const ExpensesList = observer(() => {
           };
 
           return (
-            <Card key={e.id} onClick={handleCardClick} sx={{cursor: 'pointer'}}>
+            <Card key={e.id}>
               <CardContent>
                 <Typography variant="h5">
-                  <Stack direction="row" justifyContent={'space-between'}>
+                  <Stack direction="row" justifyContent={'space-between'} alignItems="center">
                     {e.description}
 
-                    <div>
-                      {e.amount.toFixed(2)} {currencyStore.getCurrencyCode(eventStore.currentEvent?.currencyId)}
-                    </div>
+                    <Stack direction="row" alignItems="center" spacing={1}>
+                      <div>
+                        {e.amount.toFixed(2)} {currencyStore.getCurrencyCode(eventStore.currentEvent?.currencyId)}
+                      </div>
+                      <ChevronRight
+                        onClick={handleIconClick}
+                        sx={{color: 'text.secondary', cursor: 'pointer'}}
+                      />
+                    </Stack>
                   </Stack>
                 </Typography>
 
@@ -104,8 +111,7 @@ export const ExpensesList = observer(() => {
                 {shouldShowReturnButton && (
                   <Button
                     variant="contained"
-                    onClick={(event) => {
-                      event.stopPropagation();
+                    onClick={() => {
                       expenseStore.setCurrentExpenseRefund({
                         description: `Возврат за ${e.description}`,
                         amount: Number(currentUserDebt.toFixed(2)),
