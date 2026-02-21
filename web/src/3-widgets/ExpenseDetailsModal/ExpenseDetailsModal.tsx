@@ -10,7 +10,7 @@ export const ExpenseDetailsModal = observer(() => {
 
   // Определяем тип деления: если все суммы равны - поровну ('1'), иначе - вручную ('2')
   const allAmountsEqual = expense?.splitInformation.every(
-    (split) => split.amount === expense.splitInformation[0].amount
+    (split) => split.amount === expense.splitInformation[0].amount,
   );
 
   const splitOption = allAmountsEqual ? '1' : '2';
@@ -43,7 +43,7 @@ export const ExpenseDetailsModal = observer(() => {
         amount: split.amount,
       })),
     }),
-    amount: expense.splitInformation.reduce((sum, split) => sum + split.exchangedAmount, 0),
+    amount: expense.splitInformation.reduce((sum, split) => sum + split.amount, 0),
     splitOption,
   };
 
