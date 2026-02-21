@@ -41,7 +41,7 @@ export class ExpenseStore {
   }
 
   get currentUserDebts() {
-    const debts = this.expenses.reduce<Record<string, number>>((prev, curr) => {
+    const myDebtsToOthers = this.expenses.reduce<Record<string, number>>((prev, curr) => {
       if (curr.userWhoPaidId !== userStore.currentUser?.id) {
         prev[curr.userWhoPaidId] =
           (prev[curr.userWhoPaidId] || 0) +
@@ -57,17 +57,45 @@ export class ExpenseStore {
       return prev;
     }, {});
 
+    const othersDebtsToMe = this.expenses.reduce<Record<string, number>>((prev, curr) => {
+      if (curr.userWhoPaidId === userStore.currentUser?.id) {
+        curr.splitInformation.forEach((split) => {
+          if (split.userId !== userStore.currentUser?.id) {
+            prev[split.userId] = (prev[split.userId] || 0) + split.exchangedAmount;
+          }
+        });
+      }
+
+      return prev;
+    }, {});
+
+    Object.keys(othersDebtsToMe).forEach((userId) => {
+      if (myDebtsToOthers[userId]) {
+        myDebtsToOthers[userId] -= othersDebtsToMe[userId];
+      } else {
+        myDebtsToOthers[userId] = -othersDebtsToMe[userId];
+      }
+    });
+
     this.expenseRefunds.forEach((r) => {
       if (userStore.currentUser?.id === r.userWhoPaidId) {
         r.splitInformation.forEach((i) => {
-          if (debts[i.userId]) {
-            debts[i.userId] -= i.exchangedAmount;
+          if (myDebtsToOthers[i.userId]) {
+            myDebtsToOthers[i.userId] -= i.exchangedAmount;
           }
         });
       }
     });
 
-    return debts;
+    const result: Record<string, number> = {};
+
+    Object.entries(myDebtsToOthers).forEach(([userId, amount]) => {
+      if (amount > 0) {
+        result[userId] = amount;
+      }
+    });
+
+    return result;
   }
 
   get totalExpensesAmount() {
