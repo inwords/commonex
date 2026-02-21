@@ -58,7 +58,7 @@ const ExpenseFormContent = observer(({readOnly = false}: Omit<Props, 'expenseDat
             <>
               {fields.map((field, index) => (
                 <React.Fragment key={field.id}>
-                  <TextFieldElement name={`splitInformation.${index}.amount`} label={'Сумма к возврату'} required disabled={readOnly} />
+                  <TextFieldElement name={`splitInformation.${index}.amount`} label={'Сумма к возврату'} required disabled={readOnly} type="number" />
 
                   <SelectUser label="Кто должен" name={`splitInformation.${index}.userId`} disabled={readOnly} />
                 </React.Fragment>
