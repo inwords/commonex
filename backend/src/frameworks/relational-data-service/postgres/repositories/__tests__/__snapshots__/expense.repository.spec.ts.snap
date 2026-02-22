@@ -1,16 +1,16 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`ExpenseRepository findAll should find all expenses with limit 1`] = `
 {
   "queryParameters": {},
-  "queryString": "SELECT "expense"."id" AS "expense_id", "expense"."description" AS "expense_description", "expense"."user_who_paid_id" AS "expense_user_who_paid_id", "expense"."currency_id" AS "expense_currency_id", "expense"."event_id" AS "expense_event_id", "expense"."expense_type" AS "expense_expense_type", "expense"."split_information" AS "expense_split_information", "expense"."created_at" AS "expense_created_at", "expense"."updated_at" AS "expense_updated_at" FROM "expense" "expense" LIMIT 10",
+  "queryString": "SELECT "expense"."id" AS "expense_id", "expense"."description" AS "expense_description", "expense"."user_who_paid_id" AS "expense_user_who_paid_id", "expense"."currency_id" AS "expense_currency_id", "expense"."event_id" AS "expense_event_id", "expense"."expense_type" AS "expense_expense_type", "expense"."split_information" AS "expense_split_information", "expense"."is_custom_rate" AS "expense_is_custom_rate", "expense"."created_at" AS "expense_created_at", "expense"."updated_at" AS "expense_updated_at" FROM "expense" "expense" LIMIT 10",
 }
 `;
 
 exports[`ExpenseRepository findAll should respect limit parameter 1`] = `
 {
   "queryParameters": {},
-  "queryString": "SELECT "expense"."id" AS "expense_id", "expense"."description" AS "expense_description", "expense"."user_who_paid_id" AS "expense_user_who_paid_id", "expense"."currency_id" AS "expense_currency_id", "expense"."event_id" AS "expense_event_id", "expense"."expense_type" AS "expense_expense_type", "expense"."split_information" AS "expense_split_information", "expense"."created_at" AS "expense_created_at", "expense"."updated_at" AS "expense_updated_at" FROM "expense" "expense" LIMIT 2",
+  "queryString": "SELECT "expense"."id" AS "expense_id", "expense"."description" AS "expense_description", "expense"."user_who_paid_id" AS "expense_user_who_paid_id", "expense"."currency_id" AS "expense_currency_id", "expense"."event_id" AS "expense_event_id", "expense"."expense_type" AS "expense_expense_type", "expense"."split_information" AS "expense_split_information", "expense"."is_custom_rate" AS "expense_is_custom_rate", "expense"."created_at" AS "expense_created_at", "expense"."updated_at" AS "expense_updated_at" FROM "expense" "expense" LIMIT 2",
 }
 `;
 
@@ -19,7 +19,7 @@ exports[`ExpenseRepository findByEventId should find expenses by event id 1`] = 
   "queryParameters": {
     "eventId": "event-1",
   },
-  "queryString": "SELECT "expense"."id" AS "expense_id", "expense"."description" AS "expense_description", "expense"."user_who_paid_id" AS "expense_user_who_paid_id", "expense"."currency_id" AS "expense_currency_id", "expense"."event_id" AS "expense_event_id", "expense"."expense_type" AS "expense_expense_type", "expense"."split_information" AS "expense_split_information", "expense"."created_at" AS "expense_created_at", "expense"."updated_at" AS "expense_updated_at" FROM "expense" "expense" WHERE "expense"."event_id" = :eventId",
+  "queryString": "SELECT "expense"."id" AS "expense_id", "expense"."description" AS "expense_description", "expense"."user_who_paid_id" AS "expense_user_who_paid_id", "expense"."currency_id" AS "expense_currency_id", "expense"."event_id" AS "expense_event_id", "expense"."expense_type" AS "expense_expense_type", "expense"."split_information" AS "expense_split_information", "expense"."is_custom_rate" AS "expense_is_custom_rate", "expense"."created_at" AS "expense_created_at", "expense"."updated_at" AS "expense_updated_at" FROM "expense" "expense" WHERE "expense"."event_id" = :eventId",
 }
 `;
 
@@ -28,7 +28,7 @@ exports[`ExpenseRepository findByEventId should return empty array for non-exist
   "queryParameters": {
     "eventId": "non-existent",
   },
-  "queryString": "SELECT "expense"."id" AS "expense_id", "expense"."description" AS "expense_description", "expense"."user_who_paid_id" AS "expense_user_who_paid_id", "expense"."currency_id" AS "expense_currency_id", "expense"."event_id" AS "expense_event_id", "expense"."expense_type" AS "expense_expense_type", "expense"."split_information" AS "expense_split_information", "expense"."created_at" AS "expense_created_at", "expense"."updated_at" AS "expense_updated_at" FROM "expense" "expense" WHERE "expense"."event_id" = :eventId",
+  "queryString": "SELECT "expense"."id" AS "expense_id", "expense"."description" AS "expense_description", "expense"."user_who_paid_id" AS "expense_user_who_paid_id", "expense"."currency_id" AS "expense_currency_id", "expense"."event_id" AS "expense_event_id", "expense"."expense_type" AS "expense_expense_type", "expense"."split_information" AS "expense_split_information", "expense"."is_custom_rate" AS "expense_is_custom_rate", "expense"."created_at" AS "expense_created_at", "expense"."updated_at" AS "expense_updated_at" FROM "expense" "expense" WHERE "expense"."event_id" = :eventId",
 }
 `;
 
@@ -42,9 +42,10 @@ exports[`ExpenseRepository insert should insert expense correctly 1`] = `
     "orm_param_4": "event-1",
     "orm_param_5": "expense",
     "orm_param_6": "[{"userId":"user-1","amount":50,"exchangedAmount":50},{"userId":"user-2","amount":50,"exchangedAmount":50}]",
-    "orm_param_7": 2023-01-01T00:00:00.000Z,
+    "orm_param_7": false,
     "orm_param_8": 2023-01-01T00:00:00.000Z,
+    "orm_param_9": 2023-01-01T00:00:00.000Z,
   },
-  "queryString": "INSERT INTO "expense" AS "ExpenseEntity"("id", "description", "user_who_paid_id", "currency_id", "event_id", "expense_type", "split_information", "created_at", "updated_at") VALUES (:orm_param_0, :orm_param_1, :orm_param_2, :orm_param_3, :orm_param_4, :orm_param_5, :orm_param_6, :orm_param_7, :orm_param_8)",
+  "queryString": "INSERT INTO "expense" AS "ExpenseEntity"("id", "description", "user_who_paid_id", "currency_id", "event_id", "expense_type", "split_information", "is_custom_rate", "created_at", "updated_at") VALUES (:orm_param_0, :orm_param_1, :orm_param_2, :orm_param_3, :orm_param_4, :orm_param_5, :orm_param_6, :orm_param_7, :orm_param_8, :orm_param_9)",
 }
 `;

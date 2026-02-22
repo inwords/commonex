@@ -91,7 +91,8 @@ export const ExpensesList = observer(() => {
 
                 {isMultiCurrency && (
                   <Typography variant="body2" sx={{mt: 0.5, color: 'text.secondary'}}>
-                    Валюта траты: {expenseCurrencyCode} (курс: {exchangeRate.toFixed(2)})
+                    Валюта траты: {expenseCurrencyCode} (курс: {exchangeRate.toFixed(2)}
+                    {e.isCustomRate && ' (ручной)'})
                   </Typography>
                 )}
 

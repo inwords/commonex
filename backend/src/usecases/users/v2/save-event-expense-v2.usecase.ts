@@ -14,13 +14,24 @@ import {
   InvalidPinCodeError,
   CurrencyNotFoundError,
   CurrencyRateNotFoundError,
+  InconsistentExchangedAmountError,
 } from '#domain/errors/errors';
 
-type Input = Omit<IExpense, 'createdAt' | 'id' | 'updatedAt'> &
-  Partial<Pick<IExpense, 'createdAt'>> & {pinCode: string};
+type SplitInfoInput = Omit<ISplitInfo, 'exchangedAmount'> & Partial<Pick<ISplitInfo, 'exchangedAmount'>>;
+
+type Input = Omit<IExpense, 'createdAt' | 'id' | 'updatedAt' | 'isCustomRate' | 'splitInformation'> &
+  Partial<Pick<IExpense, 'createdAt'>> & {
+    splitInformation: Array<SplitInfoInput>;
+    pinCode: string;
+  };
 type Output = Result<
   IExpense,
-  EventNotFoundError | EventDeletedError | InvalidPinCodeError | CurrencyNotFoundError | CurrencyRateNotFoundError
+  | EventNotFoundError
+  | EventDeletedError
+  | InvalidPinCodeError
+  | CurrencyNotFoundError
+  | CurrencyRateNotFoundError
+  | InconsistentExchangedAmountError
 >;
 
 @Injectable()
@@ -66,52 +77,77 @@ export class SaveEventExpenseV2UseCase implements UseCase<Input, Output> {
           });
         }
 
-        const expense = new ExpenseValueObject({...restInput, splitInformation}).value;
+        const expense = new ExpenseValueObject({...restInput, splitInformation, isCustomRate: false}).value;
 
         await this.rDataService.expense.insert(expense, {ctx});
 
         return success(expense);
       } else {
-        const [expenseCurrencyCode] = await this.rDataService.currency.findById(restInput.currencyId, {ctx});
-        const [eventCurrencyCode] = await this.rDataService.currency.findById(event.currencyId, {ctx});
+        // Проверяем, передан ли exchangedAmount хотя бы в одном элементе
+        const hasCustomRate = input.splitInformation.some((s) => s.exchangedAmount !== undefined);
 
-        if (!eventCurrencyCode || !expenseCurrencyCode) {
-          return error(new CurrencyNotFoundError());
+        if (hasCustomRate) {
+          // Кастомный курс - используем переданные exchangedAmount
+          const splitInformation: ISplitInfo[] = [];
+          for (const splitInfo of input.splitInformation) {
+            if (splitInfo.exchangedAmount === undefined) {
+              return error(new InconsistentExchangedAmountError());
+            }
+            splitInformation.push({
+              userId: splitInfo.userId,
+              amount: splitInfo.amount,
+              exchangedAmount: splitInfo.exchangedAmount,
+            });
+          }
+
+          const expense = new ExpenseValueObject({...restInput, splitInformation, isCustomRate: true}).value;
+
+          await this.rDataService.expense.insert(expense, {ctx});
+
+          return success(expense);
+        } else {
+          // Автоматический курс (существующая логика)
+          const [expenseCurrencyCode] = await this.rDataService.currency.findById(restInput.currencyId, {ctx});
+          const [eventCurrencyCode] = await this.rDataService.currency.findById(event.currencyId, {ctx});
+
+          if (!eventCurrencyCode || !expenseCurrencyCode) {
+            return error(new CurrencyNotFoundError());
+          }
+
+          const getDateForExchangeRate = restInput.createdAt
+            ? getDateWithoutTimeUTC(new Date(restInput.createdAt))
+            : getCurrentDateWithoutTimeUTC();
+
+          const [currencyRate] = await this.rDataService.currencyRate.findByDate(getDateForExchangeRate, {ctx});
+
+          if (!currencyRate) {
+            return error(new CurrencyRateNotFoundError());
+          }
+
+          const expenseCurrencyRate = currencyRate.rate[expenseCurrencyCode.code];
+          const eventCurrencyRate = currencyRate.rate[eventCurrencyCode.code];
+
+          if (expenseCurrencyRate === undefined || eventCurrencyRate === undefined) {
+            return error(new CurrencyRateNotFoundError());
+          }
+
+          const exchangeRate = eventCurrencyRate / expenseCurrencyRate;
+
+          const splitInformation: ISplitInfo[] = [];
+
+          for (const splitInfo of input.splitInformation) {
+            splitInformation.push({
+              ...splitInfo,
+              exchangedAmount: Number(Number(splitInfo.amount * exchangeRate).toFixed(2)),
+            });
+          }
+
+          const expense = new ExpenseValueObject({...restInput, splitInformation, isCustomRate: false}).value;
+
+          await this.rDataService.expense.insert(expense, {ctx});
+
+          return success(expense);
         }
-
-        const getDateForExchangeRate = restInput.createdAt
-          ? getDateWithoutTimeUTC(new Date(restInput.createdAt))
-          : getCurrentDateWithoutTimeUTC();
-
-        const [currencyRate] = await this.rDataService.currencyRate.findByDate(getDateForExchangeRate, {ctx});
-
-        if (!currencyRate) {
-          return error(new CurrencyRateNotFoundError());
-        }
-
-        const expenseCurrencyRate = currencyRate.rate[expenseCurrencyCode.code];
-        const eventCurrencyRate = currencyRate.rate[eventCurrencyCode.code];
-
-        if (expenseCurrencyRate === undefined || eventCurrencyRate === undefined) {
-          return error(new CurrencyRateNotFoundError());
-        }
-
-        const exchangeRate = eventCurrencyRate / expenseCurrencyRate;
-
-        const splitInformation: ISplitInfo[] = [];
-
-        for (const splitInfo of input.splitInformation) {
-          splitInformation.push({
-            ...splitInfo,
-            exchangedAmount: Number(Number(splitInfo.amount * exchangeRate).toFixed(2)),
-          });
-        }
-
-        const expense = new ExpenseValueObject({...restInput, splitInformation}).value;
-
-        await this.rDataService.expense.insert(expense, {ctx});
-
-        return success(expense);
       }
     });
   }

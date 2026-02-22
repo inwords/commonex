@@ -12,9 +12,11 @@ import {
   GetEventExpensesV2UseCase,
   CreateEventShareTokenV2UseCase,
 } from './v2';
+import {GetAllCurrenciesWithRatesUseCaseV3} from './v3';
 
 export const allUsersUseCases = [
   GetAllCurrenciesUseCase,
+  GetAllCurrenciesWithRatesUseCaseV3,
   GetEventInfoUseCase,
   SaveEventUseCase,
   GetEventExpensesUseCase,

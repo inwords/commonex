@@ -3,12 +3,12 @@ import {ExpenseForm} from '@/4-features/Expense/ui/ExpenseForm';
 import {expenseStore} from '@/5-entities/expense/stores/expense-store';
 import {observer} from 'mobx-react-lite';
 import {useEffect} from 'react';
+import {eventStore} from '@/5-entities/event/stores/event-store';
 
 export const ExpenseDetailsModal = observer(() => {
   const isOpen = expenseStore.isExpenseDetailsModalOpen;
   const expense = expenseStore.selectedExpenseForDetails;
 
-  // Определяем тип деления: если все суммы равны - поровну ('1'), иначе - вручную ('2')
   const allAmountsEqual = expense?.splitInformation.every(
     (split) => split.amount === expense.splitInformation[0].amount,
   );
@@ -31,6 +31,14 @@ export const ExpenseDetailsModal = observer(() => {
     return null;
   }
 
+  let exchangeRate: number | undefined;
+  if (expense.currencyId !== eventStore.currentEvent?.currencyId && expense.splitInformation.length > 0) {
+    const firstSplit = expense.splitInformation[0];
+    if (firstSplit.amount > 0) {
+      exchangeRate = firstSplit.exchangedAmount / firstSplit.amount;
+    }
+  }
+
   const expenseFormData = {
     description: expense.description,
     userWhoPaidId: expense.userWhoPaidId,
@@ -45,6 +53,7 @@ export const ExpenseDetailsModal = observer(() => {
     }),
     amount: expense.splitInformation.reduce((sum, split) => sum + split.amount, 0),
     splitOption,
+    ...(exchangeRate !== undefined && {exchangeRate}),
   };
 
   return (

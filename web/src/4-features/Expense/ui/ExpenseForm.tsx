@@ -12,6 +12,9 @@ import {SelectUser} from '@/5-entities/user/ui/SelectUser';
 import {CreateExpenseForm} from '@/5-entities/expense/types/types';
 import {expenseStore} from '@/5-entities/expense/stores/expense-store';
 import {SelectCurrency} from '@/5-entities/currency/ui/SelectCurrency';
+import {ExchangeRateInput} from '@/4-features/Expense/ui/ExchangeRateInput';
+import {currencyStore} from '@/5-entities/currency/stores/currency-store';
+import {eventStore} from '@/5-entities/event/stores/event-store';
 
 interface Props {
   onSuccess?: (isModalOpen: boolean, data: CreateExpenseForm, id: string) => void;
@@ -20,13 +23,15 @@ interface Props {
 }
 
 const ExpenseFormContent = observer(({readOnly = false}: Omit<Props, 'expenseData'>) => {
-  const {control} = useFormContext();
+  const {control, watch, setValue} = useFormContext();
   const {fields, append, remove} = useFieldArray({
     control,
     name: 'splitInformation',
   });
 
   const isSplitEqually = expenseStore.splitOption === '1';
+  const currencyId = watch('currencyId');
+  const eventCurrencyId = eventStore.currentEvent?.currencyId;
 
   useEffect(() => {
     if (!isSplitEqually && fields.length === 0) {
@@ -40,6 +45,21 @@ const ExpenseFormContent = observer(({readOnly = false}: Omit<Props, 'expenseDat
     }
   }, [isSplitEqually]);
 
+  // Устанавливаем автоматический курс при смене валюты (только если не readOnly)
+  useEffect(() => {
+    if (readOnly) return;
+
+    if (!currencyId || !eventCurrencyId || currencyId === eventCurrencyId) {
+      setValue('exchangeRate', undefined);
+      return;
+    }
+
+    const autoRate = currencyStore.calculateExchangeRate(currencyId, eventCurrencyId);
+    if (autoRate > 0) {
+      setValue('exchangeRate', parseFloat(autoRate.toFixed(2)));
+    }
+  }, [currencyId, eventCurrencyId, readOnly]);
+
   return (
     <>
       <fieldset disabled={readOnly} style={{border: 'none', padding: 0, margin: 0}}>
@@ -51,6 +71,8 @@ const ExpenseFormContent = observer(({readOnly = false}: Omit<Props, 'expenseDat
           <SelectExpenseOwner disabled={readOnly} />
 
           <SelectCurrency disabled={readOnly} />
+
+          <ExchangeRateInput disabled={readOnly} />
 
           <SplitOptions disabled={readOnly} />
 

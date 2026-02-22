@@ -8,6 +8,7 @@ export interface CreateExpenseForm {
   splitInformation: Array<Omit<SplitInfo, 'exchangedAmount'>>;
   amount: number;
   splitOption: string;
+  exchangeRate?: number;
 }
 
 export interface CreateExpenseRefundForm {
@@ -36,6 +37,7 @@ export interface ExpenseBase {
   currencyId: string;
   eventId: string;
   splitInformation: Array<SplitInfo>;
+  isCustomRate: boolean;
   createdAt: string;
 }
 

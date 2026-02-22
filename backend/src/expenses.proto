@@ -98,11 +98,14 @@ message Expense {
   ExpenseType expenseType = 5;
   repeated SplitInfo splitInformation = 6;
   string createdAt = 7;
+  bool isCustomRate = 8;
+  string updatedAt = 9;
 }
 
 message SplitInfo {
   string userId = 1;
   int32 amount = 2;
+  optional int32 exchangedAmount = 3;
 }
 
 enum ExpenseType {
@@ -132,6 +135,8 @@ message ExpenseResponse {
   ExpenseType expenseType = 5;
   repeated SplitInfo splitInformation = 6;
   string createdAt = 7;
+  bool isCustomRate = 8;
+  string updatedAt = 9;
 }
 
 message GetEventExpensesV2Request {

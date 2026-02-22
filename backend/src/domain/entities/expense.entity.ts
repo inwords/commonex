@@ -11,6 +11,7 @@ export interface IExpense {
   eventId: string;
   expenseType: ExpenseType;
   splitInformation: Array<ISplitInfo>;
+  isCustomRate: boolean;
   createdAt: Date;
   updatedAt: Date;
 }

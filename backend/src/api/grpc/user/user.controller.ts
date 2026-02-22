@@ -144,7 +144,11 @@ export class UserController {
   async createExpense(
     @Body() expense: CreateExpenseRequestV1Dto & CreateExpenseParamsDto,
   ): Promise<CreateExpenseResponseDto> {
-    const result = await this.saveEventExpenseUseCase.execute(expense);
+    const result = await this.saveEventExpenseUseCase.execute({
+      ...expense,
+      isCustomRate: false,
+      splitInformation: expense.splitInformation.map(({userId, amount}) => ({userId, amount, exchangedAmount: amount})),
+    });
 
     if (isError(result)) {
       throw result.error;

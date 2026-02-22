@@ -88,6 +88,7 @@ describe('SaveEventExpenseUseCase', () => {
         description: 'Lunch at restaurant',
         userWhoPaidId: 'user-1',
         expenseType: ExpenseType.Expense,
+        isCustomRate: false,
         splitInformation: [
           {userId: 'user-1', amount: 40, exchangedAmount: 0},
           {userId: 'user-2', amount: 60, exchangedAmount: 0},
@@ -100,6 +101,7 @@ describe('SaveEventExpenseUseCase', () => {
         description: 'Lunch at restaurant',
         userWhoPaidId: 'user-1',
         expenseType: ExpenseType.Expense,
+        isCustomRate: false,
         splitInformation: [
           {userId: 'user-1', amount: 40, exchangedAmount: 40},
           {userId: 'user-2', amount: 60, exchangedAmount: 60},
@@ -117,6 +119,7 @@ describe('SaveEventExpenseUseCase', () => {
               description: 'Lunch at restaurant',
               userWhoPaidId: 'user-1',
               expenseType: ExpenseType.Expense,
+              isCustomRate: false,
               splitInformation: [
                 {userId: 'user-1', amount: 40, exchangedAmount: 40},
                 {userId: 'user-2', amount: 60, exchangedAmount: 60},
@@ -178,6 +181,7 @@ describe('SaveEventExpenseUseCase', () => {
         description: 'Lunch in EUR',
         userWhoPaidId: 'user-1',
         expenseType: ExpenseType.Expense,
+        isCustomRate: false,
         splitInformation: [
           {userId: 'user-1', amount: 40, exchangedAmount: 0},
           {userId: 'user-2', amount: 60, exchangedAmount: 0},
@@ -190,6 +194,7 @@ describe('SaveEventExpenseUseCase', () => {
         description: 'Lunch in EUR',
         userWhoPaidId: 'user-1',
         expenseType: ExpenseType.Expense,
+        isCustomRate: false,
         splitInformation: [
           {userId: 'user-1', amount: 40, exchangedAmount: 47.06},
           {userId: 'user-2', amount: 60, exchangedAmount: 70.59},
@@ -207,6 +212,7 @@ describe('SaveEventExpenseUseCase', () => {
               description: 'Lunch in EUR',
               userWhoPaidId: 'user-1',
               expenseType: ExpenseType.Expense,
+              isCustomRate: false,
               splitInformation: [
                 {userId: 'user-1', amount: 40, exchangedAmount: 47.06},
                 {userId: 'user-2', amount: 60, exchangedAmount: 70.59},
@@ -231,6 +237,7 @@ describe('SaveEventExpenseUseCase', () => {
         description: 'Lunch',
         userWhoPaidId: 'user-1',
         expenseType: ExpenseType.Expense,
+        isCustomRate: false,
         splitInformation: [{userId: 'user-1', amount: 100, exchangedAmount: 0}],
       },
       output: error(new EventNotFoundError()),
@@ -258,6 +265,7 @@ describe('SaveEventExpenseUseCase', () => {
         eventId: 'event-1',
         currencyId: 'currency-usd',
         description: 'Lunch',
+        isCustomRate: false,
         userWhoPaidId: 'user-1',
         expenseType: ExpenseType.Expense,
         splitInformation: [{userId: 'user-1', amount: 100, exchangedAmount: 0}],
@@ -295,6 +303,7 @@ describe('SaveEventExpenseUseCase', () => {
       input: {
         eventId: 'event-1',
         currencyId: 'currency-eur',
+        isCustomRate: false,
         description: 'Lunch',
         userWhoPaidId: 'user-1',
         expenseType: ExpenseType.Expense,
@@ -338,6 +347,7 @@ describe('SaveEventExpenseUseCase', () => {
       },
       input: {
         eventId: 'event-1',
+        isCustomRate: false,
         currencyId: 'currency-eur',
         description: 'Lunch',
         userWhoPaidId: 'user-1',

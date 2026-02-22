@@ -1,11 +1,11 @@
-import {getCurrencies} from '@/5-entities/currency/services/api';
+import {getCurrenciesWithRates} from '@/5-entities/currency/services/api';
 import {currencyStore} from '@/5-entities/currency/stores/currency-store';
 
 export class CurrencyService {
   async fetchCurrencies() {
-    const currencies = await getCurrencies();
+    const data = await getCurrenciesWithRates();
 
-    currencyStore.setCurrencies(currencies);
+    currencyStore.setCurrenciesWithRates(data);
   }
 }
 

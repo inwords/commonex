@@ -7,4 +7,5 @@ export {
   TokenExpiredError,
   CurrencyNotFoundError,
   CurrencyRateNotFoundError,
+  InconsistentExchangedAmountError,
 } from './errors';
