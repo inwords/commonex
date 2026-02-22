@@ -32,6 +32,7 @@ describe('ExpenseRepository', () => {
         currencyId: 'currency-1',
         eventId: 'event-1',
         expenseType: ExpenseType.Expense,
+        isCustomRate: false,
         splitInformation: [
           {
             userId: 'user-1',
@@ -66,6 +67,7 @@ describe('ExpenseRepository', () => {
         currencyId: 'currency-1',
         eventId: 'event-1',
         expenseType: ExpenseType.Expense,
+        isCustomRate: false,
         splitInformation: [
           {
             userId: 'user-1',
@@ -109,6 +111,7 @@ describe('ExpenseRepository', () => {
           currencyId: 'currency-1',
           eventId: 'event-1',
           expenseType: ExpenseType.Expense,
+          isCustomRate: false,
           splitInformation: [
             {
               userId: 'user-1',
@@ -131,6 +134,7 @@ describe('ExpenseRepository', () => {
           currencyId: 'currency-1',
           eventId: 'event-1',
           expenseType: ExpenseType.Expense,
+          isCustomRate: false,
           splitInformation: [
             {
               userId: 'user-1',
@@ -172,6 +176,8 @@ describe('ExpenseRepository', () => {
               exchangedAmount: 50,
             },
           ],
+          isCustomRate: false,
+
           createdAt: new Date('2023-01-01T00:00:00Z'),
           updatedAt: new Date('2023-01-01T00:00:00Z'),
         },
@@ -189,6 +195,8 @@ describe('ExpenseRepository', () => {
               exchangedAmount: 30,
             },
           ],
+          isCustomRate: false,
+
           createdAt: new Date('2023-01-02T00:00:00Z'),
           updatedAt: new Date('2023-01-02T00:00:00Z'),
         },
@@ -206,6 +214,8 @@ describe('ExpenseRepository', () => {
               exchangedAmount: 20,
             },
           ],
+          isCustomRate: false,
+
           createdAt: new Date('2023-01-03T00:00:00Z'),
           updatedAt: new Date('2023-01-03T00:00:00Z'),
         },

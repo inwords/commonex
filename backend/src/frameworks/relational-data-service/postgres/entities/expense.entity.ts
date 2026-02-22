@@ -24,6 +24,9 @@ export class ExpenseEntity implements IExpense {
   @Column({type: 'jsonb'})
   splitInformation!: IExpense['splitInformation'];
 
+  @Column({type: 'boolean'})
+  isCustomRate!: IExpense['isCustomRate'];
+
   @Column({type: 'timestamptz'})
   createdAt!: IExpense['createdAt'];
 

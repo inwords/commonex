@@ -1,5 +1,5 @@
 import {httpClient} from '@/6-shared/api/http-client';
 
-export const getCurrencies = async () => {
-  return await httpClient.request('/user/currencies/all', {method: 'GET'});
+export const getCurrenciesWithRates = async () => {
+  return await httpClient.request('/v3/user/currencies/all', {method: 'GET'});
 };

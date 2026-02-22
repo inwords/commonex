@@ -3,6 +3,7 @@ import {Currency} from '@/5-entities/currency/types/types';
 
 export class CurrencyStore {
   currencies: Array<Currency> = [];
+  exchangeRate: Record<string, number> = {};
 
   constructor() {
     makeAutoObservable(this);
@@ -22,8 +23,28 @@ export class CurrencyStore {
     return currency?.code || '';
   }
 
-  setCurrencies(currencies: Array<Currency>) {
-    this.currencies = currencies;
+  getCurrencyRate(currencyId: string): number | undefined {
+    const currency = this.currencies.find((c) => c.id === currencyId);
+    if (!currency) {
+      return undefined;
+    }
+    return this.exchangeRate[currency.code];
+  }
+
+  calculateExchangeRate(fromCurrencyId: string, toCurrencyId: string): number {
+    const fromRate = this.getCurrencyRate(fromCurrencyId);
+    const toRate = this.getCurrencyRate(toCurrencyId);
+
+    if (!fromRate || !toRate) {
+      return 1; // fallback
+    }
+
+    return toRate / fromRate;
+  }
+
+  setCurrenciesWithRates(data: {currencies: Array<Currency>; exchangeRate: Record<string, number>}) {
+    this.currencies = data.currencies;
+    this.exchangeRate = data.exchangeRate;
   }
 }
 

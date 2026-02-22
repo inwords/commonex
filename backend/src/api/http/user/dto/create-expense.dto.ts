@@ -2,7 +2,7 @@ import {ApiProperty} from '@nestjs/swagger';
 import {IsDate, IsEnum, IsNumber, IsOptional, IsString, Length, ValidateNested} from 'class-validator';
 import {Type} from 'class-transformer';
 
-import {ExpenseType, ISplitInfo} from '#domain/entities/expense.entity';
+import {ExpenseType} from '#domain/entities/expense.entity';
 
 class SplitInfoDto {
   @ApiProperty()
@@ -12,6 +12,11 @@ class SplitInfoDto {
   @ApiProperty()
   @IsNumber()
   amount!: number;
+
+  @ApiProperty({required: false, description: 'Exchanged amount (if custom rate)'})
+  @IsOptional()
+  @IsNumber()
+  exchangedAmount?: number;
 }
 
 class SplitInfo {
@@ -51,7 +56,7 @@ export class CreateExpenseRequestV1Dto {
   @ApiProperty({isArray: true, type: SplitInfoDto})
   @ValidateNested()
   @Type(() => SplitInfoDto)
-  splitInformation!: Array<ISplitInfo>;
+  splitInformation!: Array<SplitInfoDto>;
 
   @ApiProperty({required: false, description: 'ISO String'})
   @IsOptional()

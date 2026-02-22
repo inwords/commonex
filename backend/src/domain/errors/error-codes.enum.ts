@@ -7,6 +7,7 @@ export enum ErrorCode {
   // Currency errors
   CURRENCY_NOT_FOUND = 'B4004',
   CURRENCY_RATE_NOT_FOUND = 'B4005',
+  INCONSISTENT_EXCHANGED_AMOUNT = 'B4010',
 
   // Generic errors
   VALIDATION_ERROR = 'B4006',

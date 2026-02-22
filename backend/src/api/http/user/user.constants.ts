@@ -17,3 +17,8 @@ export const UserV2Routes = {
   createExpense: `/event/:eventId/expense`,
   createShareToken: `/event/:eventId/share-token`,
 };
+
+export const UserV3Routes = {
+  root: '/v3/user',
+  getAllCurrencies: `/currencies/all`,
+};

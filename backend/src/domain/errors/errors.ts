@@ -49,3 +49,10 @@ export class CurrencyRateNotFoundError {
   readonly message = 'Currency rate not found';
   readonly httpCode = HttpStatus.NOT_FOUND;
 }
+
+export class InconsistentExchangedAmountError {
+  readonly name = 'InconsistentExchangedAmountError' as const;
+  readonly code = ErrorCode.INCONSISTENT_EXCHANGED_AMOUNT;
+  readonly message = 'All splitInfo must have exchangedAmount when custom rate is used';
+  readonly httpCode = HttpStatus.BAD_REQUEST;
+}

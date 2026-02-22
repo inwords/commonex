@@ -15,6 +15,7 @@ import {
   InvalidPinCodeError,
   CurrencyNotFoundError,
   CurrencyRateNotFoundError,
+  InconsistentExchangedAmountError,
 } from '#domain/errors/errors';
 import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-service/relational-data-service';
 import {EventService} from '#frameworks/event-service/event-service';
@@ -89,8 +90,8 @@ describe('SaveEventExpenseV2UseCase', () => {
         userWhoPaidId: 'user-1',
         expenseType: ExpenseType.Expense,
         splitInformation: [
-          {userId: 'user-1', amount: 40, exchangedAmount: 0},
-          {userId: 'user-2', amount: 60, exchangedAmount: 0},
+          {userId: 'user-1', amount: 40},
+          {userId: 'user-2', amount: 60},
         ],
         pinCode: '1234',
       },
@@ -105,6 +106,7 @@ describe('SaveEventExpenseV2UseCase', () => {
           {userId: 'user-1', amount: 40, exchangedAmount: 40},
           {userId: 'user-2', amount: 60, exchangedAmount: 60},
         ],
+        isCustomRate: false,
         createdAt: expect.any(Date),
         updatedAt: expect.any(Date),
       }),
@@ -122,6 +124,7 @@ describe('SaveEventExpenseV2UseCase', () => {
                 {userId: 'user-1', amount: 40, exchangedAmount: 40},
                 {userId: 'user-2', amount: 60, exchangedAmount: 60},
               ],
+              isCustomRate: false,
               createdAt: expect.any(Date),
               updatedAt: expect.any(Date),
             },
@@ -179,8 +182,8 @@ describe('SaveEventExpenseV2UseCase', () => {
         userWhoPaidId: 'user-1',
         expenseType: ExpenseType.Expense,
         splitInformation: [
-          {userId: 'user-1', amount: 40, exchangedAmount: 0},
-          {userId: 'user-2', amount: 60, exchangedAmount: 0},
+          {userId: 'user-1', amount: 40},
+          {userId: 'user-2', amount: 60},
         ],
         pinCode: '1234',
       },
@@ -195,6 +198,7 @@ describe('SaveEventExpenseV2UseCase', () => {
           {userId: 'user-1', amount: 40, exchangedAmount: 47.06},
           {userId: 'user-2', amount: 60, exchangedAmount: 70.59},
         ],
+        isCustomRate: false,
         createdAt: expect.any(Date),
         updatedAt: expect.any(Date),
       }),
@@ -212,12 +216,152 @@ describe('SaveEventExpenseV2UseCase', () => {
                 {userId: 'user-1', amount: 40, exchangedAmount: 47.06},
                 {userId: 'user-2', amount: 60, exchangedAmount: 70.59},
               ],
+              isCustomRate: false,
               createdAt: expect.any(Date),
               updatedAt: expect.any(Date),
             },
           ],
         },
       },
+      mockEventService: {
+        isValidEvent: success(true),
+      },
+    },
+    {
+      name: 'должен успешно сохранить расход с кастомным курсом валюты',
+      initRelationalState: {
+        events: [
+          {
+            id: 'event-1',
+            name: 'Test Event',
+            currencyId: 'currency-usd',
+            pinCode: '1234',
+            createdAt: new Date('2023-01-01T00:00:00Z'),
+            updatedAt: new Date('2023-01-01T00:00:00Z'),
+            deletedAt: null,
+          },
+        ],
+        currencies: [
+          {
+            id: 'currency-usd',
+            code: CurrencyCode.USD,
+            createdAt: new Date('2023-01-01T00:00:00Z'),
+            updatedAt: new Date('2023-01-01T00:00:00Z'),
+          },
+          {
+            id: 'currency-eur',
+            code: CurrencyCode.EUR,
+            createdAt: new Date('2023-01-01T00:00:00Z'),
+            updatedAt: new Date('2023-01-01T00:00:00Z'),
+          },
+        ],
+        currencyRates: [
+          {
+            date: '2026-01-01',
+            rate: {
+              USD: 1.0,
+              EUR: 0.85,
+            },
+            createdAt: new Date('2026-01-01T00:00:00Z'),
+            updatedAt: new Date('2026-01-01T00:00:00Z'),
+          },
+        ],
+      },
+      input: {
+        eventId: 'event-1',
+        currencyId: 'currency-eur',
+        description: 'Lunch in EUR with custom rate',
+        userWhoPaidId: 'user-1',
+        expenseType: ExpenseType.Expense,
+        splitInformation: [
+          {userId: 'user-1', amount: 40, exchangedAmount: 50}, // Кастомный курс: 1.25 вместо автоматического 1.176
+          {userId: 'user-2', amount: 60, exchangedAmount: 75},
+        ],
+        pinCode: '1234',
+      },
+      output: success({
+        id: expect.any(String),
+        eventId: 'event-1',
+        currencyId: 'currency-eur',
+        description: 'Lunch in EUR with custom rate',
+        userWhoPaidId: 'user-1',
+        expenseType: ExpenseType.Expense,
+        splitInformation: [
+          {userId: 'user-1', amount: 40, exchangedAmount: 50},
+          {userId: 'user-2', amount: 60, exchangedAmount: 75},
+        ],
+        isCustomRate: true,
+        createdAt: expect.any(Date),
+        updatedAt: expect.any(Date),
+      }),
+      relationalStateChanges: {
+        expenses: {
+          inserted: [
+            {
+              id: expect.any(String),
+              eventId: 'event-1',
+              currencyId: 'currency-eur',
+              description: 'Lunch in EUR with custom rate',
+              userWhoPaidId: 'user-1',
+              expenseType: ExpenseType.Expense,
+              splitInformation: [
+                {userId: 'user-1', amount: 40, exchangedAmount: 50},
+                {userId: 'user-2', amount: 60, exchangedAmount: 75},
+              ],
+              isCustomRate: true,
+              createdAt: expect.any(Date),
+              updatedAt: expect.any(Date),
+            },
+          ],
+        },
+      },
+      mockEventService: {
+        isValidEvent: success(true),
+      },
+    },
+    {
+      name: 'должен вернуть ошибку когда exchangedAmount указан не во всех splitInfo',
+      initRelationalState: {
+        events: [
+          {
+            id: 'event-1',
+            name: 'Test Event',
+            currencyId: 'currency-usd',
+            pinCode: '1234',
+            createdAt: new Date('2023-01-01T00:00:00Z'),
+            updatedAt: new Date('2023-01-01T00:00:00Z'),
+            deletedAt: null,
+          },
+        ],
+        currencies: [
+          {
+            id: 'currency-usd',
+            code: CurrencyCode.USD,
+            createdAt: new Date('2023-01-01T00:00:00Z'),
+            updatedAt: new Date('2023-01-01T00:00:00Z'),
+          },
+          {
+            id: 'currency-eur',
+            code: CurrencyCode.EUR,
+            createdAt: new Date('2023-01-01T00:00:00Z'),
+            updatedAt: new Date('2023-01-01T00:00:00Z'),
+          },
+        ],
+      },
+      input: {
+        eventId: 'event-1',
+        currencyId: 'currency-eur',
+        description: 'Lunch',
+        userWhoPaidId: 'user-1',
+        expenseType: ExpenseType.Expense,
+        splitInformation: [
+          {userId: 'user-1', amount: 40, exchangedAmount: 50}, // есть exchangedAmount
+          {userId: 'user-2', amount: 60},  // нет exchangedAmount (undefined)
+        ],
+        pinCode: '1234',
+      },
+      output: error(new InconsistentExchangedAmountError()),
+      relationalStateChanges: {},
       mockEventService: {
         isValidEvent: success(true),
       },
@@ -231,7 +375,7 @@ describe('SaveEventExpenseV2UseCase', () => {
         description: 'Lunch',
         userWhoPaidId: 'user-1',
         expenseType: ExpenseType.Expense,
-        splitInformation: [{userId: 'user-1', amount: 100, exchangedAmount: 0}],
+        splitInformation: [{userId: 'user-1', amount: 100}],
         pinCode: '1234',
       },
       output: error(new EventNotFoundError()),
@@ -261,7 +405,7 @@ describe('SaveEventExpenseV2UseCase', () => {
         description: 'Lunch',
         userWhoPaidId: 'user-1',
         expenseType: ExpenseType.Expense,
-        splitInformation: [{userId: 'user-1', amount: 100, exchangedAmount: 0}],
+        splitInformation: [{userId: 'user-1', amount: 100}],
         pinCode: '1234',
       },
       output: error(new EventDeletedError()),
@@ -291,7 +435,7 @@ describe('SaveEventExpenseV2UseCase', () => {
         description: 'Lunch',
         userWhoPaidId: 'user-1',
         expenseType: ExpenseType.Expense,
-        splitInformation: [{userId: 'user-1', amount: 100, exchangedAmount: 0}],
+        splitInformation: [{userId: 'user-1', amount: 100}],
         pinCode: 'wrong',
       },
       output: error(new InvalidPinCodeError()),
@@ -329,7 +473,7 @@ describe('SaveEventExpenseV2UseCase', () => {
         description: 'Lunch',
         userWhoPaidId: 'user-1',
         expenseType: ExpenseType.Expense,
-        splitInformation: [{userId: 'user-1', amount: 100, exchangedAmount: 0}],
+        splitInformation: [{userId: 'user-1', amount: 100}],
         pinCode: '1234',
       },
       output: error(new CurrencyNotFoundError()),
@@ -373,7 +517,7 @@ describe('SaveEventExpenseV2UseCase', () => {
         description: 'Lunch',
         userWhoPaidId: 'user-1',
         expenseType: ExpenseType.Expense,
-        splitInformation: [{userId: 'user-1', amount: 100, exchangedAmount: 0}],
+        splitInformation: [{userId: 'user-1', amount: 100}],
         pinCode: '1234',
       },
       output: error(new CurrencyRateNotFoundError()),
