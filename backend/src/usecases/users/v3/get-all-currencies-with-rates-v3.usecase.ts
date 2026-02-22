@@ -2,21 +2,21 @@ import {UseCase} from '#packages/use-case';
 import {Injectable} from '@nestjs/common';
 import {ICurrency} from '#domain/entities/currency.entity';
 import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-service/relational-data-service';
-import {CURRENCIES_LIST} from '../../constants';
 import {error, Result, success} from '#packages/result';
 import {getCurrentDateWithoutTimeUTC} from '#packages/date-utils';
-import {CurrencyNotFoundError} from '#domain/errors';
+import {CurrencyRateNotFoundError} from '#domain/errors';
+import {CURRENCIES_LIST} from 'src/constants';
 
 type Output = Result<
   {
     currencies: ICurrency[];
     exchangeRate: Record<string, number>;
   },
-  CurrencyNotFoundError
+  CurrencyRateNotFoundError
 >;
 
 @Injectable()
-export class GetAllCurrenciesWithRatesUseCase implements UseCase<void, Output> {
+export class GetAllCurrenciesWithRatesUseCaseV3 implements UseCase<void, Output> {
   constructor(private readonly rDataService: RelationalDataServiceAbstract) {}
 
   public async execute(): Promise<Output> {
@@ -28,7 +28,7 @@ export class GetAllCurrenciesWithRatesUseCase implements UseCase<void, Output> {
     const [currencyRate] = await this.rDataService.currencyRate.findByDate(currentDate);
 
     if (!currencyRate) {
-      return error(new CurrencyNotFoundError());
+      return error(new CurrencyRateNotFoundError());
     }
 
     return success({
