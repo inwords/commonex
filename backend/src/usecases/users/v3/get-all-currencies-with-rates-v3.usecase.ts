@@ -5,7 +5,7 @@ import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-s
 import {error, Result, success} from '#packages/result';
 import {getCurrentDateWithoutTimeUTC} from '#packages/date-utils';
 import {CurrencyRateNotFoundError} from '#domain/errors';
-import {CURRENCIES_LIST} from 'src/constants';
+import {CURRENCIES_LIST} from '../../../constants';
 
 type Output = Result<
   {
