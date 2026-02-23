@@ -35,7 +35,7 @@ export const ExpenseDetailsModal = observer(() => {
   if (expense.currencyId !== eventStore.currentEvent?.currencyId && expense.splitInformation.length > 0) {
     const firstSplit = expense.splitInformation[0];
     if (firstSplit.amount > 0) {
-      exchangeRate = firstSplit.exchangedAmount / firstSplit.amount;
+      exchangeRate = Number(Number(firstSplit.exchangedAmount / firstSplit.amount).toFixed(2));
     }
   }
 
