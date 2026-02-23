@@ -56,7 +56,7 @@ const ExpenseFormContent = observer(({readOnly = false}: Omit<Props, 'expenseDat
 
     const autoRate = currencyStore.calculateExchangeRate(currencyId, eventCurrencyId);
     if (autoRate > 0) {
-      setValue('exchangeRate', parseFloat(autoRate.toFixed(2)));
+      setValue('exchangeRate', autoRate.toFixed(2));
     }
   }, [currencyId, eventCurrencyId, readOnly]);
 

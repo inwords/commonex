@@ -39,7 +39,7 @@ export class CurrencyStore {
       return 1; // fallback
     }
 
-    return toRate / fromRate;
+    return Number((toRate / fromRate).toFixed(2));
   }
 
   setCurrenciesWithRates(data: {currencies: Array<Currency>; exchangeRate: Record<string, number>}) {
