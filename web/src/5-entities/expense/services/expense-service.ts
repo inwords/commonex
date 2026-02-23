@@ -3,7 +3,7 @@ import {
   CreateExpenseRefundForm,
   Expense,
   ExpenseRefund,
-  Tabs
+  Tabs,
 } from '@/5-entities/expense/types/types';
 import {createExpense as createExpenseApi, getEventExpenses} from '@/5-entities/expense/services/api';
 import {expenseStore} from '@/5-entities/expense/stores/expense-store';
@@ -23,9 +23,10 @@ export class ExpenseService {
       ? currencyStore.calculateExchangeRate(rest.currencyId, eventStore.currentEvent?.currencyId || '')
       : 1;
 
-    const isCustomRate = isCurrenciesDifferent &&
-                        exchangeRate !== undefined &&
-                        exchangeRate !== autoRate;
+    const isCustomRate =
+      isCurrenciesDifferent &&
+      exchangeRate !== undefined &&
+      Number(exchangeRate).toFixed(2) !== Number(autoRate).toFixed(2);
 
     if (isCustomRate && exchangeRate) {
       if (expenseStore.splitOption === '1') {
@@ -71,17 +72,22 @@ export class ExpenseService {
     const expenses = await getEventExpenses(eventId, pinCode);
 
     expenseStore.setExpenses(expenses.filter((e: Expense | ExpenseRefund) => e.expenseType === ExpenseType.Expense));
-    expenseStore.setExpenseRefunds(expenses.filter((e: Expense | ExpenseRefund) => e.expenseType === ExpenseType.Refund));
+    expenseStore.setExpenseRefunds(
+      expenses.filter((e: Expense | ExpenseRefund) => e.expenseType === ExpenseType.Refund),
+    );
   }
 
   async createExpenseRefund(expenseRefund: CreateExpenseRefundForm, pinCode: string) {
     const {userWhoReceiveId, amount, ...rest} = expenseRefund;
 
-    const resp = await createExpenseApi({
-      ...rest,
-      expenseType: ExpenseType.Refund,
-      splitInformation: [{userId: userWhoReceiveId, amount: Number(Number(amount).toFixed(2))}],
-    }, pinCode);
+    const resp = await createExpenseApi(
+      {
+        ...rest,
+        expenseType: ExpenseType.Refund,
+        splitInformation: [{userId: userWhoReceiveId, amount: Number(Number(amount).toFixed(2))}],
+      },
+      pinCode,
+    );
 
     expenseStore.setExpenseRefunds([...expenseStore.expenseRefunds, resp]);
   }
