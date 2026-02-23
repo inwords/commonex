@@ -26,6 +26,7 @@ plugins {
     alias(shared.plugins.sentry.kotlin.multiplatform) apply false
     alias(shared.plugins.sentry.android.gradle) apply false
     alias(shared.plugins.androidx.baselineprofile) apply false
+    alias(shared.plugins.androidx.benchmark) apply false
     alias(shared.plugins.gradle.versions.checker) apply true
 }
 

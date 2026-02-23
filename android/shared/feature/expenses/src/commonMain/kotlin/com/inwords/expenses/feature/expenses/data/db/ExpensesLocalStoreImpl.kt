@@ -1,5 +1,6 @@
 package com.inwords.expenses.feature.expenses.data.db
 
+import com.inwords.expenses.core.storage.utils.TransactionHelper
 import com.inwords.expenses.feature.events.domain.model.Event
 import com.inwords.expenses.feature.expenses.data.db.converter.toDomain
 import com.inwords.expenses.feature.expenses.data.db.converter.toEntity
@@ -12,10 +13,12 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 
 internal class ExpensesLocalStoreImpl(
-    expensesDaoLazy: Lazy<ExpensesDao>
+    expensesDaoLazy: Lazy<ExpensesDao>,
+    transactionHelperLazy: Lazy<TransactionHelper>,
 ) : ExpensesLocalStore {
 
     private val expensesDao by expensesDaoLazy
+    private val transactionHelper by transactionHelperLazy
 
     override fun getExpensesFlow(eventId: Long): Flow<List<Expense>> {
         return expensesDao.queryByEventIdFlow(eventId).map { entities ->
@@ -41,7 +44,9 @@ internal class ExpensesLocalStoreImpl(
     }
 
     override suspend fun upsert(event: Event, expenses: List<Expense>): List<Expense> {
-        return expenses.map { expense -> upsert(event, expense) } // TODO batch insert
+        return transactionHelper.immediateWriteTransaction {
+            expenses.map { expense -> upsert(event, expense) }
+        }
     }
 
     override suspend fun updateExpenseSplitExchangedAmount(

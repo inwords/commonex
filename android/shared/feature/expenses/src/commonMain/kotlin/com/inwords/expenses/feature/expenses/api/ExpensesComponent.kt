@@ -32,7 +32,10 @@ class ExpensesComponent(private val deps: Deps) : Component {
     }
 
     val expensesLocalStore: Lazy<ExpensesLocalStore> = lazy {
-        ExpensesLocalStoreImpl(lazy { deps.expensesDao })
+        ExpensesLocalStoreImpl(
+            expensesDaoLazy = lazy { deps.expensesDao },
+            transactionHelperLazy = lazy { deps.transactionHelper },
+        )
     }
 
     private val expensesRemoteStore: Lazy<ExpensesRemoteStore> = lazy {
