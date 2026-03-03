@@ -11,6 +11,8 @@ interface ExpensesLocalStore {
 
     suspend fun getExpenses(eventId: Long): List<Expense>
 
+    fun getExpenseFlow(expenseId: Long): Flow<Expense?>
+
     suspend fun getExpense(expenseId: Long): Expense?
 
     suspend fun upsert(event: Event, expense: Expense): Expense

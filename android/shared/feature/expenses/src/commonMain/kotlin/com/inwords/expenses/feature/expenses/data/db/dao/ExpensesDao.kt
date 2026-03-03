@@ -65,6 +65,10 @@ interface ExpensesDao {
 
     @Transaction
     @Query("SELECT * FROM ${ExpenseEntity.TABLE_NAME} WHERE ${ExpenseEntity.ColumnNames.ID} = :expenseId")
+    fun queryByIdFlow(expenseId: Long): Flow<ExpenseWithDetailsQuery?>
+
+    @Transaction
+    @Query("SELECT * FROM ${ExpenseEntity.TABLE_NAME} WHERE ${ExpenseEntity.ColumnNames.ID} = :expenseId")
     suspend fun queryById(expenseId: Long): ExpenseWithDetailsQuery?
 
 }

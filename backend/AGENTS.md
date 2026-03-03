@@ -1,5 +1,7 @@
 # Agent Instructions for CommonEx Backend
 
+For non-trivial work and when to search upstream docs, follow root [AGENTS.md](../../AGENTS.md) (workflow lifecycle and freshness policy).
+
 ## Project Overview
 
 CommonEx backend is a NestJS service that provides REST and gRPC APIs for the expense sharing platform.
@@ -41,8 +43,7 @@ Flow direction: API -> use cases -> domain abstractions -> frameworks implementa
 
 ## Prerequisites
 
-- Node.js
-- npm
+- Node.js and npm (versions: see `package.json` engines or lockfile; do not duplicate in docs).
 - PostgreSQL
 
 ## Environment Setup

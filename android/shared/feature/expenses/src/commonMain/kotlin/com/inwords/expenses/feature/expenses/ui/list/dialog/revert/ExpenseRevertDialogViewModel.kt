@@ -1,4 +1,4 @@
-package com.inwords.expenses.feature.expenses.ui.list.dialog.item
+package com.inwords.expenses.feature.expenses.ui.list.dialog.revert
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -6,7 +6,7 @@ import com.inwords.expenses.core.navigation.NavigationController
 import com.inwords.expenses.core.ui.utils.DefaultStringProvider
 import com.inwords.expenses.core.ui.utils.StringProvider
 import com.inwords.expenses.core.utils.IO
-import com.inwords.expenses.feature.events.domain.GetCurrentEventStateUseCase
+import com.inwords.expenses.feature.events.domain.store.local.EventsLocalStore
 import com.inwords.expenses.feature.expenses.domain.ExpensesInteractor
 import com.inwords.expenses.feature.expenses.domain.store.ExpensesLocalStore
 import com.inwords.expenses.feature.expenses.ui.list.ExpensesPaneDestination
@@ -17,34 +17,47 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
-internal class ExpenseItemDialogViewModel(
+internal class ExpenseRevertDialogViewModel(
     private val navigationController: NavigationController,
-    private val getCurrentEventStateUseCase: GetCurrentEventStateUseCase,
     private val expensesInteractor: ExpensesInteractor,
     private val expensesLocalStore: ExpensesLocalStore,
+    private val eventsLocalStore: EventsLocalStore,
     private val expenseId: Long,
+    private val eventId: Long,
+    private val expenseDescription: String,
     private val stringProvider: StringProvider = DefaultStringProvider,
 ) : ViewModel(viewModelScope = CoroutineScope(SupervisorJob() + IO)) {
 
-    private var expenseRevertJob: Job? = null
+    private var revertJob: Job? = null
 
-    fun onRevertExpenseClick() {
-        val event = getCurrentEventStateUseCase.currentEvent.value?.event ?: return
+    fun onConfirmRevert() {
+        if (revertJob?.isActive == true) return
 
-        if (expenseRevertJob != null) return // no need to cancel this operation
-        expenseRevertJob = viewModelScope.launch {
-            val originalExpense = expensesLocalStore.getExpense(expenseId) ?: return@launch
+        revertJob = viewModelScope.launch {
+            val event = eventsLocalStore.getEvent(eventId)
+            val originalExpense = expensesLocalStore.getExpense(expenseId)
+            if (event == null || originalExpense == null) {
+                navigationController.popBackStack()
+                return@launch
+            }
+
             expensesInteractor.revertExpense(
                 event = event,
                 originalExpense = originalExpense,
-                description = stringProvider.getString(Res.string.expenses_revert_description, originalExpense.description)
+                description = stringProvider.getString(
+                    Res.string.expenses_revert_description,
+                    expenseDescription,
+                )
             )
 
             navigationController.popBackStack(
                 toDestination = ExpensesPaneDestination,
-                inclusive = false
+                inclusive = false,
             )
         }
     }
 
+    fun onDismiss() {
+        navigationController.popBackStack()
+    }
 }

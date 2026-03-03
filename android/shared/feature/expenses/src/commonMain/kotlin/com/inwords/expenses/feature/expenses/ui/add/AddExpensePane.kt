@@ -187,7 +187,8 @@ private fun AddExpensePaneSuccess(
                 ToggleButtonOption(
                     text = currencyInfo.currencyName,
                     checked = currencyInfo.selected,
-                    payload = currencyInfo
+                    payload = currencyInfo,
+                    testTag = currencyOptionTag(currencyInfo.currencyCode),
                 )
             },
             onCheckedChange = { _, _, currencyInfo -> onCurrencyClicked.invoke(currencyInfo) },
@@ -286,6 +287,10 @@ private fun AddExpensePaneSuccess(
             minHeight = ButtonDefaults.MediumContainerHeight,
         )
     }
+}
+
+private fun currencyOptionTag(currencyCode: String): String {
+    return "add_expense_currency_option_$currencyCode"
 }
 
 @Composable

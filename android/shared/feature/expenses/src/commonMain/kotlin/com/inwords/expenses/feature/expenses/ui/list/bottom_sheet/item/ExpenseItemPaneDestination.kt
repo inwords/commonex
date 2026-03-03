@@ -1,46 +1,45 @@
-package com.inwords.expenses.feature.expenses.ui.list.dialog.item
+package com.inwords.expenses.feature.expenses.ui.list.bottom_sheet.item
 
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
-import androidx.navigation3.scene.DialogSceneStrategy.Companion.dialog
+import com.inwords.expenses.core.navigation.BottomSheetSceneStrategy.Companion.bottomSheet
 import com.inwords.expenses.core.navigation.Destination
 import com.inwords.expenses.core.navigation.NavModule
 import com.inwords.expenses.core.navigation.NavigationController
 import com.inwords.expenses.feature.events.domain.GetCurrentEventStateUseCase
-import com.inwords.expenses.feature.expenses.domain.ExpensesInteractor
 import com.inwords.expenses.feature.expenses.domain.store.ExpensesLocalStore
 import kotlinx.serialization.Serializable
 
 @Serializable
-internal data class ExpenseItemDialogDestination(
+internal data class ExpenseItemPaneDestination(
     val expenseId: Long,
-    val description: String,
+    val eventId: Long,
 ) : Destination
 
-fun getExpenseItemDialogNavModule(
+@OptIn(ExperimentalMaterial3Api::class)
+fun getExpenseItemPaneNavModule(
     navigationController: NavigationController,
     getCurrentEventStateUseCaseLazy: Lazy<GetCurrentEventStateUseCase>,
-    expensesInteractorLazy: Lazy<ExpensesInteractor>,
     expensesLocalStoreLazy: Lazy<ExpensesLocalStore>,
 ): NavModule {
-    return NavModule(ExpenseItemDialogDestination.serializer()) {
-        entry<ExpenseItemDialogDestination>(metadata = dialog()) { key ->
-            val viewModel = viewModel<ExpenseItemDialogViewModel>(factory = viewModelFactory {
+    return NavModule(ExpenseItemPaneDestination.serializer()) {
+        entry<ExpenseItemPaneDestination>(metadata = bottomSheet()) { key ->
+            val viewModel = viewModel<ExpenseItemPaneViewModel>(factory = viewModelFactory {
                 initializer {
-                    ExpenseItemDialogViewModel(
+                    ExpenseItemPaneViewModel(
                         navigationController = navigationController,
                         getCurrentEventStateUseCase = getCurrentEventStateUseCaseLazy.value,
-                        expensesInteractor = expensesInteractorLazy.value,
                         expensesLocalStore = expensesLocalStoreLazy.value,
-                        expenseId = key.expenseId
+                        expenseId = key.expenseId,
+                        eventId = key.eventId,
                     )
                 }
             })
-            ExpenseItemDialog(
-                state = ExpenseItemDialogUiModel(
-                    description = key.description
-                ),
+            ExpenseItemPane(
+                state = viewModel.state.collectAsStateWithLifecycle().value,
                 onRevertExpenseClick = viewModel::onRevertExpenseClick,
             )
         }

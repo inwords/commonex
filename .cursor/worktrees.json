@@ -1,0 +1,12 @@
+{
+  "setup-worktree-unix": [
+    "[ -f \"$ROOT_WORKTREE_PATH/android/local.properties\" ] && cp \"$ROOT_WORKTREE_PATH/android/local.properties\" android/",
+    "[ -d \"$ROOT_WORKTREE_PATH/android/marathon\" ] && cp -r \"$ROOT_WORKTREE_PATH/android/marathon\" android/",
+    "[ -d \"$ROOT_WORKTREE_PATH/android/gradle/profiler\" ] && mkdir -p android/gradle && cp -r \"$ROOT_WORKTREE_PATH/android/gradle/profiler\" android/gradle/"
+  ],
+  "setup-worktree-windows": [
+    "if exist \"%ROOT_WORKTREE_PATH%\\android\\local.properties\" copy /Y \"%ROOT_WORKTREE_PATH%\\android\\local.properties\" android\\",
+    "if exist \"%ROOT_WORKTREE_PATH%\\android\\marathon\" xcopy /E /I /Y \"%ROOT_WORKTREE_PATH%\\android\\marathon\" android\\marathon\\",
+    "if exist \"%ROOT_WORKTREE_PATH%\\android\\gradle\\profiler\" (mkdir android\\gradle 2>nul & xcopy /E /I /Y \"%ROOT_WORKTREE_PATH%\\android\\gradle\\profiler\" android\\gradle\\profiler\\)"
+  ]
+}

@@ -8,6 +8,7 @@ import kotlinx.collections.immutable.ImmutableList
 internal sealed interface ExpensesPaneUiModel {
 
     data class Expenses(
+        val eventId: Long,
         val eventName: String,
         val currentPersonId: Long,
         val currentPersonName: String,
@@ -21,9 +22,11 @@ internal sealed interface ExpensesPaneUiModel {
             val currencyText: String,
             val expenseType: ExpenseType,
             val personName: String,
+            val isPaidByCurrentPerson: Boolean,
             val totalAmount: String,
             val timestamp: String,
             val description: String,
+            val currentPersonPartAmount: String?,
         )
     }
 

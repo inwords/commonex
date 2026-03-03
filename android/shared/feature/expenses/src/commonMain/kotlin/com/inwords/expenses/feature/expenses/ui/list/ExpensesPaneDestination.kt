@@ -52,7 +52,7 @@ fun getExpensesPaneNavModule(
                 state = viewModel.state.collectAsStateWithLifecycle().value,
                 onMenuClick = viewModel::onMenuClick,
                 onAddExpenseClick = viewModel::onAddExpenseClick,
-                onRevertExpenseClick = viewModel::onRevertExpenseClick,
+                onExpenseClick = viewModel::onExpenseClick,
                 onDebtsDetailsClick = viewModel::onDebtsDetailsClick,
                 onReplenishmentClick = viewModel::onReplenishmentClick,
                 onCreateEventClick = viewModel::onCreateEventClick,

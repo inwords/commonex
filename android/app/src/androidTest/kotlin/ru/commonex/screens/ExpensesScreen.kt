@@ -43,10 +43,10 @@ internal class ExpensesScreen : BaseScreen() {
     }
 
     context(rule: ComposeTestRule)
-    fun clickOnExpense(description: String): ExpenseDetailsDialog {
+    fun clickOnExpense(description: String): ExpenseDetailsScreen {
         waitForElementWithText(description)
         rule.onNodeWithText(description).performClick()
-        return ExpenseDetailsDialog()
+        return ExpenseDetailsScreen()
     }
 
     context(rule: ComposeTestRule)

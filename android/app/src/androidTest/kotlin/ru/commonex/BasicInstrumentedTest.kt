@@ -37,7 +37,9 @@ class BasicInstrumentedTest {
      * - Create event with multiple participants
      * - Add expense with equal split (default)
      * - Add expense with custom split
+     * - Open expense details pane and verify key sections/values
      * - Cancel an expense and verify revert entry
+     * - Add converted-currency expense and verify exchange-rate section in details pane
      * - Verify debt calculations
      * - Switch to a different person and verify view updates
      */
@@ -74,10 +76,16 @@ class BasicInstrumentedTest {
             .clickConfirm()
             .verifyExpenseAmount("-180")
 
-        // Cancel first expense
+        // Open first expense details pane and verify details content
         expensesScreen
             .clickOnExpense("Булка")
-            .clickCancelExpense()
+            .waitUntilLoaded()
+            .verifyDescription("Булка")
+            .verifyTotalAmount("-120 EUR")
+            .verifyPaidBy("Test User 1")
+            .verifyOriginalCurrency("EUR (Euro)")
+            .verifyExchangeRateHidden()
+            .confirmRevertExpense()
             .verifyRevertedExpenseExists("Булка")
 
         // Verify debts details and go back
@@ -86,6 +94,24 @@ class BasicInstrumentedTest {
             .waitUntilLoaded(eventName)
             .verifyDebtAmount("60", "Test User 1", count = 2)
             .goBack()
+
+        // Add converted-currency expense and verify exchange-rate section in details pane
+        expensesScreen
+            .clickAddExpense()
+            .selectCurrency("US Dollar")
+            .enterDescription("FX coffee")
+            .enterAmount("10")
+            .clickConfirm()
+            .verifyExpenseExists("FX coffee")
+
+        expensesScreen
+            .clickOnExpense("FX coffee")
+            .waitUntilLoaded()
+            .verifyDescription("FX coffee")
+            .verifyPaidBy("Test User 1")
+            .verifyOriginalCurrency("USD (US Dollar)")
+            .verifyExchangeRateVisible()
+            .dismissPane()
 
         // Switch to a different person via menu and verify title updates
         ExpensesScreen()
@@ -108,7 +134,7 @@ class BasicInstrumentedTest {
 
         createLocalEvent(eventName)
 
-        addExpensesForCurrencies(supportedCurrencyNames)
+        addExpensesForCurrencies(supportedCurrencies)
 
         ExpensesScreen()
             .openMenu()
@@ -406,14 +432,14 @@ class BasicInstrumentedTest {
     }
 
     context(rule: ComposeTestRule)
-    private suspend fun addExpensesForCurrencies(currencies: List<String>) {
-        currencies.forEachIndexed { currencyIndex, currencyName ->
-            val description = "Expense $currencyName ${currencyIndex + 1}"
+    private suspend fun addExpensesForCurrencies(currencies: List<CurrencyTestModel>) {
+        currencies.forEachIndexed { currencyIndex, currency ->
+            val description = "Expense ${currency.name} ${currencyIndex + 1}"
             val amount = (currencyIndex + 1) * 10
 
             ExpensesScreen()
                 .clickAddExpense()
-                .selectCurrency(currencyName)
+                .selectCurrencyByCode(currency.code)
                 .enterDescription(description)
                 .enterAmount(amount.toString())
                 .clickConfirm()
@@ -456,16 +482,21 @@ class BasicInstrumentedTest {
 
     private companion object {
 
-        private val supportedCurrencyNames = listOf(
-            "Euro",
-            "US Dollar",
-            "Russian Ruble",
-            "Japanese Yen",
-            "Turkish Lira",
-            "UAE Dirham",
+        private val supportedCurrencies = listOf(
+            CurrencyTestModel(code = "EUR", name = "Euro"),
+            CurrencyTestModel(code = "USD", name = "US Dollar"),
+            CurrencyTestModel(code = "RUB", name = "Russian Ruble"),
+            CurrencyTestModel(code = "JPY", name = "Japanese Yen"),
+            CurrencyTestModel(code = "TRY", name = "Turkish Lira"),
+            CurrencyTestModel(code = "AED", name = "UAE Dirham"),
         )
 
         private val shareUrlRegex = Regex("https://commonex\\.ru/event/[A-Za-z0-9]+\\?(token|pinCode)=[A-Za-z0-9]+")
     }
 
 }
+
+private data class CurrencyTestModel(
+    val code: String,
+    val name: String,
+)

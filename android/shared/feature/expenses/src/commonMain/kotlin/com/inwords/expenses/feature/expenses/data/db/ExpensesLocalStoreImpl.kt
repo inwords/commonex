@@ -30,6 +30,12 @@ internal class ExpensesLocalStoreImpl(
         return expensesDao.queryByEventId(eventId).map { entity -> entity.toDomain() }
     }
 
+    override fun getExpenseFlow(expenseId: Long): Flow<Expense?> {
+        return expensesDao.queryByIdFlow(expenseId)
+            .map { entity -> entity?.toDomain() }
+            .distinctUntilChanged()
+    }
+
     override suspend fun getExpense(expenseId: Long): Expense? {
         return expensesDao.queryById(expenseId)?.toDomain()
     }

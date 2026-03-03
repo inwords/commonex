@@ -1,0 +1,4 @@
+interface:
+  display_name: "Prepare Mobile Release"
+  short_description: "Run CommonEx mobile (Android + iOS) release SOP"
+  default_prompt: "Use $prepare-mobile-release to run the mobile release SOP."

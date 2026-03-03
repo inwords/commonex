@@ -9,11 +9,15 @@ import com.inwords.expenses.feature.expenses.ui.debts_list.DebtsListPaneUiModel
 import com.inwords.expenses.feature.expenses.ui.list.ExpensesPaneUiModel
 import com.inwords.expenses.feature.expenses.ui.utils.toRoundedString
 
-internal fun Expense.toUiModel(primaryCurrencyName: String): ExpensesPaneUiModel.Expenses.ExpenseUiModel {
+internal fun Expense.toUiModel(
+    primaryCurrencyName: String,
+    currentPersonId: Long,
+): ExpensesPaneUiModel.Expenses.ExpenseUiModel {
     val amountSign = when (expenseType) {
         ExpenseType.Spending -> "-"
         ExpenseType.Replenishment -> "+"
     }
+    val currentPersonSplit = subjectExpenseSplitWithPersons.firstOrNull { it.person.id == currentPersonId }
     return ExpensesPaneUiModel.Expenses.ExpenseUiModel(
         expenseId = expenseId,
         currencyText = if (currency.name == primaryCurrencyName) {
@@ -23,9 +27,13 @@ internal fun Expense.toUiModel(primaryCurrencyName: String): ExpensesPaneUiModel
         },
         expenseType = expenseType,
         personName = person.name,
+        isPaidByCurrentPerson = person.id == currentPersonId,
         totalAmount = "$amountSign${totalAmount.toRoundedString()}",
         timestamp = timestamp.formatLocalDateTime(getDefaultDateTimeFormat()),
-        description = description
+        description = description,
+        currentPersonPartAmount = currentPersonSplit?.let { split ->
+            "$amountSign${split.exchangedAmount.toRoundedString()}"
+        },
     )
 }
 
