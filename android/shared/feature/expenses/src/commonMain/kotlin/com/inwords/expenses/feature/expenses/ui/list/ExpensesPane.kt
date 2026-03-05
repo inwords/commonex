@@ -1,7 +1,6 @@
 package com.inwords.expenses.feature.expenses.ui.list
 
 import androidx.compose.animation.core.FastOutLinearInEasing
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -12,7 +11,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.consumeWindowInsets
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -22,13 +20,13 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Menu
-import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -38,6 +36,7 @@ import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
@@ -70,6 +69,9 @@ import expenses.shared.feature.expenses.generated.resources.common_error
 import expenses.shared.feature.expenses.generated.resources.expenses_app_name
 import expenses.shared.feature.expenses.generated.resources.expenses_operation
 import expenses.shared.feature.expenses.generated.resources.expenses_operations
+import expenses.shared.feature.expenses.generated.resources.expenses_paid_by
+import expenses.shared.feature.expenses.generated.resources.expenses_paid_by_you
+import expenses.shared.feature.expenses.generated.resources.expenses_your_part
 import kotlinx.collections.immutable.persistentListOf
 import org.jetbrains.compose.resources.stringResource
 import kotlin.time.Clock
@@ -80,7 +82,7 @@ internal fun ExpensesPane(
     state: SimpleScreenState<ExpensesPaneUiModel>,
     onMenuClick: () -> Unit,
     onAddExpenseClick: () -> Unit,
-    onRevertExpenseClick: (expense: ExpenseUiModel) -> Unit,
+    onExpenseClick: (expense: ExpenseUiModel) -> Unit,
     onDebtsDetailsClick: () -> Unit,
     onReplenishmentClick: (debtor: DebtShortUiModel) -> Unit,
     onCreateEventClick: () -> Unit,
@@ -99,7 +101,7 @@ internal fun ExpensesPane(
                     state = state,
                     onMenuClick = onMenuClick,
                     onAddExpenseClick = onAddExpenseClick,
-                    onRevertExpenseClick = onRevertExpenseClick,
+                    onExpenseClick = onExpenseClick,
                     onDebtsDetailsClick = onDebtsDetailsClick,
                     onReplenishmentClick = onReplenishmentClick,
                     onRefresh = onRefresh,
@@ -139,7 +141,7 @@ private fun ExpensesPaneSuccess(
     state: ExpensesPaneUiModel.Expenses,
     onMenuClick: () -> Unit,
     onAddExpenseClick: () -> Unit,
-    onRevertExpenseClick: (expense: ExpenseUiModel) -> Unit,
+    onExpenseClick: (expense: ExpenseUiModel) -> Unit,
     onDebtsDetailsClick: () -> Unit,
     onReplenishmentClick: (debtor: DebtShortUiModel) -> Unit,
     onRefresh: () -> Unit,
@@ -272,7 +274,7 @@ private fun ExpensesPaneSuccess(
                     val expense = state.expenses[state.expenses.lastIndex - index]
                     ExpenseItem(
                         expense = expense,
-                        onRevertExpenseClick = onRevertExpenseClick,
+                        onExpenseClick = onExpenseClick,
                         modifier = Modifier.padding(horizontal = 8.dp)
                     )
                 }
@@ -305,65 +307,108 @@ private fun ExpensesPaneLoading(
 @Composable
 private fun ExpenseItem(
     expense: ExpenseUiModel,
-    onRevertExpenseClick: (expense: ExpenseUiModel) -> Unit,
+    onExpenseClick: (expense: ExpenseUiModel) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Row(
+    Surface(
         modifier = modifier
-            .padding(vertical = 4.dp)
-            .clickable { onRevertExpenseClick.invoke(expense) }
             .fillMaxWidth()
-            .border(
-                border = AssistChipDefaults.assistChipBorder(enabled = false),
-                shape = MaterialTheme.shapes.small,
-            ),
-        horizontalArrangement = Arrangement.SpaceBetween
+            .padding(vertical = 4.dp)
+            .clip(MaterialTheme.shapes.medium)
+            .clickable { onExpenseClick.invoke(expense) },
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxHeight()
-                .weight(1f, fill = false)
-                .padding(horizontal = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            val amountColor = when (expense.expenseType) {
-                ExpenseType.Spending -> MaterialTheme.colorScheme.onBackground
-                ExpenseType.Replenishment -> MaterialTheme.colorScheme.primary
-            }
-            Text(
-                text = expense.totalAmount,
-                style = MaterialTheme.typography.headlineSmall,
-                maxLines = 1,
-                color = amountColor
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Column(
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .padding(vertical = 8.dp),
-                verticalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    text = expense.currencyText,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    text = expense.description,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-        }
         Column(
             modifier = Modifier
-                .fillMaxHeight()
-                .padding(top = 8.dp, end = 8.dp, bottom = 8.dp),
-            verticalArrangement = Arrangement.SpaceBetween,
-            horizontalAlignment = Alignment.End,
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            Text(text = expense.personName, maxLines = 1)
-            Text(text = expense.timestamp, maxLines = 1)
+            val amountColor = when (expense.expenseType) {
+                ExpenseType.Spending -> MaterialTheme.colorScheme.onSurface
+                ExpenseType.Replenishment -> MaterialTheme.colorScheme.primary
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top,
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Text(
+                        text = expense.currencyText,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = expense.totalAmount,
+                        style = MaterialTheme.typography.headlineSmall,
+                        maxLines = 1,
+                        color = amountColor,
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                Column(
+                    horizontalAlignment = Alignment.End,
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = if (expense.isPaidByCurrentPerson) {
+                                stringResource(Res.string.expenses_paid_by_you)
+                            } else {
+                                "${stringResource(Res.string.expenses_paid_by)}:"
+                            },
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                        )
+                        if (!expense.isPaidByCurrentPerson) {
+                            Text(
+                                text = expense.personName,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
+                    Text(
+                        text = expense.timestamp,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1
+                    )
+                }
+            }
+
+            expense.currentPersonPartAmount?.let { currentPersonPart ->
+                Text(
+                    text = stringResource(Res.string.expenses_your_part, currentPersonPart),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            Text(
+                text = expense.description,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
         }
     }
 }
@@ -375,7 +420,7 @@ private fun ExpensesPanePreviewSuccessWithCreditors() {
         ExpensesPane(
             onMenuClick = {},
             onAddExpenseClick = {},
-            onRevertExpenseClick = {},
+            onExpenseClick = {},
             onDebtsDetailsClick = {},
             onReplenishmentClick = {},
             onJoinEventClick = {},
@@ -397,7 +442,7 @@ private fun ExpensesPanePreviewSuccessWithoutCreditors() {
         ExpensesPane(
             onMenuClick = {},
             onAddExpenseClick = {},
-            onRevertExpenseClick = {},
+            onExpenseClick = {},
             onDebtsDetailsClick = {},
             onReplenishmentClick = {},
             onJoinEventClick = {},
@@ -419,7 +464,7 @@ private fun ExpensesPanePreviewEmpty() {
         ExpensesPane(
             onMenuClick = {},
             onAddExpenseClick = {},
-            onRevertExpenseClick = {},
+            onExpenseClick = {},
             onDebtsDetailsClick = {},
             onReplenishmentClick = {},
             onJoinEventClick = {},
@@ -441,7 +486,7 @@ private fun ExpensesPanePreviewLoading() {
         ExpensesPane(
             onMenuClick = {},
             onAddExpenseClick = {},
-            onRevertExpenseClick = {},
+            onExpenseClick = {},
             onDebtsDetailsClick = {},
             onReplenishmentClick = {},
             onJoinEventClick = {},
@@ -468,6 +513,7 @@ internal fun mockExpensesPaneUiModel(withDebts: Boolean): ExpensesPaneUiModel {
         name = "Максим"
     )
     return ExpensesPaneUiModel.Expenses(
+        eventId = 1,
         eventName = "France trip",
         currentPersonId = person1.id,
         currentPersonName = person1.name,
@@ -517,7 +563,7 @@ internal fun mockExpensesPaneUiModel(withDebts: Boolean): ExpensesPaneUiModel {
                 ),
                 timestamp = Clock.System.now(),
                 description = "Lunch",
-            ).toUiModel("EUR"),
+            ).toUiModel(primaryCurrencyName = "EUR", currentPersonId = person1.id),
             Expense(
                 expenseId = 2,
                 serverId = "12",
@@ -540,7 +586,7 @@ internal fun mockExpensesPaneUiModel(withDebts: Boolean): ExpensesPaneUiModel {
                 ),
                 timestamp = Clock.System.now(),
                 description = "Dinner and some text",
-            ).toUiModel("EUR")
+            ).toUiModel(primaryCurrencyName = "EUR", currentPersonId = person1.id)
         ),
         isRefreshing = false
     )

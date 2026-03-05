@@ -30,9 +30,9 @@ architecture with feature-based organization.
 - Multiplatform-resources for resource management
 - WorkManager for background sync tasks
 - Protocol Buffers (Wire) for settings serialization
-- Gradle 9.2.1 with Kotlin DSL and version catalogs
+- Gradle (version in `gradle/wrapper/gradle-wrapper.properties`) with Kotlin DSL and version catalogs
 - Android Gradle Plugin 9.0.0-rc03
-- Target: Android API 36, Min API 26
+- Android compile/target/min SDK: see `app/build.gradle.kts`
 
 **Project Size:** ~50 modules across shared core libraries, feature modules, and platform-specific implementations.
 
@@ -48,10 +48,12 @@ architecture with feature-based organization.
 
 ## Standard Operating Procedures and Skills (Workflow)
 
-- Release workflow: use the `prepare-android-release` skill at `android/.agents/skills/prepare-android-release` for version bump, baseline profiles, and tagging.
+- Release workflow: use the `prepare-mobile-release` skill at `android/.agents/skills/prepare-mobile-release` for version bump (Android + iOS), baseline profiles, and tagging.
+- Long local Android runs: use the `run-android-local-long-task` skill at `android/.agents/skills/run-android-local-long-task`; confirm environment with [`android/docs/local-agent-prerequisites.md`](docs/local-agent-prerequisites.md).
 
 ## Tooling Docs (Reference)
 
+- `android/docs/local-agent-prerequisites.md` – Local Android prerequisites (JDK, SDK, local.properties, device/Marathon/profiler, worktree-copyable tooling). Use before long local runs.
 - `android/marathon/README.md` - Local Marathon runner usage and setup notes (library extracted manually; binaries not in git). Requires JUnit 4 annotations for test discovery; config in `android/Marathonfile`.
 - `android/gradle/README.md` - Gradle Profiler benchmarks and scenarios (`android/gradle/performance.scenarios`; profiler distribution in `android/gradle/profiler`).
 - `android/docs/database-benchmarking.md` - Room benchmark workflow and correctness checklist. Run DB benchmarks from dedicated module `:benchmarks:databases` (AndroidBenchmarkRunner + non-debuggable release test build type). Standard flow: template ->
@@ -63,9 +65,7 @@ architecture with feature-based organization.
 
 ### Prerequisites
 
-- JDK 22+ (Project uses JVM target 17, daemon configured for JDK 22/Temurin)
-- Android SDK with API 36
-- Gradle 9.2.1 (use wrapper)
+- JDK: same as CI (see `.github/workflows/android.yml`); project JVM target 17. Use wrapper for Gradle (version in `gradle/wrapper/gradle-wrapper.properties`). Android SDK: API level from `app/build.gradle.kts`. See [`docs/local-agent-prerequisites.md`](docs/local-agent-prerequisites.md) for details.
 
 ### Essential Commands
 
@@ -105,7 +105,7 @@ Run commands from the `android/` directory unless a command explicitly says othe
 .\gradlew connectedAndroidDeviceTest
 
 # Run instrumented tests with Gradle Managed Devices
-./gradlew :app:pixel6Api35AtdAutotestAndroidTest -Dcom.android.tools.r8.disableApiModeling
+./gradlew :app:pixel6Api35AtdAutotestAndroidTest "-Dcom.android.tools.r8.disableApiModeling=true"
 
 # Run device tests with Gradle Managed Devices (includes Room tests)
 ./gradlew :app:pixel6Api35AtdAndroidDeviceTest
@@ -160,6 +160,7 @@ Run commands from the `android/` directory unless a command explicitly says othe
 - KSP generates code for Room DAOs and may show redundant modifier warnings
 - Dependency updates command may take 5+ minutes and should not be interrupted
 - PowerShell users: Use `;` instead of `&&` for command chaining
+- PowerShell users: Quote `-D...` Gradle properties (for example `"-Dcom.android.tools.r8.disableApiModeling=true"`) to avoid accidental task parsing
 
 ## Project Architecture (Reference)
 
@@ -335,7 +336,8 @@ app/src/androidTest/kotlin/ru/commonex/
    @Test
    fun testOfflineFlow() = runBlocking { ... }
    ```
-5. **Selectors:** Prefer test tags for new selectors, fall back to resource strings, and avoid raw literals unless unavoidable.
+5. **Selectors:** Prefer test tags for new selectors, fall back to resource strings, and avoid raw literals unless unavoidable. For overlays (dialogs/bottom sheets), scope checks to overlay-specific tags; do not rely on global text waits that can match
+   underlying screens.
 
 ## Common Development Tasks (Workflow)
 
@@ -417,6 +419,54 @@ this helper scoped to migration verification, not performance benchmarking.
 - Compose Multiplatform for shared UI components
 - Platform-specific implementations in `androidMain`/`iosMain` source sets
 - For navigation, use Navigation 3 library with helpers from `shared:core:navigation`
+
+### Compose Material 3 UI/UX Rules (Strict)
+
+For any Android Compose UI change (new or edited pane/screen/dialog/bottom sheet), all items below are required and blocking:
+
+1. **Screen Anatomy and Structure:** Full-screen surfaces must use `Scaffold` and place top bar/actions/snackbar through scaffold slots.
+2. **Insets and Edge-to-Edge Safety:** Apply scaffold/system/IME insets once at the content root. No clipped content under bars, cutouts, gesture areas, or keyboard.
+3. **Guardrails and Grid:** Use Material mobile guardrails and consistent spacing rhythm (default side margins around `16dp`, layout spacing on an `8dp` grid, smaller adjustments on `4dp`).
+4. **Alignment and Grouping:** Keep related content/actions visually grouped via spacing, cards, and dividers; maintain consistent horizontal alignment.
+5. **Content Hierarchy:** Keep section structure clear (title/supporting text/content/actions) and avoid dense, ungrouped controls.
+6. **Primary Action Hierarchy:** Keep one dominant primary action per surface. Destructive actions must be secondary unless in a confirmation dialog.
+7. **Navigation and Action Placement:** Put global/screen actions in app bars, primary task actions in FAB/primary buttons, and infrequent actions in overflow or secondary surfaces.
+8. **Adaptive Layouts:** Use window size classes/canonical adaptive patterns for layout decisions (single-pane on compact; supporting pane/list-detail where appropriate on larger sizes).
+9. **Lazy vs Scroll Containers:** Use `LazyColumn` (or other lazy containers) for dynamic/unbounded collections. Use `verticalScroll` only for bounded short forms/details.
+10. **Overlay Semantics:** Use dialog for confirmation/critical interruption, and bottom sheet for contextual details/actions.
+11. **State Coverage:** Define and handle `Loading`/`Success`/`Error`/`Empty` states where applicable. No silent blank states.
+12. **Accessibility Semantics:** Interactive icons and controls must have meaningful semantics (including `contentDescription` where needed).
+13. **Interaction Feedback:** Long-running actions must show progress and prevent duplicate taps while in progress.
+14. **Preview and Testability:** Complex panes must have previews and stable test tags/selectors for critical actions.
+15. **Typography Roles:** Use `MaterialTheme.typography` role styles (`display`, `headline`, `title`, `body`, `label`) instead of arbitrary text styles.
+16. **Type Scale Discipline:** Avoid hard-coded `sp` sizes and ad-hoc line heights/letter spacing unless required for a documented one-off design reason.
+17. **Readable Font Choices:** Prefer app theme font families optimized for UI readability; avoid decorative fonts in core task flows.
+18. **Color Role Usage:** Use `MaterialTheme.colorScheme` semantic roles (`primary`, `onPrimary`, `surface`, `onSurface`, etc.) and avoid raw hex colors in feature UI.
+19. **Contrast and Meaning:** Preserve readable contrast and never rely on color alone to communicate critical state/action meaning.
+20. **Surface Hierarchy:** Use surface/container roles (`surface`, `surfaceContainer*`) to express elevation and grouping, not ad-hoc background tints.
+21. **Shape Tokens:** Use `MaterialTheme.shapes` (or M3 shape scale tokens) for corner radii; avoid arbitrary radius values unless design-reviewed.
+22. **Component Shape Mapping:** Respect M3 default shape intent (e.g., chips/buttons/cards/text fields) and document intentional overrides.
+23. **Border Semantics:** Use borders mainly for outlined/medium-emphasis components (for example, outlined buttons/cards/text fields), not as decorative noise.
+24. **Elevation Strategy:** Prefer tonal elevation and component defaults; add shadow elevation only when depth separation is necessary.
+25. **Shadow Restraint:** Keep shadows subtle and consistent; avoid stacking multiple custom shadows that reduce clarity or legibility.
+26. **Minimum Touch Targets:** Interactive controls must remain at least `48dp x 48dp` touch size.
+27. **Motion Purpose and Control:** Use animation to support comprehension (state/visibility/layout transitions), not decoration. UX must remain clear when system animation scale is reduced or disabled.
+28. **Accessibility Traversal Order:** Keep logical reading order by default; when needed, explicitly control order with semantics (`isTraversalGroup`, `traversalIndex`) so screen-reader traversal matches visual intent.
+29. **Font Scaling Robustness:** UI must remain usable at high font scales (including Android nonlinear scaling up to 200%): no clipped/overlapped critical text and no blocked primary actions.
+30. **Localization in Compose:** Do not hardcode user-facing strings in UI code; use resource APIs (`stringResource`, `pluralStringResource`) and keep default resources complete.
+31. **RTL and Pseudolocale Verification:** Validate key screens with pseudolocales (including RTL pseudolocale) to catch truncation, mirroring, and direction issues before merge.
+32. **Text Input Keyboard Semantics:** For each text input, intentionally set keyboard behavior (`keyboardType`, `imeAction`, `capitalization`, `autoCorrect`) according to task semantics.
+33. **Input Constraints and Formatting:** Prefer text input transformations for constraints/formatting (length, allowed characters, output formatting) over ad-hoc post-processing.
+34. **Adaptive Layout Decisions:** Use window size classes for layout decisions (not device type checks); support canonical adaptive patterns (for example list-detail / supporting pane) on larger widths.
+35. **Lazy List Performance Contracts:** For dynamic lists, provide stable item keys and `contentType` where relevant to maximize reuse and reduce recomposition cost.
+36. **Compose Stability and Recomposition Hygiene:** Keep expensive work out of composition (`remember`, `derivedStateOf`, ViewModel precomputation), and favor stable/immutable UI models to reduce unnecessary recompositions.
+37. **Composable API Semantics:** For reusable composables, prefer semantic API parameters (`isEmphasized`, `variant`, `enabled`) over visual implementation parameters (`TextStyle`, `Color`, raw typography tokens), unless a visual parameter is explicitly
+    required by a shared design-system contract.
+38. **Modifier-First Layout Extensibility:** For reusable composables, expose a `modifier: Modifier = Modifier` and use it for spacing/placement overrides at call sites; avoid bespoke spacing params such as `topPadding` on component APIs.
+39. **Spacing Token Discipline:** Use standard 4dp-grid spacing tokens only (`4/8/12/16/24/32`, plus `48` for touch-target-related sizing). Avoid ad-hoc spacing values (for example `10dp`, `14dp`, `18dp`) unless explicitly justified in a nearby code comment.
+40. **UX Scope Control:** During UI polish/refactor tasks, do not add new controls/actions (for example extra close buttons, additional menus, or secondary actions) unless explicitly requested or required to satisfy an existing acceptance criterion.
+
+Allowed exceptions are only explicit domain constraints where the rule does not apply (for example, no empty state by domain model). Document the reason in code comments when using an exception.
 
 ### Event Sharing
 
@@ -521,6 +571,8 @@ When adding support for a new currency (e.g., AED), update all the following:
 - **Database:** Room migrations handled automatically, check for schema changes
 - **Deep linking:** App handles commonex.ru domain, test with intent filters
 - **Background sync:** WorkManager requires proper initialization
+- **Expense details exchange rate crash (`Negative decimal precision is not allowed`):** Avoid formatting computed rates via `BigDecimal.scale(...)`-based helpers. Use `DecimalMode` division + `roundToDigitPositionAfterDecimalPoint(2, ...)` and fixed-scale
+  numeric formatting. See `android/docs/patterns.md` (`Numeric BigDecimal Patterns`).
 
 ### Performance Debugging
 
@@ -532,16 +584,15 @@ When adding support for a new currency (e.g., AED), update all the following:
 
 ### Required Tools
 
-- **JDK 22 (Temurin)** (Project targets JVM 17)
-- **Android SDK** with API 36 (compile target)
-- **Gradle 9.2.1** (use wrapper, do not install separately)
-- **Git** for version control
+- **JDK:** Same as CI (see `.github/workflows/android.yml`). Project targets JVM 17.
+- **Android SDK:** API level as in `app/build.gradle.kts`. **Gradle:** use wrapper (version in `gradle/wrapper/gradle-wrapper.properties`), do not install separately.
+- **Git** for version control. Full list: [`docs/local-agent-prerequisites.md`](docs/local-agent-prerequisites.md).
 
 ### IDE Configuration
 
 - **Android Studio** recommended for Android and KMM development
 - Enable Kotlin Multiplatform plugin
-- Configure JAVA_HOME to point to JDK 22
+- Configure JAVA_HOME to match the JDK used in CI (see workflow file)
 
 ## Validation Steps (Workflow)
 
@@ -570,10 +621,10 @@ Before submitting changes, run these validation steps:
 .\gradlew assembleAutotest
 
 # 8. Optional: Run instrumented tests (requires device/emulator)
-.\gradlew :app:connectedAutotestAndroidTest -Dcom.android.tools.r8.disableApiModeling
+.\gradlew :app:connectedAutotestAndroidTest "-Dcom.android.tools.r8.disableApiModeling=true"
 
 # 9. Optional: Run managed device tests (local Gradle Managed Devices testing)
-.\gradlew :app:pixel6Api35AtdAutotestAndroidTest -Dcom.android.tools.r8.disableApiModeling
+.\gradlew :app:pixel6Api35AtdAutotestAndroidTest "-Dcom.android.tools.r8.disableApiModeling=true"
 
 # 10. Optional: Run instrumented tests with Marathon (requires device/emulator + marathon CLI) (see Marathon doc for details)
 ```
@@ -597,3 +648,8 @@ Before submitting changes, run these validation steps:
 
 **Trust these instructions.** Only search for additional information if you encounter specific errors not covered here or if dependency/build tool versions have changed significantly. The build system is well-configured and should work reliably when following
 these steps.
+
+**Freshness:** Per root `AGENTS.md`, search official current docs for library/tool versions, migrations, and version-specific errors when needed; do not search for repo-local conventions already documented here. If upstream docs conflict with this file, flag
+the conflict.
+
+Consider these rules if they affect your changes.

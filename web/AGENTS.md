@@ -1,5 +1,7 @@
 # Agent Instructions for CommonEx Web
 
+For non-trivial work and when to search upstream docs, follow root [AGENTS.md](../../AGENTS.md) (workflow lifecycle and freshness policy).
+
 ## Project Overview
 
 CommonEx web is a **Next.js** application providing the web interface for the expense sharing platform. It uses Material
@@ -35,8 +37,7 @@ Feature-driven with strict folder structure (Feature-Sliced Design):
 
 ## Prerequisites
 
-- **Node.js 20+** (check with `node --version`)
-- **npm 10+** (comes with Node.js)
+- **Node.js and npm** (versions: see `package.json` engines or lockfile; do not duplicate in docs).
 - **Git** for version control
 
 ## Environment Setup

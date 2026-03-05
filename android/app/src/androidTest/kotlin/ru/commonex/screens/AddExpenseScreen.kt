@@ -34,6 +34,12 @@ internal class AddExpenseScreen : BaseScreen() {
         return this
     }
 
+    context(rule: ComposeTestRule)
+    fun selectCurrencyByCode(currencyCode: String): AddExpenseScreen {
+        rule.onNodeWithTag(currencyOptionTag(currencyCode)).performScrollTo().performClick()
+        return this
+    }
+
     /**
      * Clicks the equal split switch to toggle its state.
      * Default state is ON (equal split), so calling this will turn it OFF.
@@ -51,4 +57,8 @@ internal class AddExpenseScreen : BaseScreen() {
         rule.onNodeWithText(saveLabel).performScrollTo().performClick()
         return ExpensesScreen()
     }
+}
+
+private fun currencyOptionTag(currencyCode: String): String {
+    return "add_expense_currency_option_$currencyCode"
 }

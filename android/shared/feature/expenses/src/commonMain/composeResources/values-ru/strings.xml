@@ -1,27 +1,38 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="common_back">Назад</string>
+    <string name="common_close">Закрыть</string>
     <string name="common_error">Ошибка</string>
     <string name="expenses_app_name">CommonEx</string>
     <string name="expenses_between">между:</string>
     <string name="expenses_revert_description">[ОТМЕНА] %1$s</string>
     <string name="expenses_currency">Валюта</string>
+    <string name="expenses_date">Дата</string>
     <string name="expenses_debts">Долги</string>
     <string name="expenses_description">Описание</string>
     <string name="expenses_details">детали</string>
+    <string name="expenses_expense_details">Детали операции</string>
     <string name="expenses_equally">Поровну</string>
+    <string name="expenses_exchange_rate">Курс обмена</string>
+    <string name="expenses_exchange_rate_value">1 %1$s = %2$s %3$s</string>
     <string name="expenses_expense">Трата</string>
     <string name="expenses_no_description">Без описания</string>
     <string name="expenses_no_expenses">Нет операций</string>
     <string name="expenses_none">Отсутствуют</string>
     <string name="expenses_operation">Операция</string>
+    <string name="expenses_original_currency">Исходная валюта</string>
     <string name="expenses_operations">Операции</string>
     <string name="expenses_owes">должен</string>
     <string name="expenses_paid_by">Оплатил</string>
+    <string name="expenses_paid_by_you">Оплатили вы</string>
     <string name="expenses_repayment">Возврат</string>
     <string name="expenses_repayment_from">Возврат от %1$s</string>
+    <string name="expenses_revert_confirm_title">Отменить операцию "%1$s"?</string>
+    <string name="expenses_revert_confirm_body">Будет создана операция отмены</string>
+    <string name="expenses_revert_cancel">Отмена</string>
     <string name="expenses_revert_operation">Отменить операцию</string>
     <string name="expenses_save">Сохранить</string>
     <string name="expenses_split">Разделить</string>
     <string name="expenses_total_amount">Общая сумма</string>
+    <string name="expenses_your_part">Ваша доля: %1$s</string>
 </resources>

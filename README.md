@@ -26,4 +26,8 @@ The project consists of:
 - **Web** - Next.js-based web interface
 - **Backend and Infra** - NestJS service and infrastructure
 
+## For contributors and agents
+
+See [AGENTS.md](AGENTS.md) for agent instructions, workflow lifecycle, and project-specific guidance.
+
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/inwords/expenses)

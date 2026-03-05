@@ -1,27 +1,38 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="common_back">Back</string>
+    <string name="common_close">Close</string>
     <string name="common_error">Error</string>
     <string name="expenses_app_name">CommonEx</string>
     <string name="expenses_between">between:</string>
     <string name="expenses_revert_description">[REVERT] %1$s</string>
     <string name="expenses_currency">Currency</string>
+    <string name="expenses_date">Date</string>
     <string name="expenses_debts">Debts</string>
     <string name="expenses_description">Description</string>
     <string name="expenses_details">details</string>
+    <string name="expenses_expense_details">Expense details</string>
     <string name="expenses_equally">Equally</string>
+    <string name="expenses_exchange_rate">Exchange rate</string>
+    <string name="expenses_exchange_rate_value">1 %1$s = %2$s %3$s</string>
     <string name="expenses_expense">Expense</string>
     <string name="expenses_no_description">No description</string>
     <string name="expenses_no_expenses">No expenses</string>
     <string name="expenses_none">None</string>
     <string name="expenses_operation">Operation</string>
+    <string name="expenses_original_currency">Original currency</string>
     <string name="expenses_operations">Operations</string>
     <string name="expenses_owes">owes</string>
     <string name="expenses_paid_by">Paid by</string>
+    <string name="expenses_paid_by_you">Paid by you</string>
     <string name="expenses_repayment">Replenishment</string>
     <string name="expenses_repayment_from">Repayment from %1$s</string>
+    <string name="expenses_revert_confirm_title">Revert operation "%1$s"?</string>
+    <string name="expenses_revert_confirm_body">A reverse operation will be created</string>
+    <string name="expenses_revert_cancel">Cancel</string>
     <string name="expenses_revert_operation">Revert operation</string>
     <string name="expenses_save">Save</string>
     <string name="expenses_split">Split</string>
     <string name="expenses_total_amount">Total amount</string>
+    <string name="expenses_your_part">Your part: %1$s</string>
 </resources>

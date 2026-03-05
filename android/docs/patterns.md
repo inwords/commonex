@@ -77,6 +77,23 @@ val state = run {
 }
 ```
 
+### Expense Revert Confirmation via Navigation3 Dialog
+
+For expense details (`ExpenseItemPane`), keep revert confirmation in a dedicated Navigation3 dialog destination, not in local remembered composable state.
+
+Required flow:
+
+1. Expenses list opens `ExpenseItemPaneDestination` with both `expenseId` and `eventId`.
+2. `ExpenseItemPaneViewModel` handles revert click by navigating to `ExpenseRevertDialogDestination(expenseId, eventId, expenseDescription)`.
+3. `ExpenseRevertDialogViewModel` confirm action:
+    - guards duplicate taps with `Job?`
+    - loads event by `eventId` and expense by `expenseId` from stores
+    - executes `revertExpense(...)`
+    - pops back to `ExpensesPaneDestination` (`inclusive = false`)
+4. If event/expense is missing, close dialog safely (`popBackStack()`).
+
+Do not introduce a shared state holder for this confirmation flow.
+
 ## Compose UI Patterns
 
 ### State-Driven Side Effects (Clipboard, Share)
@@ -134,6 +151,24 @@ val isLoading = state.shareState is ShareState.Loading  // Correct: recalculates
 ```
 
 Use `remember` only for expensive computations or mutable state that must survive recomposition.
+
+### Overlay-Safe UI Test Selectors
+
+For bottom sheets and dialogs, avoid global text-based waits/assertions because the same text can exist on the underlying screen.
+
+- Add stable overlay-specific `testTag`s for root and key values/actions.
+- In screen objects, assert using `onNodeWithTag(...)`/`onAllNodesWithTag(...)` against those tags.
+- For dynamic rows (for example split persons), add deterministic per-item tags (prefix + stable value) and assert by that tag.
+
+### Conditional Modifier Composition
+
+Prefer `Modifier.then(...)` for conditional modifier chaining over wrapping the base modifier in `.let { ... }`.
+
+```kotlin
+modifier = Modifier
+    .weight(0.56f)
+    .then(if (valueTestTag == null) Modifier else Modifier.testTag(valueTestTag))
+```
 
 ## UI State Modeling
 
@@ -374,3 +409,40 @@ class AddExpenseViewModel(
     )
 }
 ```
+
+## Numeric BigDecimal Patterns
+
+### Exchange Rate Formatting Without `scale()`
+
+When formatting computed exchange rates, avoid `BigDecimal.scale(...)` based formatters (for example `toRoundedString`) because IonSpin can throw:
+
+`ArithmeticException: Negative decimal precision is not allowed`
+
+Use API-driven division and rounding, then fixed-scale formatting:
+
+```kotlin
+private const val EXCHANGE_RATE_SCALE = 2L
+
+val roundedRate = totalExchangedAmount.abs()
+    .divide(
+        other = totalOriginalAmount.abs(),
+        decimalMode = DecimalMode(
+            decimalPrecision = estimateDivisionPrecision(/*...*/),
+            roundingMode = RoundingMode.ROUND_HALF_TO_EVEN,
+        ),
+    )
+    .roundToDigitPositionAfterDecimalPoint(
+        digitPosition = EXCHANGE_RATE_SCALE,
+        roundingMode = RoundingMode.ROUND_HALF_TO_EVEN,
+    )
+```
+
+Then render exactly 2 decimals using arithmetic (for example multiply by `BigDecimal.TEN.pow(2)`, convert to integer digits, split whole/fraction parts), not by applying a second decimal rounding step.
+
+### Required Edge Tests For Exchange Rate
+
+For exchange-rate formatting logic, keep tests for these cases:
+
+- very small ratio (must render `0.00`)
+- very large ratio (must render full value with `.00`)
+- zero original total (must return hidden/null state)

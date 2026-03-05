@@ -32,7 +32,7 @@ import com.inwords.expenses.feature.expenses.ui.converter.toUiModel
 import com.inwords.expenses.feature.expenses.ui.debts_list.DebtsListPaneDestination
 import com.inwords.expenses.feature.expenses.ui.list.ExpensesPaneUiModel.Expenses.ExpenseUiModel
 import com.inwords.expenses.feature.expenses.ui.list.ExpensesPaneUiModel.LocalEvents
-import com.inwords.expenses.feature.expenses.ui.list.dialog.item.ExpenseItemDialogDestination
+import com.inwords.expenses.feature.expenses.ui.list.bottom_sheet.item.ExpenseItemPaneDestination
 import com.inwords.expenses.feature.expenses.ui.utils.toRoundedString
 import com.inwords.expenses.feature.menu.ui.MenuDialogDestination
 import com.inwords.expenses.feature.settings.api.SettingsRepository
@@ -155,12 +155,16 @@ internal class ExpensesViewModel(
         flowOf(
             SimpleScreenState.Success(
                 ExpensesPaneUiModel.Expenses(
+                    eventId = expensesDetails.event.event.id,
                     eventName = expensesDetails.event.event.name,
                     currentPersonId = currentPerson.id,
                     currentPersonName = currentPerson.name,
                     debts = debts,
                     expenses = expensesDetails.expenses.map { expense ->
-                        expense.toUiModel(primaryCurrencyName = expensesDetails.event.primaryCurrency.name)
+                        expense.toUiModel(
+                            primaryCurrencyName = expensesDetails.event.primaryCurrency.name,
+                            currentPersonId = currentPerson.id,
+                        )
                     }.asImmutableListAdapter(),
                     isRefreshing = false // will be updated later by combining with isRefreshingFlow
                 )
@@ -197,11 +201,14 @@ internal class ExpensesViewModel(
         navigationController.navigateTo(AddExpensePaneDestination())
     }
 
-    fun onRevertExpenseClick(expense: ExpenseUiModel) {
+    fun onExpenseClick(expense: ExpenseUiModel) {
+        val data = (state.value as? SimpleScreenState.Success)?.data ?: return
+        val eventId = (data as? ExpensesPaneUiModel.Expenses)?.eventId ?: return
+
         navigationController.navigateTo(
-            ExpenseItemDialogDestination(
+            ExpenseItemPaneDestination(
                 expenseId = expense.expenseId,
-                description = expense.description,
+                eventId = eventId,
             )
         )
     }

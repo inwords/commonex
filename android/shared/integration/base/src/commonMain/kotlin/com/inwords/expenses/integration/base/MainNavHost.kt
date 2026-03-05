@@ -30,7 +30,8 @@ import com.inwords.expenses.feature.expenses.api.ExpensesComponent
 import com.inwords.expenses.feature.expenses.ui.add.getAddExpensePaneNavModule
 import com.inwords.expenses.feature.expenses.ui.debts_list.getDebtsListPaneNavModule
 import com.inwords.expenses.feature.expenses.ui.list.ExpensesPaneDestination
-import com.inwords.expenses.feature.expenses.ui.list.dialog.item.getExpenseItemDialogNavModule
+import com.inwords.expenses.feature.expenses.ui.list.bottom_sheet.item.getExpenseItemPaneNavModule
+import com.inwords.expenses.feature.expenses.ui.list.dialog.revert.getExpenseRevertDialogNavModule
 import com.inwords.expenses.feature.expenses.ui.list.getExpensesPaneNavModule
 import com.inwords.expenses.feature.menu.api.MenuComponent
 import com.inwords.expenses.feature.menu.ui.getMenuDialogNavModule
@@ -107,11 +108,16 @@ fun MainNavHost(
                 getCurrentEventStateUseCaseLazy = eventsComponent.getCurrentEventStateUseCaseLazy,
                 expensesInteractorLazy = expensesComponent.expensesInteractorLazy,
             ),
-            getExpenseItemDialogNavModule(
+            getExpenseItemPaneNavModule(
                 navigationController = navigationController,
                 getCurrentEventStateUseCaseLazy = eventsComponent.getCurrentEventStateUseCaseLazy,
+                expensesLocalStoreLazy = expensesComponent.expensesLocalStore,
+            ),
+            getExpenseRevertDialogNavModule(
+                navigationController = navigationController,
                 expensesInteractorLazy = expensesComponent.expensesInteractorLazy,
                 expensesLocalStoreLazy = expensesComponent.expensesLocalStore,
+                eventsLocalStoreLazy = eventsComponent.eventsLocalStore,
             ),
 
             getMenuDialogNavModule(

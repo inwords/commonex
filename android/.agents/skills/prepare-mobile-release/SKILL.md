@@ -1,13 +1,13 @@
 ---
-name: prepare-android-release
-description: "Prepare a CommonEx Android release by following the SOP: bump version, generate baseline profiles, and create/push a release tag. Use when the user asks to prepare an Android release or run the release SOP. Requires DATE, RELEASE_N, PATCH, RUN_FROM (repo-root or android/), and SHELL."
+name: prepare-mobile-release
+description: "Prepare a CommonEx mobile release (Android + iOS): bump version on both platforms, generate Android baseline profiles, and create/push a release tag. Use when the user asks to prepare a mobile release or run the release SOP. Requires DATE, RELEASE_N, PATCH, RUN_FROM (repo-root or android/), and SHELL."
 ---
 
-# Prepare Android Release
+# Prepare Mobile Release
 
 ## Overview
 
-Follow the Android release SOP exactly with minimal inputs and deterministic steps.
+Follow the mobile release SOP: bump version on **Android and iOS** in lockstep, generate Android baseline profiles, then tag and push. Both platforms share the same version number and build number.
 
 ## Required inputs (ask only for missing values)
 
@@ -23,6 +23,7 @@ Follow the Android release SOP exactly with minimal inputs and deterministic ste
 - VERSION_CODE = CURRENT_VERSION_CODE + 1
 - TAG = release/YYYY-MM-N/P (VERSION_NAME with dots replaced by hyphens + PATCH)
 - PATH_PREFIX = "" if RUN_FROM = android/, otherwise "android/"
+- IOS_PROJECT = PATH_PREFIX + "iosApp/iosApp.xcodeproj/project.pbxproj"
 - GRADLEW_CMD:
     - repo-root + PowerShell: .\\android\\gradlew -p android
     - repo-root + bash: ./android/gradlew -p android
@@ -32,22 +33,26 @@ Follow the Android release SOP exactly with minimal inputs and deterministic ste
 ## Preconditions (stop if any fail)
 
 - On branch main and up to date with origin/main
-- All Android changes are committed (non-Android changes may remain)
+- All Android and iOS changes are committed (other changes may remain)
 - Android SDK and a managed device for baseline profiles are available
 
 ## Workflow
 
-### Step 1: Bump version
+### Step 1: Bump version (Android + iOS)
 
 1) Read PATH_PREFIXapp/build.gradle.kts for CURRENT_VERSION_CODE.
 2) Edit PATH_PREFIXapp/build.gradle.kts:
     - versionCode = VERSION_CODE
     - versionName = "VERSION_NAME"
-3) Commit (exact message format):
-    - git add PATH_PREFIXapp/build.gradle.kts
+3) Edit IOS_PROJECT (both Debug and Release build configurations):
+    - MARKETING_VERSION = "VERSION_NAME"
+    - CURRENT_PROJECT_VERSION = VERSION_CODE
+   See [android/docs/ios-versioning.md](../../../docs/ios-versioning.md) for reference.
+4) Commit (exact message format):
+    - git add PATH_PREFIXapp/build.gradle.kts IOS_PROJECT
     - git commit -m "Bump version to VERSION_NAME"
 
-### Step 2: Generate baseline/startup profiles
+### Step 2: Generate baseline/startup profiles (Android)
 
 1) Run:
     - GRADLEW_CMD :app:generateBaselineProfile

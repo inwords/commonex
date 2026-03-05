@@ -3,6 +3,7 @@ package ru.commonex.screens
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.compose.ui.test.onAllNodesWithText
@@ -30,6 +31,22 @@ internal abstract class BaseScreen {
         timeout: Long = 10000
     ) {
         rule.waitUntilDoesNotExist(hasText(text), timeout)
+    }
+
+    context(rule: ComposeTestRule)
+    fun waitForElementWithTag(
+        tag: String,
+        timeout: Long = 10000,
+    ) {
+        rule.waitUntilAtLeastOneExists(hasTestTag(tag), timeout)
+    }
+
+    context(rule: ComposeTestRule)
+    fun waitForElementWithTagDoesNotExist(
+        tag: String,
+        timeout: Long = 10000,
+    ) {
+        rule.waitUntilDoesNotExist(hasTestTag(tag), timeout)
     }
 
     context(rule: ComposeTestRule)

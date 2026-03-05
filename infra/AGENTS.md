@@ -1,5 +1,7 @@
 # Agent Instructions for CommonEx Infrastructure
 
+For non-trivial work and when to search upstream docs, follow root [AGENTS.md](../../AGENTS.md) (workflow lifecycle and freshness policy).
+
 ## Project Overview
 
 CommonEx infrastructure uses Docker and Docker Compose for containerization, Nginx as a reverse
@@ -44,8 +46,7 @@ blue-green deployment for backend services.
 
 ## Prerequisites
 
-- **Docker 24+** (check with `docker --version`)
-- **Docker Compose 2+** (check with `docker compose version`)
+- **Docker and Docker Compose** (versions: see `docker-compose-prod.yml` or Dockerfiles; do not duplicate in docs).
 - **Git** for version control
 
 ## Environment Setup

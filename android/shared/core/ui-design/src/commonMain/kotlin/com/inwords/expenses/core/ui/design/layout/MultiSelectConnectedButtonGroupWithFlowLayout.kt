@@ -8,6 +8,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TonalToggleButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 
@@ -15,6 +16,7 @@ data class ToggleButtonOption<T>(
     val text: String,
     val checked: Boolean,
     val payload: T,
+    val testTag: String? = null,
 )
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
@@ -31,6 +33,11 @@ fun <T> MultiSelectConnectedButtonGroupWithFlowLayout(
     ) {
         options.forEachIndexed { index, option ->
             TonalToggleButton(
+                modifier = if (option.testTag == null) {
+                    Modifier
+                } else {
+                    Modifier.testTag(option.testTag)
+                },
                 checked = option.checked,
                 onCheckedChange = { onCheckedChange(index, it, option.payload) },
                 shapes = when (index) {

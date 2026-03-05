@@ -1,4 +1,0 @@
-interface:
-  display_name: "Prepare Android Release"
-  short_description: "Run CommonEx Android release SOP"
-  default_prompt: "Use $prepare-android-release to run the Android release SOP."
