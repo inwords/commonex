@@ -5,6 +5,7 @@ import com.inwords.expenses.feature.events.domain.model.Currency
 import com.inwords.expenses.feature.events.domain.model.Person
 import com.inwords.expenses.feature.expenses.domain.model.AccumulatedDebt
 import com.inwords.expenses.feature.expenses.domain.model.BarterAccumulatedDebt
+import com.inwords.expenses.feature.expenses.domain.model.BarterAccumulatedDebtSummary
 import com.inwords.expenses.feature.expenses.domain.model.Debt
 import com.inwords.expenses.feature.expenses.domain.model.Expense
 import com.ionspin.kotlin.bignum.decimal.BigDecimal
@@ -40,6 +41,19 @@ internal class DebtCalculator(
 
     fun getBarterAccumulatedDebtForPerson(person: Person): Map<Person, BarterAccumulatedDebt> {
         return barterAccumulatedDebts[person] ?: emptyMap()
+    }
+
+    val barterAccumulatedDebtSummaries: List<BarterAccumulatedDebtSummary> by lazy {
+        barterAccumulatedDebts.flatMap { (debtor, creditorToBarterAccumulatedDebts) ->
+            creditorToBarterAccumulatedDebts.map { (creditor, barterAccumulatedDebt) ->
+                BarterAccumulatedDebtSummary(
+                    debtor = debtor,
+                    creditor = creditor,
+                    amount = barterAccumulatedDebt.barterAmount,
+                    currency = barterAccumulatedDebt.currency,
+                )
+            }
+        }.sortedWith(compareBy({ it.debtor.name }, { it.creditor.name }))
     }
 
     /**
@@ -82,4 +96,14 @@ internal class DebtCalculator(
         return debtorToCreditorToAccumulatedDebts
     }
 
+}
+
+fun calculateBarterAccumulatedDebtSummaries(
+    expenses: List<Expense>,
+    primaryCurrency: Currency,
+): List<BarterAccumulatedDebtSummary> {
+    return DebtCalculator(
+        expenses = expenses,
+        primaryCurrency = primaryCurrency,
+    ).barterAccumulatedDebtSummaries
 }

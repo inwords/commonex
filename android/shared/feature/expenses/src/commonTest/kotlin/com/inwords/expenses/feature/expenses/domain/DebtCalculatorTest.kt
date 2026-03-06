@@ -290,6 +290,39 @@ internal class DebtCalculatorTest {
     }
 
     @Test
+    fun `calculateBarterAccumulatedDebtSummaries returns netted debt lines`() {
+        val expenses = listOf(
+            Fixtures.createExpense(
+                id = 1,
+                payer = Fixtures.alice,
+                splits = listOf(
+                    Fixtures.alice to "20.00",
+                    Fixtures.bob to "10.00"
+                )
+            ),
+            Fixtures.createExpense(
+                id = 2,
+                payer = Fixtures.bob,
+                splits = listOf(
+                    Fixtures.bob to "20.00",
+                    Fixtures.alice to "4.00"
+                )
+            )
+        )
+
+        val barterAccumulatedDebtSummaries = calculateBarterAccumulatedDebtSummaries(
+            expenses = expenses,
+            primaryCurrency = Fixtures.USD,
+        )
+
+        assertEquals(1, barterAccumulatedDebtSummaries.size)
+        assertEquals(Fixtures.bob, barterAccumulatedDebtSummaries.single().debtor)
+        assertEquals(Fixtures.alice, barterAccumulatedDebtSummaries.single().creditor)
+        assertEquals(BigDecimal.parseString("6.00"), barterAccumulatedDebtSummaries.single().amount)
+        assertEquals(Fixtures.USD, barterAccumulatedDebtSummaries.single().currency)
+    }
+
+    @Test
     fun `getBarterAccumulatedDebtForPerson returns correct debts`() {
         // Arrange
         val expenses = listOf(

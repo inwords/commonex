@@ -16,7 +16,10 @@ kotlinx-atomicfu = "0.31.0" # https://github.com/Kotlin/kotlinx-atomicfu/release
 compose-bom = "2026.01.00" # https://developer.android.com/jetpack/androidx/releases/compose
 compose-multiplatform = "1.10.0" # https://github.com/JetBrains/compose-multiplatform/blob/master/CHANGELOG.md
 
+appfunctions = "1.0.0-alpha07"
+
 jupiter = "6.0.2" # https://docs.junit.org/current/release-notes/index.html
+mockk = "1.14.9" # https://github.com/mockk/mockk/releases
 
 [libraries]
 room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
@@ -51,6 +54,12 @@ core-ktx = { group = "androidx.core", name = "core-ktx", version = "1.17.0" } # 
 concurrent-futures-ktx = { group = "androidx.concurrent", name = "concurrent-futures-ktx", version = "1.3.0" }
 annotation = { group = "androidx.annotation", name = "annotation", version = "1.9.1" }
 
+androidx-appfunctions = { group = "androidx.appfunctions", name = "appfunctions", version.ref = "appfunctions" }
+androidx-appfunctions-compiler = { group = "androidx.appfunctions", name = "appfunctions-compiler", version.ref = "appfunctions" }
+androidx-appfunctions-service = { group = "androidx.appfunctions", name = "appfunctions-service", version.ref = "appfunctions" }
+
+guava = { group = "com.google.guava", name = "guava", version = "33.5.0-android" }
+
 profileinstaller = { group = "androidx.profileinstaller", name = "profileinstaller", version = "1.4.1" }
 
 compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "compose-bom" }
@@ -84,7 +93,8 @@ junit-jupiter-api = { group = "org.junit.jupiter", name = "junit-jupiter-api", v
 junit-jupiter-params = { group = "org.junit.jupiter", name = "junit-jupiter-params", version.ref = "jupiter" }
 junit-jupiter-engine = { group = "org.junit.jupiter", name = "junit-jupiter-engine", version.ref = "jupiter" }
 coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutines" }
-mockk = { group = "io.mockk", name = "mockk", version = "1.14.9" } # https://github.com/mockk/mockk/releases
+mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
+mockk-android = { group = "io.mockk", name = "mockk-android", version.ref = "mockk" }
 turbine = { group = "app.cash.turbine", name = "turbine", version = "1.2.1" }
 
 [plugins]

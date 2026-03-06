@@ -276,6 +276,7 @@ See `android/docs/patterns.md` for ViewModel, Compose UI, state modeling, and fo
 - **Instrumented tests (non-UI):** Android Tests with JUnit 6
 - **Instrumented tests (Compose UI E2E tests):** Android Tests with JUnit 4 And Marathon. `ComposeTestRule` with context receivers pattern. Run against the real backend; avoid mocks and hardcoded remote fixtures by creating required data in-test.
 - **Room tests:** use `androidx.room:room-testing`/`MigrationTestHelper` for migration validation only (example `MigrationTest.kt` in `androidDeviceTest` source set).
+- **KMM library device tests:** For `shared:integration:base` AppFunctions tests, run `.\gradlew :shared:integration:base:connectedAndroidDeviceTest`. This module's `androidDeviceTest` source set uses `io.mockk:mockk-android` and `execution = "HOST"` because orchestrator-based discovery did not report results correctly for this module. This path was validated on both API 35 and API 36 emulators in-session.
 - **Device testing:** Managed devices configured in `pixel6Api35*` tasks
 - **Marathon runner:** Cross-platform test runner for CI with retries and sharding
 
