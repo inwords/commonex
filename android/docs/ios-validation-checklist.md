@@ -20,7 +20,7 @@ xcodebuild -scheme iosApp -destination 'platform=iOS Simulator,name=iPhone 16 Pr
 Or via Gradle from `android/`:
 
 ```bash
-.\gradlew :shared:integration:base:linkDebugFrameworkIosSimulatorArm64
+./gradlew :shared:integration:base:linkDebugFrameworkIosSimulatorArm64
 ```
 
 ## 2. Release Archive Build
@@ -40,16 +40,16 @@ The KMM plugin defines **iosArm64** and **iosSimulatorArm64** only (no iosX64). 
 
 ```bash
 cd android
-.\gradlew :shared:integration:base:linkDebugFrameworkIosSimulatorArm64
+./gradlew :shared:integration:base:linkDebugFrameworkIosSimulatorArm64
 ```
 
-For Kotlin/Native tests on simulator (if the project has iOS test targets):
+There are currently no checked-in `src/iosTest` or `src/iosSimulatorArm64Test` sources in this repo, so CI remains build-only unless an iOS test target is added later. If you introduce iOS tests, the expected simulator command is:
 
 ```bash
-.\gradlew iosSimulatorArm64Test
+./gradlew iosSimulatorArm64Test
 ```
 
-If `iosSimulatorArm64Test` is not configured, the link task above is sufficient to verify KMM code compiles for iOS.
+Until then, the link task above is the repo's automated KMM iOS compilation check.
 
 ## 4. Manual Device Checks
 
