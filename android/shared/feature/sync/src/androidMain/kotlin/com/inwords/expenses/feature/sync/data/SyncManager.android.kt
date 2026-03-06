@@ -18,14 +18,14 @@ import kotlinx.coroutines.withContext
 
 actual class EventsSyncManager internal constructor(
     private val context: Context
-) {
+) : EventsSyncManagerObserverDelegate() {
 
     @OptIn(DelicateCoroutinesApi::class)
     private val scope = GlobalScope + IO
 
     private val mutex = Mutex()
 
-    internal actual fun pushAllEventInfo(eventId: Long) {
+    actual override fun pushAllEventInfo(eventId: Long) {
         scope.launch {
             mutex.withLock {
                 val workManager = WorkManager.getInstance(context)
@@ -57,7 +57,7 @@ actual class EventsSyncManager internal constructor(
         }
     }
 
-    internal actual fun getSyncState(): Flow<Set<Long>> {
+    actual override fun getSyncState(): Flow<Set<Long>> {
         val eventTagPrefix = "$EVENTS_SYNC_WORKER_GROUP:"
         return WorkManager.getInstance(context)
             .getWorkInfosByTagFlow(EVENTS_SYNC_WORKER_GROUP)

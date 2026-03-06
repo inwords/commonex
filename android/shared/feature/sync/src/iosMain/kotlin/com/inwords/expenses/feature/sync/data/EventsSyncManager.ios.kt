@@ -18,7 +18,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.plus
 
-actual class EventsSyncManager internal constructor() {
+actual class EventsSyncManager internal constructor() : EventsSyncManagerObserverDelegate() {
 
     @OptIn(DelicateCoroutinesApi::class)
     private val scope = GlobalScope + IO
@@ -35,7 +35,7 @@ actual class EventsSyncManager internal constructor() {
 
     private val syncingEvents = MutableStateFlow<Set<Long>>(emptySet())
 
-    internal actual fun pushAllEventInfo(eventId: Long) {
+    actual override fun pushAllEventInfo(eventId: Long) {
         scope.launch {
             lock.withLock {
                 if (jobs[eventId]?.isActive == true) return@launch
@@ -91,7 +91,7 @@ actual class EventsSyncManager internal constructor() {
         }
     }
 
-    internal actual fun getSyncState(): Flow<Set<Long>> {
+    actual override fun getSyncState(): Flow<Set<Long>> {
         return syncingEvents
     }
 

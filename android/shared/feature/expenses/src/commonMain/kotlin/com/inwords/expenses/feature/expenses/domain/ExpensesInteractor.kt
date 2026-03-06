@@ -52,7 +52,7 @@ class ExpensesInteractor internal constructor(
             }
     }
 
-    internal suspend fun addExpenseEqualSplit(
+    suspend fun addExpenseEqualSplit(
         event: Event,
         wholeAmount: BigDecimal,
         expenseType: ExpenseType,
@@ -158,7 +158,7 @@ class ExpensesInteractor internal constructor(
         expensesLocalStore.upsert(event, revertedExpense)
     }
 
-    internal suspend fun enqueueAsyncExpensesRefresh(event: Event) {
+    suspend fun enqueueAsyncSync(event: Event) {
         refreshExpenses.emit(event)
     }
 

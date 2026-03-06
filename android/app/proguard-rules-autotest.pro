@@ -16,3 +16,4 @@
 -dontwarn androidx.window.extensions.embedding.**
 -dontwarn androidx.window.sidecar.**
 -dontwarn androidx.compose.animation.tooling.ComposeAnimatedProperty
+-dontwarn javax.lang.model.element.Modifier

@@ -2,13 +2,13 @@ package com.inwords.expenses.feature.sync.data
 
 import kotlinx.coroutines.flow.Flow
 
-expect class EventsSyncManager {
+expect class EventsSyncManager : EventsSyncManagerObserverDelegate {
 
-    internal fun pushAllEventInfo(eventId: Long)
+    override fun pushAllEventInfo(eventId: Long)
 
     suspend fun cancelEventSync(eventId: Long)
 
-    internal fun getSyncState(): Flow<Set<Long>>
+    override fun getSyncState(): Flow<Set<Long>>
 
 }
 

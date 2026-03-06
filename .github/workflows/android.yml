@@ -142,7 +142,7 @@ jobs:
           working-directory: ./android
           script: echo "Generated AVD snapshot for caching."
 
-      - name: Run UI tests with Marathon
+      - name: Run UI tests with Marathon and AppFunctions tests
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: ${{ env.API_LEVEL }}
@@ -156,15 +156,19 @@ jobs:
           disable-animations: true
           disable-spellchecker: true
           working-directory: ./android
-          script: marathon
+          script: |
+            marathon
+            ./gradlew :shared:integration:base:connectedAndroidDeviceTest --no-daemon --no-configuration-cache --continue
 
-      - name: Upload Marathon test reports
+      - name: Upload Android test reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: marathon-test-reports
+          name: android-test-reports
           path: |
             ${{ github.workspace }}/android/build/reports/marathon/
+            ${{ github.workspace }}/android/shared/integration/base/build/reports/
+            ${{ github.workspace }}/android/shared/integration/base/build/outputs/androidTest-results/
 
   build_ios:
     runs-on: macos-latest

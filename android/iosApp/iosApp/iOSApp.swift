@@ -5,6 +5,13 @@ import sharedIntegrationBase
 struct iOSApp: App {
 
     init() {
+        #if DEBUG
+        let production = false
+        #else
+        let production = true
+        #endif
+
+        InitializeSentryKt.initializeSentry(production: production)
         RegisterComponentsKt.registerComponents()
         EnableSyncKt.enableSync()
     }

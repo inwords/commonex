@@ -5,6 +5,7 @@ plugins {
     alias(shared.plugins.compose.compiler)
     alias(shared.plugins.compose.multiplatform.compiler)
     alias(shared.plugins.sentry.kotlin.multiplatform)
+    alias(shared.plugins.ksp)
 }
 
 kotlin {
@@ -14,6 +15,16 @@ kotlin {
         @Suppress("UnstableApiUsage")
         optimization {
             consumerKeepRules.files.add(file("consumer-rules.pro"))
+        }
+
+        androidResources {
+            enable = true
+        }
+
+        withDeviceTest {
+            animationsDisabled = true
+            // AppFunctions classes in this module break orchestrator-based test discovery on device.
+            execution = "HOST"
         }
     }
 
@@ -51,10 +62,31 @@ kotlin {
                 implementation(shared.kotlinx.atomicfu)
             }
         }
+        androidMain {
+            dependencies {
+                implementation(shared.androidx.appfunctions)
+                implementation(shared.androidx.appfunctions.service)
+                implementation(shared.ionspin.kotlin.bignum)
+                // guava: required by kotlinx-coroutines-guava (transitive from appfunctions) for MoreExecutors/Uninterruptibles
+                implementation(shared.guava)
+            }
+        }
+        @Suppress("unused")
+        val androidDeviceTest by getting {
+            dependencies {
+                implementation(shared.androidx.test.runner)
+                implementation(shared.androidx.test.ext.junit)
+                implementation(shared.mockk.android)
+            }
+        }
     }
 
     compilerOptions {
         // Common compiler options applied to all Kotlin source sets
         freeCompilerArgs.add("-Xexpect-actual-classes")
     }
+}
+
+dependencies {
+    kspAndroid(shared.androidx.appfunctions.compiler)
 }

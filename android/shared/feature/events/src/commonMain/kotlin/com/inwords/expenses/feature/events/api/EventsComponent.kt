@@ -8,6 +8,7 @@ import com.inwords.expenses.feature.events.data.db.store.PersonsLocalStoreImpl
 import com.inwords.expenses.feature.events.data.network.store.CurrenciesRemoteStoreImpl
 import com.inwords.expenses.feature.events.data.network.store.EventsRemoteStoreImpl
 import com.inwords.expenses.feature.events.domain.AddParticipantsToCurrentEventUseCase
+import com.inwords.expenses.feature.events.domain.CreateEventFromParametersUseCase
 import com.inwords.expenses.feature.events.domain.CreateEventUseCase
 import com.inwords.expenses.feature.events.domain.CreateShareTokenUseCase
 import com.inwords.expenses.feature.events.domain.DeleteEventUseCase
@@ -132,9 +133,15 @@ class EventsComponent internal constructor(
 
     val createEventUseCaseLazy: Lazy<CreateEventUseCase> = lazy {
         CreateEventUseCase(
+            createEventFromParametersUseCaseLazy = createEventFromParametersUseCaseLazy,
+            eventCreationStateHolderLazy = eventCreationStateHolder,
+        )
+    }
+
+    val createEventFromParametersUseCaseLazy: Lazy<CreateEventFromParametersUseCase> = lazy {
+        CreateEventFromParametersUseCase(
             eventsLocalStoreLazy = eventsLocalStore,
             settingsRepositoryLazy = deps.settingsRepositoryLazy,
-            eventCreationStateHolderLazy = eventCreationStateHolder,
         )
     }
 
@@ -176,5 +183,4 @@ class EventsComponent internal constructor(
             eventsRemoteStoreLazy = eventsRemoteStore,
         )
     }
-
 }
