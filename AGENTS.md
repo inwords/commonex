@@ -28,6 +28,7 @@ CommonEx is a multi-platform expense sharing application with Android/iOS (KMM),
 - Avoid editing generated and build output files, `.env` and secrets (e.g., `.next/`, `build/`).
 - When commands are listed, run them from the relevant project directory; there is no root `package.json`.
 - Add comments only when the logic is non-obvious.
+- Keep production types one per file unless the existing local pattern clearly groups them together.
 
 ## Domain Glossary
 

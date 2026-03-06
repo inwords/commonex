@@ -8,7 +8,7 @@ import androidx.appfunctions.AppFunctionSerializable
  * @property event The event that received the expense.
  * @property payerName The participant who paid the expense.
  * @property description The expense description.
- * @property amount The total expense amount.
+ * @property amount The total expense amount as a decimal string.
  * @property currencyCode The event primary currency code.
  * @property splitBetweenParticipants The number of participants included in the equal split.
  */
@@ -17,7 +17,7 @@ internal data class AppFunctionExpenseMutation(
     val event: AppFunctionEvent,
     val payerName: String,
     val description: String,
-    val amount: Double,
+    val amount: String,
     val currencyCode: String,
     val splitBetweenParticipants: Int,
 )

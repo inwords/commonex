@@ -12,6 +12,8 @@ kotlin {
         optimization {
             consumerKeepRules.files.add(file("consumer-rules.pro"))
         }
+
+        withHostTest {}
     }
 
     applyKmmDefaults("sharedSync")
@@ -39,4 +41,12 @@ kotlin {
         // Common compiler options applied to all Kotlin source sets
         freeCompilerArgs.add("-Xexpect-actual-classes")
     }
+}
+
+dependencies {
+    add("androidHostTestImplementation", shared.kotlin.test)
+    add("androidHostTestImplementation", shared.coroutines.test)
+    add("androidHostTestImplementation", shared.junit.jupiter.api)
+    add("androidHostTestImplementation", shared.mockk)
+    add("androidHostTestImplementation", shared.turbine)
 }

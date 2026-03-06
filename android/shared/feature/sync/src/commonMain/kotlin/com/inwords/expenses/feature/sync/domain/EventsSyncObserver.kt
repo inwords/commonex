@@ -6,12 +6,12 @@ import com.inwords.expenses.feature.events.domain.GetCurrentEventStateUseCase
 import com.inwords.expenses.feature.events.domain.model.Person
 import com.inwords.expenses.feature.expenses.domain.ExpensesInteractor
 import com.inwords.expenses.feature.expenses.domain.model.Expense
-import com.inwords.expenses.feature.sync.data.EventsSyncManager
+import com.inwords.expenses.feature.sync.data.EventsSyncManagerObserverDelegate
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.launch
@@ -20,7 +20,7 @@ class EventsSyncObserver internal constructor(
     getCurrentEventStateUseCaseLazy: Lazy<GetCurrentEventStateUseCase>,
     expensesInteractorLazy: Lazy<ExpensesInteractor>,
     eventsSyncStateHolderLazy: Lazy<EventsSyncStateHolder>,
-    eventsSyncManagerLazy: Lazy<EventsSyncManager>
+    eventsSyncManagerLazy: Lazy<EventsSyncManagerObserverDelegate>
 ) {
     private val getCurrentEventStateUseCase by getCurrentEventStateUseCaseLazy
     private val expensesInteractor by expensesInteractorLazy
@@ -34,23 +34,22 @@ class EventsSyncObserver internal constructor(
         scope.launch {
             merge(
                 getCurrentEventStateUseCase.currentEvent
-                    .distinctUntilChanged { old, new ->
-                        old?.event?.id == new?.event?.id &&
-                            old?.persons?.personsToIdsSet() == new?.persons?.personsToIdsSet()
+                    .map { currentEvent ->
+                        currentEvent?.event?.id to currentEvent?.persons?.personsToIdsSet()
                     }
-                    .filterNotNull()
-                    .flatMapLatestNoBuffer { currentEvent ->
-                        expensesInteractor.getExpensesFlow(currentEvent.event.id).map { currentEvent to it }
+                    .distinctUntilChanged()
+                    .flatMapLatestNoBuffer { (currentEventId, personIdsSet) ->
+                        currentEventId ?: return@flatMapLatestNoBuffer emptyFlow()
+                        expensesInteractor.getExpensesFlow(currentEventId).map { Triple(currentEventId, personIdsSet, it.expensesToIdsSet()) }
                     }
-                    .distinctUntilChanged { old, new ->
-                        old.second.expensesToIdsSet() == new.second.expensesToIdsSet()
-                    }
-                    .map { it.first.event },
+                    .distinctUntilChanged()
+                    .map { it.first },
                 expensesInteractor.refreshExpenses
+                    .map { it.id }
             )
                 .conflate()
-                .collect { event ->
-                    eventsSyncManager.pushAllEventInfo(event.id)
+                .collect { eventId ->
+                    eventsSyncManager.pushAllEventInfo(eventId)
                     delay(3000) // do not launch sync more often than every 3 seconds
                 }
         }

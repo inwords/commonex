@@ -120,6 +120,7 @@ dependencies {
 
     // guava (can't be added as `autotest` in integration-base)
     add("autotestRuntimeOnly", shared.guava)
+    implementation(shared.androidx.appfunctions.service)
 
     // compose
     val composeBom = platform(shared.compose.bom)

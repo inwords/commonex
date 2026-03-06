@@ -20,6 +20,7 @@ import com.inwords.expenses.feature.expenses.domain.calculateBarterAccumulatedDe
 import com.inwords.expenses.feature.expenses.domain.model.Expense
 import com.inwords.expenses.feature.expenses.domain.model.ExpenseSplitWithPerson
 import com.inwords.expenses.feature.expenses.domain.model.ExpenseType
+import com.ionspin.kotlin.bignum.decimal.BigDecimal
 import com.ionspin.kotlin.bignum.decimal.toBigDecimal
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
@@ -157,6 +158,8 @@ internal class CommonExAppFunctions {
             inTransaction = true,
         )
 
+        expensesComponent.expensesInteractorLazy.value.enqueueAsyncSync(event)
+
         AppFunctionParticipantMutation(
             event = eventDetails.toAppFunctionEvent(participantCountOverride = eventDetails.persons.size + 1),
             participantName = normalizedParticipantName,
@@ -167,7 +170,7 @@ internal class CommonExAppFunctions {
      * Adds an equal-split expense in the event primary currency.
      *
      * @param eventName The target event name.
-     * @param amount The total expense amount in the event primary currency.
+     * @param amount The total expense amount in the event primary currency, as a decimal string (e.g. "12.50").
      * @param description The expense description.
      * @param payerName The participant who paid the expense.
      * @return A structured summary of the created expense.
@@ -178,13 +181,13 @@ internal class CommonExAppFunctions {
     suspend fun addExpense(
         @Suppress("unused") appFunctionContext: AppFunctionContext,
         eventName: String,
-        amount: Double,
+        amount: String,
         description: String,
         payerName: String,
     ): AppFunctionExpenseMutation = withContext(IO) {
         val normalizedDescription = description.requireTrimmedValue("Expense description")
         val normalizedPayerName = payerName.requireTrimmedValue("Payer name")
-        requirePositiveAmount(amount)
+        val amountBigDecimal = parsePositiveAmount(amount)
 
         val eventDetails = findEventDetailsByName(eventName)
         val payer = eventDetails.requirePersonByName(
@@ -192,7 +195,7 @@ internal class CommonExAppFunctions {
             personName = normalizedPayerName,
         )
 
-        val splitAmount = amount.toBigDecimal().divide(
+        val splitAmount = amountBigDecimal.divide(
             other = eventDetails.persons.size.coerceAtLeast(1).toBigDecimal(),
             scale = 3,
         )
@@ -219,11 +222,13 @@ internal class CommonExAppFunctions {
 
         expensesComponent.expensesLocalStore.value.upsert(eventDetails.event, expense)
 
+        expensesComponent.expensesInteractorLazy.value.enqueueAsyncSync(eventDetails.event)
+
         AppFunctionExpenseMutation(
             event = eventDetails.toAppFunctionEvent(),
             payerName = payer.name,
             description = normalizedDescription,
-            amount = amount,
+            amount = amountBigDecimal.toString(),
             currencyCode = eventDetails.primaryCurrency.code,
             splitBetweenParticipants = eventDetails.persons.size,
         )
@@ -305,9 +310,24 @@ internal class CommonExAppFunctions {
         return trimmedValue
     }
 
-    private fun requirePositiveAmount(amount: Double) {
-        if (amount <= 0.0) {
-            throw AppFunctionInvalidArgumentException("Expense amount must be greater than zero.")
+    private fun parsePositiveAmount(amount: String): BigDecimal {
+        val trimmed = amount.trim()
+        if (trimmed.isEmpty()) {
+            throw AppFunctionInvalidArgumentException("Expense amount cannot be empty.")
+        }
+        return try {
+            val parsed = BigDecimal.parseString(trimmed)
+            if (parsed <= BigDecimal.ZERO) {
+                throw AppFunctionInvalidArgumentException("Expense amount must be greater than zero.")
+            }
+            parsed
+        } catch (e: Exception) {
+            when (e) {
+                is AppFunctionInvalidArgumentException -> throw e
+                else -> throw AppFunctionInvalidArgumentException(
+                    "Expense amount must be a valid positive decimal (e.g. \"12.50\").",
+                )
+            }
         }
     }
 }

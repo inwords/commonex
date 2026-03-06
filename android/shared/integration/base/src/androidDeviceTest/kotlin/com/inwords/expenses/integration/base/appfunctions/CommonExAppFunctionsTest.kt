@@ -165,7 +165,7 @@ internal class CommonExAppFunctionsTest {
                 primaryCurrencyCode = "GBP",
                 ownerName = "Vasya",
             )
-            fail("Expected AppFunctionInvalidArgumentException to be thrown.")
+            fail("Expected AppFunctionElementNotFoundException to be thrown.")
         } catch (exception: AppFunctionElementNotFoundException) {
             assertEquals(
                 "Currency 'GBP' is not available. Supported currency codes: EUR, USD",
@@ -226,7 +226,7 @@ internal class CommonExAppFunctionsTest {
 
         try {
             appFunctions.addParticipant(appFunctionContext, "Unknown Event", "Alice")
-            fail("Expected AppFunctionInvalidArgumentException to be thrown.")
+            fail("Expected AppFunctionElementNotFoundException to be thrown.")
         } catch (exception: AppFunctionElementNotFoundException) {
             assertEquals("Event 'Unknown Event' was not found.", exception.message)
         }
@@ -278,7 +278,7 @@ internal class CommonExAppFunctionsTest {
 
         try {
             appFunctions.addParticipant(appFunctionContext, "Trip", "alice")
-            fail("Expected AppFunctionInvalidArgumentException to be thrown.")
+            fail("Expected AppFunctionElementAlreadyExistsException to be thrown.")
         } catch (exception: AppFunctionElementAlreadyExistsException) {
             assertEquals(
                 "Participant 'alice' already exists in event 'Trip'.",

@@ -250,7 +250,7 @@ internal class ExpensesViewModel(
         pullToRefreshStateManager.onUserTriggeredRefresh(viewModelScope, event.id)
         refreshJob?.cancel()
         refreshJob = viewModelScope.launch(start = CoroutineStart.UNDISPATCHED) {
-            expensesInteractor.enqueueAsyncExpensesRefresh(event)
+            expensesInteractor.enqueueAsyncSync(event)
         }
     }
 
