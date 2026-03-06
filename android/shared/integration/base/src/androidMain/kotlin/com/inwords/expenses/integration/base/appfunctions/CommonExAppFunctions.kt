@@ -9,7 +9,7 @@ import androidx.appfunctions.service.AppFunction
 import com.inwords.expenses.core.locator.ComponentsMap
 import com.inwords.expenses.core.locator.getComponent
 import com.inwords.expenses.core.utils.IO
-import com.inwords.expenses.core.utils.divide
+import com.inwords.expenses.core.utils.toPlainDecimalString
 import com.inwords.expenses.feature.events.api.EventsComponent
 import com.inwords.expenses.feature.events.domain.model.Currency
 import com.inwords.expenses.feature.events.domain.model.Event
@@ -17,14 +17,13 @@ import com.inwords.expenses.feature.events.domain.model.EventDetails
 import com.inwords.expenses.feature.events.domain.model.Person
 import com.inwords.expenses.feature.expenses.api.ExpensesComponent
 import com.inwords.expenses.feature.expenses.domain.calculateBarterAccumulatedDebtSummaries
-import com.inwords.expenses.feature.expenses.domain.model.Expense
-import com.inwords.expenses.feature.expenses.domain.model.ExpenseSplitWithPerson
 import com.inwords.expenses.feature.expenses.domain.model.ExpenseType
 import com.ionspin.kotlin.bignum.decimal.BigDecimal
-import com.ionspin.kotlin.bignum.decimal.toBigDecimal
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
-import kotlin.time.Clock
 
 internal class CommonExAppFunctions {
 
@@ -70,7 +69,8 @@ internal class CommonExAppFunctions {
         val createdEvent = eventsComponent.createEventFromParametersUseCaseLazy.value.createEvent(
             name = normalizedName,
             owner = normalizedOwnerName,
-            primaryCurrency = currency,
+            primaryCurrencyId = currency.id,
+            otherPersons = emptyList(),
         )
 
         createdEvent.toAppFunctionEvent()
@@ -84,9 +84,13 @@ internal class CommonExAppFunctions {
     @AppFunction(isDescribedByKdoc = true)
     suspend fun listEvents(@Suppress("unused") appFunctionContext: AppFunctionContext): List<AppFunctionEvent> = withContext(IO) {
         val events = eventsComponent.getEventsUseCaseLazy.value.getEvents().first()
-        events.map { event ->
-            eventsComponent.eventsLocalStore.value.getEventWithDetails(event.id)?.toAppFunctionEvent()
-                ?: event.toAppFunctionEvent()
+        coroutineScope {
+            events.map { event ->
+                async {
+                    val details = eventsComponent.eventsLocalStore.value.getEventWithDetails(event.id)
+                    details?.toAppFunctionEvent() ?: event.toAppFunctionEvent()
+                }
+            }.awaitAll()
         }
     }
 
@@ -116,7 +120,7 @@ internal class CommonExAppFunctions {
             AppFunctionDebt(
                 debtorName = debt.debtor.name,
                 creditorName = debt.creditor.name,
-                amount = debt.amount.toString(),
+                amount = debt.amount.toPlainDecimalString(),
                 currencyCode = debt.currency.code,
             )
         }
@@ -195,40 +199,23 @@ internal class CommonExAppFunctions {
             personName = normalizedPayerName,
         )
 
-        val splitAmount = amountBigDecimal.divide(
-            other = eventDetails.persons.size.coerceAtLeast(1).toBigDecimal(),
-            scale = 3,
-        )
-        val expenseSplits = eventDetails.persons.map { person ->
-            ExpenseSplitWithPerson(
-                expenseSplitId = 0,
-                expenseId = 0,
-                person = person,
-                originalAmount = splitAmount,
-                exchangedAmount = splitAmount,
-            )
-        }
-
-        val expense = Expense(
-            expenseId = 0,
-            serverId = null,
-            currency = eventDetails.primaryCurrency,
+        val interactor = expensesComponent.expensesInteractorLazy.value
+        interactor.addExpenseEqualSplit(
+            event = eventDetails.event,
+            wholeAmount = amountBigDecimal,
             expenseType = ExpenseType.Spending,
-            person = payer,
-            subjectExpenseSplitWithPersons = expenseSplits,
-            timestamp = Clock.System.now(),
             description = normalizedDescription,
+            selectedSubjectPersons = eventDetails.persons,
+            selectedCurrency = eventDetails.primaryCurrency,
+            selectedPerson = payer,
         )
-
-        expensesComponent.expensesLocalStore.value.upsert(eventDetails.event, expense)
-
-        expensesComponent.expensesInteractorLazy.value.enqueueAsyncSync(eventDetails.event)
+        interactor.enqueueAsyncSync(eventDetails.event)
 
         AppFunctionExpenseMutation(
             event = eventDetails.toAppFunctionEvent(),
             payerName = payer.name,
             description = normalizedDescription,
-            amount = amountBigDecimal.toString(),
+            amount = amountBigDecimal.toPlainDecimalString(),
             currencyCode = eventDetails.primaryCurrency.code,
             splitBetweenParticipants = eventDetails.persons.size,
         )
@@ -258,10 +245,16 @@ internal class CommonExAppFunctions {
 
     private suspend fun findEventDetailsByName(eventName: String): EventDetails {
         val normalizedEventName = eventName.requireTrimmedValue("Event name")
-        val event = eventsComponent.eventsLocalStore.value.getEventsFlow().first()
-            .firstOrNull { it.name.equals(normalizedEventName, ignoreCase = true) }
-            ?: throw AppFunctionElementNotFoundException("Event '$normalizedEventName' was not found.")
-
+        val allEvents = eventsComponent.eventsLocalStore.value.getEventsFlow().first()
+        val matches = allEvents.filter { it.name.equals(normalizedEventName, ignoreCase = true) }
+        when {
+            matches.isEmpty() -> throw AppFunctionElementNotFoundException("Event '$normalizedEventName' was not found.")
+            matches.size > 1 -> throw AppFunctionInvalidArgumentException(
+                "Multiple events named '$normalizedEventName' exist (IDs: ${matches.joinToString { it.id.toString() }}). " +
+                    "Delete duplicates in the app to disambiguate.",
+            )
+        }
+        val event = matches.single()
         return eventsComponent.eventsLocalStore.value.getEventWithDetails(event.id)
             ?: throw AppFunctionAppUnknownException(
                 "Event '${event.name}' details could not be loaded after resolving the event.",
@@ -272,12 +265,22 @@ internal class CommonExAppFunctions {
         roleName: String,
         personName: String,
     ): Person {
-        return persons.firstOrNull { person ->
+        val matches = persons.filter { person ->
             person.name.equals(personName, ignoreCase = true)
-        } ?: throw AppFunctionElementNotFoundException(
-            "$roleName '$personName' was not found in event '${event.name}'. Available participants: " +
-                persons.joinToString(", ") { person -> person.name },
-        )
+        }
+        return when {
+            matches.isEmpty() -> throw AppFunctionElementNotFoundException(
+                "$roleName '$personName' was not found in event '${event.name}'. Available participants: " +
+                    persons.joinToString(", ") { person -> person.name },
+            )
+
+            matches.size > 1 -> throw AppFunctionInvalidArgumentException(
+                "$roleName '$personName' matches multiple participants in event '${event.name}'. " +
+                    "Use distinct participant names to disambiguate.",
+            )
+
+            else -> matches.single()
+        }
     }
 
     private fun EventDetails.toAppFunctionEvent(
@@ -321,13 +324,20 @@ internal class CommonExAppFunctions {
                 throw AppFunctionInvalidArgumentException("Expense amount must be greater than zero.")
             }
             parsed
-        } catch (e: Exception) {
-            when (e) {
-                is AppFunctionInvalidArgumentException -> throw e
-                else -> throw AppFunctionInvalidArgumentException(
-                    "Expense amount must be a valid positive decimal (e.g. \"12.50\").",
-                )
-            }
+        } catch (e: AppFunctionInvalidArgumentException) {
+            throw e
+        } catch (_: NumberFormatException) {
+            throw AppFunctionInvalidArgumentException(
+                "Expense amount must be a valid positive decimal (e.g. \"12.50\").",
+            )
+        } catch (_: ArithmeticException) {
+            throw AppFunctionInvalidArgumentException(
+                "Expense amount must be a valid positive decimal (e.g. \"12.50\").",
+            )
+        } catch (_: IndexOutOfBoundsException) {
+            throw AppFunctionInvalidArgumentException(
+                "Expense amount must be a valid positive decimal (e.g. \"12.50\").",
+            )
         }
     }
 }

@@ -118,8 +118,6 @@ dependencies {
     // network
     implementation(shared.cronet.embedded)
 
-    // guava (can't be added as `autotest` in integration-base)
-    add("autotestRuntimeOnly", shared.guava)
     implementation(shared.androidx.appfunctions.service)
 
     // compose

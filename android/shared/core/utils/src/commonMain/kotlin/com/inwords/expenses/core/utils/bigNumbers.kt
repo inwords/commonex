@@ -16,6 +16,19 @@ fun String.toBigDecimalOrNull(): BigDecimal? {
     }
 }
 
+/**
+ * Formats this BigDecimal as a plain decimal string (no scientific notation).
+ * Whole numbers are shown without trailing zeros (e.g. "10"); decimals use the given scale.
+ */
+fun BigDecimal.toPlainDecimalString(scale: Long = 2): String {
+    val scaled = this.scale(scale)
+    return if ((scaled * BigDecimal.TEN % 10).significand == BigDecimal.ZERO.significand) {
+        scaled.toBigInteger().toString()
+    } else {
+        scaled.toStringExpanded()
+    }
+}
+
 fun BigDecimal.divide(other: BigDecimal, scale: Long): BigDecimal {
     return divide(
         other = other,

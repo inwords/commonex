@@ -52,7 +52,7 @@ class ExpensesInteractor internal constructor(
             }
     }
 
-    internal suspend fun addExpenseEqualSplit(
+    suspend fun addExpenseEqualSplit(
         event: Event,
         wholeAmount: BigDecimal,
         expenseType: ExpenseType,

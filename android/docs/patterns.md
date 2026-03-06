@@ -2,12 +2,17 @@
 
 ## Coding Patterns
 
+- **Default arguments:** Generally discouraged until they are truly conceptually optional.
 - **Dependency Injection:** Uses custom locator pattern in `shared:core:locator`
 - **Navigation:** Compose Navigation with deep linking support
 - **State Management:** ViewModels with StateFlow for UI state
 - **Database:** Room with KMP support, entities in feature modules
 - **Network:** Ktor client with Cronet backend for Android
 - **Async Operations:** Coroutines with structured concurrency
+
+### Integration Layer and Domain Delegation
+
+Integration entry points (AppFunctions, deep links, etc.) should delegate to domain interactors instead of duplicating code. Parse and validate input, resolve entities by name/ID, then call the existing domain method. Avoid reimplementing business logic, calculations, or persistence in the integration layer.
 
 ## ViewModel Patterns
 
@@ -438,6 +443,10 @@ val roundedRate = totalExchangedAmount.abs()
 ```
 
 Then render exactly 2 decimals using arithmetic (for example multiply by `BigDecimal.TEN.pow(2)`, convert to integer digits, split whole/fraction parts), not by applying a second decimal rounding step.
+
+### API Output Formatting
+
+For API or AppFunction amount output (e.g. debt amounts, expense mutation results), use `toPlainDecimalString()` from `shared/core/utils` instead of `BigDecimal.toString()`. IonSpin's `toString()` can produce scientific notation (e.g. `"1.0E+1"`); `toPlainDecimalString()` yields plain decimals (e.g. `"10"`).
 
 ### Required Edge Tests For Exchange Rate
 

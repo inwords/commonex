@@ -1,6 +1,5 @@
 package com.inwords.expenses.feature.events.domain
 
-import com.inwords.expenses.feature.events.domain.model.Currency
 import com.inwords.expenses.feature.events.domain.model.Event
 import com.inwords.expenses.feature.events.domain.model.EventDetails
 import com.inwords.expenses.feature.events.domain.model.Person
@@ -17,22 +16,8 @@ class CreateEventFromParametersUseCase internal constructor(
     suspend fun createEvent(
         name: String,
         owner: String,
-        primaryCurrency: Currency,
-        otherPersons: List<String> = emptyList(),
-    ): EventDetails {
-        return createEvent(
-            name = name,
-            owner = owner,
-            primaryCurrencyId = primaryCurrency.id,
-            otherPersons = otherPersons,
-        )
-    }
-
-    suspend fun createEvent(
-        name: String,
-        owner: String,
         primaryCurrencyId: Long,
-        otherPersons: List<String> = emptyList(),
+        otherPersons: List<String>,
     ): EventDetails {
         val personsToInsert = buildList {
             add(Person(id = 0L, serverId = null, name = owner.trim()))

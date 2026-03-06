@@ -67,6 +67,8 @@ kotlin {
                 implementation(shared.androidx.appfunctions)
                 implementation(shared.androidx.appfunctions.service)
                 implementation(shared.ionspin.kotlin.bignum)
+                // guava: required by kotlinx-coroutines-guava (transitive from appfunctions) for MoreExecutors/Uninterruptibles
+                implementation(shared.guava)
             }
         }
         @Suppress("unused")
