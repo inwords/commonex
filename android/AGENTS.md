@@ -60,6 +60,8 @@ architecture with feature-based organization.
   scenario classes -> full-suite process-level runs -> aggregate artifacts -> log conclusions.
 - `android/docs/database-research-log.md` - Latest decision-grade database benchmark conclusions and artifact references.
 - `android/docs/database-research-log-template.md` - Canonical entry template for new items in the database research log.
+- `android/docs/ios-validation-checklist.md` - iOS validation steps (simulator build, archive, manual device checks) before TestFlight/App Store.
+- `android/docs/ios-app-privacy.md` - iOS privacy policy alignment, privacy manifest, and App Store Connect questionnaire guidance.
 
 ## Build Instructions (Workflow)
 
@@ -611,8 +613,8 @@ Before submitting changes, run these validation steps:
 # 4. Check code quality (30-48 seconds)
 .\gradlew lint --continue
 
-# 5. Verify KMM targets compile (iOS targets)
-.\gradlew iosX64Test iosSimulatorArm64Test
+# 5. Verify KMM targets compile (iOS: iosArm64, iosSimulatorArm64 only; no iosX64)
+.\gradlew :shared:integration:base:linkDebugFrameworkIosSimulatorArm64
 
 # 6. Build release variant (includes R8 optimization)
 .\gradlew assembleRelease

@@ -52,7 +52,7 @@ Use when the task touches `shared/`, DB, navigation, or build logic:
 1. `.\gradlew test`
 2. `.\gradlew testHostTest`
 3. `.\gradlew lint --continue`
-4. `.\gradlew iosX64Test iosSimulatorArm64Test` (if shared/KMM code changed)
+4. `.\gradlew :shared:integration:base:linkDebugFrameworkIosSimulatorArm64` (if shared/KMM code changed; KMM defines iosArm64 and iosSimulatorArm64 only, no iosX64)
 
 ### Instrumented path (only when the task requires it)
 
