@@ -9,7 +9,7 @@ import com.inwords.expenses.core.navigation.NavModule
 import com.inwords.expenses.core.navigation.NavigationController
 import com.inwords.expenses.core.navigation.deeplinkHostPath
 import com.inwords.expenses.core.navigation.navDeepLink
-import com.inwords.expenses.feature.events.domain.JoinEventUseCase
+import com.inwords.expenses.feature.events.api.EventsComponent
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -26,9 +26,8 @@ data class JoinEventPaneDestination(
     constructor() : this(eventId = "")
 }
 
-fun getJoinEventPaneNavModule(
+internal fun EventsComponent.getJoinEventPaneNavModule(
     navigationController: NavigationController,
-    joinEventUseCaseLazy: Lazy<JoinEventUseCase>,
 ): NavModule {
     val serializer = JoinEventPaneDestination.serializer()
     return NavModule(

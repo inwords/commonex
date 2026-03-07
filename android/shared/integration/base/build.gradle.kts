@@ -83,7 +83,10 @@ kotlin {
 
     compilerOptions {
         // Common compiler options applied to all Kotlin source sets
-        freeCompilerArgs.add("-Xexpect-actual-classes")
+        freeCompilerArgs.addAll(
+            "-Xcontext-parameters",
+            "-Xexpect-actual-classes"
+        )
     }
 }
 

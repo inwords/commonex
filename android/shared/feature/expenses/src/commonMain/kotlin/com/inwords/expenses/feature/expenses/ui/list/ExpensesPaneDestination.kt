@@ -7,29 +7,14 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.inwords.expenses.core.navigation.Destination
 import com.inwords.expenses.core.navigation.NavModule
 import com.inwords.expenses.core.navigation.NavigationController
-import com.inwords.expenses.feature.events.api.EventDeletionStateManager
-import com.inwords.expenses.feature.events.domain.DeleteEventUseCase
-import com.inwords.expenses.feature.events.domain.EventsSyncStateHolder
-import com.inwords.expenses.feature.events.domain.GetCurrentEventStateUseCase
-import com.inwords.expenses.feature.events.domain.GetEventsUseCase
-import com.inwords.expenses.feature.events.domain.JoinEventUseCase
-import com.inwords.expenses.feature.expenses.domain.ExpensesInteractor
-import com.inwords.expenses.feature.settings.api.SettingsRepository
+import com.inwords.expenses.feature.expenses.api.ExpensesComponent
 import kotlinx.serialization.Serializable
 
 @Serializable
 object ExpensesPaneDestination : Destination
 
-fun getExpensesPaneNavModule(
+internal fun ExpensesComponent.getExpensesPaneNavModule(
     navigationController: NavigationController,
-    getCurrentEventStateUseCaseLazy: Lazy<GetCurrentEventStateUseCase>,
-    eventDeletionStateManagerLazy: Lazy<EventDeletionStateManager>,
-    getEventsUseCaseLazy: Lazy<GetEventsUseCase>,
-    deleteEventUseCaseLazy: Lazy<DeleteEventUseCase>,
-    expensesInteractorLazy: Lazy<ExpensesInteractor>,
-    eventsSyncStateHolderLazy: Lazy<EventsSyncStateHolder>,
-    joinEventUseCaseLazy: Lazy<JoinEventUseCase>,
-    settingsRepositoryLazy: Lazy<SettingsRepository>,
 ): NavModule {
     return NavModule(ExpensesPaneDestination.serializer()) {
         entry<ExpensesPaneDestination> {

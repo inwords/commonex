@@ -9,8 +9,7 @@ import com.inwords.expenses.core.navigation.BottomSheetSceneStrategy.Companion.b
 import com.inwords.expenses.core.navigation.Destination
 import com.inwords.expenses.core.navigation.NavModule
 import com.inwords.expenses.core.navigation.NavigationController
-import com.inwords.expenses.feature.events.domain.GetCurrentEventStateUseCase
-import com.inwords.expenses.feature.expenses.domain.store.ExpensesLocalStore
+import com.inwords.expenses.feature.expenses.api.ExpensesComponent
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -20,10 +19,8 @@ internal data class ExpenseItemPaneDestination(
 ) : Destination
 
 @OptIn(ExperimentalMaterial3Api::class)
-fun getExpenseItemPaneNavModule(
+internal fun ExpensesComponent.getExpenseItemPaneNavModule(
     navigationController: NavigationController,
-    getCurrentEventStateUseCaseLazy: Lazy<GetCurrentEventStateUseCase>,
-    expensesLocalStoreLazy: Lazy<ExpensesLocalStore>,
 ): NavModule {
     return NavModule(ExpenseItemPaneDestination.serializer()) {
         entry<ExpenseItemPaneDestination>(metadata = bottomSheet()) { key ->
@@ -32,7 +29,7 @@ fun getExpenseItemPaneNavModule(
                     ExpenseItemPaneViewModel(
                         navigationController = navigationController,
                         getCurrentEventStateUseCase = getCurrentEventStateUseCaseLazy.value,
-                        expensesLocalStore = expensesLocalStoreLazy.value,
+                        expensesLocalStore = expensesLocalStore.value,
                         expenseId = key.expenseId,
                         eventId = key.eventId,
                     )
