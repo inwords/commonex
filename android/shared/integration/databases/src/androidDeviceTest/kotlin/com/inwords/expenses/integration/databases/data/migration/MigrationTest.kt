@@ -15,6 +15,11 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.IOException
 
+/**
+ * Database migration tests. For each new migration in the migrations/ folder,
+ * add a test that creates the DB at the previous version (with seed data if required),
+ * runs the migration via createAppDatabase, and asserts schema and data.
+ */
 @RunWith(AndroidJUnit4::class)
 internal class MigrationTest {
 

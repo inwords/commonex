@@ -31,7 +31,8 @@ internal class ChoosePersonViewModel(
     getCurrentEventStateUseCase: GetCurrentEventStateUseCase,
     private val settingsRepository: SettingsRepository,
     private val expensesScreenDestination: Destination,
-) : ViewModel(viewModelScope = CoroutineScope(SupervisorJob() + IO)) {
+    viewModelScope: CoroutineScope = CoroutineScope(SupervisorJob() + IO),
+) : ViewModel(viewModelScope = viewModelScope) {
 
     private data class EventWithPersons(
         val event: Event,

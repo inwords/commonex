@@ -4,6 +4,7 @@ import app.cash.turbine.test
 import com.inwords.expenses.core.navigation.NavigationController
 import com.inwords.expenses.core.ui.utils.SimpleScreenState
 import com.inwords.expenses.feature.events.api.EventDeletionStateManager
+import com.inwords.expenses.feature.events.api.EventDeletionStateManager.EventDeletionState
 import com.inwords.expenses.feature.events.domain.DeleteEventUseCase
 import com.inwords.expenses.feature.events.domain.EventsSyncStateHolder
 import com.inwords.expenses.feature.events.domain.GetCurrentEventStateUseCase
@@ -31,6 +32,7 @@ import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import kotlin.test.AfterTest
@@ -86,7 +88,7 @@ internal class ExpensesViewModelRefreshTest {
     private val currentEventFlow = MutableStateFlow<EventDetails?>(null)
     private val currentPersonIdFlow = MutableStateFlow<Long?>(TestFixtures.person.id)
     private val eventsFlow = MutableStateFlow(emptyList<Event>())
-    private val eventsDeletionStateFlow = MutableStateFlow<Map<Long, EventDeletionStateManager.EventDeletionState>>(emptyMap())
+    private val eventsDeletionStateFlow = MutableStateFlow<Map<Long, EventDeletionState>>(emptyMap())
     private val eventSyncStateFlow = MutableStateFlow(false)
 
     private val navigationController = mockk<NavigationController>(relaxed = true) {
@@ -127,12 +129,13 @@ internal class ExpensesViewModelRefreshTest {
     fun `isRefreshing should reflect current event sync state`() = testScope.runTest {
         currentEventFlow.value = TestFixtures.eventDetails
         val viewModel = createViewModel()
+        runCurrent()
+        advanceUntilIdle()
 
         viewModel.state.test {
-            assertIs<SimpleScreenState.Loading>(awaitItem())
+            val _ = assertIs<SimpleScreenState.Loading>(awaitItem())
 
-            val initialState = awaitItem()
-            assertIs<SimpleScreenState.Success<ExpensesPaneUiModel>>(initialState)
+            val initialState = assertIs<SimpleScreenState.Success<ExpensesPaneUiModel>>(awaitItem())
             val initialData = initialState.data as Expenses
             assertFalse(initialData.isRefreshing)
 
@@ -140,8 +143,7 @@ internal class ExpensesViewModelRefreshTest {
             viewModel.onRefresh()
             advanceUntilIdle()
 
-            val refreshingState = awaitItem()
-            assertIs<SimpleScreenState.Success<ExpensesPaneUiModel>>(refreshingState)
+            val refreshingState = assertIs<SimpleScreenState.Success<ExpensesPaneUiModel>>(awaitItem())
             val refreshingData = refreshingState.data as Expenses
             assertTrue(refreshingData.isRefreshing)
 
@@ -157,8 +159,7 @@ internal class ExpensesViewModelRefreshTest {
             advanceTimeBy(2100.milliseconds)
             advanceUntilIdle()
 
-            val stoppedState = awaitItem()
-            assertIs<SimpleScreenState.Success<ExpensesPaneUiModel>>(stoppedState)
+            val stoppedState = assertIs<SimpleScreenState.Success<ExpensesPaneUiModel>>(awaitItem())
             val stoppedData = stoppedState.data as Expenses
             assertFalse(stoppedData.isRefreshing)
 

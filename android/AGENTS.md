@@ -62,7 +62,6 @@ architecture with feature-based organization.
 - `android/docs/database-research-log-template.md` - Canonical entry template for new items in the database research log.
 - `android/docs/ios-validation-checklist.md` - iOS validation steps (simulator build, archive, manual device checks) before TestFlight/App Store.
 - `android/docs/ios-app-privacy.md` - iOS privacy policy alignment, privacy manifest, and App Store Connect questionnaire guidance.
-- `android/docs/events-domain-tests-outline.md` - Optional events domain tests outline (JoinEventUseCase, CreateEventFromParametersUseCase, CreateShareTokenUseCase, and pure logic for commonTest).
 
 ## Build Instructions (Workflow)
 
@@ -294,6 +293,7 @@ See `android/docs/patterns.md` for ViewModel, Compose UI, state modeling, form i
     - Test the class through its constructor dependencies and assert collaborator calls at the class boundary.
     - Do not copy production flow pipelines into tests, and do not drop below the class boundary into infrastructure such as WorkManager when the class can be isolated directly. If a collaborator is difficult to mock in host tests (for example expect/actual
       manager types), add a minimal boundary seam for the observer-facing methods rather than mocking deeper platform infrastructure.
+    - ViewModel host-test stability: see `android/docs/patterns.md` (ViewModel host-test stability).
 - **Network 409 retry policy:**
     - `shared:core:network` retries HTTP `409 Conflict` with exponential backoff up to 2 times for idempotent methods (`GET`, `HEAD`, `PUT`, `DELETE`, `OPTIONS`); exhausted 409 conflicts map to `IoResult.Error.Retry`.
     - Validate with `.\gradlew :shared:core:network:testAndroidHostTest --tests "com.inwords.expenses.core.network.RequestRetryTest"`.
@@ -647,8 +647,11 @@ Before submitting changes, run these validation steps:
 # 4. Check code quality (30-48 seconds)
 .\gradlew lint --continue
 
-# 5. Verify KMM targets compile (iOS: iosArm64, iosSimulatorArm64 only; no iosX64)
+# 5. Verify KMM targets compile (iOS: iosArm64, iosSimulatorArm64 only)
 .\gradlew :shared:integration:base:linkDebugFrameworkIosSimulatorArm64
+
+# If iOS tests are added, run iosSimulatorArm64Test (do not run iosX64Test)
+# .\gradlew iosSimulatorArm64Test
 
 # 6. Build release variant (includes R8 optimization)
 .\gradlew assembleRelease

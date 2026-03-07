@@ -1,7 +1,6 @@
 package com.inwords.expenses.feature.expenses.ui.list.bottom_sheet.item
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import com.inwords.expenses.core.navigation.NavigationController
 import com.inwords.expenses.core.ui.utils.SimpleScreenState
 import com.inwords.expenses.core.ui.utils.formatLocalDateTime
@@ -29,7 +28,8 @@ internal class ExpenseItemPaneViewModel(
     private val expensesLocalStore: ExpensesLocalStore,
     private val expenseId: Long,
     private val eventId: Long,
-) : ViewModel(viewModelScope = CoroutineScope(SupervisorJob() + IO)) {
+    viewModelScope: CoroutineScope = CoroutineScope(SupervisorJob() + IO),
+) : ViewModel(viewModelScope = viewModelScope) {
 
     val state: StateFlow<SimpleScreenState<ExpenseItemPaneUiModel>> = getCurrentEventStateUseCase.currentEvent
         .flatMapLatestNoBuffer { currentEvent ->

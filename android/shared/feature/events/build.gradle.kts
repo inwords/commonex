@@ -17,6 +17,8 @@ kotlin {
         }
 
         experimentalProperties["android.experimental.kmp.enableAndroidResources"] = true
+
+        withHostTest {}
     }
 
     applyKmmDefaults("sharedEvents")
@@ -62,6 +64,11 @@ kotlin {
                 implementation(shared.compose.ui.tooling)
             }
         }
+        commonTest {
+            dependencies {
+                implementation(shared.kotlin.test)
+            }
+        }
     }
 
     compilerOptions {
@@ -73,4 +80,12 @@ kotlin {
 compose.resources {
     // FIXME: use textFixtures ScreenObjects for tests
     publicResClass = true
+}
+
+dependencies {
+    add("androidHostTestImplementation", shared.kotlin.test)
+    add("androidHostTestImplementation", shared.coroutines.test)
+    add("androidHostTestImplementation", shared.junit.jupiter.api)
+    add("androidHostTestImplementation", shared.mockk)
+    add("androidHostTestImplementation", shared.turbine)
 }

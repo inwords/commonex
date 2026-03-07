@@ -26,7 +26,8 @@ internal class ExpenseRevertDialogViewModel(
     private val eventId: Long,
     private val expenseDescription: String,
     private val stringProvider: StringProvider = DefaultStringProvider,
-) : ViewModel(viewModelScope = CoroutineScope(SupervisorJob() + IO)) {
+    viewModelScope: CoroutineScope = CoroutineScope(SupervisorJob() + IO),
+) : ViewModel(viewModelScope = viewModelScope) {
 
     private var revertJob: Job? = null
 

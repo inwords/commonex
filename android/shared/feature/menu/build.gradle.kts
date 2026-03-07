@@ -17,6 +17,8 @@ kotlin {
         }
 
         experimentalProperties["android.experimental.kmp.enableAndroidResources"] = true
+
+        withHostTest {}
     }
 
     applyKmmDefaults("sharedMenu")
@@ -63,4 +65,12 @@ kotlin {
 compose.resources {
     // FIXME: use textFixtures ScreenObjects for tests
     publicResClass = true
+}
+
+dependencies {
+    add("androidHostTestImplementation", shared.kotlin.test)
+    add("androidHostTestImplementation", shared.coroutines.test)
+    add("androidHostTestImplementation", shared.junit.jupiter.api)
+    add("androidHostTestImplementation", shared.mockk)
+    add("androidHostTestImplementation", shared.turbine)
 }
