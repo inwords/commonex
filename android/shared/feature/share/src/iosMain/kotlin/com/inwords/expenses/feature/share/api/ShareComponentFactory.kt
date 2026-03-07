@@ -1,6 +1,6 @@
 package com.inwords.expenses.feature.share.api
 
-actual class ShareComponentFactory actual constructor(private val deps: Deps) {
+actual class ShareComponentFactory actual constructor(deps: Deps) {
 
     actual interface Deps
 
