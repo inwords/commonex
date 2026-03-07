@@ -62,6 +62,7 @@ architecture with feature-based organization.
 - `android/docs/database-research-log-template.md` - Canonical entry template for new items in the database research log.
 - `android/docs/ios-validation-checklist.md` - iOS validation steps (simulator build, archive, manual device checks) before TestFlight/App Store.
 - `android/docs/ios-app-privacy.md` - iOS privacy policy alignment, privacy manifest, and App Store Connect questionnaire guidance.
+- `android/docs/events-domain-tests-outline.md` - Optional events domain tests outline (JoinEventUseCase, CreateEventFromParametersUseCase, CreateShareTokenUseCase, and pure logic for commonTest).
 
 ## Build Instructions (Workflow)
 
@@ -111,6 +112,10 @@ Run commands from the `android/` directory unless a command explicitly says othe
 
 # Run device tests (requires device/emulator) (includes Room tests)
 .\gradlew connectedAndroidDeviceTest
+
+# Code coverage (Kover Aggregated): all modules (app + shared host tests). Requires -Pkover; report at build/reports/kover/
+# Kover is configured in settings.gradle.kts only (settings plugin), not in root or app build.gradle.kts. Report excludes :baselineprofile, :benchmarks, :benchmarks:databases.
+.\gradlew testHostTest :app:test -Pkover koverHtmlReport koverXmlReport
 
 # Run instrumented tests with Gradle Managed Devices
 ./gradlew :app:pixel6Api35AtdAutotestAndroidTest "-Dcom.android.tools.r8.disableApiModeling=true"
