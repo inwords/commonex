@@ -15,7 +15,7 @@ pluginManagement {
 // Kover Aggregated Plugin: coverage for all modules (app + shared KMM host tests). Do not apply org.jetbrains.kotlinx.kover in build files.
 // Run with -Pkover and test tasks, then koverHtmlReport/koverXmlReport. See https://kotlin.github.io/kotlinx-kover/gradle-plugin/aggregated.html
 plugins {
-    id("org.jetbrains.kotlinx.kover.aggregation") version "0.9.7"
+    id("org.jetbrains.kotlinx.kover.aggregation") version "0.9.7" // https://github.com/Kotlin/kotlinx-kover/releases
 }
 
 kover {

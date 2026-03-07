@@ -24,7 +24,6 @@ appfunctions = "1.0.0-alpha07"
 
 jupiter = "6.0.2" # https://docs.junit.org/current/release-notes/index.html
 mockk = "1.14.9" # https://github.com/mockk/mockk/releases
-kover = "0.9.7" # https://github.com/Kotlin/kotlinx-kover/releases
 
 [libraries]
 room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
@@ -117,4 +116,3 @@ sentry-kotlin-multiplatform = { id = "io.sentry.kotlin.multiplatform.gradle", ve
 sentry-android-gradle = { id = "io.sentry.android.gradle", version = "6.1.0" } # https://github.com/getsentry/sentry-android-gradle-plugin/blob/main/CHANGELOG.md
 androidx-baselineprofile = { id = "androidx.baselineprofile", version = "1.5.0-alpha02" } # https://developer.android.com/jetpack/androidx/releases/benchmark
 androidx-benchmark = { id = "androidx.benchmark", version = "1.4.1" } # https://developer.android.com/jetpack/androidx/releases/benchmark
-kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }
