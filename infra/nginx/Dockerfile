@@ -39,7 +39,6 @@ ARG CONFIG="\
     --with-http_v2_module \
     --with-http_v3_module \
     --with-openssl=/usr/src/openssl-$OPENSSL_VERSION \
-    --with-openssl-opt=enable-ec_nistp_64_gcc_128 \
     --add-module=/usr/src/ngx_brotli \
 "
 
@@ -66,6 +65,8 @@ RUN \
         ninja \
         pcre2-dev \
         zlib-dev \
+        brotli-dev \
+        zstd-dev \
         autoconf \
         automake \
         cmake \
@@ -108,12 +109,16 @@ RUN \
 
 ARG CC_OPT='-O2 -flto=auto -ffat-lto-objects -flto=auto -ffat-lto-objects -fstack-protector-strong -Wformat -Werror=format-security -fPIC -Wdate-time -D_FORTIFY_SOURCE=2'
 ARG LD_OPT='-Wl,-Bsymbolic-functions -flto=auto -ffat-lto-objects -flto=auto -Wl,-z,relro -Wl,-z,now -fPIC'
+ENV CONFIG="$CONFIG" CC_OPT="$CC_OPT" LD_OPT="$LD_OPT"
 RUN \
     echo "Building nginx ..." \
     && mkdir -p /var/run/nginx/ \
     && mkdir -p /usr/lib/nginx/modules \
     && cd /usr/src/nginx-$NGINX_VERSION \
-    && ./auto/configure $CONFIG --with-cc-opt="$CC_OPT" --with-ld-opt="$LD_OPT" \
+    && ./auto/configure $CONFIG \
+        --with-openssl-opt="enable-ec_nistp_64_gcc_128 enable-brotli enable-zstd" \
+        --with-cc-opt="$CC_OPT" \
+        --with-ld-opt="$LD_OPT -lbrotlidec -lbrotlicommon -lbrotlienc -lzstd" \
     && make -j"$(getconf _NPROCESSORS_ONLN)"
 
 ENV CXXFLAGS="-std=c++17"
