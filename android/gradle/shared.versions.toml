@@ -17,6 +17,7 @@ kotlinx-atomicfu = "0.31.0" # https://github.com/Kotlin/kotlinx-atomicfu/release
 compose-bom = "2026.02.01" # https://developer.android.com/jetpack/androidx/releases/compose
 # Match CMP <-> Compose https://kotlinlang.org/docs/multiplatform/compose-compatibility-and-versioning.html#jetpack-compose-artifacts-used
 compose-multiplatform = "1.10.2" # https://github.com/JetBrains/compose-multiplatform/blob/master/CHANGELOG.md
+lifecycle-multiplatform = "2.10.0-beta01"
 
 appfunctions = "1.0.0-alpha07"
 
@@ -49,9 +50,9 @@ kotlinx-datetime = { group = "org.jetbrains.kotlinx", name = "kotlinx-datetime",
 kotlinx-collections-immutable = { group = "org.jetbrains.kotlinx", name = "kotlinx-collections-immutable", version = "0.4.0" } # https://github.com/Kotlin/kotlinx.collections.immutable/releases
 kotlinx-atomicfu = { group = "org.jetbrains.kotlinx", name = "atomicfu", version.ref = "kotlinx-atomicfu" } # https://github.com/Kotlin/kotlinx-atomicfu/releases
 
-lifecycle-runtime-compose-multiplatform = { group = "org.jetbrains.androidx.lifecycle", name = "lifecycle-runtime-compose", version = "2.10.0-alpha07" } # https://mvnrepository.com/artifact/org.jetbrains.androidx.lifecycle/lifecycle-runtime-compose
-lifecycle-viewmodel-compose-multiplatform = { group = "org.jetbrains.androidx.lifecycle", name = "lifecycle-viewmodel-compose", version = "2.10.0-alpha07" } # https://mvnrepository.com/artifact/org.jetbrains.androidx.lifecycle/lifecycle-viewmodel-compose
-lifecycle-viewmodel-navigation3-multiplatform = { group = "org.jetbrains.androidx.lifecycle", name = "lifecycle-viewmodel-navigation3", version = "2.10.0-alpha07" } # https://mvnrepository.com/artifact/org.jetbrains.androidx.lifecycle/lifecycle-viewmodel-navigation3
+lifecycle-runtime-compose-multiplatform = { group = "org.jetbrains.androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "lifecycle-multiplatform" } # https://mvnrepository.com/artifact/org.jetbrains.androidx.lifecycle/lifecycle-runtime-compose
+lifecycle-viewmodel-compose-multiplatform = { group = "org.jetbrains.androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "lifecycle-multiplatform" } # https://mvnrepository.com/artifact/org.jetbrains.androidx.lifecycle/lifecycle-viewmodel-compose
+lifecycle-viewmodel-navigation3-multiplatform = { group = "org.jetbrains.androidx.lifecycle", name = "lifecycle-viewmodel-navigation3", version.ref = "lifecycle-multiplatform" } # https://mvnrepository.com/artifact/org.jetbrains.androidx.lifecycle/lifecycle-viewmodel-navigation3
 
 work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx", version = "2.11.1" } # https://developer.android.com/jetpack/androidx/releases/work
 core-ktx = { group = "androidx.core", name = "core-ktx", version = "1.17.0" } # https://developer.android.com/jetpack/androidx/releases/core
