@@ -7,17 +7,14 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.inwords.expenses.core.navigation.Destination
 import com.inwords.expenses.core.navigation.NavModule
 import com.inwords.expenses.core.navigation.NavigationController
-import com.inwords.expenses.feature.events.domain.CreateEventUseCase
-import com.inwords.expenses.feature.events.domain.EventCreationStateHolder
+import com.inwords.expenses.feature.events.api.EventsComponent
 import kotlinx.serialization.Serializable
 
 @Serializable
 object AddPersonsPaneDestination : Destination
 
-fun getAddPersonsPaneNavModule(
+internal fun EventsComponent.getAddPersonsPaneNavModule(
     navigationController: NavigationController,
-    eventCreationStateHolderLazy: Lazy<EventCreationStateHolder>,
-    createEventUseCaseLazy: Lazy<CreateEventUseCase>,
     expensesPaneDestination: Destination,
 ): NavModule {
     return NavModule(AddPersonsPaneDestination.serializer()) {
@@ -26,7 +23,7 @@ fun getAddPersonsPaneNavModule(
                 initializer {
                     AddPersonsViewModel(
                         navigationController = navigationController,
-                        eventCreationStateHolder = eventCreationStateHolderLazy.value,
+                        eventCreationStateHolder = eventCreationStateHolder.value,
                         createEventUseCase = createEventUseCaseLazy.value,
                         expensesScreenDestination = expensesPaneDestination
                     )

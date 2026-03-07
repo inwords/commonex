@@ -7,17 +7,14 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.inwords.expenses.core.navigation.Destination
 import com.inwords.expenses.core.navigation.NavModule
 import com.inwords.expenses.core.navigation.NavigationController
-import com.inwords.expenses.feature.events.domain.EventCreationStateHolder
-import com.inwords.expenses.feature.events.domain.GetCurrenciesUseCase
+import com.inwords.expenses.feature.events.api.EventsComponent
 import kotlinx.serialization.Serializable
 
 @Serializable
 object CreateEventPaneDestination : Destination
 
-fun getCreateEventPaneNavModule(
+internal fun EventsComponent.getCreateEventPaneNavModule(
     navigationController: NavigationController,
-    eventCreationStateHolderLazy: Lazy<EventCreationStateHolder>,
-    getCurrenciesUseCaseLazy: Lazy<GetCurrenciesUseCase>,
 ): NavModule {
     return NavModule(CreateEventPaneDestination.serializer()) {
         entry<CreateEventPaneDestination> {
@@ -25,7 +22,7 @@ fun getCreateEventPaneNavModule(
                 initializer {
                     CreateEventViewModel(
                         navigationController = navigationController,
-                        eventCreationStateHolder = eventCreationStateHolderLazy.value,
+                        eventCreationStateHolder = eventCreationStateHolder.value,
                         getCurrenciesUseCase = getCurrenciesUseCaseLazy.value,
                     )
                 }

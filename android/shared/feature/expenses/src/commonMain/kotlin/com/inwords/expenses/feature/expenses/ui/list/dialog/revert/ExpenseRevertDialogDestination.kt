@@ -7,9 +7,7 @@ import androidx.navigation3.scene.DialogSceneStrategy.Companion.dialog
 import com.inwords.expenses.core.navigation.Destination
 import com.inwords.expenses.core.navigation.NavModule
 import com.inwords.expenses.core.navigation.NavigationController
-import com.inwords.expenses.feature.events.domain.store.local.EventsLocalStore
-import com.inwords.expenses.feature.expenses.domain.ExpensesInteractor
-import com.inwords.expenses.feature.expenses.domain.store.ExpensesLocalStore
+import com.inwords.expenses.feature.expenses.api.ExpensesComponent
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -19,11 +17,8 @@ internal data class ExpenseRevertDialogDestination(
     val expenseDescription: String,
 ) : Destination
 
-fun getExpenseRevertDialogNavModule(
+internal fun ExpensesComponent.getExpenseRevertDialogNavModule(
     navigationController: NavigationController,
-    expensesInteractorLazy: Lazy<ExpensesInteractor>,
-    expensesLocalStoreLazy: Lazy<ExpensesLocalStore>,
-    eventsLocalStoreLazy: Lazy<EventsLocalStore>,
 ): NavModule {
     return NavModule(ExpenseRevertDialogDestination.serializer()) {
         entry<ExpenseRevertDialogDestination>(metadata = dialog()) { key ->
@@ -32,8 +27,8 @@ fun getExpenseRevertDialogNavModule(
                     ExpenseRevertDialogViewModel(
                         navigationController = navigationController,
                         expensesInteractor = expensesInteractorLazy.value,
-                        expensesLocalStore = expensesLocalStoreLazy.value,
-                        eventsLocalStore = eventsLocalStoreLazy.value,
+                        expensesLocalStore = expensesLocalStore.value,
+                        eventsLocalStore = eventsLocalStore,
                         expenseId = key.expenseId,
                         eventId = key.eventId,
                         expenseDescription = key.expenseDescription,

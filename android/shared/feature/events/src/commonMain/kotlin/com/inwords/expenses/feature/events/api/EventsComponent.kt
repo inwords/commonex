@@ -1,5 +1,8 @@
 package com.inwords.expenses.feature.events.api
 
+import com.inwords.expenses.core.navigation.Destination
+import com.inwords.expenses.core.navigation.NavModule
+import com.inwords.expenses.core.navigation.NavigationController
 import com.inwords.expenses.core.storage.utils.TransactionHelper
 import com.inwords.expenses.core.utils.Component
 import com.inwords.expenses.feature.events.data.db.store.CurrenciesLocalStoreImpl
@@ -29,12 +32,21 @@ import com.inwords.expenses.feature.events.domain.task.CurrenciesPullTask
 import com.inwords.expenses.feature.events.domain.task.EventPersonsPushTask
 import com.inwords.expenses.feature.events.domain.task.EventPullPersonsTask
 import com.inwords.expenses.feature.events.domain.task.EventPushTask
+import com.inwords.expenses.feature.events.ui.add_participants.getAddParticipantsToEventPaneNavModule
+import com.inwords.expenses.feature.events.ui.add_persons.getAddPersonsPaneNavModule
+import com.inwords.expenses.feature.events.ui.choose_person.getChoosePersonPaneNavModule
+import com.inwords.expenses.feature.events.ui.create.getCreateEventPaneNavModule
+import com.inwords.expenses.feature.events.ui.dialog.delete.getDeleteEventDialogNavModule
+import com.inwords.expenses.feature.events.ui.join.getJoinEventPaneNavModule
+import com.inwords.expenses.feature.settings.api.SettingsRepository
 
 class EventsComponent internal constructor(
     private val deps: EventsComponentFactory.Deps
 ) : Component {
 
     private val transactionHelper: Lazy<TransactionHelper> = lazy { deps.transactionHelper }
+
+    internal val settingsRepositoryLazy: Lazy<SettingsRepository> get() = deps.settingsRepositoryLazy
 
     val currenciesLocalStore: Lazy<CurrenciesLocalStore> = lazy {
         CurrenciesLocalStoreImpl(currenciesDaoLazy = lazy { deps.currenciesDao })
@@ -181,6 +193,20 @@ class EventsComponent internal constructor(
     val createShareTokenUseCaseLazy: Lazy<CreateShareTokenUseCase> = lazy {
         CreateShareTokenUseCase(
             eventsRemoteStoreLazy = eventsRemoteStore,
+        )
+    }
+
+    fun getNavModules(
+        navigationController: NavigationController,
+        expensesPaneDestination: Destination,
+    ): List<NavModule> {
+        return listOf(
+            getJoinEventPaneNavModule(navigationController),
+            getCreateEventPaneNavModule(navigationController),
+            getDeleteEventDialogNavModule(navigationController),
+            getAddPersonsPaneNavModule(navigationController, expensesPaneDestination),
+            getChoosePersonPaneNavModule(navigationController, expensesPaneDestination),
+            getAddParticipantsToEventPaneNavModule(navigationController),
         )
     }
 }

@@ -7,15 +7,14 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.inwords.expenses.core.navigation.Destination
 import com.inwords.expenses.core.navigation.NavModule
 import com.inwords.expenses.core.navigation.NavigationController
-import com.inwords.expenses.feature.events.domain.AddParticipantsToCurrentEventUseCase
+import com.inwords.expenses.feature.events.api.EventsComponent
 import kotlinx.serialization.Serializable
 
 @Serializable
 object AddParticipantsToEventPaneDestination : Destination
 
-fun getAddParticipantsToEventPaneNavModule(
+internal fun EventsComponent.getAddParticipantsToEventPaneNavModule(
     navigationController: NavigationController,
-    addParticipantsToCurrentEventUseCaseLazy: Lazy<AddParticipantsToCurrentEventUseCase>,
 ): NavModule {
     return NavModule(AddParticipantsToEventPaneDestination.serializer()) {
         entry<AddParticipantsToEventPaneDestination> {

@@ -9,9 +9,7 @@ import com.inwords.expenses.core.navigation.BottomSheetSceneStrategy.Companion.b
 import com.inwords.expenses.core.navigation.Destination
 import com.inwords.expenses.core.navigation.NavModule
 import com.inwords.expenses.core.navigation.NavigationController
-import com.inwords.expenses.feature.events.domain.GetCurrentEventStateUseCase
-import com.inwords.expenses.feature.expenses.domain.ExpensesInteractor
-import com.inwords.expenses.feature.settings.api.SettingsRepository
+import com.inwords.expenses.feature.expenses.api.ExpensesComponent
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -35,11 +33,8 @@ data class AddExpensePaneDestination(
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
-fun getAddExpensePaneNavModule(
+internal fun ExpensesComponent.getAddExpensePaneNavModule(
     navigationController: NavigationController,
-    getCurrentEventStateUseCaseLazy: Lazy<GetCurrentEventStateUseCase>,
-    expensesInteractorLazy: Lazy<ExpensesInteractor>,
-    settingsRepositoryLazy: Lazy<SettingsRepository>,
 ): NavModule {
     return NavModule(AddExpensePaneDestination.serializer()) {
         entry<AddExpensePaneDestination>(metadata = bottomSheet()) { key ->

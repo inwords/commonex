@@ -7,17 +7,14 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.inwords.expenses.core.navigation.Destination
 import com.inwords.expenses.core.navigation.NavModule
 import com.inwords.expenses.core.navigation.NavigationController
-import com.inwords.expenses.feature.events.domain.GetCurrentEventStateUseCase
-import com.inwords.expenses.feature.settings.api.SettingsRepository
+import com.inwords.expenses.feature.events.api.EventsComponent
 import kotlinx.serialization.Serializable
 
 @Serializable
 data object ChoosePersonPaneDestination : Destination
 
-fun getChoosePersonPaneNavModule(
+internal fun EventsComponent.getChoosePersonPaneNavModule(
     navigationController: NavigationController,
-    getCurrentEventStateUseCaseLazy: Lazy<GetCurrentEventStateUseCase>,
-    settingsRepositoryLazy: Lazy<SettingsRepository>,
     expensesScreenDestination: Destination,
 ): NavModule {
     return NavModule(ChoosePersonPaneDestination.serializer()) {

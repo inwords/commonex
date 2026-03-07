@@ -1,7 +1,7 @@
 package com.inwords.expenses.feature.settings.api
 
 
-expect class SettingsComponentFactory {
+expect class SettingsComponentFactory(deps: Deps) {
 
     interface Deps
 

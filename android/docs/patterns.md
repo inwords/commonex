@@ -12,7 +12,28 @@
 
 ### Integration Layer and Domain Delegation
 
-Integration entry points (AppFunctions, deep links, etc.) should delegate to domain interactors instead of duplicating code. Parse and validate input, resolve entities by name/ID, then call the existing domain method. Avoid reimplementing business logic, calculations, or persistence in the integration layer.
+Integration entry points (AppFunctions, deep links, etc.) should delegate to domain interactors instead of duplicating code. Parse and validate input, resolve entities by name/ID, then call the existing domain method. Avoid reimplementing business logic,
+calculations, or persistence in the integration layer.
+
+### Architecture and Wiring Style
+
+These rules apply across feature, core, and integration modules (not only component registration):
+
+1. Keep public API shapes uniform across platforms: align `expect/actual` constructor signatures and shared names (for example `deps`).
+2. Use consistent call style at construction sites: prefer named arguments for factories/components (`FooFactory(deps = ...)`).
+3. Prefer locality over indirection: keep wiring close to usage, and avoid speculative extension points unless there is an active second caller.
+4. Keep files focused: one primary contract/type family per file; split mixed top-level declarations when a file becomes a kitchen sink.
+5. Keep visibility tight by default: prefer `private`/`internal`; widen only when cross-file/module use requires it now.
+6. Minimize deps-builder abstractions: inline dependency objects near usage; extract only when there is clear reuse.
+7. Make dependency flow explicit: use local context objects when helpful instead of repeatedly threading long parameter lists.
+8. Keep init/lazy flow explicit and simple: prefer clear init order over nullable + `requireNotNull` guard patterns.
+
+Quick review checklist for architectural refactors:
+
+- Is the API shape consistent with neighboring modules?
+- Is any new abstraction justified by current (not hypothetical) reuse?
+- Is visibility no wider than necessary?
+- Is dependency wiring readable without jumping across many files?
 
 ## ViewModel Patterns
 
@@ -446,7 +467,8 @@ Then render exactly 2 decimals using arithmetic (for example multiply by `BigDec
 
 ### API Output Formatting
 
-For API or AppFunction amount output (e.g. debt amounts, expense mutation results), use `toPlainDecimalString()` from `shared/core/utils` instead of `BigDecimal.toString()`. IonSpin's `toString()` can produce scientific notation (e.g. `"1.0E+1"`); `toPlainDecimalString()` yields plain decimals (e.g. `"10"`).
+For API or AppFunction amount output (e.g. debt amounts, expense mutation results), use `toPlainDecimalString()` from `shared/core/utils` instead of `BigDecimal.toString()`.
+IonSpin's `toString()` can produce scientific notation (e.g. `"1.0E+1"`); `toPlainDecimalString()` yields plain decimals (e.g. `"10"`).
 
 ### Required Edge Tests For Exchange Rate
 

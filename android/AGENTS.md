@@ -56,8 +56,8 @@ architecture with feature-based organization.
 - `android/docs/local-agent-prerequisites.md` – Local Android prerequisites (JDK, SDK, local.properties, device/Marathon/profiler, worktree-copyable tooling). Use before long local runs.
 - `android/marathon/README.md` - Local Marathon runner usage and setup notes (library extracted manually; binaries not in git). Requires JUnit 4 annotations for test discovery; config in `android/Marathonfile`.
 - `android/gradle/README.md` - Gradle Profiler benchmarks and scenarios (`android/gradle/performance.scenarios`; profiler distribution in `android/gradle/profiler`).
-- `android/docs/database-benchmarking.md` - Room benchmark workflow and correctness checklist. Run DB benchmarks from dedicated module `:benchmarks:databases` (AndroidBenchmarkRunner + non-debuggable release test build type). Standard flow: template ->
-  scenario classes -> full-suite process-level runs -> aggregate artifacts -> log conclusions.
+- `android/docs/database-benchmarking.md` - Room benchmark workflow and correctness checklist. Run DB benchmarks from dedicated module `:benchmarks:databases` (AndroidBenchmarkRunner + non-debuggable release test build type).
+  Standard flow: template -> scenario classes -> full-suite process-level runs -> aggregate artifacts -> log conclusions.
 - `android/docs/database-research-log.md` - Latest decision-grade database benchmark conclusions and artifact references.
 - `android/docs/database-research-log-template.md` - Canonical entry template for new items in the database research log.
 - `android/docs/ios-validation-checklist.md` - iOS validation steps (simulator build, archive, manual device checks) before TestFlight/App Store.
@@ -67,7 +67,8 @@ architecture with feature-based organization.
 
 ### Prerequisites
 
-- JDK: same as CI (see `.github/workflows/android.yml`); project JVM target 17. Use wrapper for Gradle (version in `gradle/wrapper/gradle-wrapper.properties`). Android SDK: API level from `app/build.gradle.kts`. See [`docs/local-agent-prerequisites.md`](docs/local-agent-prerequisites.md) for details.
+- JDK: same as CI (see `.github/workflows/android.yml`); project JVM target 17. Use wrapper for Gradle (version in `gradle/wrapper/gradle-wrapper.properties`).
+- Android SDK: API level from `app/build.gradle.kts`. See [`docs/local-agent-prerequisites.md`](docs/local-agent-prerequisites.md) for details.
 
 ### Essential Commands
 
@@ -269,7 +270,7 @@ gradle/                       # Version catalogs and properties
 
 ### Coding Patterns (Reference)
 
-See `android/docs/patterns.md` for ViewModel, Compose UI, state modeling, and form input patterns.
+See `android/docs/patterns.md` for ViewModel, Compose UI, state modeling, form input patterns, and architecture/wiring style conventions.
 
 ### Performance Considerations
 
@@ -283,9 +284,18 @@ See `android/docs/patterns.md` for ViewModel, Compose UI, state modeling, and fo
 - **Instrumented tests (non-UI):** Android Tests with JUnit 6
 - **Instrumented tests (Compose UI E2E tests):** Android Tests with JUnit 4 And Marathon. `ComposeTestRule` with context receivers pattern. Run against the real backend; avoid mocks and hardcoded remote fixtures by creating required data in-test.
 - **Room tests:** use `androidx.room:room-testing`/`MigrationTestHelper` for migration validation only (example `MigrationTest.kt` in `androidDeviceTest` source set).
-- **KMM library host tests:** For shared-module Android host tests that assert `Flow` emissions, prefer Turbine (`app.cash.turbine`) over launching background collectors inside `runTest`; this avoids subscription-timing false negatives. Test the class through its constructor dependencies and assert collaborator calls at the class boundary; do not copy production flow pipelines into tests, and do not drop below the class boundary into infrastructure such as WorkManager when the class can be isolated directly. If a collaborator is difficult to mock in host tests (for example expect/actual manager types), add a minimal boundary seam for the observer-facing methods rather than mocking deeper platform infrastructure.
-- **Network 409 retry policy:** `shared:core:network` retries HTTP `409 Conflict` with exponential backoff up to 2 times for idempotent methods (`GET`, `HEAD`, `PUT`, `DELETE`, `OPTIONS`); exhausted 409 conflicts map to `IoResult.Error.Retry`. Validate with `.\gradlew :shared:core:network:testAndroidHostTest --tests "com.inwords.expenses.core.network.RequestRetryTest"`.
-- **KMM library device tests:** For `shared:integration:base` AppFunctions tests, run `.\gradlew :shared:integration:base:connectedAndroidDeviceTest`. This module's `androidDeviceTest` source set uses `io.mockk:mockk-android` and `execution = "HOST"` because orchestrator-based discovery did not report results correctly for this module. This path was validated on both API 35 and API 36 emulators in-session.
+- **KMM library host tests:**
+    - For shared-module Android host tests that assert `Flow` emissions, prefer Turbine (`app.cash.turbine`) over launching background collectors inside `runTest`; this avoids subscription-timing false negatives.
+    - Test the class through its constructor dependencies and assert collaborator calls at the class boundary.
+    - Do not copy production flow pipelines into tests, and do not drop below the class boundary into infrastructure such as WorkManager when the class can be isolated directly. If a collaborator is difficult to mock in host tests (for example expect/actual
+      manager types), add a minimal boundary seam for the observer-facing methods rather than mocking deeper platform infrastructure.
+- **Network 409 retry policy:**
+    - `shared:core:network` retries HTTP `409 Conflict` with exponential backoff up to 2 times for idempotent methods (`GET`, `HEAD`, `PUT`, `DELETE`, `OPTIONS`); exhausted 409 conflicts map to `IoResult.Error.Retry`.
+    - Validate with `.\gradlew :shared:core:network:testAndroidHostTest --tests "com.inwords.expenses.core.network.RequestRetryTest"`.
+- **KMM library device tests:**
+    - For `shared:integration:base` AppFunctions tests, run `.\gradlew :shared:integration:base:connectedAndroidDeviceTest`.
+    - This module's `androidDeviceTest` source set uses `io.mockk:mockk-android` and `execution = "HOST"` because orchestrator-based discovery did not report results correctly for this module.
+    - This path was validated on both API 35 and API 36 emulators in-session.
 - **Device testing:** Managed devices configured in `pixel6Api35*` tasks
 - **Marathon runner:** Cross-platform test runner for CI with retries and sharding
 
@@ -664,10 +674,14 @@ Before submitting changes, run these validation steps:
 .\gradlew lint --continue
 ```
 
-**Trust these instructions.** Only search for additional information if you encounter specific errors not covered here or if dependency/build tool versions have changed significantly. The build system is well-configured and should work reliably when following
-these steps.
+**Trust these instructions:**
 
-**Freshness:** Per root `AGENTS.md`, search official current docs for library/tool versions, migrations, and version-specific errors when needed; do not search for repo-local conventions already documented here. If upstream docs conflict with this file, flag
-the conflict.
+- Only search for additional information if you encounter specific errors not covered here or if dependency/build tool versions have changed significantly.
+- The build system is well-configured and should work reliably when following these steps.
+
+**Freshness:**
+
+- Per root `AGENTS.md`, search official current docs for library/tool versions, migrations, and version-specific errors when needed.
+- Do not search for repo-local conventions already documented here. If upstream docs conflict with this file, flag the conflict.
 
 Consider these rules if they affect your changes.
