@@ -618,6 +618,15 @@ When adding support for a new currency (e.g., AED), update all the following:
 
 ## Validation Steps (Workflow)
 
+### MCP-First Validation Policy
+
+- Use JetBrains MCP tools as the default validation path when MCP is available for the open Android project.
+- Prefer `execute_terminal_command` (MCP terminal) for compile/build/test validation after edits (for example running Gradle tasks).
+- Prefer `get_file_problems` for per-file diagnostics on edited files.
+- Prefer other MCP IDE-aware tools for project queries and developer actions when relevant (for example: `get_run_configurations`, `execute_run_configuration`, `search_in_files_by_text`, `search_in_files_by_regex`, `list_directory_tree`,
+  `get_project_modules`, `get_project_dependencies`).
+- If MCP is unavailable or limited, run equivalent Gradle/CLI validation and explicitly note the fallback reason in the report.
+
 Before submitting changes, run these validation steps:
 
 ```powershell

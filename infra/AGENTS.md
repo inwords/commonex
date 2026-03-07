@@ -166,7 +166,9 @@ docker compose -f infra/docker-compose-prod.yml ps
 - **Certificate renewal** uses DNS-01 challenge (no HTTP ACME challenge location required)
 - **Main domain** (`commonex.ru`, `www.commonex.ru`): HTTP port 80 and HTTPS port 443
 - **API and gRPC subdomains** (`dev-api.commonex.ru`, `grpc.commonex.ru`): HTTPS-only; no plain HTTP access expected
-- **TLS certificate compression** enabled (`ssl_certificate_compression on`) — reduces TLS handshake size
+- **TLS certificate compression** enabled (`ssl_certificate_compression on`) — reduces TLS handshake size.
+  The nginx image must be built with OpenSSL options `enable-brotli` and `enable-zstd`, and build deps
+  `brotli-dev` and `zstd-dev`; otherwise nginx logs `SSL_CTX_compress_certs()` warnings.
 - **HTTP/2 to upstream (h2c)**: gateway nginx proxies to backends via `proxy_http_version 2`. Backend (NestJS) uses the
   **Fastify** adapter with `http2: true` (h2c) in `main.ts`; web container (static export) uses embedded nginx with
   `http2 on`. Backend Docker health checks use Node’s `http2` client (h2c prior knowledge).

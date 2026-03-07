@@ -54,6 +54,7 @@ CommonEx is a multi-platform expense sharing application with Android/iOS (KMM),
   validation depth.
 - Identify the target project first: `android/`, `backend/`, `web/`, or `infra/`.
 - Read `AGENTS.md` and the project instruction file; follow the most specific guidance.
+- Follow project-scoped MCP validation/tooling rules where defined (for example, Android MCP-first validation policy in `android/AGENTS.md`).
 - Important: try to fix things at the cause, not the symptom. Keep changes minimal and focused.
 - For non-trivial work, propose a short plan before editing.
 - Stop and ask clarifying questions if you are less that 80% sure about the task.

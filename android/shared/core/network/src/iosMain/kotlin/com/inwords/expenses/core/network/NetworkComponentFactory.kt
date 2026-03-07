@@ -1,8 +1,6 @@
 package com.inwords.expenses.core.network
 
-actual class NetworkComponentFactory actual constructor(
-    private val deps: Deps
-) {
+actual class NetworkComponentFactory actual constructor(deps: Deps) {
 
     actual interface Deps
 
