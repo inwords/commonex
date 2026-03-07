@@ -17,6 +17,7 @@ kotlinx-atomicfu = "0.31.0" # https://github.com/Kotlin/kotlinx-atomicfu/release
 compose-bom = "2026.02.01" # https://developer.android.com/jetpack/androidx/releases/compose
 # Match CMP <-> Compose https://kotlinlang.org/docs/multiplatform/compose-compatibility-and-versioning.html#jetpack-compose-artifacts-used
 compose-multiplatform = "1.10.2" # https://github.com/JetBrains/compose-multiplatform/blob/master/CHANGELOG.md
+androidx-compose-ui-test = "1.10.4" # https://developer.android.com/jetpack/androidx/releases/compose-ui
 lifecycle-multiplatform = "2.10.0-beta01"
 
 appfunctions = "1.0.0-alpha07"
@@ -92,8 +93,8 @@ androidx-test-espresso-core = { group = "androidx.test.espresso", name = "espres
 androidx-test-uiautomator = { group = "androidx.test.uiautomator", name = "uiautomator", version = "2.3.0" }
 androidx-test-benchmark-junit4 = { group = "androidx.benchmark", name = "benchmark-junit4", version = "1.4.1" }
 androidx-test-benchmark-macro-junit4 = { group = "androidx.benchmark", name = "benchmark-macro-junit4", version = "1.4.1" }
-androidx-compose-ui-test-android = { group = "androidx.compose.ui", name = "ui-test-android", version = "1.10.2" }
-androidx-compose-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4", version = "1.10.2" }
+androidx-compose-ui-test-android = { group = "androidx.compose.ui", name = "ui-test-android", version.ref = "androidx-compose-ui-test" }
+androidx-compose-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4", version.ref = "androidx-compose-ui-test" }
 junit-jupiter-api = { group = "org.junit.jupiter", name = "junit-jupiter-api", version.ref = "jupiter" }
 junit-jupiter-params = { group = "org.junit.jupiter", name = "junit-jupiter-params", version.ref = "jupiter" }
 junit-jupiter-engine = { group = "org.junit.jupiter", name = "junit-jupiter-engine", version.ref = "jupiter" }
