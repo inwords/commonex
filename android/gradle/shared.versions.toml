@@ -113,8 +113,8 @@ wire = { id = "com.squareup.wire", version = "5.5.0" } # https://square.github.i
 gradle-versions-checker = { id = "com.github.ben-manes.versions", version = "0.53.0" }
 android-junit5 = { id = "de.mannodermaus.android-junit", version = "2.0.1" } # https://github.com/mannodermaus/android-junit5/releases
 # https://github.com/getsentry/sentry-kotlin-multiplatform?tab=readme-ov-file#cocoa-sdk-version-compatibility-table
-sentry-kotlin-multiplatform = { id = "io.sentry.kotlin.multiplatform.gradle", version = "0.23.1" } # https://github.com/getsentry/sentry-kotlin-multiplatform/blob/main/CHANGELOG.md
-sentry-android-gradle = { id = "io.sentry.android.gradle", version = "6.0.0" } # https://github.com/getsentry/sentry-android-gradle-plugin/blob/main/CHANGELOG.md
+sentry-kotlin-multiplatform = { id = "io.sentry.kotlin.multiplatform.gradle", version = "0.24.0" } # https://github.com/getsentry/sentry-kotlin-multiplatform/blob/main/CHANGELOG.md
+sentry-android-gradle = { id = "io.sentry.android.gradle", version = "6.1.0" } # https://github.com/getsentry/sentry-android-gradle-plugin/blob/main/CHANGELOG.md
 androidx-baselineprofile = { id = "androidx.baselineprofile", version = "1.5.0-alpha02" } # https://developer.android.com/jetpack/androidx/releases/benchmark
 androidx-benchmark = { id = "androidx.benchmark", version = "1.4.1" } # https://developer.android.com/jetpack/androidx/releases/benchmark
 kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }
