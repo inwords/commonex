@@ -58,5 +58,5 @@ Do **not** copy `build/`, `.gradle/`, generated outputs, reports, or secrets int
 ## Quick Reference (CI vs local)
 
 - **CI** (`.github/workflows/android.yml`): JDK and setup from workflow (see `java-version` there); no `local.properties` (SDK from actions); main job runs `testHostTest` + `assembleDebug` + `assembleRelease` + `bundleRelease`; separate job for UI tests with
-  emulator and Marathon.
+  emulator and Marathon. Because CI runs root `testHostTest`, module host-test tasks such as `:shared:core:network:testAndroidHostTest` are included in CI host-test coverage.
 - **Local**: Use the same JDK as CI; `local.properties` required; use the validation profiles in `run-android-local-long-task` (fast gate first, then broader or instrumented only when justified).

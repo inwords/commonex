@@ -100,6 +100,11 @@ Run commands from the `android/` directory unless a command explicitly says othe
 # Run KMM host tests (~15 seconds)
 .\gradlew testHostTest
 
+# Run network retry host tests directly (module-level host test task)
+.\gradlew :shared:core:network:testAndroidHostTest --tests "com.inwords.expenses.core.network.RequestRetryTest"
+
+# Note: module host-test tasks usually use :<module>:testAndroidHostTest (not :<module>:testHostTest)
+
 # Run instrumented tests (requires device/emulator)
 .\gradlew :app:connectedAutotestAndroidTest
 
@@ -279,6 +284,7 @@ See `android/docs/patterns.md` for ViewModel, Compose UI, state modeling, and fo
 - **Instrumented tests (Compose UI E2E tests):** Android Tests with JUnit 4 And Marathon. `ComposeTestRule` with context receivers pattern. Run against the real backend; avoid mocks and hardcoded remote fixtures by creating required data in-test.
 - **Room tests:** use `androidx.room:room-testing`/`MigrationTestHelper` for migration validation only (example `MigrationTest.kt` in `androidDeviceTest` source set).
 - **KMM library host tests:** For shared-module Android host tests that assert `Flow` emissions, prefer Turbine (`app.cash.turbine`) over launching background collectors inside `runTest`; this avoids subscription-timing false negatives. Test the class through its constructor dependencies and assert collaborator calls at the class boundary; do not copy production flow pipelines into tests, and do not drop below the class boundary into infrastructure such as WorkManager when the class can be isolated directly. If a collaborator is difficult to mock in host tests (for example expect/actual manager types), add a minimal boundary seam for the observer-facing methods rather than mocking deeper platform infrastructure.
+- **Network 409 retry policy:** `shared:core:network` retries HTTP `409 Conflict` with exponential backoff up to 2 times for idempotent methods (`GET`, `HEAD`, `PUT`, `DELETE`, `OPTIONS`); exhausted 409 conflicts map to `IoResult.Error.Retry`. Validate with `.\gradlew :shared:core:network:testAndroidHostTest --tests "com.inwords.expenses.core.network.RequestRetryTest"`.
 - **KMM library device tests:** For `shared:integration:base` AppFunctions tests, run `.\gradlew :shared:integration:base:connectedAndroidDeviceTest`. This module's `androidDeviceTest` source set uses `io.mockk:mockk-android` and `execution = "HOST"` because orchestrator-based discovery did not report results correctly for this module. This path was validated on both API 35 and API 36 emulators in-session.
 - **Device testing:** Managed devices configured in `pixel6Api35*` tasks
 - **Marathon runner:** Cross-platform test runner for CI with retries and sharding
@@ -644,6 +650,9 @@ Before submitting changes, run these validation steps:
 
 # Sync observer host-test regression
 .\gradlew :shared:feature:sync:testAndroidHostTest --tests "com.inwords.expenses.feature.sync.domain.EventsSyncObserverTest"
+
+# Network retry host-test regression
+.\gradlew :shared:core:network:testAndroidHostTest --tests "com.inwords.expenses.core.network.RequestRetryTest"
 ```
 
 ### Comprehensive Testing (before major releases)

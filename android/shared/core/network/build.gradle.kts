@@ -12,6 +12,8 @@ kotlin {
         optimization {
             consumerKeepRules.files.add(file("consumer-rules.pro"))
         }
+
+        withHostTest {}
     }
 
     applyKmmDefaults("sharedCoreNetwork")
@@ -37,10 +39,23 @@ kotlin {
         iosMain.dependencies {
             implementation(shared.ktor.client.darwin)
         }
+        commonTest {
+            dependencies {
+                implementation(shared.kotlin.test)
+                implementation(shared.coroutines.test)
+                implementation(shared.ktor.client.mock)
+            }
+        }
     }
 
     compilerOptions {
         // Common compiler options applied to all Kotlin source sets
         freeCompilerArgs.add("-Xexpect-actual-classes")
     }
+}
+
+dependencies {
+    add("androidHostTestImplementation", shared.kotlin.test)
+    add("androidHostTestImplementation", shared.coroutines.test)
+    add("androidHostTestImplementation", shared.ktor.client.mock)
 }
