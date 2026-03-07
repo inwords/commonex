@@ -1,5 +1,6 @@
 package com.inwords.expenses.feature.events.ui.local
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.animateTo
@@ -19,9 +20,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.ZeroCornerSize
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.Add
@@ -52,6 +56,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -73,14 +78,17 @@ import expenses.shared.feature.events.generated.resources.events_create_join_des
 import expenses.shared.feature.events.generated.resources.events_delete_event_offline_message
 import expenses.shared.feature.events.generated.resources.events_delete_everywhere
 import expenses.shared.feature.events.generated.resources.events_delete_local_only
+import expenses.shared.feature.events.generated.resources.events_empty_illustration_content_description
 import expenses.shared.feature.events.generated.resources.events_event
 import expenses.shared.feature.events.generated.resources.events_event_deleted
 import expenses.shared.feature.events.generated.resources.events_join
 import expenses.shared.feature.events.generated.resources.events_keep_event
 import expenses.shared.feature.events.generated.resources.events_your
+import expenses.shared.feature.events.generated.resources.img_events_empty_illustration
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import expenses.shared.core.ui_design.generated.resources.Res as DesignRes
 
@@ -197,61 +205,74 @@ fun LocalEventsEmptyPane(
         modifier = modifier.fillMaxSize(),
         topBar = { TopAppBarWithText() },
     ) { paddingValues ->
-        Box(
-            modifier = modifier
+        Column(
+            modifier = Modifier
                 .fillMaxSize()
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp)
                 .consumeWindowInsets(paddingValues)
                 .padding(paddingValues),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Column(
+            Spacer(modifier = Modifier.weight(2f))
+
+            Text(
+                text = stringResource(Res.string.events_create_join_description),
+                style = MaterialTheme.typography.bodyLarge,
+                textAlign = TextAlign.Center,
                 modifier = Modifier
-                    .align(Alignment.Center),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Text(
-                    text = stringResource(Res.string.events_create_join_description),
-                    style = MaterialTheme.typography.bodyLarge,
-                    modifier = Modifier
-                        .align(Alignment.CenterHorizontally)
-                )
+                    .align(Alignment.CenterHorizontally)
+            )
 
-                Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-                ButtonWithIconAndText(
-                    modifier = modifier
-                        .fillMaxWidth(),
-                    onClick = onCreateEventClick,
-                    text = stringResource(Res.string.events_create),
-                    imageVector = Icons.Outlined.Add,
-                    minHeight = ButtonDefaults.MediumContainerHeight,
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                OutlinedButtonWithText(
-                    modifier = modifier
-                        .fillMaxWidth(),
-                    onClick = onJoinEventClick,
-                    text = stringResource(Res.string.events_join),
-                    minHeight = ButtonDefaults.MediumContainerHeight,
-                )
+            ButtonWithIconAndText(
+                modifier = Modifier
+                    .fillMaxWidth(),
+                onClick = onCreateEventClick,
+                text = stringResource(Res.string.events_create),
+                imageVector = Icons.Outlined.Add,
+                minHeight = ButtonDefaults.MediumContainerHeight,
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            OutlinedButtonWithText(
+                modifier = Modifier
+                    .fillMaxWidth(),
+                onClick = onJoinEventClick,
+                text = stringResource(Res.string.events_join),
+                minHeight = ButtonDefaults.MediumContainerHeight,
+            )
 
-                Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-                Text(
-                    modifier = Modifier
-                        .align(Alignment.CenterHorizontally),
-                    text = stringResource(DesignRes.string.agree_by_continuing),
-                    style = MaterialTheme.typography.bodySmall,
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                LegalBlock(
-                    modifier = Modifier
-                        .align(Alignment.CenterHorizontally),
-                    onPrivacyPolicyClicked = { /* No additional action needed - URL opening handled by component */ },
-                    onTermsOfUseClicked = { /* No additional action needed - URL opening handled by component */ }
-                )
-            }
+            Image(
+                painter = painterResource(Res.drawable.img_events_empty_illustration),
+                contentDescription = stringResource(Res.string.events_empty_illustration_content_description),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .sizeIn(maxWidth = 360.dp, maxHeight = 220.dp),
+                contentScale = ContentScale.Fit,
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Text(
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally),
+                text = stringResource(DesignRes.string.agree_by_continuing),
+                style = MaterialTheme.typography.bodySmall,
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            LegalBlock(
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally),
+                onPrivacyPolicyClicked = { /* No additional action needed - URL opening handled by component */ },
+                onTermsOfUseClicked = { /* No additional action needed - URL opening handled by component */ }
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Spacer(modifier = Modifier.weight(1f))
         }
     }
 }
@@ -569,6 +590,17 @@ private fun LocalEventsPanePreview() {
                 ),
                 recentlyRemovedEventName = null,
             ),
+        )
+    }
+}
+
+@Composable
+@Preview
+private fun LocalEventsEmptyPanePreview() {
+    CommonExTheme {
+        LocalEventsEmptyPane(
+            onCreateEventClick = {},
+            onJoinEventClick = {},
         )
     }
 }
