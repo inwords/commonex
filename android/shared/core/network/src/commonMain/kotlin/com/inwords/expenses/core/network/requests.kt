@@ -9,6 +9,7 @@ import io.ktor.client.plugins.ClientRequestException
 import io.ktor.client.plugins.RedirectResponseException
 import io.ktor.client.plugins.ServerResponseException
 import io.ktor.client.request.HttpRequestBuilder
+import io.ktor.http.HttpStatusCode
 import io.ktor.http.URLBuilder
 import io.ktor.serialization.ContentConvertException
 import kotlinx.io.IOException
@@ -36,7 +37,13 @@ suspend inline fun <T : Any> SuspendLazy<HttpClient>.requestWithExceptionHandlin
 fun <T : Any> NetworkResult<T>.toIoResult(): IoResult<T> {
     return when (this) {
         is NetworkResult.Ok -> IoResult.Success(data)
-        is NetworkResult.Error.Http.Client -> IoResult.Error.Failure
+        is NetworkResult.Error.Http.Client -> {
+            if (exception.response.status == HttpStatusCode.Conflict) {
+                IoResult.Error.Retry
+            } else {
+                IoResult.Error.Failure
+            }
+        }
         is NetworkResult.Error.Http.Redirect -> IoResult.Error.Retry
         is NetworkResult.Error.Http.Server -> IoResult.Error.Retry
         is NetworkResult.Error.Parse -> IoResult.Error.Failure
