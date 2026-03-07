@@ -13,8 +13,10 @@ coroutines = "1.10.2" # https://github.com/Kotlin/kotlinx.coroutines/releases
 kotlinx-serialization = "1.10.0" # https://github.com/Kotlin/kotlinx.serialization/releases
 kotlinx-atomicfu = "0.31.0" # https://github.com/Kotlin/kotlinx-atomicfu/releases
 
-compose-bom = "2026.01.00" # https://developer.android.com/jetpack/androidx/releases/compose
-compose-multiplatform = "1.10.0" # https://github.com/JetBrains/compose-multiplatform/blob/master/CHANGELOG.md
+# Match version with BOM https://developer.android.com/develop/ui/compose/bom/bom-mapping
+compose-bom = "2026.02.01" # https://developer.android.com/jetpack/androidx/releases/compose
+# Match CMP <-> Compose https://kotlinlang.org/docs/multiplatform/compose-compatibility-and-versioning.html#jetpack-compose-artifacts-used
+compose-multiplatform = "1.10.2" # https://github.com/JetBrains/compose-multiplatform/blob/master/CHANGELOG.md
 
 appfunctions = "1.0.0-alpha07"
 
