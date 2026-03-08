@@ -41,7 +41,7 @@ class App : Application(), Configuration.Provider, AppFunctionConfiguration.Prov
             )
         }
 
-        registerComponents(this, production = production)
+        registerComponents(this, versionCode = BuildConfig.VERSION_CODE, production = production)
 
         enableSync()
     }

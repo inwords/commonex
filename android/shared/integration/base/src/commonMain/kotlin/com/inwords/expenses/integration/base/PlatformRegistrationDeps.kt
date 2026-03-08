@@ -6,6 +6,7 @@ import com.inwords.expenses.feature.events.api.EventsComponentFactory
 import com.inwords.expenses.feature.settings.api.SettingsComponent
 import com.inwords.expenses.feature.share.api.ShareComponent
 import com.inwords.expenses.feature.sync.api.SyncComponent
+import com.inwords.expenses.feature.sync.api.SyncComponentFactoryCommonDeps
 import com.inwords.expenses.integration.databases.api.DatabasesComponent
 
 internal interface PlatformRegistrationDeps {
@@ -20,5 +21,5 @@ internal interface PlatformRegistrationDeps {
 
     fun createEventsComponent(deps: EventsComponentFactory.Deps): EventsComponent
 
-    fun createSyncComponent(syncDeps: SyncDepsValues): SyncComponent
+    fun createSyncComponent(commonDeps: SyncComponentFactoryCommonDeps): SyncComponent
 }

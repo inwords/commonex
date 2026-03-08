@@ -13,7 +13,7 @@ blue-green deployment for backend services.
 - **Containerization**: Docker
 - **Reverse Proxy**: Nginx (with OpenTelemetry module)
 - **Observability**: OpenTelemetry Collector
-- **Orchestration**: Docker Compose for production and development
+- **Orchestration**: Docker Compose for the documented production stack in `infra/docker-compose-prod.yml`
 
 ## Architecture
 
@@ -107,7 +107,8 @@ docker compose -f infra/docker-compose-prod.yml logs -f
 
 # Specific service
 docker compose -f infra/docker-compose-prod.yml logs -f nginx
-docker compose -f infra/docker-compose-prod.yml logs -f backend
+docker compose -f infra/docker-compose-prod.yml logs -f nest-backend-green
+docker compose -f infra/docker-compose-prod.yml logs -f nest-backend-blue
 docker compose -f infra/docker-compose-prod.yml logs -f otel-collector
 
 # Last 100 lines
@@ -121,7 +122,7 @@ docker compose -f infra/docker-compose-prod.yml logs --tail=100
 docker compose -f infra/docker-compose-prod.yml restart nginx
 
 # Scale services (if applicable)
-docker compose -f infra/docker-compose-prod.yml up -d --scale backend=2
+docker compose -f infra/docker-compose-prod.yml up -d --scale nest-backend-green=1 --scale nest-backend-blue=1
 
 # Check service status
 docker compose -f infra/docker-compose-prod.yml ps
@@ -228,7 +229,8 @@ docker compose -f infra/docker-compose-prod.yml up -d nginx
 ```bash
 # Execute command in running container
 docker compose -f infra/docker-compose-prod.yml exec nginx sh
-docker compose -f infra/docker-compose-prod.yml exec backend sh
+docker compose -f infra/docker-compose-prod.yml exec nest-backend-green sh
+docker compose -f infra/docker-compose-prod.yml exec nest-backend-blue sh
 
 # Check container resource usage
 docker stats
@@ -252,7 +254,7 @@ docker compose -f infra/docker-compose-prod.yml ps
 docker compose -f infra/docker-compose-prod.yml ps --format json | jq '.[] | {name: .Name, status: .State}'
 
 # 4. Verify network connectivity
-docker compose -f infra/docker-compose-prod.yml exec backend ping nginx
+docker compose -f infra/docker-compose-prod.yml exec nest-backend-green ping nginx
 ```
 
 ## Troubleshooting
@@ -271,7 +273,7 @@ docker compose -f infra/docker-compose-prod.yml exec backend ping nginx
 - **Connection refused**: Check service is running and listening on correct port
 - **Host tests cannot reach DB**: `docker-compose-prod.yml` keeps DB on an internal network; temporarily publish
   `5432:5432` only for local test runs.
-- **DNS resolution**: Verify service names match in docker-compose.yml
+- **DNS resolution**: Verify service names match `infra/docker-compose-prod.yml`
 
 ### Logging Issues
 
@@ -297,7 +299,7 @@ docker compose -f infra/docker-compose-prod.yml exec backend ping nginx
 
 - **"Cannot connect to Docker daemon"**: Ensure Docker daemon is running
 - **"Port already allocated"**: Change port mapping or stop conflicting service
-- **"No such service"**: Verify service name in docker-compose.yml
+- **"No such service"**: Verify the service name in `infra/docker-compose-prod.yml`
 - **"Permission denied"**: Check Docker socket permissions or use `sudo` (not recommended)
 - **"Network not found"**: Recreate network: `docker compose -f infra/docker-compose-prod.yml down`
   then `up`

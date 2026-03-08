@@ -6,12 +6,22 @@ actual class NetworkComponentFactory actual constructor(
     private val deps: Deps
 ) {
 
-    actual interface Deps {
+    actual interface Deps : NetworkComponentFactoryCommonDeps {
         val context: Context
         val production: Boolean
     }
 
     actual fun create(): NetworkComponent {
-        return NetworkComponent(HttpClientFactory(deps.context, enableLogging = !deps.production))
+        return NetworkComponent(
+            HttpClientFactory(
+                context = deps.context,
+                userAgent = buildUserAgent(
+                    versionCode = deps.versionCode,
+                    platform = "Android",
+                    production = deps.production,
+                ),
+                enableLogging = !deps.production
+            )
+        )
     }
 }

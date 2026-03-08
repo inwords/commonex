@@ -11,21 +11,23 @@ import io.ktor.client.HttpClient
 
 expect class EventsComponentFactory {
 
-    interface Deps {
-
-        val eventsDao: EventsDao
-        val personsDao: PersonsDao
-        val currenciesDao: CurrenciesDao
-
-        val transactionHelper: TransactionHelper
-
-        val client: SuspendLazy<HttpClient>
-        val hostConfig: HostConfig
-
-        val settingsRepositoryLazy: Lazy<SettingsRepository>
-
-        val hooks: EventHooks
-    }
+    interface Deps : EventsComponentFactoryCommonDeps
 
     fun create(): EventsComponent
+}
+
+interface EventsComponentFactoryCommonDeps {
+
+    val eventsDao: EventsDao
+    val personsDao: PersonsDao
+    val currenciesDao: CurrenciesDao
+
+    val transactionHelper: TransactionHelper
+
+    val client: SuspendLazy<HttpClient>
+    val hostConfig: HostConfig
+
+    val settingsRepositoryLazy: Lazy<SettingsRepository>
+
+    val hooks: EventHooks
 }

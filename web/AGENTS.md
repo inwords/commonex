@@ -4,16 +4,20 @@ For non-trivial work and when to search upstream docs, follow root [AGENTS.md](.
 
 ## Project Overview
 
-CommonEx web is a **Next.js** application providing the web interface for the expense sharing platform. It uses Material
-UI for components, MobX for state management, and follows a strict feature-sliced architecture.
+CommonEx web is a **Next.js** browser client for the expense-sharing platform. It uses Material UI for components,
+MobX for state management, and follows a strict feature-sliced architecture. The current runtime model is a
+client-rendered SPA: `src/app/page.tsx` mounts `BrowserRouter`, and production builds use static export served by Nginx.
 
 ## Technology Stack
 
-- **Framework**: Next.js v14 with App Router
+- **Framework**: Next.js v14 with App Router shell
 - **UI Library**: Material UI v5
 - **State Management**: MobX
 - **Forms**: react-hook-form with MUI integration
 - **Language**: TypeScript
+- **Routing runtime**: client-side `BrowserRouter`
+- **Production output**: static export to `build/`
+- **Production serving**: Nginx in the web container
 
 ## Architecture
 
@@ -28,12 +32,14 @@ Feature-driven with strict folder structure (Feature-Sliced Design):
 ### Key File Locations
 
 - **App entry**: `src/app/`
+- **SPA router entry**: `src/app/page.tsx`
 - **Pages**: `src/2-pages/`
 - **Widgets**: `src/3-widgets/`
 - **Features**: `src/4-features/`
 - **Entities**: `src/5-entities/`
 - **Shared utilities**: `src/6-shared/`
 - **Configuration**: `next.config.mjs`, `tsconfig.json`
+- **Container runtime**: `Dockerfile`, `nginx.conf`
 
 ## Prerequisites
 
@@ -51,9 +57,9 @@ npm install
 
 ### Environment Variables
 
-- Check for `.env.local` or `.env` file
-- Configure API endpoint URLs if needed
-- See project documentation for required variables
+- The current browser HTTP client derives its base URL from `window.location`:
+  `http://localhost:3001` on localhost, `/api` otherwise.
+- No repo-checked web-specific environment contract is currently wired into the browser client.
 
 ## Essential Commands
 
@@ -64,9 +70,6 @@ npm install
 ```bash
 # Start development server
 npm run dev
-
-# Start production server (after build)
-npm run start
 ```
 
 ### Building
@@ -85,13 +88,8 @@ npm run lint
 
 ### Testing
 
-```bash
-# Run tests (if configured)
-npm run test
-
-# Run tests in watch mode (if configured)
-npm run test:watch
-```
+- There is currently no checked-in `npm run test` or `npm run test:watch` script in `package.json`.
+- Treat build + lint as the available local validation baseline unless test tooling is added.
 
 ## Development Workflow
 
@@ -163,16 +161,16 @@ export const ExampleFeature = () => {
 
 ## Testing
 
-- **Unit tests**: Jest for utility functions and services
-- **Component tests**: React Testing Library
-- Test files should be co-located with source files
+- No automated test runner is currently wired through `package.json`.
+- If test tooling is introduced, document the exact scripts and commands here instead of generic framework defaults.
 
 ## Deployment
 
-- Static export or server-side rendering
-- Docker image for deployment
-- Nginx serving static files
-- Build output in `.next/` directory
+- Production uses a Docker image that builds the app and serves the exported `build/` directory from Nginx.
+- The app is currently deployed as a static-export SPA, not as a `next start` server.
+- Client-side route fallback in the web container is handled by `web/nginx.conf` with `try_files`.
+- `next.config.mjs` currently defines `rewrites`, but Next warns during build that rewrites are not applied with
+  `output: export`; do not treat those rewrites as production routing behavior.
 
 ## Validation Steps
 
@@ -184,9 +182,6 @@ npm run lint
 
 # 2. Build for production
 npm run build
-
-# 3. Run tests (if configured)
-npm run test
 ```
 
 ### Quick Validation (for small changes)
@@ -209,13 +204,18 @@ npm run lint
   execution policy errors, run Next via CMD shim:
     - `.\node_modules\.bin\next.cmd lint`
     - `.\node_modules\.bin\next.cmd build`
+    - The same issue can affect `npm run dev`
 
 ### Runtime Issues
 
-- **API endpoint errors**: Check API endpoint URLs in environment variables
+- **API endpoint errors**: Check the browser base-URL selection in `src/6-shared/api/http-client.ts` and the
+  gateway/container routing for `/api`
+- **HTTP client contract**: The shared browser `HttpClient` in `src/6-shared/api/http-client.ts` uses `http://localhost:3001` on localhost and `/api` otherwise, always sends `Content-Type: application/json`, and normalizes backend error envelopes into `ApiError`.
 - **MobX store not updating**: Verify store is properly initialized and observable
 - **MUI theme issues**: Review theme configuration in app setup
 - **Hydration errors**: Check for server/client mismatch in rendering
+- **Direct SPA route refresh fails in production**: Verify the request is reaching the web container Nginx fallback
+  (`try_files $uri /index.html =404`), not relying on Next rewrites
 
 ### Common Errors
 
@@ -223,6 +223,8 @@ npm run lint
 - **"Cannot read property"**: Verify MobX store initialization
 - **"MUI theme error"**: Ensure theme provider wraps app correctly
 - **"Build fails"**: Clear `.next` cache and rebuild
+- **"rewrites will not automatically work with output: export"**: Expected with the current `next.config.mjs`;
+  production route fallback must come from Nginx, not Next rewrites
 - **"Port already in use"**: Change port or kill process using port 3000
 
 ### Development Server Issues

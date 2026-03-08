@@ -13,6 +13,7 @@ import java.io.File
 
 internal actual class HttpClientFactory(
     private val context: Context,
+    private val userAgent: String,
     private val enableLogging: Boolean
 ) {
 
@@ -52,7 +53,7 @@ internal actual class HttpClientFactory(
                     .setInMemoryServerConfigsCacheSize(5)
                     .delayJobsWithAvailableSpdySession(true)
             )
-            .setUserAgent("Android/Expenses/1.0") // TODO choose good user agent
+            .setUserAgent(userAgent)
             .build()
     }
 

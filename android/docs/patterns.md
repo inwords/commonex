@@ -35,6 +35,21 @@ Quick review checklist for architectural refactors:
 - Is visibility no wider than necessary?
 - Is dependency wiring readable without jumping across many files?
 
+### Component Factory Common Deps
+
+For KMP `*ComponentFactory` APIs, extract repeated shared `Deps` members into a `*ComponentFactoryCommonDeps` interface in `commonMain` when the same members are declared in both Android and iOS `actual interface Deps`.
+
+Apply the pattern like this:
+
+1. Define `FooComponentFactoryCommonDeps` in `commonMain`.
+2. Make `expect interface Deps : FooComponentFactoryCommonDeps`.
+3. Make each platform `actual interface Deps : FooComponentFactoryCommonDeps`.
+4. Keep only platform-specific members inline in the platform `Deps` declaration.
+
+Use this to remove duplicated shared contract members while keeping the external `FooComponentFactory.Deps` API stable for callers.
+
+Do not introduce `*CommonDeps` when the common `Deps` contract is empty. In that case, the extracted interface adds boilerplate without reducing duplication.
+
 ## ViewModel Patterns
 
 ### Job Guard Pattern
@@ -86,6 +101,8 @@ field = MutableStateFlow(initialState)
 
 For ViewModels with flow-based state (`stateInWhileSubscribed`, `combine`) or methods that launch coroutines, host tests must pass `viewModelScope = backgroundScope` and run `runCurrent()` and `advanceUntilIdle()` before collecting
 state (e.g. `state.test { }`) or verifying mocks (`coVerify`/`verify`), so execution stays on the test dispatcher and assertions are deterministic. Otherwise, tests can be flaky when the default scope uses a different dispatcher.
+If the class launches with an explicit dispatcher (e.g. `scope.launch(IO)`), passing only `viewModelScope = backgroundScope` is not enough — `advanceUntilIdle()` does not run work on that dispatcher. Make the dispatcher injectable (e.g.
+`workDispatcher: CoroutineDispatcher = IO`) and pass `testDispatcher` in tests. Example: `DeleteEventDialogViewModel`, `DeleteEventDialogViewModelTest`.
 Examples: `CreateEventViewModelTest`, `MenuViewModelTest`,
 `AddParticipantsToEventViewModelTest`.
 

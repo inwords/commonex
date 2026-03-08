@@ -33,6 +33,7 @@ CommonEx is a multi-platform expense sharing application with Android/iOS (KMM),
 ## Domain Glossary
 
 - See [`docs/domain.md`](docs/domain.md) for core domain terms and the primary sources of truth for their shape and meaning.
+- See [`docs/network-contracts.md`](docs/network-contracts.md) for repo-wide HTTP and transport-level contracts such as `User-Agent`.
 
 ## Testing and validation
 

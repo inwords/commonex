@@ -11,13 +11,15 @@ import com.inwords.expenses.feature.share.api.ShareComponent
 import com.inwords.expenses.feature.share.api.ShareComponentFactory
 import com.inwords.expenses.feature.sync.api.SyncComponent
 import com.inwords.expenses.feature.sync.api.SyncComponentFactory
+import com.inwords.expenses.feature.sync.api.SyncComponentFactoryCommonDeps
 import com.inwords.expenses.integration.databases.api.DatabasesComponent
 import com.inwords.expenses.integration.databases.api.DatabasesComponentFactory
 
-fun registerComponents(appContext: Context, production: Boolean) {
+fun registerComponents(appContext: Context, versionCode: Int, production: Boolean) {
     val platformFactoryDeps = AndroidPlatformFactoryDeps(
-        appContext = appContext,
+        context = appContext,
         production = production,
+        versionCode = versionCode,
     )
 
     registerCommonComponents(
@@ -42,12 +44,9 @@ fun registerComponents(appContext: Context, production: Boolean) {
                 return EventsComponentFactory(deps = deps).create()
             }
 
-            override fun createSyncComponent(syncDeps: SyncDepsValues): SyncComponent {
+            override fun createSyncComponent(commonDeps: SyncComponentFactoryCommonDeps): SyncComponent {
                 return SyncComponentFactory(
-                    deps = AndroidSyncFactoryDeps(
-                        appContext = appContext,
-                        syncDeps = syncDeps,
-                    )
+                    deps = AndroidSyncFactoryDeps(context = appContext, commonDeps = commonDeps)
                 ).create()
             }
         }
@@ -55,19 +54,12 @@ fun registerComponents(appContext: Context, production: Boolean) {
 }
 
 private data class AndroidPlatformFactoryDeps(
-    private val appContext: Context,
+    override val context: Context,
     override val production: Boolean,
-) : SettingsComponentFactory.Deps, DatabasesComponentFactory.Deps, ShareComponentFactory.Deps, NetworkComponentFactory.Deps {
-    override val context: Context get() = appContext
-}
+    override val versionCode: Int,
+) : SettingsComponentFactory.Deps, DatabasesComponentFactory.Deps, ShareComponentFactory.Deps, NetworkComponentFactory.Deps
 
-private data class AndroidSyncFactoryDeps(
-    private val appContext: Context,
-    private val syncDeps: SyncDepsValues,
-) : SyncComponentFactory.Deps {
-    override val context: Context get() = appContext
-
-    override val getCurrentEventStateUseCaseLazy = syncDeps.getCurrentEventStateUseCaseLazy
-    override val expensesInteractorLazy = syncDeps.expensesInteractorLazy
-    override val eventsSyncStateHolderLazy = syncDeps.eventsSyncStateHolderLazy
-}
+private class AndroidSyncFactoryDeps(
+    override val context: Context,
+    commonDeps: SyncComponentFactoryCommonDeps,
+) : SyncComponentFactory.Deps, SyncComponentFactoryCommonDeps by commonDeps
