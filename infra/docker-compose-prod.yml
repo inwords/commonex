@@ -213,11 +213,17 @@ services:
       - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD}
       - GF_SERVER_ROOT_URL=https://commonex.ru/grafana/
       - GF_SERVER_PROTOCOL=http
+      - POSTGRES_DATABASE=${POSTGRES_DATABASE}
+      - POSTGRES_USER_NAME=${POSTGRES_USER_NAME}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     volumes:
       - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
     networks:
       - app-network
       - monitoring-network
+      - db-network
 
   certbot:
     image: certbot/certbot:v5.0.0

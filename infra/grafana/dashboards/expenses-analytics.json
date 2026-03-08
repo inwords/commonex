@@ -1,0 +1,779 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": { "type": "grafana", "uid": "-- Grafana --" },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "description": "Business metrics for Expenses sharing app — events, users, expenses",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "refresh": "1h",
+  "schemaVersion": 39,
+  "tags": ["expenses", "analytics", "business"],
+  "templating": {
+    "list": [
+      {
+        "current": { "selected": false, "text": "public", "value": "public" },
+        "description": "PostgreSQL schema (POSTGRES_SCHEMA env var value)",
+        "hide": 0,
+        "label": "DB Schema",
+        "name": "postgres_schema",
+        "options": [{ "selected": true, "text": "public", "value": "public" }],
+        "query": "public",
+        "skipUrlSync": false,
+        "type": "textbox"
+      }
+    ]
+  },
+  "time": { "from": "now-30d", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Expenses Analytics",
+  "uid": "expenses-analytics-v1",
+  "version": 1,
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Total Events",
+      "description": "All non-deleted events ever created",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "datasource": { "type": "postgres", "uid": "postgres-ds" },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "postgres-ds" },
+          "rawQuery": true,
+          "rawSql": "SELECT COUNT(*) AS \"Events\" FROM \"${postgres_schema}\".event WHERE deleted_at IS NULL",
+          "refId": "A",
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "blue", "value": null }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "/^Events$/",
+          "values": false
+        },
+        "textMode": "auto"
+      }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Total Users",
+      "description": "All user_info records across all events",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+      "datasource": { "type": "postgres", "uid": "postgres-ds" },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "postgres-ds" },
+          "rawQuery": true,
+          "rawSql": "SELECT COUNT(*) AS \"Users\" FROM \"${postgres_schema}\".user_info",
+          "refId": "A",
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "/^Users$/",
+          "values": false
+        },
+        "textMode": "auto"
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Total Expenses",
+      "description": "All expense records (expense_type = 'expense')",
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
+      "datasource": { "type": "postgres", "uid": "postgres-ds" },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "postgres-ds" },
+          "rawQuery": true,
+          "rawSql": "SELECT COUNT(*) AS \"Expenses\" FROM \"${postgres_schema}\".expense WHERE expense_type = 'expense'",
+          "refId": "A",
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "orange", "value": null }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "/^Expenses$/",
+          "values": false
+        },
+        "textMode": "auto"
+      }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "MAU (current month)",
+      "description": "Unique payers in expenses this calendar month",
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
+      "datasource": { "type": "postgres", "uid": "postgres-ds" },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "postgres-ds" },
+          "rawQuery": true,
+          "rawSql": "SELECT COUNT(DISTINCT user_who_paid_id) AS \"MAU\" FROM \"${postgres_schema}\".expense WHERE expense_type = 'expense' AND created_at >= date_trunc('month', NOW())",
+          "refId": "A",
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "purple", "value": null }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "/^MAU$/",
+          "values": false
+        },
+        "textMode": "auto"
+      }
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Events Over Time",
+      "description": "New events created per day",
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 4 },
+      "datasource": { "type": "postgres", "uid": "postgres-ds" },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "postgres-ds" },
+          "rawQuery": true,
+          "rawSql": "SELECT\n  date_trunc('day', created_at) AS time,\n  COUNT(*) AS \"New Events\"\nFROM \"${postgres_schema}\".event\nWHERE $__timeFilter(created_at) AND deleted_at IS NULL\nGROUP BY 1\nORDER BY 1",
+          "refId": "A",
+          "format": "time_series"
+        },
+        {
+          "datasource": { "type": "postgres", "uid": "postgres-ds" },
+          "rawQuery": true,
+          "rawSql": "SELECT\n  date_trunc('day', created_at) AS time,\n  SUM(COUNT(*)) OVER (ORDER BY date_trunc('day', created_at)) AS \"Cumulative\"\nFROM \"${postgres_schema}\".event\nWHERE deleted_at IS NULL\nGROUP BY 1\nORDER BY 1",
+          "refId": "B",
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "bars",
+            "fillOpacity": 60,
+            "gradientMode": "none",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": { "type": "linear" },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": { "group": "A", "mode": "none" },
+            "thresholdsStyle": { "mode": "off" }
+          },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] },
+          "unit": "short"
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Cumulative" },
+            "properties": [
+              { "id": "custom.drawStyle", "value": "line" },
+              { "id": "custom.fillOpacity", "value": 10 },
+              { "id": "custom.lineWidth", "value": 2 },
+              { "id": "custom.lineInterpolation", "value": "smooth" }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": { "calcs": ["sum", "last"], "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      }
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Users Over Time",
+      "description": "New user_info records created per day (across all events)",
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 4 },
+      "datasource": { "type": "postgres", "uid": "postgres-ds" },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "postgres-ds" },
+          "rawQuery": true,
+          "rawSql": "SELECT\n  date_trunc('day', created_at) AS time,\n  COUNT(*) AS \"New Users\"\nFROM \"${postgres_schema}\".user_info\nWHERE $__timeFilter(created_at)\nGROUP BY 1\nORDER BY 1",
+          "refId": "A",
+          "format": "time_series"
+        },
+        {
+          "datasource": { "type": "postgres", "uid": "postgres-ds" },
+          "rawQuery": true,
+          "rawSql": "SELECT\n  date_trunc('day', created_at) AS time,\n  SUM(COUNT(*)) OVER (ORDER BY date_trunc('day', created_at)) AS \"Cumulative\"\nFROM \"${postgres_schema}\".user_info\nGROUP BY 1\nORDER BY 1",
+          "refId": "B",
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "bars",
+            "fillOpacity": 60,
+            "gradientMode": "none",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": { "type": "linear" },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": { "group": "A", "mode": "none" },
+            "thresholdsStyle": { "mode": "off" }
+          },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] },
+          "unit": "short"
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Cumulative" },
+            "properties": [
+              { "id": "custom.drawStyle", "value": "line" },
+              { "id": "custom.fillOpacity", "value": 10 },
+              { "id": "custom.lineWidth", "value": 2 },
+              { "id": "custom.lineInterpolation", "value": "smooth" }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": { "calcs": ["sum", "last"], "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      }
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Expenses Per Day",
+      "description": "Number of expense records created per day",
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 13 },
+      "datasource": { "type": "postgres", "uid": "postgres-ds" },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "postgres-ds" },
+          "rawQuery": true,
+          "rawSql": "SELECT\n  date_trunc('day', created_at) AS time,\n  COUNT(*) FILTER (WHERE expense_type = 'expense') AS \"Expenses\",\n  COUNT(*) FILTER (WHERE expense_type = 'refund')  AS \"Refunds\"\nFROM \"${postgres_schema}\".expense\nWHERE $__timeFilter(created_at)\nGROUP BY 1\nORDER BY 1",
+          "refId": "A",
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "bars",
+            "fillOpacity": 70,
+            "gradientMode": "none",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": { "type": "linear" },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": { "group": "A", "mode": "none" },
+            "thresholdsStyle": { "mode": "off" }
+          },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "calcs": ["sum"], "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      }
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "DAU — Active Payers Per Day",
+      "description": "Unique user_who_paid_id per day in expense records",
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 13 },
+      "datasource": { "type": "postgres", "uid": "postgres-ds" },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "postgres-ds" },
+          "rawQuery": true,
+          "rawSql": "SELECT\n  date_trunc('day', created_at) AS time,\n  COUNT(DISTINCT user_who_paid_id) AS \"DAU\"\nFROM \"${postgres_schema}\".expense\nWHERE $__timeFilter(created_at) AND expense_type = 'expense'\nGROUP BY 1\nORDER BY 1",
+          "refId": "A",
+          "format": "time_series"
+        },
+        {
+          "datasource": { "type": "postgres", "uid": "postgres-ds" },
+          "rawQuery": true,
+          "rawSql": "SELECT\n  date_trunc('month', created_at) AS time,\n  COUNT(DISTINCT user_who_paid_id) AS \"MAU\"\nFROM \"${postgres_schema}\".expense\nWHERE expense_type = 'expense'\nGROUP BY 1\nORDER BY 1",
+          "refId": "B",
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "gradientMode": "opacity",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 4,
+            "scaleDistribution": { "type": "linear" },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": { "group": "A", "mode": "none" },
+            "thresholdsStyle": { "mode": "off" }
+          },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "calcs": ["mean", "max"], "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      }
+    },
+    {
+      "id": 9,
+      "type": "stat",
+      "title": "Avg Users / Event",
+      "description": "Average number of participants per event",
+      "gridPos": { "h": 4, "w": 8, "x": 0, "y": 22 },
+      "datasource": { "type": "postgres", "uid": "postgres-ds" },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "postgres-ds" },
+          "rawQuery": true,
+          "rawSql": "SELECT ROUND(AVG(cnt), 1) AS \"Avg Users/Event\"\nFROM (\n  SELECT event_id, COUNT(*) AS cnt\n  FROM \"${postgres_schema}\".user_info\n  GROUP BY event_id\n) t",
+          "refId": "A",
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "decimals": 1,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "blue", "value": null },
+              { "color": "green", "value": 3 }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      }
+    },
+    {
+      "id": 10,
+      "type": "stat",
+      "title": "Avg Expenses / Event",
+      "description": "Average number of expenses added per event",
+      "gridPos": { "h": 4, "w": 8, "x": 8, "y": 22 },
+      "datasource": { "type": "postgres", "uid": "postgres-ds" },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "postgres-ds" },
+          "rawQuery": true,
+          "rawSql": "SELECT ROUND(AVG(cnt), 1) AS \"Avg Expenses/Event\"\nFROM (\n  SELECT event_id, COUNT(*) AS cnt\n  FROM \"${postgres_schema}\".expense\n  WHERE expense_type = 'expense'\n  GROUP BY event_id\n) t",
+          "refId": "A",
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "decimals": 1,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "orange", "value": null },
+              { "color": "green", "value": 5 }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      }
+    },
+    {
+      "id": 11,
+      "type": "stat",
+      "title": "Median Event Lifetime",
+      "description": "Median hours from event creation to last expense added",
+      "gridPos": { "h": 4, "w": 8, "x": 16, "y": 22 },
+      "datasource": { "type": "postgres", "uid": "postgres-ds" },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "postgres-ds" },
+          "rawQuery": true,
+          "rawSql": "SELECT ROUND(\n  PERCENTILE_CONT(0.5) WITHIN GROUP (\n    ORDER BY EXTRACT(EPOCH FROM (last_ex - ev.created_at)) / 3600\n  )::numeric, 1\n) AS \"Median Lifetime (h)\"\nFROM \"${postgres_schema}\".event ev\nJOIN (\n  SELECT event_id, MAX(created_at) AS last_ex\n  FROM \"${postgres_schema}\".expense\n  GROUP BY event_id\n) lx ON lx.event_id = ev.id\nWHERE ev.deleted_at IS NULL",
+          "refId": "A",
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "decimals": 1,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null }
+            ]
+          },
+          "unit": "h"
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      }
+    },
+    {
+      "id": 12,
+      "type": "piechart",
+      "title": "Currency Distribution",
+      "description": "How many events use each base currency",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 26 },
+      "datasource": { "type": "postgres", "uid": "postgres-ds" },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "postgres-ds" },
+          "rawQuery": true,
+          "rawSql": "SELECT\n  c.code AS \"Currency\",\n  COUNT(DISTINCT e.id) AS \"Events\"\nFROM \"${postgres_schema}\".currency c\nJOIN \"${postgres_schema}\".event e ON e.currency_id = c.id AND e.deleted_at IS NULL\nGROUP BY c.code\nORDER BY \"Events\" DESC",
+          "refId": "A",
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "mappings": [],
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "displayLabels": ["name", "percent"],
+        "legend": { "displayMode": "table", "placement": "right", "values": ["value", "percent"] },
+        "pieType": "donut",
+        "tooltip": { "mode": "single", "sort": "none" }
+      }
+    },
+    {
+      "id": 13,
+      "type": "timeseries",
+      "title": "Activation Rate",
+      "description": "% of events created that got at least 1 expense (by day)",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 26 },
+      "datasource": { "type": "postgres", "uid": "postgres-ds" },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "postgres-ds" },
+          "rawQuery": true,
+          "rawSql": "SELECT\n  date_trunc('day', ev.created_at) AS time,\n  ROUND(\n    COUNT(DISTINCT ex.event_id)::numeric / NULLIF(COUNT(DISTINCT ev.id), 0) * 100,\n    1\n  ) AS \"Activation %\"\nFROM \"${postgres_schema}\".event ev\nLEFT JOIN \"${postgres_schema}\".expense ex\n  ON ex.event_id = ev.id AND ex.expense_type = 'expense'\nWHERE $__timeFilter(ev.created_at) AND ev.deleted_at IS NULL\nGROUP BY 1\nORDER BY 1",
+          "refId": "A",
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "custom": {
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "gradientMode": "opacity",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": { "type": "linear" },
+            "showPoints": "auto",
+            "spanNulls": true,
+            "stacking": { "group": "A", "mode": "none" },
+            "thresholdsStyle": { "mode": "line+area" }
+          },
+          "decimals": 1,
+          "mappings": [],
+          "max": 100,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "orange", "value": 50 },
+              { "color": "green", "value": 80 }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "calcs": ["mean"], "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "single", "sort": "none" }
+      }
+    },
+    {
+      "id": 14,
+      "type": "timeseries",
+      "title": "Custom Rate Usage",
+      "description": "Expenses with manually set exchange rate vs auto rate, per day",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 26 },
+      "datasource": { "type": "postgres", "uid": "postgres-ds" },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "postgres-ds" },
+          "rawQuery": true,
+          "rawSql": "SELECT\n  date_trunc('day', created_at) AS time,\n  COUNT(*) FILTER (WHERE is_custom_rate = true)  AS \"Custom Rate\",\n  COUNT(*) FILTER (WHERE is_custom_rate = false) AS \"Auto Rate\"\nFROM \"${postgres_schema}\".expense\nWHERE $__timeFilter(created_at) AND expense_type = 'expense'\nGROUP BY 1\nORDER BY 1",
+          "refId": "A",
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "bars",
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": { "type": "linear" },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": { "group": "A", "mode": "normal" },
+            "thresholdsStyle": { "mode": "off" }
+          },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "calcs": ["sum"], "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "none" }
+      }
+    },
+    {
+      "id": 15,
+      "type": "table",
+      "title": "Top 20 Most Active Events",
+      "description": "Events ranked by number of expenses",
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 34 },
+      "datasource": { "type": "postgres", "uid": "postgres-ds" },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "postgres-ds" },
+          "rawQuery": true,
+          "rawSql": "SELECT\n  ev.name                          AS \"Event Name\",\n  COUNT(ex.id)                     AS \"Expenses\",\n  COUNT(DISTINCT ui.id)            AS \"Users\",\n  MIN(ex.created_at)::date         AS \"First Expense\",\n  MAX(ex.created_at)::date         AS \"Last Expense\",\n  (MAX(ex.created_at)::date - MIN(ex.created_at)::date) AS \"Active Days\",\n  COUNT(*) FILTER (WHERE ex.is_custom_rate = true) AS \"Custom Rates\"\nFROM \"${postgres_schema}\".event ev\nLEFT JOIN \"${postgres_schema}\".expense ex\n  ON ex.event_id = ev.id AND ex.expense_type = 'expense'\nLEFT JOIN \"${postgres_schema}\".user_info ui\n  ON ui.event_id = ev.id\nWHERE ev.deleted_at IS NULL\nGROUP BY ev.id, ev.name\nORDER BY \"Expenses\" DESC NULLS LAST\nLIMIT 20",
+          "refId": "A",
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "custom": {
+            "align": "auto",
+            "cellOptions": { "type": "auto" },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Expenses" },
+            "properties": [
+              { "id": "custom.width", "value": 100 },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "gradient"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    { "color": "blue", "value": null },
+                    { "color": "green", "value": 10 },
+                    { "color": "orange", "value": 50 }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Active Days" },
+            "properties": [
+              { "id": "unit", "value": "d" },
+              { "id": "custom.width", "value": 110 }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "cellHeight": "sm",
+        "footer": { "countRows": false, "fields": "", "reducer": ["sum"], "show": false },
+        "showHeader": true
+      },
+      "transformations": []
+    }
+  ]
+}
