@@ -54,6 +54,7 @@ architecture with feature-based organization.
 ## Tooling Docs (Reference)
 
 - `android/docs/local-agent-prerequisites.md` – Local Android prerequisites (JDK, SDK, local.properties, device/Marathon/profiler, worktree-copyable tooling). Use before long local runs.
+- `android/docs/jetbrains-mcp.md` - How JetBrains MCP is scoped for this repo, how to verify it is connected, and which project path to use.
 - `android/marathon/README.md` - Local Marathon runner usage and setup notes (library extracted manually; binaries not in git). Requires JUnit 4 annotations for test discovery; config in `android/Marathonfile`.
 - `android/gradle/README.md` - Gradle Profiler benchmarks and scenarios (`android/gradle/performance.scenarios`; profiler distribution in `android/gradle/profiler`).
 - `android/docs/database-benchmarking.md` - Room benchmark workflow and correctness checklist. Run DB benchmarks from dedicated module `:benchmarks:databases` (AndroidBenchmarkRunner + non-debuggable release test build type).
