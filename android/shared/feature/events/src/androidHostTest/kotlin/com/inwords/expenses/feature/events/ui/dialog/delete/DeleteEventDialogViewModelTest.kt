@@ -65,6 +65,7 @@ internal class DeleteEventDialogViewModelTest {
             deleteEventUseCase = deleteEventUseCase,
             eventId = eventId,
             scope = backgroundScope,
+            workDispatcher = testDispatcher,
         )
 
         viewModel.onConfirmDelete()
@@ -86,6 +87,7 @@ internal class DeleteEventDialogViewModelTest {
             deleteEventUseCase = deleteEventUseCase,
             eventId = eventId,
             scope = backgroundScope,
+            workDispatcher = testDispatcher,
         )
 
         viewModel.onConfirmDelete()

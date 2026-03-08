@@ -1,4 +1,4 @@
 interface:
   display_name: "Sync Docs From Session"
-  short_description: "Sync docs from session, including behavior/policy changes"
-  default_prompt: "Use $sync-docs-from-session to draft doc updates from this session, including inferred behavior changes from code/test diffs."
+  short_description: "Propose doc sync updates from session evidence with Tier A/Tier B handling"
+  default_prompt: "Use $sync-docs-from-session to propose doc updates from this session, auto-apply Tier A items after the proposal, and wait for confirmation before Tier B."

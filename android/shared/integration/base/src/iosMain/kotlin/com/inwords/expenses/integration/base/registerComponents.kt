@@ -10,8 +10,10 @@ import com.inwords.expenses.feature.share.api.ShareComponent
 import com.inwords.expenses.feature.share.api.ShareComponentFactory
 import com.inwords.expenses.feature.sync.api.SyncComponent
 import com.inwords.expenses.feature.sync.api.SyncComponentFactory
+import com.inwords.expenses.feature.sync.api.SyncComponentFactoryCommonDeps
 import com.inwords.expenses.integration.databases.api.DatabasesComponent
 import com.inwords.expenses.integration.databases.api.DatabasesComponentFactory
+import platform.Foundation.NSBundle
 
 fun registerComponents() {
     val platformFactoryDeps = IosPlatformFactoryDeps
@@ -38,10 +40,8 @@ fun registerComponents() {
                 return EventsComponentFactory(deps = deps).create()
             }
 
-            override fun createSyncComponent(syncDeps: SyncDepsValues): SyncComponent {
-                return SyncComponentFactory(
-                    deps = IosSyncFactoryDeps(syncDeps = syncDeps)
-                ).create()
+            override fun createSyncComponent(commonDeps: SyncComponentFactoryCommonDeps): SyncComponent {
+                return SyncComponentFactory(deps = IosSyncFactoryDeps(commonDeps = commonDeps)).create()
             }
         }
     )
@@ -51,12 +51,16 @@ private object IosPlatformFactoryDeps :
     SettingsComponentFactory.Deps,
     DatabasesComponentFactory.Deps,
     ShareComponentFactory.Deps,
-    NetworkComponentFactory.Deps
+    NetworkComponentFactory.Deps {
 
-private data class IosSyncFactoryDeps(
-    private val syncDeps: SyncDepsValues,
-) : SyncComponentFactory.Deps {
-    override val getCurrentEventStateUseCaseLazy = syncDeps.getCurrentEventStateUseCaseLazy
-    override val expensesInteractorLazy = syncDeps.expensesInteractorLazy
-    override val eventsSyncStateHolderLazy = syncDeps.eventsSyncStateHolderLazy
+    override val versionCode = bundleBuildNumber()
+
+    private fun bundleBuildNumber(): Int {
+        val info = NSBundle.mainBundle.infoDictionary ?: return 0
+        return (info["CFBundleVersion"] as? String)?.toIntOrNull() ?: 0
+    }
 }
+
+private class IosSyncFactoryDeps(
+    commonDeps: SyncComponentFactoryCommonDeps,
+) : SyncComponentFactory.Deps, SyncComponentFactoryCommonDeps by commonDeps

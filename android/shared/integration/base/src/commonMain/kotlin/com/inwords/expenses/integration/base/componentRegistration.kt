@@ -7,14 +7,12 @@ import com.inwords.expenses.core.utils.SuspendLazy
 import com.inwords.expenses.feature.events.api.EventHooks
 import com.inwords.expenses.feature.events.api.EventsComponent
 import com.inwords.expenses.feature.events.api.EventsComponentFactory
-import com.inwords.expenses.feature.events.domain.EventsSyncStateHolder
-import com.inwords.expenses.feature.events.domain.GetCurrentEventStateUseCase
 import com.inwords.expenses.feature.expenses.api.ExpensesComponent
-import com.inwords.expenses.feature.expenses.domain.ExpensesInteractor
 import com.inwords.expenses.feature.menu.api.MenuComponent
 import com.inwords.expenses.feature.settings.api.SettingsComponent
 import com.inwords.expenses.feature.share.api.ShareComponent
 import com.inwords.expenses.feature.sync.api.SyncComponent
+import com.inwords.expenses.feature.sync.api.SyncComponentFactoryCommonDeps
 import com.inwords.expenses.integration.databases.api.DatabasesComponent
 
 internal data class RegistrationContext(
@@ -27,12 +25,6 @@ internal data class RegistrationContext(
 
     val settingsRepositoryLazy get() = settingsComponent.value.settingsRepositoryLazy
 }
-
-internal data class SyncDepsValues(
-    val getCurrentEventStateUseCaseLazy: Lazy<GetCurrentEventStateUseCase>,
-    val expensesInteractorLazy: Lazy<ExpensesInteractor>,
-    val eventsSyncStateHolderLazy: Lazy<EventsSyncStateHolder>,
-)
 
 internal fun registerCommonComponents(
     platformDeps: PlatformRegistrationDeps,
@@ -184,10 +176,10 @@ private fun buildSyncComponent(
     expensesComponent: Lazy<ExpensesComponent>,
 ): Lazy<SyncComponent> = lazy {
     platformDeps.createSyncComponent(
-        syncDeps = SyncDepsValues(
-            getCurrentEventStateUseCaseLazy = eventsComponent.value.getCurrentEventStateUseCaseLazy,
-            expensesInteractorLazy = expensesComponent.value.expensesInteractorLazy,
-            eventsSyncStateHolderLazy = eventsComponent.value.eventsSyncStateHolderLazy,
-        ),
+        commonDeps = object : SyncComponentFactoryCommonDeps {
+            override val getCurrentEventStateUseCaseLazy get() = eventsComponent.value.getCurrentEventStateUseCaseLazy
+            override val expensesInteractorLazy get() = expensesComponent.value.expensesInteractorLazy
+            override val eventsSyncStateHolderLazy get() = eventsComponent.value.eventsSyncStateHolderLazy
+        }
     )
 }

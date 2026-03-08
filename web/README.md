@@ -1,36 +1,34 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# CommonEx Web
 
-## Getting Started
+CommonEx Web is the browser client for the CommonEx expense-sharing platform.
 
-First, run the development server:
+## Runtime Model
+
+- Framework shell: Next.js 14
+- UI/state stack: Material UI + MobX + react-hook-form
+- Routing model: client-side SPA routing via `BrowserRouter` inside `src/app/page.tsx`
+- Production artifact: static export (`next.config.mjs` sets `output: "export"`)
+- Production serving: Nginx serves the exported `build/` directory in the web container
+
+## Commands
+
+Run commands from `web/`.
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm run build
+npm run lint
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+There is currently no checked-in `npm run test` script in this project.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Deployment Notes
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+- The Docker image builds the static export and copies `build/` into Nginx.
+- SPA route fallback in production comes from `web/nginx.conf` (`try_files $uri /index.html =404`).
+- The current Next build warns that `rewrites` do not apply with `output: export`, so do not rely on Next rewrites for production routing behavior.
 
-## Learn More
+## More Detail
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+For engineering workflow, structure, validation, and troubleshooting, see `web/AGENTS.md`.

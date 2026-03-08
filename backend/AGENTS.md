@@ -200,8 +200,11 @@ npm run db:drop
   `keepAlive`, `keepAliveInitialDelayMillis`, `connectionTimeoutMillis`).
 - Query timeout layering: backend config sets client-side `query_timeout` slightly above server-side
   `statement_timeout` to avoid client timeout racing before PostgreSQL statement timeout.
-- PowerShell script-policy issues on local machine: invoke local binaries through `node` (for example, Nest CLI path)
-  when needed.
+- PowerShell script-policy issues on local machine: `npm run ...` can fail because package scripts resolve to
+  `*.ps1` shims such as `eslint.ps1` and `jest.ps1`. Use CMD or direct binary paths when needed, for example:
+  `.\node_modules\.bin\nest.cmd build`,
+  `.\node_modules\.bin\jest.cmd --runInBand`,
+  or `node node_modules/@nestjs/cli/bin/nest.js build`.
 
 ## Dependency Version Policy
 
