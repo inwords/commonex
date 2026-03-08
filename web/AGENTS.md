@@ -1,6 +1,7 @@
 # Agent Instructions for CommonEx Web
 
-For non-trivial work and when to search upstream docs, follow root [AGENTS.md](../../AGENTS.md) (workflow lifecycle and freshness policy).
+For non-trivial work and when to search upstream docs, follow root [AGENTS.md](../AGENTS.md) (workflow lifecycle and freshness policy).
+Cross-project reference docs: [../docs/domain.md](../docs/domain.md) and [../docs/network-contracts.md](../docs/network-contracts.md).
 
 ## Project Overview
 

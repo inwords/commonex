@@ -5,6 +5,7 @@ Use this checklist to validate the iOS app before TestFlight or App Store submis
 ## Prerequisites
 
 - macOS with Xcode 16+
+- Open `android/iosApp/iosApp.xcodeproj` when using Xcode UI flows such as Archive, Organizer, and Privacy Report generation.
 - Gradle wrapper (run from `android/` directory)
 - For device tests: physical iPhone connected
 
@@ -16,6 +17,9 @@ From repository root:
 cd android/iosApp
 xcodebuild -scheme iosApp -destination 'platform=iOS Simulator,name=iPhone 16 Pro Max,OS=18.5' build
 ```
+
+The exact simulator destination above matches the current CI workflow on March 9, 2026. If your local Xcode installation does not provide that runtime, use another available iOS Simulator destination on Xcode 16+ for local validation and keep the CI command
+unchanged unless you also update `.github/workflows/android.yml`.
 
 Or via Gradle from `android/`:
 
@@ -32,7 +36,7 @@ cd android/iosApp
 xcodebuild -scheme iosApp -configuration Release -destination generic/platform=iOS archive
 ```
 
-Archive output appears in Xcode Organizer. Use this archive for TestFlight upload.
+Archive output appears in Xcode Organizer. Use this archive for TestFlight upload and Privacy Report generation.
 
 ## 3. KMM iOS Targets Verification
 
@@ -61,6 +65,7 @@ On a physical device, verify:
 - [ ] Create an event
 - [ ] Share event (generate link, copy to clipboard)
 - [ ] Open universal link from Messages, Notes, or Safari
+- [ ] Confirm Sentry startup does not block launch and the app still opens normally in both fresh-install and relaunch cases
 - [ ] Kill and relaunch after offline edits; verify sync recovery
 - [ ] Confirm app icon, display name (CommonEx), version/build, and legal links (privacy, terms)
 
@@ -79,3 +84,9 @@ xcodebuild -scheme iosApp -destination 'platform=iOS Simulator,name=iPhone 16 Pr
 ```
 
 This validates simulator build only. Archive and device checks must be done manually before submission.
+
+## Related Docs
+
+- `ios-app-privacy.md` - App Privacy questionnaire and privacy manifest guidance
+- `ios-versioning.md` - Version/build alignment with Android
+- `mobile-sync-and-sharing.md` - Deep links, sharing, and sync behavior that should be exercised during device validation

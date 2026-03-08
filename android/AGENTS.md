@@ -1,5 +1,9 @@
 # Agent Instructions for Expenses (CommonEx) Android Project
 
+For non-trivial work and when to search upstream docs, follow root [AGENTS.md](../AGENTS.md) (workflow lifecycle and freshness policy).
+Cross-project reference docs: [../docs/domain.md](../docs/domain.md) and [../docs/network-contracts.md](../docs/network-contracts.md).
+Android/KMM operational docs are indexed in [docs/README.md](docs/README.md).
+
 ## Table of Contents
 
 - [Project Overview](#project-overview-reference)
@@ -53,16 +57,23 @@ architecture with feature-based organization.
 
 ## Tooling Docs (Reference)
 
-- `android/docs/local-agent-prerequisites.md` – Local Android prerequisites (JDK, SDK, local.properties, device/Marathon/profiler, worktree-copyable tooling). Use before long local runs.
-- `android/docs/jetbrains-mcp.md` - How JetBrains MCP is scoped for this repo, how to verify it is connected, and which project path to use.
-- `android/marathon/README.md` - Local Marathon runner usage and setup notes (library extracted manually; binaries not in git). Requires JUnit 4 annotations for test discovery; config in `android/Marathonfile`.
-- `android/gradle/README.md` - Gradle Profiler benchmarks and scenarios (`android/gradle/performance.scenarios`; profiler distribution in `android/gradle/profiler`).
-- `android/docs/database-benchmarking.md` - Room benchmark workflow and correctness checklist. Run DB benchmarks from dedicated module `:benchmarks:databases` (AndroidBenchmarkRunner + non-debuggable release test build type).
-  Standard flow: template -> scenario classes -> full-suite process-level runs -> aggregate artifacts -> log conclusions.
-- `android/docs/database-research-log.md` - Latest decision-grade database benchmark conclusions and artifact references.
-- `android/docs/database-research-log-template.md` - Canonical entry template for new items in the database research log.
-- `android/docs/ios-validation-checklist.md` - iOS validation steps (simulator build, archive, manual device checks) before TestFlight/App Store.
-- `android/docs/ios-app-privacy.md` - iOS privacy policy alignment, privacy manifest, and App Store Connect questionnaire guidance.
+- Start with `android/docs/README.md` for the Android/KMM doc map.
+- Most-used canonical docs:
+  - `android/docs/mobile-sync-and-sharing.md` - Offline-first IDs, join/share links, deep links, and sync behavior.
+  - `android/docs/android-runtime-operations.md` - Android startup/runtime behavior, Sentry, WorkManager, sync bootstrap, and AppFunctions.
+  - `android/docs/local-agent-prerequisites.md` - Local Android and iOS prerequisites, version sources of truth, and CI-vs-local expectations.
+- iOS release and validation docs:
+  - `android/docs/ios-validation-checklist.md`
+  - `android/docs/ios-app-privacy.md`
+  - `android/docs/ios-versioning.md`
+- Tool-specific docs:
+  - `android/docs/jetbrains-mcp.md`
+  - `android/marathon/README.md`
+  - `android/gradle/README.md`
+- Benchmark docs:
+  - `android/docs/database-benchmarking.md`
+  - `android/docs/database-research-log.md`
+  - `android/docs/database-research-log-template.md`
 
 ## Build Instructions (Workflow)
 

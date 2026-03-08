@@ -32,3 +32,4 @@ There is currently no checked-in `npm run test` script in this project.
 ## More Detail
 
 For engineering workflow, structure, validation, and troubleshooting, see `web/AGENTS.md`.
+For cross-project product and transport references, start with `../docs/README.md`.

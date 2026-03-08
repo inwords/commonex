@@ -32,6 +32,7 @@ CommonEx is a multi-platform expense sharing application with Android/iOS (KMM),
 
 ## Domain Glossary
 
+- See [`docs/README.md`](docs/README.md) for the repo doc map and canonical references.
 - See [`docs/domain.md`](docs/domain.md) for core domain terms and the primary sources of truth for their shape and meaning.
 - See [`docs/network-contracts.md`](docs/network-contracts.md) for repo-wide HTTP and transport-level contracts such as `User-Agent`.
 
@@ -45,6 +46,7 @@ CommonEx is a multi-platform expense sharing application with Android/iOS (KMM),
 - Repo skills: `android/.agents/skills/add-ui-test` (Android UI tests), `android/.agents/skills/prepare-mobile-release` (mobile release SOP), `android/.agents/skills/run-android-local-long-task` (long local Android runs; see
   `android/docs/local-agent-prerequisites.md` for prerequisites), `.agents/skills/sync-docs-from-session` (doc sync).
 - Skills may include `agents/openai.yaml` for UI metadata/discoverability.
+- Prefer `docs/README.md` for cross-project doc discovery and a project-local `docs/README.md` when that project has multiple focused docs.
 - Keep instructions short and linked rather than duplicated.
 - If you add new scoped instructions, update this file with a pointer.
 - Keep instructions up to date with any code or process changes.

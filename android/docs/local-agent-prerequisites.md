@@ -8,12 +8,14 @@ This document consolidates the local environment and tooling requirements for ru
 - **Gradle:** `android/gradle/wrapper/gradle-wrapper.properties` (`distributionUrl`)
 - **Android compile/target SDK:** `android/app/build.gradle.kts` (`compileSdk`, `targetSdk`)
 - **JDK (for running Gradle/CI):** `.github/workflows/android.yml` (`java-version` in setup-java steps)
+- **Gradle daemon toolchain metadata:** `android/gradle/gradle-daemon-jvm.properties`
 
 When updating this repo, change the version in the build/CI file above; docs that say "see …" or "match CI" stay correct.
 
 ## JDK and Android SDK
 
 - **JDK:** Use the same version as CI (see `java-version` in `.github/workflows/android.yml`). Set `JAVA_HOME` accordingly. Project JVM target is 17; the daemon is run with the JDK from CI.
+- **Gradle daemon metadata:** `android/gradle/gradle-daemon-jvm.properties` should stay aligned with the JDK used by CI for Gradle runs.
 - **Android SDK:** Compile/target SDK and min SDK are in `app/build.gradle.kts`; ensure the SDK you install provides the required API level. Use the Gradle wrapper; do not install Gradle separately (version is in `gradle/wrapper/gradle-wrapper.properties`).
 - **Commands:** Run `.\gradlew` from `android/` on Windows, `./gradlew` on Mac/Linux.
 
@@ -28,6 +30,14 @@ When updating this repo, change the version in the build/CI file above; docs tha
 - For **instrumented tests** or **managed devices**: API level is set in CI (see `.github/workflows/android.yml`: `API_LEVEL`, AVD target `aosp_atd`, profile `pixel_6`). Locally, use an emulator or device at an API level compatible with the app (see
   `app/build.gradle.kts` for min/target SDK).
 - For **Marathon**: a device or emulator must be running; `adb devices` should list at least one device.
+
+## iOS Local Prerequisites
+
+- **Xcode:** Use Xcode 16+ for the checked-in iOS project and CI-aligned simulator builds.
+- **Open project path:** `android/iosApp/iosApp.xcodeproj`
+- **Deployment target:** the checked-in iOS app target currently uses `IPHONEOS_DEPLOYMENT_TARGET = 15.6` in `iosApp.xcodeproj/project.pbxproj`.
+- **Version source:** iOS version/build values are maintained in `iosApp.xcodeproj/project.pbxproj`; see `android/docs/ios-versioning.md`.
+- **Universal links:** local device validation should use the associated domain declared in `android/iosApp/iosApp/iosApp.entitlements`.
 
 ## PowerShell Quoting (Windows)
 
@@ -59,4 +69,6 @@ Do **not** copy `build/`, `.gradle/`, generated outputs, reports, or secrets int
 
 - **CI** (`.github/workflows/android.yml`): JDK and setup from workflow (see `java-version` there); no `local.properties` (SDK from actions); main job runs `testHostTest` + `assembleDebug` + `assembleRelease` + `bundleRelease`; separate job for UI tests with
   emulator and Marathon. Because CI runs root `testHostTest`, module host-test tasks such as `:shared:core:network:testAndroidHostTest` are included in CI host-test coverage.
-- **Local**: Use the same JDK as CI; `local.properties` required; use the validation profiles in `run-android-local-long-task` (fast gate first, then broader or instrumented only when justified).
+- **CI iOS**: `build_ios` runs only a simulator `xcodebuild` build on `macos-latest` with Xcode 16; it does not archive, upload to TestFlight, or run device checks.
+- **Local**: Use the same JDK as CI; `local.properties` required for Android; use the validation profiles in `run-android-local-long-task` (fast gate first, then broader or instrumented only when justified). For iOS release validation, use
+  `android/docs/ios-validation-checklist.md`.

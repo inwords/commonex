@@ -13,11 +13,18 @@ This document reconciles CommonEx iOS app behavior with the privacy policy, Appl
 
 ## Privacy Manifest (PrivacyInfo.xcprivacy)
 
-- **Sentry SDK**: The Xcode project includes the Sentry Cocoa package (see `Package.resolved`), and recent Sentry Cocoa releases bundle their own `PrivacyInfo.xcprivacy`. Keep verifying the archive privacy report so the shipped binary matches the questionnaire
-  answers.
+- **Sentry SDK**: The Xcode project includes the Sentry Cocoa package through Swift Package Manager (see `iosApp/iosApp.xcodeproj/project.pbxproj`), and recent Sentry Cocoa releases bundle their own `PrivacyInfo.xcprivacy`. Keep verifying the archive privacy
+  report so the shipped binary matches the questionnaire answers.
 - **App-level manifest**: No app-level `PrivacyInfo.xcprivacy` is currently checked in, and none is required for the current repo behavior. If you add custom iOS data collection or privacy-relevant API usage, add an app-level manifest in `iosApp/iosApp/` and
   declare the data types per [Apple's documentation](https://developer.apple.com/documentation/bundleresources/privacy_manifest_files/describing_data_use_in_privacy_manifests).
 - **Verification**: Before submission, archive the app in Xcode, then Control-click the archive → **Generate Privacy Report**. Use this report to confirm all SDKs are covered and to fill App Store Connect privacy details.
+
+## Current Runtime Inputs That Affect Privacy Review
+
+- `iosApp/iosApp/iOSApp.swift` initializes Sentry on app startup for both Debug and Release, with production/development environment selection.
+- `shared/integration/base/initializeSentry.kt` sets a non-zero trace sample rate, so performance traces should be treated as enabled alongside crash diagnostics.
+- `iosApp/iosApp/iosApp.entitlements` declares `applinks:commonex.ru` for universal links.
+- `iosApp/iosApp.xcodeproj/project.pbxproj` currently does not add any other privacy-sensitive third-party SDK package besides Sentry.
 
 ## App Store Connect Privacy Questionnaire
 

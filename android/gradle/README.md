@@ -8,7 +8,7 @@ To check for dependency updates run:
 `./gradlew dependencyUpdates --refresh-dependencies -Drevision=release`
 
 Report location:
-`./build/dependency-updates/report.txt`
+`./build/dependencyUpdates/report.txt`
 
 To update JDK, see [gradle-daemon-jvm.properties](gradle-daemon-jvm.properties)
 and [android.yml](../../.github/workflows/android.yml).
@@ -62,3 +62,38 @@ rem Local debug benchmark
 # Local debug benchmark
 ./gradle/profiler/bin/gradle-profiler --benchmark --project-dir . --scenario-file gradle/performance.scenarios debug_build
 ```
+
+## Baseline Profiles
+
+Baseline-profile generation and startup macrobenchmarks live in the dedicated `android/baselineprofile/` module.
+
+Current source of truth:
+
+- Generator: `baselineprofile/src/main/java/ru/commonex/baselineprofile/BaselineProfileGenerator.kt`
+- Startup benchmark: `baselineprofile/src/main/java/ru/commonex/baselineprofile/StartupBenchmarks.kt`
+- Managed-device setup: `baselineprofile/build.gradle.kts`
+
+Current operational behavior:
+
+- The module targets `:app`.
+- Managed device name: `pixel6Api34`
+- Managed-device generation is enabled through the baseline-profile Gradle plugin.
+- `useConnectedDevices = false`, so the checked-in default path is managed-device based.
+
+Common commands from `android/`:
+
+```bash
+# Generate the release baseline profile through the target app plugin wiring
+./gradlew :app:generateBaselineProfile
+
+# Run startup macrobenchmarks for the baselineprofile module
+./gradlew :baselineprofile:connectedBenchmarkReleaseAndroidTest
+```
+
+Current scope notes:
+
+- The checked-in generator optimizes startup only; it does not yet script deeper user journeys.
+- The startup benchmark compares `CompilationMode.None()` and `CompilationMode.Partial(BaselineProfileMode.Require)`.
+- The startup benchmark is intended for physical-device validation; emulators are weaker for performance conclusions.
+
+Prefer keeping baseline-profile operational guidance here and leaving `android/AGENTS.md` to short pointers.

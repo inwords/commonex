@@ -57,6 +57,12 @@ Representative routes:
 - Create event share token: `/api/v2/user/event/:eventId/share-token`
 - Get currencies with rates: `/api/v3/user/currencies/all`
 
+Current canonical-client guidance:
+
+- Web and mobile should treat V2 as the canonical event read/mutation surface.
+- V1 remains in use for legacy create/delete/base-currency routes.
+- The backend still has a legacy V1 expense-read route (`GET /api/user/event/:eventId/expenses`) without pin-code validation in its current implementation; do not model new client behavior on that route.
+
 When changing routes:
 
 - preserve version segments instead of silently moving behavior between versions
@@ -102,6 +108,23 @@ Examples of body-level access patterns:
 - V2 expense creation: body contains domain payload plus `pinCode`
 - Share-token creation: body contains `pinCode`
 
+Expense-create currency modes on V2:
+
+- Same-currency expense:
+  backend sets every split `exchangedAmount = amount` and persists `isCustomRate = false`.
+- Different-currency expense with automatic backend rate:
+  client sends `amount` values only, backend computes `exchangedAmount` from the daily rate table, and persists `isCustomRate = false`.
+- Different-currency expense with custom client rate:
+  client sends `exchangedAmount` for every split, backend trusts those exchanged amounts, and persists `isCustomRate = true`.
+- Mixed custom-rate payloads are rejected:
+  if one split includes `exchangedAmount`, all splits must include it; backend returns `400` with error code `B4010`.
+
+Current client usage:
+
+- Web uses `/api/v3/user/currencies/all` to fetch the current UTC-day USD-based rate map and may send custom `exchangedAmount` values on V2 expense creation when the user overrides the automatic rate.
+- Shared mobile KMM clients currently send automatic-rate V2 expense payloads only and do not include `exchangedAmount` in create-expense requests.
+- V3 currencies-with-rates currently returns both the backend currency list and an `exchangeRate` map keyed by currency code.
+
 ## Response And Error Envelope
 
 Backend business and validation errors are intentionally normalized into a compact JSON envelope.
@@ -127,6 +150,7 @@ Known route-specific mapping examples:
 
 - V2 token-based event reads distinguish invalid token vs expired token by backend error `code`.
 - Validation failures are exposed as `400` plus `VALIDATION_ERROR` in the normalized error envelope.
+- V2 custom-rate validation failures are exposed as `400` plus `B4010` when only some splits include `exchangedAmount`.
 
 ## Retry, Redirect, And Failure Semantics
 

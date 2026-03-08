@@ -12,6 +12,15 @@ This document defines core domain terms and the primary sources of truth for the
 - Web domain models live under `web/src/5-entities/**/types/` and `web/src/5-entities/**/constants.ts`.
 - Keep client models aligned with backend domain and API contracts.
 
+## Product Model
+
+- CommonEx is a registration-free, event-scoped expense-sharing product.
+- An event is the collaboration boundary: participants, expenses, refunds, currencies, and share access are all scoped to one event.
+- Current user-facing access is event-based rather than account-based:
+  `eventId` plus `pinCode` for protected operations, or `eventId` plus share `token` where V2 event reads allow it.
+- Web is the browser client for direct event interaction and custom-rate entry.
+- Mobile is offline-first and keeps local IDs plus optional server IDs for sync. See `android/docs/mobile-sync-and-sharing.md` for the canonical mobile sync/share reference.
+
 ## Core Entities (Backend Canonical)
 
 ### Event
@@ -32,7 +41,7 @@ This document defines core domain terms and the primary sources of truth for the
 ### Expense
 
 - A financial record within an event. Type is `expense` or `refund`.
-- Fields: id, description, userWhoPaidId, currencyId, eventId, expenseType, splitInformation, createdAt, updatedAt.
+- Fields: id, description, userWhoPaidId, currencyId, eventId, expenseType, splitInformation, isCustomRate, createdAt, updatedAt.
 - `createdAt` is optional input and defaults to now.
 - Canonical model: `backend/src/domain/entities/expense.entity.ts`.
 
@@ -74,7 +83,8 @@ This document defines core domain terms and the primary sources of truth for the
 
 - A valid event must exist and not be soft-deleted.
 - Pin codes are exactly 4 characters for event access.
-- V1 APIs use pin codes for event info and mutations; V2 adds share tokens for event info access.
+- V2 is the canonical read/mutation surface used by current web and mobile clients.
+- V1 remains for legacy create/delete/base-currency flows and mixes transport patterns; do not treat it as the canonical protected-read contract.
 - Deleting an event sets `deletedAt` and updates `updatedAt`.
 
 ### User Management
@@ -90,6 +100,8 @@ This document defines core domain terms and the primary sources of truth for the
     - Get currency rates for the expense date (UTC YYYY-MM-DD, `createdAt` if provided, otherwise now).
     - Compute `exchangeRate = eventCurrencyRate / expenseCurrencyRate`.
     - `exchangedAmount = round(amount * exchangeRate, 2)`.
+- V2 expense creation also supports custom client-supplied exchanged amounts:
+  if at least one split includes `exchangedAmount`, every split must include it and the expense is stored with `isCustomRate = true`.
 - Missing currencies or rates yield errors (see Error Codes).
 
 ### Currency Rates
@@ -105,6 +117,8 @@ This document defines core domain terms and the primary sources of truth for the
 
 - Mobile domain entities carry a local `id: Long` and optional `serverId: String?` for offline-first sync.
 - Event, Person, and Currency all follow this pattern in KMM models.
+- Expense entities follow the same local-ID plus optional `serverId` sync model.
+- Join-by-server-ID reuses an existing local event before attempting a remote fetch.
 
 ### Events and People
 
@@ -114,9 +128,10 @@ This document defines core domain terms and the primary sources of truth for the
 - New participants are stored locally immediately (offline-first) and synced to server via `EventPersonsPushTask`.
 - Joining an event uses `serverId` + pin code or share token; errors map to invalid access code, invalid token, token
   expired, not found, or gone.
-- Mobile deeplinks with `?token=` or `?pinCode=` prefill and auto-trigger join.
+- Mobile deep links to `/event/{eventId}` with `?token=` or `?pinCode=` prefill and auto-trigger join.
 - Event share tokens include `token` and `expiresAt` and are requested with a pin code.
 - Share token generation falls back to PIN-based link with warning if network request fails (offline mode).
+- Mobile join/share and sync details are documented in `android/docs/mobile-sync-and-sharing.md`.
 
 ### Expenses and Splits
 
@@ -136,6 +151,7 @@ This document defines core domain terms and the primary sources of truth for the
 
 - Mobile conversion uses `CurrencyExchanger`, currently based on a USD rate map as a placeholder.
 - Exchange is skipped when the expense currency matches the event primary currency.
+- Remote expense sync still uses backend-created `exchangedAmount` values; the placeholder exchanger is not the server source of truth.
 
 ## Web Domain
 
@@ -151,16 +167,19 @@ This document defines core domain terms and the primary sources of truth for the
 - Split option `1` is equal split across all users; option `2` is manual amounts per user.
 - Refunds are created as `ExpenseType.Refund` with a single split for the receiver.
 - Web debt summary sums `exchangedAmount` owed to each payer and subtracts refunds paid by the current user.
+- Web can submit custom exchange rates by sending `splitInformation[].exchangedAmount` to the V2 expense-create route when the user overrides the automatic rate.
 
 ### Currencies (Web)
 
-- Web currency codes are EUR, USD, RUB, JPY, TRY, with an ID to code mapping in `CURRENCIES_ID_TO_CURRENCY_CODE`.
-- AED exists in backend domain but is not listed in web constants; align if adding AED to the UI.
+- The web type/constants layer currently hardcodes EUR, USD, RUB, JPY, and TRY in `CURRENCIES_ID_TO_CURRENCY_CODE`.
+- Backend V3 currencies-with-rates can return AED because AED exists in backend and mobile sources of truth.
+- Treat AED support in the current web UI as incomplete until web constants and UI handling are aligned.
 
 ## API Surfaces (Domain-Related)
 
-- HTTP V1: `/user` routes (pin-code based, but not everywhere).
+- HTTP V1: `/user` routes for legacy create/delete/base-currency behavior, plus one inconsistent expense-read route.
 - HTTP V2: `/v2/user` routes (pin code + share token for event info).
+- HTTP V3: `/v3/user` routes for currencies plus the current UTC-day USD-based rate map.
 - gRPC: `backend/src/expenses.proto` defines UserService operations.
 
 ## Error Codes (Domain)
@@ -172,4 +191,5 @@ This document defines core domain terms and the primary sources of truth for the
 - B4005 CURRENCY_RATE_NOT_FOUND
 - B4008 INVALID_TOKEN
 - B4009 TOKEN_EXPIRED
+- B4010 INCONSISTENT_EXCHANGED_AMOUNT
 - See `backend/src/domain/errors/` for full mapping and HTTP status codes.
