@@ -153,9 +153,12 @@ jobs:
       - name: Copy docker-compose-prod.yml to server
         run: |
           scp infra/docker-compose-prod.yml ${{ secrets.SSH_USERNAME }}@${{ secrets.SERVER_IP }}:${{ secrets.APP_PATH }}/docker-compose-prod.yml
-          ssh ${{ secrets.SSH_USERNAME }}@${{ secrets.SERVER_IP }} "mkdir -p ${{ secrets.APP_PATH }}/nginx ${{ secrets.APP_PATH }}/otel-collector"
+          ssh ${{ secrets.SSH_USERNAME }}@${{ secrets.SERVER_IP }} "mkdir -p ${{ secrets.APP_PATH }}/nginx ${{ secrets.APP_PATH }}/otel-collector ${{ secrets.APP_PATH }}/grafana/provisioning/datasources ${{ secrets.APP_PATH }}/grafana/provisioning/dashboards ${{ secrets.APP_PATH }}/grafana/dashboards"
           scp infra/nginx/nginx-prod.conf ${{ secrets.SSH_USERNAME }}@${{ secrets.SERVER_IP }}:${{ secrets.APP_PATH }}/nginx/nginx-prod.conf
           scp infra/otel-collector/otel-collector-config.yaml ${{ secrets.SSH_USERNAME }}@${{ secrets.SERVER_IP }}:${{ secrets.APP_PATH }}/otel-collector/otel-collector-config.yaml
+          scp infra/grafana/provisioning/datasources/postgres.yaml ${{ secrets.SSH_USERNAME }}@${{ secrets.SERVER_IP }}:${{ secrets.APP_PATH }}/grafana/provisioning/datasources/postgres.yaml
+          scp infra/grafana/provisioning/dashboards/dashboards.yaml ${{ secrets.SSH_USERNAME }}@${{ secrets.SERVER_IP }}:${{ secrets.APP_PATH }}/grafana/provisioning/dashboards/dashboards.yaml
+          scp infra/grafana/dashboards/expenses-analytics.json ${{ secrets.SSH_USERNAME }}@${{ secrets.SERVER_IP }}:${{ secrets.APP_PATH }}/grafana/dashboards/expenses-analytics.json
 
       - name: Deploy with Docker Compose
         run: |
