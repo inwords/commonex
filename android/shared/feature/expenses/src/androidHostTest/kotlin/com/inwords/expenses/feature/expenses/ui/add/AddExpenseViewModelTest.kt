@@ -106,6 +106,8 @@ internal class AddExpenseViewModelTest {
     fun `should emit Loading then Success when event and current person are present`() = testScope.runTest {
         // Given
         val viewModel = createViewModel()
+        runCurrent()
+        advanceUntilIdle()
 
         // When & Then
         viewModel.state.test {
@@ -128,6 +130,8 @@ internal class AddExpenseViewModelTest {
     fun `should emit Error when event is null`() = testScope.runTest {
         // Given
         val viewModel = createViewModel()
+        runCurrent()
+        advanceUntilIdle()
 
         // When & Then
         viewModel.state.test {
@@ -147,6 +151,8 @@ internal class AddExpenseViewModelTest {
     fun `should emit Error when current person ID is null`() = testScope.runTest {
         // Given
         val viewModel = createViewModel()
+        runCurrent()
+        advanceUntilIdle()
 
         // When & Then
         viewModel.state.test {
@@ -169,6 +175,8 @@ internal class AddExpenseViewModelTest {
         // Given
         currentEventFlow.value = TestFixtures.eventDetails
         val viewModel = createViewModel()
+        runCurrent()
+        advanceUntilIdle()
 
         // When & Then
         viewModel.state.test {
@@ -195,6 +203,8 @@ internal class AddExpenseViewModelTest {
         // Given
         currentEventFlow.value = TestFixtures.eventDetails
         val viewModel = createViewModel()
+        runCurrent()
+        advanceUntilIdle()
 
         // When & Then
         viewModel.state.test {
@@ -220,6 +230,8 @@ internal class AddExpenseViewModelTest {
         // Given
         currentEventFlow.value = TestFixtures.eventDetails
         val viewModel = createViewModel()
+        runCurrent()
+        advanceUntilIdle()
 
         // When & Then
         viewModel.state.test {
@@ -258,6 +270,8 @@ internal class AddExpenseViewModelTest {
         // Given
         currentEventFlow.value = TestFixtures.eventDetails
         val viewModel = createViewModel()
+        runCurrent()
+        advanceUntilIdle()
 
         // When & Then
         viewModel.state.test {
@@ -278,6 +292,8 @@ internal class AddExpenseViewModelTest {
         // Given
         currentEventFlow.value = TestFixtures.eventDetails
         val viewModel = createViewModel()
+        runCurrent()
+        advanceUntilIdle()
 
         // When & Then
         viewModel.state.test {
@@ -301,6 +317,8 @@ internal class AddExpenseViewModelTest {
         // Given
         currentEventFlow.value = TestFixtures.eventDetails
         val viewModel = createViewModel()
+        runCurrent()
+        advanceUntilIdle()
 
         // When & Then
         viewModel.state.test {
@@ -324,6 +342,8 @@ internal class AddExpenseViewModelTest {
         // Given
         currentEventFlow.value = TestFixtures.eventDetails
         val viewModel = createViewModel()
+        runCurrent()
+        advanceUntilIdle()
 
         // When & Then
         viewModel.state.test {
@@ -356,6 +376,8 @@ internal class AddExpenseViewModelTest {
         // Given
         currentEventFlow.value = TestFixtures.eventDetails
         val viewModel = createViewModel()
+        runCurrent()
+        advanceUntilIdle()
 
         // When & Then
         viewModel.state.test {
@@ -393,6 +415,8 @@ internal class AddExpenseViewModelTest {
         // Given
         currentEventFlow.value = TestFixtures.eventDetails
         val viewModel = createViewModel()
+        runCurrent()
+        advanceUntilIdle()
 
         // When & Then
         viewModel.state.test {
@@ -418,6 +442,8 @@ internal class AddExpenseViewModelTest {
         // Given
         currentEventFlow.value = TestFixtures.eventDetails
         val viewModel = createViewModel()
+        runCurrent()
+        advanceUntilIdle()
 
         // When & Then
         viewModel.state.test {
@@ -450,6 +476,8 @@ internal class AddExpenseViewModelTest {
         // Given
         currentEventFlow.value = TestFixtures.eventDetails
         val viewModel = createViewModel()
+        runCurrent()
+        advanceUntilIdle()
 
         // When & Then
         viewModel.state.test {
@@ -481,6 +509,8 @@ internal class AddExpenseViewModelTest {
         // Given
         currentEventFlow.value = TestFixtures.eventDetails
         val viewModel = createViewModel()
+        runCurrent()
+        advanceUntilIdle()
 
         // When & Then
         viewModel.state.test {
@@ -510,6 +540,8 @@ internal class AddExpenseViewModelTest {
         // Given
         currentEventFlow.value = TestFixtures.eventDetails
         val viewModel = createViewModel()
+        runCurrent()
+        advanceUntilIdle()
 
         viewModel.state.test {
             awaitLoading()
@@ -545,6 +577,8 @@ internal class AddExpenseViewModelTest {
         // Given
         currentEventFlow.value = TestFixtures.eventDetails
         val viewModel = createViewModel()
+        runCurrent()
+        advanceUntilIdle()
 
         viewModel.state.test {
             awaitLoading()
@@ -591,6 +625,8 @@ internal class AddExpenseViewModelTest {
         // Given
         currentEventFlow.value = TestFixtures.eventDetails
         val viewModel = createViewModel()
+        runCurrent()
+        advanceUntilIdle()
 
         viewModel.state.test {
             awaitLoading()
@@ -621,6 +657,8 @@ internal class AddExpenseViewModelTest {
         )
         currentEventFlow.value = TestFixtures.eventDetails
         val viewModel = createViewModel(replenishmentDestination)
+        runCurrent()
+        advanceUntilIdle()
 
         // When & Then
         viewModel.state.test {
@@ -647,6 +685,8 @@ internal class AddExpenseViewModelTest {
         // Given
         currentEventFlow.value = TestFixtures.eventDetails
         val viewModel = createViewModel()
+        runCurrent()
+        advanceUntilIdle()
 
         viewModel.state.test {
             awaitLoading()
@@ -668,6 +708,8 @@ internal class AddExpenseViewModelTest {
         // Given
         currentEventFlow.value = TestFixtures.eventDetails
         val viewModel = createViewModel()
+        runCurrent()
+        advanceUntilIdle()
 
         viewModel.state.test {
             awaitLoading()
@@ -687,6 +729,8 @@ internal class AddExpenseViewModelTest {
         // Given
         currentEventFlow.value = TestFixtures.eventDetails
         val viewModel = createViewModel()
+        runCurrent()
+        advanceUntilIdle()
 
         viewModel.state.test {
             awaitLoading()
@@ -715,6 +759,8 @@ internal class AddExpenseViewModelTest {
         // Given
         currentEventFlow.value = TestFixtures.eventDetails
         val viewModel = createViewModel()
+        runCurrent()
+        advanceUntilIdle()
 
         viewModel.state.test {
             awaitLoading()
@@ -735,6 +781,8 @@ internal class AddExpenseViewModelTest {
         // Given
         currentEventFlow.value = TestFixtures.eventDetails
         val viewModel = createViewModel()
+        runCurrent()
+        advanceUntilIdle()
 
         viewModel.state.test {
             awaitLoading()
@@ -757,6 +805,8 @@ internal class AddExpenseViewModelTest {
         // Given
         currentEventFlow.value = TestFixtures.eventDetails
         val viewModel = createViewModel()
+        runCurrent()
+        advanceUntilIdle()
 
         viewModel.state.test {
             awaitLoading()
@@ -779,6 +829,8 @@ internal class AddExpenseViewModelTest {
         // Given
         currentEventFlow.value = TestFixtures.eventDetails
         val viewModel = createViewModel()
+        runCurrent()
+        advanceUntilIdle()
 
         viewModel.state.test {
             awaitLoading()
@@ -801,6 +853,8 @@ internal class AddExpenseViewModelTest {
         // Given
         currentEventFlow.value = TestFixtures.eventDetails
         val viewModel = createViewModel()
+        runCurrent()
+        advanceUntilIdle()
 
         viewModel.state.test {
             awaitLoading()
@@ -834,6 +888,8 @@ internal class AddExpenseViewModelTest {
         // Given
         currentEventFlow.value = TestFixtures.eventDetails
         val viewModel = createViewModel()
+        runCurrent()
+        advanceUntilIdle()
 
         viewModel.state.test {
             awaitLoading()
@@ -868,6 +924,8 @@ internal class AddExpenseViewModelTest {
         // Given
         currentEventFlow.value = TestFixtures.eventDetails
         val viewModel = createViewModel()
+        runCurrent()
+        advanceUntilIdle()
 
         viewModel.state.test {
             awaitLoading()
@@ -893,6 +951,8 @@ internal class AddExpenseViewModelTest {
         // Given
         currentEventFlow.value = TestFixtures.eventDetails
         val viewModel = createViewModel()
+        runCurrent()
+        advanceUntilIdle()
 
         viewModel.state.test {
             awaitLoading()
@@ -925,6 +985,8 @@ internal class AddExpenseViewModelTest {
         // Given
         currentEventFlow.value = TestFixtures.eventDetails
         val viewModel = createViewModel()
+        runCurrent()
+        advanceUntilIdle()
 
         viewModel.state.test {
             awaitLoading()
@@ -950,6 +1012,8 @@ internal class AddExpenseViewModelTest {
         // Given
         currentEventFlow.value = TestFixtures.eventDetails
         val viewModel = createViewModel()
+        runCurrent()
+        advanceUntilIdle()
 
         viewModel.state.test {
             awaitLoading()
@@ -978,6 +1042,8 @@ internal class AddExpenseViewModelTest {
         )
         currentEventFlow.value = TestFixtures.eventDetails
         val viewModel = createViewModel(replenishmentDestination)
+        runCurrent()
+        advanceUntilIdle()
 
         // When & Then
         viewModel.state.test {
@@ -999,6 +1065,8 @@ internal class AddExpenseViewModelTest {
         )
         currentEventFlow.value = TestFixtures.eventDetails
         val viewModel = createViewModel(replenishmentDestination)
+        runCurrent()
+        advanceUntilIdle()
 
         // When & Then
         viewModel.state.test {
@@ -1018,6 +1086,8 @@ internal class AddExpenseViewModelTest {
         // Given
         currentEventFlow.value = TestFixtures.eventDetails
         val viewModel = createViewModel()
+        runCurrent()
+        advanceUntilIdle()
 
         viewModel.state.test {
             awaitLoading()
@@ -1049,6 +1119,8 @@ internal class AddExpenseViewModelTest {
     fun `should reflect changes when event details update dynamically`() = testScope.runTest {
         // Given
         val viewModel = createViewModel()
+        runCurrent()
+        advanceUntilIdle()
 
         viewModel.state.test {
             awaitLoading()
@@ -1085,6 +1157,8 @@ internal class AddExpenseViewModelTest {
         // Given
         currentEventFlow.value = TestFixtures.eventDetails
         val viewModel = createViewModel()
+        runCurrent()
+        advanceUntilIdle()
 
         viewModel.state.test {
             awaitLoading()
@@ -1117,6 +1191,8 @@ internal class AddExpenseViewModelTest {
         // Given - Create scenario where no currency is selected (edge case)
         currentEventFlow.value = TestFixtures.eventDetails.copy(currencies = emptyList())
         val viewModel = createViewModel()
+        runCurrent()
+        advanceUntilIdle()
 
         viewModel.state.test {
             awaitLoading()
@@ -1142,6 +1218,8 @@ internal class AddExpenseViewModelTest {
         currentEventFlow.value = TestFixtures.eventDetails
         currentPersonIdFlow.value = 999L // Non-existent person ID
         val viewModel = createViewModel()
+        runCurrent()
+        advanceUntilIdle()
 
         // When & Then
         viewModel.state.test {
@@ -1177,17 +1255,16 @@ internal class AddExpenseViewModelTest {
     }
 
     private suspend fun ReceiveTurbine<SimpleScreenState<AddExpensePaneUiModel>>.awaitErrorState() {
-        assertIs<SimpleScreenState.Error>(awaitItem())
+        val _ = assertIs<SimpleScreenState.Error>(awaitItem())
     }
 
     private suspend fun ReceiveTurbine<SimpleScreenState<AddExpensePaneUiModel>>.awaitLoading() {
-        assertIs<SimpleScreenState.Loading>(awaitItem())
+        val _ = assertIs<SimpleScreenState.Loading>(awaitItem())
     }
 
     private suspend fun ReceiveTurbine<SimpleScreenState<AddExpensePaneUiModel>>.awaitSuccess(): AddExpensePaneUiModel {
         val state = awaitItem()
-        assertIs<SimpleScreenState.Success<AddExpensePaneUiModel>>(state)
-        return state.data
+        return assertIs<SimpleScreenState.Success<AddExpensePaneUiModel>>(state).data
     }
 
     private fun List<CurrencyInfoUiModel>.byCode(code: String) = first { it.currencyCode == code }

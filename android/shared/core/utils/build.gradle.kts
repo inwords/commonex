@@ -12,6 +12,8 @@ kotlin {
         optimization {
             consumerKeepRules.files.add(file("consumer-rules.pro"))
         }
+
+        withHostTest {}
     }
 
     applyKmmDefaults("sharedCoreUtils")
@@ -23,6 +25,12 @@ kotlin {
 
                 implementation(shared.kotlinx.collections.immutable)
 
+                implementation(shared.ionspin.kotlin.bignum)
+            }
+        }
+        commonTest {
+            dependencies {
+                implementation(shared.kotlin.test)
                 implementation(shared.ionspin.kotlin.bignum)
             }
         }

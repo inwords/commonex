@@ -8,6 +8,7 @@ import com.inwords.expenses.feature.events.api.EventDeletionStateManager.EventDe
 import com.inwords.expenses.feature.events.domain.DeleteEventUseCase
 import com.inwords.expenses.feature.events.domain.DeleteEventUseCase.DeleteEventResult
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -17,13 +18,14 @@ internal class DeleteEventDialogViewModel(
     private val eventDeletionStateManager: EventDeletionStateManager,
     private val deleteEventUseCase: DeleteEventUseCase,
     private val eventId: Long,
+    private val scope: CoroutineScope = GlobalScope,
 ) : ViewModel() {
 
     private var deleteJob: Job? = null
 
     fun onConfirmDelete() {
         if (deleteJob != null) return // prevent multiple clicks for deletion
-        deleteJob = GlobalScope.launch(IO) {
+        deleteJob = scope.launch(IO) {
             eventDeletionStateManager.setEventDeletionState(eventId, EventDeletionState.Loading)
             navigationController.popBackStack()
 

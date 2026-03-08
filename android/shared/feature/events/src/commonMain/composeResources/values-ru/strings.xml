@@ -10,6 +10,7 @@
     <string name="events_create">Создать</string>
     <string name="events_join">Присоединиться</string>
     <string name="events_create_join_description">Вы можете создать новое событие или присоединиться к существующему</string>
+    <string name="events_empty_illustration_content_description">Уютная иллюстрация, подсказывающая создать ваше первое событие с расходами</string>
     <string name="events_currency_section_title">Валюта</string>
     <string name="events_empty_state">Нет доступных участников</string>
     <string name="events_error_state">Не удалось загрузить данные события</string>

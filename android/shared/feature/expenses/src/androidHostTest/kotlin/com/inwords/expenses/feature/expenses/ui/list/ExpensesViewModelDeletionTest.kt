@@ -241,6 +241,8 @@ internal class ExpensesViewModelDeletionTest {
             TestFixtures.syncedEvent.id to EventDeletionState.RemoteDeletionFailed
         )
         val viewModel = createViewModel()
+        runCurrent()
+        advanceUntilIdle()
 
         // When & Then
         viewModel.state.test {
@@ -248,7 +250,7 @@ internal class ExpensesViewModelDeletionTest {
             skipItems(1)
 
             val state = awaitItem()
-            assertIs<SimpleScreenState.Success<ExpensesPaneUiModel>>(state)
+            val _ = assertIs<SimpleScreenState.Success<ExpensesPaneUiModel>>(state)
             val localEvents = state.data as LocalEvents
 
             val events = localEvents.localEvents.events
@@ -272,14 +274,15 @@ internal class ExpensesViewModelDeletionTest {
     fun `state should update when deletion state changes`() = testScope.runTest {
         // Given
         val viewModel = createViewModel()
+        runCurrent()
+        advanceUntilIdle()
 
         // When & Then
         viewModel.state.test {
             skipItems(1) // Skip loading
 
             // Initial state - no deletion in progress
-            val initialState = awaitItem()
-            assertIs<SimpleScreenState.Success<ExpensesPaneUiModel>>(initialState)
+            val initialState = assertIs<SimpleScreenState.Success<ExpensesPaneUiModel>>(awaitItem())
             val initialEvents = (initialState.data as LocalEvents).localEvents.events
             val initialSyncedEvent = initialEvents.first { it.eventId == TestFixtures.syncedEvent.id }
             assertEquals(EventDeletionState.None, initialSyncedEvent.deletionState)
@@ -290,8 +293,7 @@ internal class ExpensesViewModelDeletionTest {
             )
             advanceUntilIdle()
 
-            val loadingState = awaitItem()
-            assertIs<SimpleScreenState.Success<ExpensesPaneUiModel>>(loadingState)
+            val loadingState = assertIs<SimpleScreenState.Success<ExpensesPaneUiModel>>(awaitItem())
             val loadingEvents = (loadingState.data as LocalEvents).localEvents.events
             val loadingSyncedEvent = loadingEvents.first { it.eventId == TestFixtures.syncedEvent.id }
             assertEquals(EventDeletionState.Loading, loadingSyncedEvent.deletionState)
@@ -302,8 +304,7 @@ internal class ExpensesViewModelDeletionTest {
             )
             advanceUntilIdle()
 
-            val failedState = awaitItem()
-            assertIs<SimpleScreenState.Success<ExpensesPaneUiModel>>(failedState)
+            val failedState = assertIs<SimpleScreenState.Success<ExpensesPaneUiModel>>(awaitItem())
             val failedEvents = (failedState.data as LocalEvents).localEvents.events
             val failedSyncedEvent = failedEvents.first { it.eventId == TestFixtures.syncedEvent.id }
             assertEquals(EventDeletionState.RemoteDeletionFailed, failedSyncedEvent.deletionState)
@@ -316,21 +317,21 @@ internal class ExpensesViewModelDeletionTest {
     fun `state should show empty when all events are deleted`() = testScope.runTest {
         // Given
         val viewModel = createViewModel()
+        runCurrent()
+        advanceUntilIdle()
 
         // When & Then
         viewModel.state.test {
             skipItems(1) // Skip loading
 
             // Initial state with events
-            val initialState = awaitItem()
-            assertIs<SimpleScreenState.Success<ExpensesPaneUiModel>>(initialState)
+            val _ = assertIs<SimpleScreenState.Success<ExpensesPaneUiModel>>(awaitItem())
 
             // Remove all events
             eventsFlow.value = emptyList()
             advanceUntilIdle()
 
-            val emptyState = awaitItem()
-            assertIs<SimpleScreenState.Empty>(emptyState)
+            val _ = assertIs<SimpleScreenState.Empty>(awaitItem())
 
             cancelAndIgnoreRemainingEvents()
         }

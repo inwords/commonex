@@ -42,7 +42,8 @@ internal class MenuViewModel(
     shareManagerLazy: Lazy<ShareManager>,
     createShareTokenUseCaseLazy: Lazy<CreateShareTokenUseCase>,
     private val stringProvider: StringProvider = DefaultStringProvider,
-) : ViewModel(viewModelScope = CoroutineScope(SupervisorJob() + IO)) {
+    viewModelScope: CoroutineScope = CoroutineScope(SupervisorJob() + IO),
+) : ViewModel(viewModelScope = viewModelScope) {
 
     private val shareManager by shareManagerLazy
     private val createShareTokenUseCase by createShareTokenUseCaseLazy

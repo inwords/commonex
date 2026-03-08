@@ -82,6 +82,13 @@ val state: StateFlow<UiModel>
 field = MutableStateFlow(initialState)
 ```
 
+### ViewModel host-test stability
+
+For ViewModels with flow-based state (`stateInWhileSubscribed`, `combine`) or methods that launch coroutines, host tests must pass `viewModelScope = backgroundScope` and run `runCurrent()` and `advanceUntilIdle()` before collecting
+state (e.g. `state.test { }`) or verifying mocks (`coVerify`/`verify`), so execution stays on the test dispatcher and assertions are deterministic. Otherwise, tests can be flaky when the default scope uses a different dispatcher.
+Examples: `CreateEventViewModelTest`, `MenuViewModelTest`,
+`AddParticipantsToEventViewModelTest`.
+
 ### State Change Detection in Combine
 
 Track previous values to detect changes and trigger side effects:

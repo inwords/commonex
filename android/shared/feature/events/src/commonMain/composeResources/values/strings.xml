@@ -10,6 +10,7 @@
     <string name="events_create">Create</string>
     <string name="events_join">Join</string>
     <string name="events_create_join_description">You can create a new event or join an existing one</string>
+    <string name="events_empty_illustration_content_description">A cozy illustration encouraging you to create your first expense event</string>
     <string name="events_currency_section_title">Currency</string>
     <string name="events_empty_state">No participants available</string>
     <string name="events_error_state">Failed to load event data</string>

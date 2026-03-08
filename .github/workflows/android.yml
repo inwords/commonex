@@ -42,13 +42,19 @@ jobs:
         run: echo $KEYSTORE_JKS_BASE64 | base64 --decode > ./app/keystore.jks
 
       - name: Build :app with Gradle
-        run: ./gradlew testHostTest :app:assembleDebug :app:assembleRelease :app:bundleRelease --no-daemon --no-configuration-cache --continue
+        run: ./gradlew testHostTest :app:test :app:assembleDebug :app:assembleRelease :app:bundleRelease -Pkover koverHtmlReport koverXmlReport --no-daemon --no-configuration-cache --continue
         env:
           CI: true
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+
+      - name: Upload Kover coverage reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: Kover Coverage Reports
+          path: ${{ github.workspace }}/android/build/reports/kover/
 
       - name: Remove keystore file
         run: rm -f ./app/keystore.jks

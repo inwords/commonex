@@ -27,7 +27,8 @@ internal class CreateEventViewModel(
     private val navigationController: NavigationController,
     private val eventCreationStateHolder: EventCreationStateHolder,
     getCurrenciesUseCase: GetCurrenciesUseCase,
-) : ViewModel(viewModelScope = CoroutineScope(SupervisorJob() + IO)) {
+    viewModelScope: CoroutineScope = CoroutineScope(SupervisorJob() + IO),
+) : ViewModel(viewModelScope = viewModelScope) {
 
     private data class CreateEventPaneModel(
         val eventName: String,

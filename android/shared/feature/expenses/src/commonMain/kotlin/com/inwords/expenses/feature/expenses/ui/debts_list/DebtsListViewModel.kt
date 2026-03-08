@@ -1,7 +1,6 @@
 package com.inwords.expenses.feature.expenses.ui.debts_list
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import com.inwords.expenses.core.navigation.NavigationController
 import com.inwords.expenses.core.ui.utils.SimpleScreenState
 import com.inwords.expenses.core.utils.IO
@@ -27,7 +26,8 @@ internal class DebtsListViewModel(
     private val navigationController: NavigationController,
     getCurrentEventStateUseCase: GetCurrentEventStateUseCase,
     expensesInteractor: ExpensesInteractor,
-) : ViewModel(viewModelScope = CoroutineScope(SupervisorJob() + IO)) {
+    viewModelScope: CoroutineScope = CoroutineScope(SupervisorJob() + IO),
+) : ViewModel(viewModelScope = viewModelScope) {
 
     val state: StateFlow<SimpleScreenState<DebtsListPaneUiModel>> = getCurrentEventStateUseCase.currentEvent
         .filterNotNull() // TODO mvp

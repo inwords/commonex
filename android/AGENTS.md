@@ -112,6 +112,10 @@ Run commands from the `android/` directory unless a command explicitly says othe
 # Run device tests (requires device/emulator) (includes Room tests)
 .\gradlew connectedAndroidDeviceTest
 
+# Code coverage (Kover Aggregated): all modules (app + shared host tests). Requires -Pkover; report at build/reports/kover/
+# Kover is configured in settings.gradle.kts only (settings plugin), not in root or app build.gradle.kts. Report excludes :baselineprofile, :benchmarks, :benchmarks:databases.
+.\gradlew testHostTest :app:test -Pkover koverHtmlReport koverXmlReport
+
 # Run instrumented tests with Gradle Managed Devices
 ./gradlew :app:pixel6Api35AtdAutotestAndroidTest "-Dcom.android.tools.r8.disableApiModeling=true"
 
@@ -289,6 +293,7 @@ See `android/docs/patterns.md` for ViewModel, Compose UI, state modeling, form i
     - Test the class through its constructor dependencies and assert collaborator calls at the class boundary.
     - Do not copy production flow pipelines into tests, and do not drop below the class boundary into infrastructure such as WorkManager when the class can be isolated directly. If a collaborator is difficult to mock in host tests (for example expect/actual
       manager types), add a minimal boundary seam for the observer-facing methods rather than mocking deeper platform infrastructure.
+    - ViewModel host-test stability: see `android/docs/patterns.md` (ViewModel host-test stability).
 - **Network 409 retry policy:**
     - `shared:core:network` retries HTTP `409 Conflict` with exponential backoff up to 2 times for idempotent methods (`GET`, `HEAD`, `PUT`, `DELETE`, `OPTIONS`); exhausted 409 conflicts map to `IoResult.Error.Retry`.
     - Validate with `.\gradlew :shared:core:network:testAndroidHostTest --tests "com.inwords.expenses.core.network.RequestRetryTest"`.
@@ -642,8 +647,11 @@ Before submitting changes, run these validation steps:
 # 4. Check code quality (30-48 seconds)
 .\gradlew lint --continue
 
-# 5. Verify KMM targets compile (iOS: iosArm64, iosSimulatorArm64 only; no iosX64)
+# 5. Verify KMM targets compile (iOS: iosArm64, iosSimulatorArm64 only)
 .\gradlew :shared:integration:base:linkDebugFrameworkIosSimulatorArm64
+
+# If iOS tests are added, run iosSimulatorArm64Test (do not run iosX64Test)
+# .\gradlew iosSimulatorArm64Test
 
 # 6. Build release variant (includes R8 optimization)
 .\gradlew assembleRelease

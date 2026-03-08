@@ -20,7 +20,8 @@ internal class AddPersonsViewModel(
     private val eventCreationStateHolder: EventCreationStateHolder,
     private val createEventUseCase: CreateEventUseCase,
     private val expensesScreenDestination: Destination,
-) : ViewModel(viewModelScope = CoroutineScope(SupervisorJob() + IO)) {
+    viewModelScope: CoroutineScope = CoroutineScope(SupervisorJob() + IO),
+) : ViewModel(viewModelScope = viewModelScope) {
 
     private var confirmJob: Job? = null
 

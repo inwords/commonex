@@ -5,7 +5,7 @@ ksp = "2.3.4" # https://github.com/google/ksp/releases
 room = "2.8.4" # https://developer.android.com/jetpack/androidx/releases/room
 datastore = "1.2.0" # https://developer.android.com/jetpack/androidx/releases/datastore
 
-ktor = "3.3.3" # https://github.com/ktorio/ktor/releases
+ktor = "3.4.1" # https://github.com/ktorio/ktor/releases
 cronet = "143.7445.0"
 
 coroutines = "1.10.2" # https://github.com/Kotlin/kotlinx.coroutines/releases
@@ -13,8 +13,12 @@ coroutines = "1.10.2" # https://github.com/Kotlin/kotlinx.coroutines/releases
 kotlinx-serialization = "1.10.0" # https://github.com/Kotlin/kotlinx.serialization/releases
 kotlinx-atomicfu = "0.31.0" # https://github.com/Kotlin/kotlinx-atomicfu/releases
 
-compose-bom = "2026.01.00" # https://developer.android.com/jetpack/androidx/releases/compose
-compose-multiplatform = "1.10.0" # https://github.com/JetBrains/compose-multiplatform/blob/master/CHANGELOG.md
+# Match version with BOM https://developer.android.com/develop/ui/compose/bom/bom-mapping
+compose-bom = "2026.02.01" # https://developer.android.com/jetpack/androidx/releases/compose
+# Match CMP <-> Compose https://kotlinlang.org/docs/multiplatform/compose-compatibility-and-versioning.html#jetpack-compose-artifacts-used
+compose-multiplatform = "1.10.2" # https://github.com/JetBrains/compose-multiplatform/blob/master/CHANGELOG.md
+androidx-compose-ui-test = "1.10.4" # https://developer.android.com/jetpack/androidx/releases/compose-ui
+lifecycle-multiplatform = "2.10.0-beta01"
 
 appfunctions = "1.0.0-alpha07"
 
@@ -46,9 +50,9 @@ kotlinx-datetime = { group = "org.jetbrains.kotlinx", name = "kotlinx-datetime",
 kotlinx-collections-immutable = { group = "org.jetbrains.kotlinx", name = "kotlinx-collections-immutable", version = "0.4.0" } # https://github.com/Kotlin/kotlinx.collections.immutable/releases
 kotlinx-atomicfu = { group = "org.jetbrains.kotlinx", name = "atomicfu", version.ref = "kotlinx-atomicfu" } # https://github.com/Kotlin/kotlinx-atomicfu/releases
 
-lifecycle-runtime-compose-multiplatform = { group = "org.jetbrains.androidx.lifecycle", name = "lifecycle-runtime-compose", version = "2.10.0-alpha07" } # https://mvnrepository.com/artifact/org.jetbrains.androidx.lifecycle/lifecycle-runtime-compose
-lifecycle-viewmodel-compose-multiplatform = { group = "org.jetbrains.androidx.lifecycle", name = "lifecycle-viewmodel-compose", version = "2.10.0-alpha07" } # https://mvnrepository.com/artifact/org.jetbrains.androidx.lifecycle/lifecycle-viewmodel-compose
-lifecycle-viewmodel-navigation3-multiplatform = { group = "org.jetbrains.androidx.lifecycle", name = "lifecycle-viewmodel-navigation3", version = "2.10.0-alpha07" } # https://mvnrepository.com/artifact/org.jetbrains.androidx.lifecycle/lifecycle-viewmodel-navigation3
+lifecycle-runtime-compose-multiplatform = { group = "org.jetbrains.androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "lifecycle-multiplatform" } # https://mvnrepository.com/artifact/org.jetbrains.androidx.lifecycle/lifecycle-runtime-compose
+lifecycle-viewmodel-compose-multiplatform = { group = "org.jetbrains.androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "lifecycle-multiplatform" } # https://mvnrepository.com/artifact/org.jetbrains.androidx.lifecycle/lifecycle-viewmodel-compose
+lifecycle-viewmodel-navigation3-multiplatform = { group = "org.jetbrains.androidx.lifecycle", name = "lifecycle-viewmodel-navigation3", version.ref = "lifecycle-multiplatform" } # https://mvnrepository.com/artifact/org.jetbrains.androidx.lifecycle/lifecycle-viewmodel-navigation3
 
 work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx", version = "2.11.1" } # https://developer.android.com/jetpack/androidx/releases/work
 core-ktx = { group = "androidx.core", name = "core-ktx", version = "1.17.0" } # https://developer.android.com/jetpack/androidx/releases/core
@@ -88,8 +92,8 @@ androidx-test-espresso-core = { group = "androidx.test.espresso", name = "espres
 androidx-test-uiautomator = { group = "androidx.test.uiautomator", name = "uiautomator", version = "2.3.0" }
 androidx-test-benchmark-junit4 = { group = "androidx.benchmark", name = "benchmark-junit4", version = "1.4.1" }
 androidx-test-benchmark-macro-junit4 = { group = "androidx.benchmark", name = "benchmark-macro-junit4", version = "1.4.1" }
-androidx-compose-ui-test-android = { group = "androidx.compose.ui", name = "ui-test-android", version = "1.10.2" }
-androidx-compose-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4", version = "1.10.2" }
+androidx-compose-ui-test-android = { group = "androidx.compose.ui", name = "ui-test-android", version.ref = "androidx-compose-ui-test" }
+androidx-compose-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4", version.ref = "androidx-compose-ui-test" }
 junit-jupiter-api = { group = "org.junit.jupiter", name = "junit-jupiter-api", version.ref = "jupiter" }
 junit-jupiter-params = { group = "org.junit.jupiter", name = "junit-jupiter-params", version.ref = "jupiter" }
 junit-jupiter-engine = { group = "org.junit.jupiter", name = "junit-jupiter-engine", version.ref = "jupiter" }
@@ -104,11 +108,11 @@ compose-multiplatform-compiler = { id = "org.jetbrains.compose", version.ref = "
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 room = { id = "androidx.room", version.ref = "room" }
-wire = { id = "com.squareup.wire", version = "5.5.0" } # https://square.github.io/wire/changelog/
+wire = { id = "com.squareup.wire", version = "5.5.1" } # https://square.github.io/wire/changelog/
 gradle-versions-checker = { id = "com.github.ben-manes.versions", version = "0.53.0" }
 android-junit5 = { id = "de.mannodermaus.android-junit", version = "2.0.1" } # https://github.com/mannodermaus/android-junit5/releases
 # https://github.com/getsentry/sentry-kotlin-multiplatform?tab=readme-ov-file#cocoa-sdk-version-compatibility-table
-sentry-kotlin-multiplatform = { id = "io.sentry.kotlin.multiplatform.gradle", version = "0.23.1" } # https://github.com/getsentry/sentry-kotlin-multiplatform/blob/main/CHANGELOG.md
-sentry-android-gradle = { id = "io.sentry.android.gradle", version = "6.0.0" } # https://github.com/getsentry/sentry-android-gradle-plugin/blob/main/CHANGELOG.md
+sentry-kotlin-multiplatform = { id = "io.sentry.kotlin.multiplatform.gradle", version = "0.24.0" } # https://github.com/getsentry/sentry-kotlin-multiplatform/blob/main/CHANGELOG.md
+sentry-android-gradle = { id = "io.sentry.android.gradle", version = "6.1.0" } # https://github.com/getsentry/sentry-android-gradle-plugin/blob/main/CHANGELOG.md
 androidx-baselineprofile = { id = "androidx.baselineprofile", version = "1.5.0-alpha02" } # https://developer.android.com/jetpack/androidx/releases/benchmark
 androidx-benchmark = { id = "androidx.benchmark", version = "1.4.1" } # https://developer.android.com/jetpack/androidx/releases/benchmark

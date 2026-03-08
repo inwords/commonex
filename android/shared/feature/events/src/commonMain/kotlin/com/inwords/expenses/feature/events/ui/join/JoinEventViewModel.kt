@@ -32,7 +32,8 @@ internal class JoinEventViewModel(
     initialEventId: String,
     initialPinCode: String,
     initialToken: String,
-) : ViewModel(viewModelScope = CoroutineScope(SupervisorJob() + IO)) {
+    viewModelScope: CoroutineScope = CoroutineScope(SupervisorJob() + IO),
+) : ViewModel(viewModelScope = viewModelScope) {
 
     private val eventIdRegex = "[0-9A-HJKMNP-TV-Z]".toRegex()
 

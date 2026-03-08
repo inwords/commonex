@@ -36,18 +36,20 @@ Archive output appears in Xcode Organizer. Use this archive for TestFlight uploa
 
 ## 3. KMM iOS Targets Verification
 
-The KMM plugin defines **iosArm64** and **iosSimulatorArm64** only (no iosX64). To verify shared code compiles for iOS:
+The KMM plugin defines **iosArm64** and **iosSimulatorArm64** only. To verify shared code compiles for iOS:
 
 ```bash
 cd android
 ./gradlew :shared:integration:base:linkDebugFrameworkIosSimulatorArm64
 ```
 
-There are currently no checked-in `src/iosTest` or `src/iosSimulatorArm64Test` sources in this repo, so CI remains build-only unless an iOS test target is added later. If you introduce iOS tests, the expected simulator command is:
+There are currently no checked-in `src/iosTest` or `src/iosSimulatorArm64Test` sources in this repo, so CI remains build-only unless an iOS test target is added later. If you introduce iOS tests, use this simulator command:
 
 ```bash
 ./gradlew iosSimulatorArm64Test
 ```
+
+Do not use `./gradlew iosX64Test`; that target is not configured in this project.
 
 Until then, the link task above is the repo's automated KMM iOS compilation check.
 

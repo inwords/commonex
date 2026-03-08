@@ -16,7 +16,8 @@ import kotlinx.coroutines.launch
 internal class AddParticipantsToEventViewModel(
     private val navigationController: NavigationController,
     private val addParticipantsToCurrentEventUseCase: AddParticipantsToCurrentEventUseCase,
-) : ViewModel(viewModelScope = CoroutineScope(SupervisorJob() + IO)) {
+    viewModelScope: CoroutineScope = CoroutineScope(SupervisorJob() + IO),
+) : ViewModel(viewModelScope = viewModelScope) {
 
     private var confirmJob: Job? = null
 
