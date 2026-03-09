@@ -167,12 +167,18 @@ docker compose -f infra/docker-compose-prod.yml ps
 - **Certificate renewal** uses DNS-01 challenge (no HTTP ACME challenge location required)
 - **Main domain** (`commonex.ru`, `www.commonex.ru`): HTTP port 80 and HTTPS port 443
 - **API and gRPC subdomains** (`dev-api.commonex.ru`, `grpc.commonex.ru`): HTTPS-only; no plain HTTP access expected
+- **HTTP/3 bootstrap**: production also uses a DNS HTTPS/SVCB record to advertise HTTP/3-capable endpoints before the first `Alt-Svc` response. This is external DNS configuration, not repo-managed; keep infra docs and DNS config aligned when transport behavior changes.
+- **Alt-Svc fallback**: nginx still advertises `Alt-Svc: h3=":443"; ma=86400` on HTTPS responses, so clients can discover HTTP/3 support even without DNS bootstrapping.
+- **QUIC listener requirements**: nginx listens on `443` for both TCP and UDP, and Compose publishes both `443:443/tcp` and `443:443/udp`. If UDP publishing is removed, HTTP/3 negotiation stops working even if nginx config still enables `http3 on`.
+- **QUIC transport settings**: nginx enables `quic_retry on` and `quic_gso on` in the production gateway config.
+- **TLS protocol policy**: nginx is currently TLS 1.3-only (`ssl_protocols TLSv1.3`) and has `ssl_early_data on` enabled.
 - **TLS certificate compression** enabled (`ssl_certificate_compression on`) — reduces TLS handshake size.
   The nginx image must be built with OpenSSL options `enable-brotli` and `enable-zstd`, and build deps
   `brotli-dev` and `zstd-dev`; otherwise nginx logs `SSL_CTX_compress_certs()` warnings.
 - **HTTP/2 to upstream (h2c)**: gateway nginx proxies to backends via `proxy_http_version 2`. Backend (NestJS) uses the
   **Fastify** adapter with `http2: true` (h2c) in `main.ts`; web container (static export) uses embedded nginx with
   `http2 on`. Backend Docker health checks use Node’s `http2` client (h2c prior knowledge).
+- **gRPC transport split**: `grpc.commonex.ru` is terminated by a dedicated nginx server block that proxies with `grpc_pass grpc://keepalive-nest-backend-grpc`; do not treat it as just another `/api` route.
 - **Encrypted Client Hello (ECH)**: not yet enabled; requires OpenSSL 4.0 (expected April 2026). When available,
   configure with `ssl_ech_file` directive per server block. ECH encrypts SNI in the TLS handshake for privacy.
   See [nginx ECH docs](https://nginx.org/en/docs/http/ngx_http_ssl_module.html#ssl_ech_file)
