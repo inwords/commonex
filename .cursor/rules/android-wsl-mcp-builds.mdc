@@ -1,0 +1,18 @@
+---
+description: Android/KMM builds must use JetBrains MCP terminal from the IDE context when the agent runs under WSL
+globs: android/**
+---
+
+# Android Builds From WSL
+
+This repository is often worked on from WSL, but the Android IDE and SDK setup live in the Windows/JetBrains environment.
+
+For any Android or mobile-project build, test, lint, or Gradle validation command, you MUST use the JetBrains MCP terminal tool from the IDE context instead of running the command in the WSL shell.
+
+Use JetBrains MCP tools such as:
+- `execute_terminal_command` for Gradle commands run from the IDE terminal
+- `build_project` when an IDE build is the better fit
+
+Do not run Android/KMM Gradle builds directly from the WSL shell unless the user explicitly asks for that fallback.
+
+Reason: WSL shell runs do not have the correct mobile project environment in this setup and commonly fail, while JetBrains MCP executes against the actual IDE project context.

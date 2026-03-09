@@ -15,6 +15,7 @@ import com.inwords.expenses.feature.expenses.ui.add.AddExpensePaneUiModel.Curren
 import com.inwords.expenses.feature.expenses.ui.add.AddExpensePaneUiModel.ExpenseSplitWithPersonUiModel
 import com.inwords.expenses.feature.expenses.ui.add.AddExpensePaneUiModel.PersonInfoUiModel
 import com.inwords.expenses.feature.settings.api.SettingsRepository
+import com.ionspin.kotlin.bignum.decimal.BigDecimal
 import com.ionspin.kotlin.bignum.decimal.toBigDecimal
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -45,8 +46,8 @@ internal class AddExpenseViewModelTest {
 
     // region Test Fixtures
     private object TestFixtures {
-        val USD = Currency(id = 100, serverId = null, code = "USD", name = "US Dollar")
-        val EUR = Currency(id = 101, serverId = null, code = "EUR", name = "Euro")
+        val USD = Currency(id = 100, serverId = null, code = "USD", name = "US Dollar", rate = BigDecimal.ONE)
+        val EUR = Currency(id = 101, serverId = null, code = "EUR", name = "Euro", rate = BigDecimal.ONE)
 
         val person1 = Person(id = 1, serverId = "s1", name = "Vasilii")
         val person2 = Person(id = 2, serverId = "s2", name = "Dania")
@@ -1133,7 +1134,7 @@ internal class AddExpenseViewModelTest {
 
             // When - update event with different details
             val newPerson = Person(id = 4, serverId = "s4", name = "Bob")
-            val newCurrency = Currency(id = 102, serverId = null, code = "GBP", name = "British Pound")
+            val newCurrency = Currency(id = 102, serverId = null, code = "GBP", name = "British Pound", rate = BigDecimal.ONE)
             val updatedEventDetails = TestFixtures.eventDetails.copy(
                 persons = TestFixtures.eventDetails.persons + newPerson,
                 currencies = TestFixtures.eventDetails.currencies + newCurrency

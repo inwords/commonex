@@ -17,6 +17,7 @@ import com.inwords.expenses.feature.events.domain.store.local.EventsLocalStore
 import com.inwords.expenses.feature.expenses.data.db.ExpensesLocalStoreImpl
 import com.inwords.expenses.feature.expenses.data.db.dao.ExpensesDao
 import com.inwords.expenses.feature.expenses.data.network.ExpensesRemoteStoreImpl
+import com.inwords.expenses.feature.expenses.domain.CurrencyRatesCache
 import com.inwords.expenses.feature.expenses.domain.ExpensesInteractor
 import com.inwords.expenses.feature.expenses.domain.store.ExpensesLocalStore
 import com.inwords.expenses.feature.expenses.domain.tasks.EventExpensesPullTask
@@ -77,6 +78,12 @@ class ExpensesComponent(private val deps: Deps) : Component {
         )
     }
 
+    private val currencyRatesCache = lazy {
+        CurrencyRatesCache(
+            currenciesLocalStore = deps.currenciesLocalStore,
+        )
+    }
+
     val eventExpensesPushTask: Lazy<EventExpensesPushTask> = lazy {
         EventExpensesPushTask(
             eventsLocalStoreLazy = lazy { deps.eventsLocalStore },
@@ -95,7 +102,11 @@ class ExpensesComponent(private val deps: Deps) : Component {
     }
 
     val expensesInteractorLazy: Lazy<ExpensesInteractor> = lazy {
-        ExpensesInteractor(expensesLocalStore, lazy { deps.currenciesLocalStore })
+        ExpensesInteractor(
+            expensesLocalStoreLazy = expensesLocalStore,
+            currenciesLocalStoreLazy = lazy { deps.currenciesLocalStore },
+            currencyRatesCacheLazy = currencyRatesCache,
+        )
     }
 
     fun getNavModules(

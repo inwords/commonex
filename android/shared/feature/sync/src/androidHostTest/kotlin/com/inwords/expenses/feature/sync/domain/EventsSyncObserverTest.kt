@@ -6,6 +6,7 @@ import com.inwords.expenses.feature.events.domain.model.Currency
 import com.inwords.expenses.feature.events.domain.model.Event
 import com.inwords.expenses.feature.events.domain.model.EventDetails
 import com.inwords.expenses.feature.events.domain.model.Person
+import com.inwords.expenses.feature.events.domain.model.SeededCurrencies
 import com.inwords.expenses.feature.expenses.domain.ExpensesInteractor
 import com.inwords.expenses.feature.expenses.domain.model.Expense
 import com.inwords.expenses.feature.expenses.domain.model.ExpenseType
@@ -32,7 +33,8 @@ internal class EventsSyncObserverTest {
             id = 1L,
             serverId = "currency-1",
             code = "EUR",
-            name = "Euro"
+            name = "Euro",
+            rate = SeededCurrencies.usdToOtherRates.getValue("EUR"),
         )
 
         val event = Event(

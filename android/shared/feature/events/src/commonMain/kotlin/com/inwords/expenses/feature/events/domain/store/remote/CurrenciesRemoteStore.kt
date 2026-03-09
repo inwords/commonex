@@ -5,6 +5,17 @@ import com.inwords.expenses.feature.events.domain.model.Currency
 
 internal interface CurrenciesRemoteStore {
 
-    suspend fun getCurrencies(): IoResult<List<Currency>>
+    suspend fun getCurrencies(eTag: String?): IoResult<GetCurrenciesResult>
+
+    sealed interface GetCurrenciesResult {
+        data class Modified(
+            val currencies: List<Currency>,
+            val eTag: String?,
+        ) : GetCurrenciesResult
+
+        data class NotModified(
+            val eTag: String?,
+        ) : GetCurrenciesResult
+    }
 
 }

@@ -124,6 +124,9 @@ Current client usage:
 - Web uses `/api/v3/user/currencies/all` to fetch the current UTC-day USD-based rate map and may send custom `exchangedAmount` values on V2 expense creation when the user overrides the automatic rate.
 - Shared mobile KMM clients currently send automatic-rate V2 expense payloads only and do not include `exchangedAmount` in create-expense requests.
 - V3 currencies-with-rates currently returns both the backend currency list and an `exchangeRate` map keyed by currency code.
+- Shared mobile KMM currency refreshes use conditional GET with `If-None-Match` when a local `ETag` is available.
+- Shared mobile persists currency data in Room and stores only the last seen `ETag` as local currency-cache metadata.
+- For `/api/v3/user/currencies/all`, `304 Not Modified` keeps existing Room currency rows/rates untouched; the response only confirms the local validator state.
 
 ## Response And Error Envelope
 
@@ -161,6 +164,10 @@ Current Ktor client rules:
 - `expectSuccess = true`: non-2xx responses surface as exceptions and enter centralized error mapping
 - `followRedirects = false`: redirect responses are not automatically followed
 - `ContentNegotiation` uses Kotlinx Serialization JSON with `ignoreUnknownKeys = true`
+- Shared mobile does not currently install Ktor `HttpCache`
+- Android mobile does not currently enable Cronet HTTP response caching; the Cronet setup uses a storage path but not `enableHttpCache(...)`
+- Current mobile conditional GET behavior for currencies is implemented explicitly in shared stores, with Room as the cache source of truth rather than a transport-layer response cache
+- Shared mobile core network exposes an explicit conditional GET helper for `If-None-Match` requests that classifies `200 OK` as modified data and `304 Not Modified` as validator confirmation; feature/domain code still owns persistence and cache-update policy
 
 Retry policy:
 
@@ -188,6 +195,7 @@ Implications for future changes:
 Validation reference:
 
 - `android/shared/core/network/src/commonTest/kotlin/com/inwords/expenses/core/network/RequestRetryTest.kt`
+- `android/shared/core/network/src/commonTest/kotlin/com/inwords/expenses/core/network/ConditionalGetTest.kt`
 
 ## User-Agent
 

@@ -5,6 +5,7 @@ import com.inwords.expenses.core.navigation.NavigationController
 import com.inwords.expenses.feature.events.domain.EventCreationStateHolder
 import com.inwords.expenses.feature.events.domain.GetCurrenciesUseCase
 import com.inwords.expenses.feature.events.domain.model.Currency
+import com.ionspin.kotlin.bignum.decimal.BigDecimal
 import io.mockk.every
 import io.mockk.justRun
 import io.mockk.mockk
@@ -41,8 +42,8 @@ internal class CreateEventViewModelTest {
         Dispatchers.resetMain()
     }
 
-    private val currencyRub = Currency(id = 1L, serverId = null, code = "RUB", name = "Russian Ruble")
-    private val currencyEur = Currency(id = 2L, serverId = null, code = "EUR", name = "Euro")
+    private val currencyRub = Currency(id = 1L, serverId = null, code = "RUB", name = "Russian Ruble", rate = BigDecimal.ONE)
+    private val currencyEur = Currency(id = 2L, serverId = null, code = "EUR", name = "Euro", rate = BigDecimal.ONE)
 
     private val navigationController = mockk<NavigationController>(relaxed = true) {
         justRun { popBackStack() }

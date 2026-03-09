@@ -17,7 +17,7 @@ internal class DebtCalculatorTest {
 
     // --- Shared fixtures ---
     private object Fixtures {
-        val USD = Currency(id = 100, serverId = null, code = "USD", name = "US Dollar")
+        val USD = Currency(id = 100, serverId = null, code = "USD", name = "US Dollar", rate = BigDecimal.ONE)
 
         val alice = Person(id = 1, serverId = "p1", name = "Alice")
         val bob = Person(id = 2, serverId = "p2", name = "Bob")

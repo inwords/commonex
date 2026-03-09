@@ -14,6 +14,7 @@ import com.inwords.expenses.feature.expenses.domain.ExpensesInteractor
 import com.inwords.expenses.feature.expenses.domain.model.ExpensesDetails
 import com.inwords.expenses.feature.expenses.ui.add.AddExpensePaneDestination
 import com.inwords.expenses.feature.expenses.ui.common.DebtShortUiModel
+import com.ionspin.kotlin.bignum.decimal.BigDecimal
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
@@ -44,7 +45,7 @@ internal class DebtsListViewModelTest {
 
     private val event = Event(1L, null, "Trip", "1234", 1L)
     private val person = Person(1L, null, "Alice")
-    private val currency = Currency(1L, null, "EUR", "Euro")
+    private val currency = Currency(1L, null, "EUR", "Euro", rate = BigDecimal.ONE)
     private val eventDetails = EventDetails(
         event = event,
         currencies = listOf(currency),

@@ -19,6 +19,7 @@ import com.inwords.expenses.feature.expenses.domain.ExpensesInteractor
 import com.inwords.expenses.feature.expenses.domain.model.ExpensesDetails
 import com.inwords.expenses.feature.expenses.ui.list.ExpensesPaneUiModel.Expenses
 import com.inwords.expenses.feature.settings.api.SettingsRepository
+import com.ionspin.kotlin.bignum.decimal.BigDecimal
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.justRun
@@ -51,7 +52,8 @@ internal class ExpensesViewModelRefreshTest {
             id = 100L,
             serverId = "c1",
             code = "USD",
-            name = "US Dollar"
+            name = "US Dollar",
+            rate = BigDecimal.ONE,
         )
 
         val person = Person(

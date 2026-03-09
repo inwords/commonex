@@ -12,6 +12,7 @@ import com.inwords.expenses.feature.events.domain.model.Event
 import com.inwords.expenses.feature.events.domain.model.EventDetails
 import com.inwords.expenses.feature.events.domain.model.EventShareToken
 import com.inwords.expenses.feature.events.domain.model.Person
+import com.inwords.expenses.feature.events.domain.model.SeededCurrencies
 import com.inwords.expenses.feature.menu.ui.MenuDialogUiModel.ShareState
 import com.inwords.expenses.feature.share.api.ShareManager
 import io.mockk.coEvery
@@ -91,8 +92,8 @@ internal class MenuViewModelTest {
         val details = EventDetails(
             event = event,
             persons = listOf(Person(1L, "p1", "Alice")),
-            currencies = listOf(Currency(1L, null, "EUR", "Euro")),
-            primaryCurrency = Currency(1L, null, "EUR", "Euro"),
+            currencies = listOf(Currency(1L, null, "EUR", "Euro", SeededCurrencies.usdToOtherRates.getValue("EUR"))),
+            primaryCurrency = Currency(1L, null, "EUR", "Euro", SeededCurrencies.usdToOtherRates.getValue("EUR")),
         )
         currentEventFlow.value = details
         val viewModel = MenuViewModel(
@@ -160,8 +161,8 @@ internal class MenuViewModelTest {
         val details = EventDetails(
             event = event,
             persons = listOf(Person(1L, "p1", "Alice")),
-            currencies = listOf(Currency(1L, null, "EUR", "Euro")),
-            primaryCurrency = Currency(1L, null, "EUR", "Euro"),
+            currencies = listOf(Currency(1L, null, "EUR", "Euro", SeededCurrencies.usdToOtherRates.getValue("EUR"))),
+            primaryCurrency = Currency(1L, null, "EUR", "Euro", SeededCurrencies.usdToOtherRates.getValue("EUR")),
         )
         currentEventFlow.value = details
         coEvery { createShareTokenUseCase.createShareToken(any(), any()) } returns CreateShareTokenResult.Created(

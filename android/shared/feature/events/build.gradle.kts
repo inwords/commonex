@@ -40,6 +40,7 @@ kotlin {
 
                 implementation(shared.kotlinx.serialization.json)
                 implementation(shared.kotlinx.datetime)
+                implementation(shared.ionspin.kotlin.bignum)
 
                 implementation(shared.lifecycle.runtime.compose.multiplatform)
                 implementation(shared.lifecycle.viewmodel.compose.multiplatform)
@@ -88,4 +89,7 @@ dependencies {
     add("androidHostTestImplementation", shared.junit.jupiter.api)
     add("androidHostTestImplementation", shared.mockk)
     add("androidHostTestImplementation", shared.turbine)
+    add("androidHostTestImplementation", shared.ktor.client.mock)
+    add("androidHostTestImplementation", shared.ktor.client.content.negotiation)
+    add("androidHostTestImplementation", shared.ktor.serialization.kotlinx.json)
 }

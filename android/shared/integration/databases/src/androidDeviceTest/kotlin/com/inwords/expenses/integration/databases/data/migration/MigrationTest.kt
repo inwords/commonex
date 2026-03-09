@@ -5,8 +5,12 @@ import androidx.room.testing.MigrationTestHelper
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.inwords.expenses.feature.events.data.db.entity.CurrencyEntity
+import com.inwords.expenses.feature.events.domain.model.SeededCurrencies
 import com.inwords.expenses.integration.databases.data.AppDatabase
+import com.inwords.expenses.integration.databases.data.SeededCurrencyMetadata
 import com.inwords.expenses.integration.databases.data.createAppDatabase
+import com.inwords.expenses.integration.databases.data.rateScale
+import com.inwords.expenses.integration.databases.data.rateUnscaled
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -24,6 +28,7 @@ import java.io.IOException
 internal class MigrationTest {
 
     private val testDb = "app_db.db"
+    private val focusedMigrationDb = "app_db_migration_2_3.db"
 
     @get:Rule
     val helper = MigrationTestHelper(
@@ -56,19 +61,104 @@ internal class MigrationTest {
             runBlocking {
                 val currencies = db.currenciesDao().queryAll().first()
                 assertEquals(
-                    listOf(
-                        CurrencyEntity(1, null, "EUR", "Euro"),
-                        CurrencyEntity(2, null, "USD", "US Dollar"),
-                        CurrencyEntity(3, null, "RUB", "Russian Ruble"),
-                        CurrencyEntity(4, null, "JPY", "Japanese Yen"),
-                        CurrencyEntity(5, null, "TRY", "Turkish Lira"),
-                        CurrencyEntity(6, null, "AED", "UAE Dirham"),
-                    ),
+                    SeededCurrencies.all.map { currency ->
+                        CurrencyEntity(
+                            currencyId = currency.id,
+                            currencyServerId = null,
+                            code = currency.code,
+                            name = currency.name,
+                            rateUnscaled = currency.rateUnscaled,
+                            rateScale = currency.rateScale,
+                        )
+                    },
                     currencies
+                )
+
+                assertEquals(
+                    null,
+                    db.currencyRatesMetadataDao().queryETag()
+                )
+                assertEquals(
+                    SeededCurrencyMetadata.snapshotLocalDate.toString(),
+                    db.currencyRatesMetadataDao().queryLastRatesUpdateUtcDate()
                 )
             }
 
             db.close()
         }
+    }
+
+    @Test
+    @Throws(IOException::class)
+    fun migrate2To3_preservesExistingCurrencyIdentityAndAddsMetadata() {
+        helper.createDatabase(focusedMigrationDb, 2).apply {
+            execSQL("INSERT INTO currency (currency_id, currency_server_id, code, name) VALUES (10, 'srv-eur', 'EUR', 'Euro legacy')")
+            execSQL("INSERT INTO currency (currency_id, currency_server_id, code, name) VALUES (11, NULL, 'USD', 'US Dollar legacy')")
+            execSQL("INSERT INTO currency (currency_id, currency_server_id, code, name) VALUES (12, 'srv-aed', 'AED', 'Dirham legacy')")
+
+            close()
+        }
+
+        createAppDatabase(
+            Room.databaseBuilder<AppDatabase>(
+                context = InstrumentationRegistry.getInstrumentation().targetContext,
+                name = focusedMigrationDb
+            )
+        ).also { db ->
+            runBlocking {
+                val currencies = db.currenciesDao().queryAll().first()
+                assertEquals(
+                    listOf(
+                        seededCurrencyEntity(
+                            id = 10,
+                            serverId = "srv-eur",
+                            code = "EUR",
+                            name = "Euro legacy",
+                        ),
+                        seededCurrencyEntity(
+                            id = 11,
+                            serverId = null,
+                            code = "USD",
+                            name = "US Dollar legacy",
+                        ),
+                        seededCurrencyEntity(
+                            id = 12,
+                            serverId = "srv-aed",
+                            code = "AED",
+                            name = "Dirham legacy",
+                        ),
+                    ),
+                    currencies
+                )
+
+                assertEquals(
+                    null,
+                    db.currencyRatesMetadataDao().queryETag()
+                )
+                assertEquals(
+                    SeededCurrencyMetadata.snapshotLocalDate.toString(),
+                    db.currencyRatesMetadataDao().queryLastRatesUpdateUtcDate()
+                )
+            }
+
+            db.close()
+        }
+    }
+
+    private fun seededCurrencyEntity(
+        id: Long,
+        serverId: String?,
+        code: String,
+        name: String,
+    ): CurrencyEntity {
+        val seededCurrency = SeededCurrencies.all.first { it.code == code }
+        return CurrencyEntity(
+            currencyId = id,
+            currencyServerId = serverId,
+            code = code,
+            name = name,
+            rateUnscaled = seededCurrency.rateUnscaled,
+            rateScale = seededCurrency.rateScale,
+        )
     }
 }

@@ -6,6 +6,7 @@ import com.inwords.expenses.feature.events.domain.model.EventDetails
 import com.inwords.expenses.feature.events.domain.model.Person
 import com.inwords.expenses.feature.events.domain.store.local.EventsLocalStore
 import com.inwords.expenses.feature.settings.api.SettingsRepository
+import com.ionspin.kotlin.bignum.decimal.BigDecimal
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -31,7 +32,7 @@ internal class CreateEventFromParametersUseCaseTest {
             Person(1L, null, "Alice"),
             Person(2L, null, "Bob"),
         ),
-        primaryCurrency = Currency(1L, null, "EUR", "Euro"),
+        primaryCurrency = Currency(1L, null, "EUR", "Euro", BigDecimal.ONE),
     )
 
     @Test

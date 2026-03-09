@@ -108,6 +108,7 @@ private fun buildEventsComponent(
             override val eventsDao get() = context.dbComponent.value.eventsDao
             override val personsDao get() = context.dbComponent.value.personsDao
             override val currenciesDao get() = context.dbComponent.value.currenciesDao
+            override val currencyRatesMetadataDao get() = context.dbComponent.value.currencyRatesMetadataDao
 
             override val transactionHelper get() = context.dbComponent.value.transactionHelper
 

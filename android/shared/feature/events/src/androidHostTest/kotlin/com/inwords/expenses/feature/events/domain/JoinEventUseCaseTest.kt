@@ -11,6 +11,7 @@ import com.inwords.expenses.feature.events.domain.store.remote.EventsRemoteStore
 import com.inwords.expenses.feature.events.domain.store.remote.EventsRemoteStore.GetEventResult
 import com.inwords.expenses.feature.events.domain.task.CurrenciesPullTask
 import com.inwords.expenses.feature.settings.api.SettingsRepository
+import com.ionspin.kotlin.bignum.decimal.BigDecimal
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -33,7 +34,7 @@ internal class JoinEventUseCaseTest {
 
     private val event = Event(1L, "ev-1", "Trip", "1234", 1L)
     private val person = Person(1L, null, "Alice")
-    private val currency = Currency(1L, "cur-1", "EUR", "Euro")
+    private val currency = Currency(1L, "cur-1", "EUR", "Euro", BigDecimal.ONE)
     private val eventDetails = EventDetails(
         event = event,
         currencies = listOf(currency),

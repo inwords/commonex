@@ -9,6 +9,7 @@ import com.inwords.expenses.feature.events.domain.model.Currency
 import com.inwords.expenses.feature.events.domain.model.Event
 import com.inwords.expenses.feature.events.domain.model.EventDetails
 import com.inwords.expenses.feature.events.domain.model.Person
+import com.ionspin.kotlin.bignum.decimal.BigDecimal
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -40,7 +41,7 @@ internal class AddPersonsViewModelTest {
         event = Event(1L, null, "Trip", "1234", 1L),
         currencies = emptyList(),
         persons = listOf(Person(1L, null, "Alice"), Person(2L, null, "Bob")),
-        primaryCurrency = Currency(1L, null, "EUR", "Euro"),
+        primaryCurrency = Currency(1L, null, "EUR", "Euro", BigDecimal.ONE),
     )
 
     @BeforeTest

@@ -8,6 +8,7 @@ import com.inwords.expenses.feature.events.domain.model.Currency
 import com.inwords.expenses.feature.events.domain.model.Event
 import com.inwords.expenses.feature.events.domain.model.EventDetails
 import com.inwords.expenses.feature.events.domain.model.Person
+import com.ionspin.kotlin.bignum.decimal.BigDecimal
 
 internal fun EventEntity.toDomain(): Event {
     return Event(
@@ -40,5 +41,9 @@ internal fun CurrencyEntity.toDomain(): Currency {
         serverId = currencyServerId,
         code = code,
         name = name,
+        rate = BigDecimal.fromBigIntegerWithExponent(
+            bigInteger = rateUnscaled,
+            exponent = rateScale,
+        ),
     )
 }

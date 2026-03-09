@@ -468,7 +468,9 @@ class BasicInstrumentedTest {
             }
         }
 
-        return shareUrl!!
+        return requireNotNull(shareUrl) {
+            "Clipboard did not contain share URL with $expectedParam within ${timeoutMs}ms"
+        }
     }
 
     private fun triggerActivityOnNewIntent(url: String) {

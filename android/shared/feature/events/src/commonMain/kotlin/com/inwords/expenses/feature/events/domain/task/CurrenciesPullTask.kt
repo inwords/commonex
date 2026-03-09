@@ -8,6 +8,9 @@ import com.inwords.expenses.feature.events.domain.store.local.CurrenciesLocalSto
 import com.inwords.expenses.feature.events.domain.store.remote.CurrenciesRemoteStore
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
+import kotlin.time.Clock
 
 class CurrenciesPullTask internal constructor(
     transactionHelperLazy: Lazy<TransactionHelper>,
@@ -20,13 +23,28 @@ class CurrenciesPullTask internal constructor(
     private val currenciesRemoteStore by currenciesRemoteStoreLazy
 
     suspend fun pullCurrencies(): IoResult<List<Currency>> = withContext(IO) {
-        val networkCurrencies = when (val networkResult = currenciesRemoteStore.getCurrencies()) {
+        val eTag = currenciesLocalStore.getCurrenciesETag()
+        val remoteResult = when (val networkResult = currenciesRemoteStore.getCurrencies(eTag)) {
             is IoResult.Success -> networkResult.data
             is IoResult.Error -> return@withContext networkResult
         }
 
+        val date = Clock.System.now().toLocalDateTime(TimeZone.UTC).date
         val currencies = transactionHelper.immediateWriteTransaction {
-            updateLocalCurrencies(networkCurrencies)
+            when (remoteResult) {
+                is CurrenciesRemoteStore.GetCurrenciesResult.Modified -> {
+                    currenciesLocalStore.setCurrenciesETag(remoteResult.eTag)
+                    currenciesLocalStore.setCurrenciesLastRatesUpdateUtcDate(date)
+
+                    updateLocalCurrencies(remoteResult.currencies)
+                }
+
+                is CurrenciesRemoteStore.GetCurrenciesResult.NotModified -> {
+                    currenciesLocalStore.setCurrenciesETag(remoteResult.eTag ?: eTag)
+
+                    currenciesLocalStore.getCurrencies().first()
+                }
+            }
         }
 
         IoResult.Success(currencies)
@@ -42,9 +60,14 @@ class CurrenciesPullTask internal constructor(
         val updatedCurrencies = networkCurrencies.map { networkCurrency ->
             val localCurrency = localCurrenciesMap[networkCurrency.code]
             if (localCurrency != null) {
-                if (localCurrency.serverId == null) {
+                val updatedCurrency = localCurrency.copy(
+                    serverId = networkCurrency.serverId,
+                    name = preserveCurrencyName(localCurrency, networkCurrency),
+                    rate = networkCurrency.rate,
+                )
+                if (updatedCurrency != localCurrency) {
                     hasUpdates = true
-                    localCurrency.copy(serverId = networkCurrency.serverId)
+                    updatedCurrency
                 } else {
                     localCurrency
                 }
@@ -58,6 +81,14 @@ class CurrenciesPullTask internal constructor(
             currenciesLocalStore.insert(updatedCurrencies)
         } else {
             localCurrencies
+        }
+    }
+
+    private fun preserveCurrencyName(localCurrency: Currency, networkCurrency: Currency): String {
+        return if (networkCurrency.name == networkCurrency.code) {
+            localCurrency.name
+        } else {
+            networkCurrency.name
         }
     }
 

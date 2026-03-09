@@ -63,7 +63,7 @@ internal class BigNumbersTest {
 
     @Test
     fun divide_largeScale_roundsCorrectly() {
-        val a = BigDecimal.parseString("1")
+        val a = BigDecimal.ONE
         val b = BigDecimal.parseString("3")
         val result = a.divide(b, 4)
         assertEquals(BigDecimal.parseString("0.3333"), result)
