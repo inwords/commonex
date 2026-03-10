@@ -23,7 +23,7 @@ import kotlin.time.Clock
 class ExpensesInteractor internal constructor(
     expensesLocalStoreLazy: Lazy<ExpensesLocalStore>,
     currenciesLocalStoreLazy: Lazy<CurrenciesLocalStore>,
-    private val currencyExchanger: CurrencyExchanger = CurrencyExchanger(),
+    currencyRatesCacheLazy: Lazy<CurrencyRatesCache>,
 ) {
 
     val refreshExpenses: Flow<Event>
@@ -34,6 +34,8 @@ class ExpensesInteractor internal constructor(
 
     private val expensesLocalStore by expensesLocalStoreLazy
     private val currenciesLocalStore by currenciesLocalStoreLazy
+    private val currencyRatesCache by currencyRatesCacheLazy
+    private val currencyExchanger by lazy { CurrencyExchanger(currencyRatesCache) }
 
     fun getExpensesFlow(eventId: Long): Flow<List<Expense>> {
         return expensesLocalStore.getExpensesFlow(eventId)
@@ -167,10 +169,10 @@ class ExpensesInteractor internal constructor(
             return { it }
         }
 
-        val primaryCurrencyCode = currenciesLocalStore.getCurrencyCodeById(event.primaryCurrencyId) ?: run {
-            // FIXME: non-fatal error
-            return null
-        }
+        val primaryCurrencyCode = currencyRatesCache.getCurrencyById(event.primaryCurrencyId)?.code
+            ?: currenciesLocalStore.getCurrencyCodeById(event.primaryCurrencyId)
+            ?: return null // FIXME: non-fatal error
+
         return { currencyExchanger.exchange(it, originalCurrency.code, primaryCurrencyCode) }
     }
 

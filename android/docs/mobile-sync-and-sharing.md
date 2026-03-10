@@ -63,6 +63,7 @@ This document is the canonical mobile reference for the KMM offline-first model,
 - `EventExpensesPushTask` requires all three prerequisites before it can push:
   synced event, synced persons, and synced currencies.
 - It pushes only local expenses whose `serverId` is null.
+- Partial network responses (success for some expenses, error for others) are supported: iterate over the full results list with index so alignment with local expenses is preserved; persist only successful results.
 - After a successful push it writes back the remote expense `serverId` and the backend-confirmed `exchangedAmount` values for each split.
 - Mobile currently sends automatic-rate expense payloads only:
   `CreateExpenseRequest` includes `amount` per split but not client-supplied `exchangedAmount`.
@@ -75,6 +76,10 @@ This document is the canonical mobile reference for the KMM offline-first model,
 
 ## Currency Handling
 
-- Shared mobile `CurrencyExchanger` still uses a placeholder USD-based rate table for on-device conversion logic.
+- Mobile pulls currencies and rates from `/api/v3/user/currencies/all` through the shared event remote store.
+- `CurrenciesPullTask` refreshes currencies during sync and reconciles local rows by currency code while preserving local IDs.
+- Currency rates are persisted in Room on the `currency` table as unscaled integer plus exponent/scale values and reconstructed with `BigDecimal.fromBigIntegerWithExponent(...)`.
+- Frequent exchange operations read from a Room-backed in-memory cache populated from `CurrenciesLocalStore`; the cache snapshots both the currency lookup and USD-rate lookup atomically while Room remains the source of truth.
+- Shared mobile persists currency metadata in Room with the last seen currency-list `ETag` and a required local rates-update date. The date is initialized for both fresh installs and `2->3` upgrades, so callers do not need to handle nullable date state.
+- New installs and migrated installs use the same seeded offline-capable rate snapshot, so currency conversion still works on first launch without network access.
 - Backend-created expenses remain the authoritative source for synced `exchangedAmount` values.
-- The local placeholder exchanger should not be documented as the backend exchange-rate source of truth.

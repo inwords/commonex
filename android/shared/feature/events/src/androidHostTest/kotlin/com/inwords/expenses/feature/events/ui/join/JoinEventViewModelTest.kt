@@ -9,6 +9,7 @@ import com.inwords.expenses.feature.events.domain.model.Currency
 import com.inwords.expenses.feature.events.domain.model.Event
 import com.inwords.expenses.feature.events.domain.model.EventDetails
 import com.inwords.expenses.feature.events.domain.model.Person
+import com.ionspin.kotlin.bignum.decimal.BigDecimal
 import io.mockk.coEvery
 import io.mockk.justRun
 import io.mockk.mockk
@@ -119,8 +120,8 @@ internal class JoinEventViewModelTest {
         val eventDetails = EventDetails(
             event = event,
             persons = listOf(Person(1L, "p1", "Alice")),
-            currencies = listOf(Currency(1L, null, "EUR", "Euro")),
-            primaryCurrency = Currency(1L, null, "EUR", "Euro")
+            currencies = listOf(Currency(1L, null, "EUR", "Euro", BigDecimal.ONE)),
+            primaryCurrency = Currency(1L, null, "EUR", "Euro", BigDecimal.ONE)
         )
         coEvery { joinEventUseCase.joinEvent(any(), any(), any()) } returns JoinEventResult.NewCurrentEvent(eventDetails)
 

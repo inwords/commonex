@@ -51,15 +51,12 @@ class EventExpensesPushTask internal constructor(
             persons = localEvent.persons
         )
 
-        val networkExpenses = networkResults.mapNotNull { networkResult ->
-            when (networkResult) {
-                is IoResult.Success -> networkResult.data
-                is IoResult.Error -> null
-            }
-        }
-
         withContext(NonCancellable) {
-            networkExpenses.forEachIndexed { expenseIndex, networkExpense ->
+            networkResults.forEachIndexed { expenseIndex, networkResult ->
+                val networkExpense = when (networkResult) {
+                    is IoResult.Success -> networkResult.data
+                    is IoResult.Error -> return@forEachIndexed
+                }
                 val networkExpenseServerId = networkExpense.serverId ?: return@forEachIndexed // FIXME: non-fatal error, should not happen
                 transactionHelper.immediateWriteTransaction {
                     expensesLocalStore.updateExpenseServerId(networkExpense.expenseId, networkExpenseServerId)

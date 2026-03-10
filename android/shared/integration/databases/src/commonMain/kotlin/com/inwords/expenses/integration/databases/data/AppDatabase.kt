@@ -6,9 +6,11 @@ import androidx.room.RoomDatabase
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import com.inwords.expenses.core.utils.IO
 import com.inwords.expenses.feature.events.data.db.dao.CurrenciesDao
+import com.inwords.expenses.feature.events.data.db.dao.CurrencyRatesMetadataDao
 import com.inwords.expenses.feature.events.data.db.dao.EventsDao
 import com.inwords.expenses.feature.events.data.db.dao.PersonsDao
 import com.inwords.expenses.feature.events.data.db.entity.CurrencyEntity
+import com.inwords.expenses.feature.events.data.db.entity.CurrencyRatesMetadataEntity
 import com.inwords.expenses.feature.events.data.db.entity.EventCurrencyCrossRef
 import com.inwords.expenses.feature.events.data.db.entity.EventEntity
 import com.inwords.expenses.feature.events.data.db.entity.EventPersonCrossRef
@@ -17,6 +19,7 @@ import com.inwords.expenses.feature.expenses.data.db.dao.ExpensesDao
 import com.inwords.expenses.feature.expenses.data.db.entity.ExpenseEntity
 import com.inwords.expenses.feature.expenses.data.db.entity.ExpenseSplitEntity
 import com.inwords.expenses.integration.databases.data.migration.MIGRATION_1_2
+import com.inwords.expenses.integration.databases.data.migration.MIGRATION_2_3
 
 @Database(
     entities = [
@@ -24,6 +27,7 @@ import com.inwords.expenses.integration.databases.data.migration.MIGRATION_1_2
         ExpenseEntity::class,
         ExpenseSplitEntity::class,
         CurrencyEntity::class,
+        CurrencyRatesMetadataEntity::class,
         PersonEntity::class,
         EventCurrencyCrossRef::class,
         EventPersonCrossRef::class,
@@ -31,7 +35,7 @@ import com.inwords.expenses.integration.databases.data.migration.MIGRATION_1_2
     autoMigrations = [
 
     ],
-    version = 2
+    version = 3
 )
 @ConstructedBy(AppDatabaseConstructor::class)
 internal abstract class AppDatabase : RoomDatabase() {
@@ -39,6 +43,7 @@ internal abstract class AppDatabase : RoomDatabase() {
     abstract fun eventsDao(): EventsDao
     abstract fun expensesDao(): ExpensesDao
     abstract fun currenciesDao(): CurrenciesDao
+    abstract fun currencyRatesMetadataDao(): CurrencyRatesMetadataDao
     abstract fun personsDao(): PersonsDao
 }
 
@@ -49,6 +54,7 @@ internal fun createAppDatabase(
         .setQueryCoroutineContext(IO.limitedParallelism(4))
         .setJournalMode(RoomDatabase.JournalMode.WRITE_AHEAD_LOGGING)
         .addMigrations(MIGRATION_1_2)
+        .addMigrations(MIGRATION_2_3)
         .setDriver(BundledSQLiteDriver())
         .addCallback(RoomOnCreateCallback())
         .build()

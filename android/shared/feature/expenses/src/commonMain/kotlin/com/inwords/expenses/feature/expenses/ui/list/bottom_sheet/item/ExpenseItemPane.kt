@@ -331,6 +331,7 @@ private fun mockExpense(): Expense {
             serverId = "1",
             code = "USD",
             name = "US Dollar",
+            rate = 1.toBigDecimal(),
         ),
         expenseType = ExpenseType.Spending,
         person = person,

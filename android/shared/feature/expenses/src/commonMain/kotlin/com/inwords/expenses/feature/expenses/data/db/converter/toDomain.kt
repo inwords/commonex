@@ -1,5 +1,6 @@
 package com.inwords.expenses.feature.expenses.data.db.converter
 
+import com.inwords.expenses.core.utils.normalizeCurrencyRate
 import com.inwords.expenses.feature.events.data.db.entity.CurrencyEntity
 import com.inwords.expenses.feature.events.data.db.entity.PersonEntity
 import com.inwords.expenses.feature.events.domain.model.Currency
@@ -29,6 +30,10 @@ internal fun CurrencyEntity.toDomain(): Currency {
         serverId = this.currencyServerId,
         code = this.code,
         name = this.name,
+        rate = BigDecimal.fromBigIntegerWithExponent(
+            bigInteger = this.rateUnscaled,
+            exponent = this.rateScale,
+        ).normalizeCurrencyRate(),
     )
 }
 

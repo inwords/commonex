@@ -11,7 +11,7 @@ internal class ExchangeRateCalculatorTest {
     fun `calculateExchangeRateValue handles very small ratio`() {
         val result = calculateExchangeRateValue(
             totalOriginalAmount = BigDecimal.parseString("1000000000000"),
-            totalExchangedAmount = BigDecimal.parseString("1"),
+            totalExchangedAmount = BigDecimal.ONE,
         )
 
         assertEquals("0.00", result)
@@ -20,7 +20,7 @@ internal class ExchangeRateCalculatorTest {
     @Test
     fun `calculateExchangeRateValue handles very large ratio`() {
         val result = calculateExchangeRateValue(
-            totalOriginalAmount = BigDecimal.parseString("1"),
+            totalOriginalAmount = BigDecimal.ONE,
             totalExchangedAmount = BigDecimal.parseString("1000000000000"),
         )
 

@@ -10,6 +10,24 @@
 - **Network:** Ktor client with Cronet backend for Android
 - **Async Operations:** Coroutines with structured concurrency
 
+### Early Return When for IoResult in Loops
+
+When handling `IoResult` in a loop (e.g. `forEachIndexed`), use `when` with early return for the error branch instead of cast + elvis:
+
+```kotlin
+results.forEachIndexed { index, result ->
+    when (result) {
+        is IoResult.Success -> {
+            val data = result.data
+            // ... use data and index
+        }
+        is IoResult.Error -> return@forEachIndexed
+    }
+}
+```
+
+This keeps index alignment when some results are errors and matches the style used in `JoinEventUseCase`, `EventExpensesPushTask`, etc.
+
 ### Integration Layer and Domain Delegation
 
 Integration entry points (AppFunctions, deep links, etc.) should delegate to domain interactors instead of duplicating code. Parse and validate input, resolve entities by name/ID, then call the existing domain method. Avoid reimplementing business logic,
@@ -49,6 +67,86 @@ Apply the pattern like this:
 Use this to remove duplicated shared contract members while keeping the external `FooComponentFactory.Deps` API stable for callers.
 
 Do not introduce `*CommonDeps` when the common `Deps` contract is empty. In that case, the extracted interface adds boilerplate without reducing duplication.
+
+### Seeded Room Reference Data
+
+For durable seeded reference data in Room, keep one readable source-of-truth object and reuse it from all three places:
+
+1. `RoomOnCreateCallback` for fresh installs
+2. migration files for upgraded installs
+3. migration tests for expected seeded/backfilled values
+
+Apply the pattern like this:
+
+- Store the canonical seeded values in regular Kotlin data, not handwritten SQL blob literals.
+- Derive SQL literals from that Kotlin source when migrations or callbacks need raw SQL.
+- Keep migration backfills and fresh-install seeds aligned to the same helper so offline behavior matches after install and after upgrade.
+
+Use this when:
+
+- seeding currencies or other reference tables
+- backfilling persisted derived columns during schema upgrades
+- asserting seeded migration results in `MigrationTestHelper` tests
+
+Do not use this when:
+
+- the data is transient cache state rather than durable seeded reference data
+- the seed exists only for a single local test and is not part of runtime behavior
+
+Implementation shape:
+
+```kotlin
+internal object SeededThing {
+    val all: List<ThingSeed> = listOf(...)
+}
+
+internal data class ThingSeed(...) {
+    val sqlLiteral: String get() = ...
+}
+```
+
+### Required Persistence State Should Not Be Nullable
+
+For Room entities and local-store contracts, do not model required persisted state as nullable just because it is written later in the flow.
+
+Apply the pattern like this:
+
+- If the state is required for correct behavior, make the entity field and local-store API non-null.
+- Initialize the value for both fresh installs and migrations so upgraded users and offline-first users get the same guarantees.
+- Use nullable types only when absence is a real business state, not as a shortcut around initialization.
+
+Use this when:
+
+- metadata rows are meant to exist for every install
+- seeded reference/cache metadata has a valid fallback snapshot value
+- callers should not branch on impossible `null` cases
+
+Do not use this when:
+
+- missing data is a real domain state that callers must handle explicitly
+- the row or value is intentionally optional and not guaranteed to exist yet
+
+### Singleton Metadata Rows Should Use Targeted Updates
+
+For known singleton Room rows such as app/cache metadata, do not read the row only to build a replacement entity for `upsert`.
+
+Apply the pattern like this:
+
+- Seed or migrate the singleton row so it always exists.
+- Add focused DAO `UPDATE` queries for independent column changes.
+- Read the row only when callers actually need the current values, not as a prerequisite for writing one field.
+
+Use this when:
+
+- the row identity is fixed
+- a write changes only one or two columns
+- preserving the other columns does not require loading them into Kotlin first
+
+Do not use read-then-upsert for:
+
+- singleton cache metadata rows
+- fixed-key settings tables
+- any hot path where the row already exists and only a subset of columns changes
 
 ## ViewModel Patterns
 

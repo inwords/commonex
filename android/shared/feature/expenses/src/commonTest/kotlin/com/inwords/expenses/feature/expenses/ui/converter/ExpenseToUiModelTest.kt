@@ -5,6 +5,7 @@ import com.inwords.expenses.feature.events.domain.model.Person
 import com.inwords.expenses.feature.expenses.domain.model.Expense
 import com.inwords.expenses.feature.expenses.domain.model.ExpenseSplitWithPerson
 import com.inwords.expenses.feature.expenses.domain.model.ExpenseType
+import com.ionspin.kotlin.bignum.decimal.BigDecimal
 import com.ionspin.kotlin.bignum.decimal.toBigDecimal
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -21,7 +22,7 @@ internal class ExpenseToUiModelTest {
         val expense = Expense(
             expenseId = 10L,
             serverId = "e1",
-            currency = Currency(id = 1, serverId = "c1", code = "USD", name = "US Dollar"),
+            currency = Currency(id = 1, serverId = "c1", code = "USD", name = "US Dollar", rate = BigDecimal.ONE),
             expenseType = ExpenseType.Spending,
             person = currentPerson,
             subjectExpenseSplitWithPersons = listOf(
@@ -57,7 +58,7 @@ internal class ExpenseToUiModelTest {
         val expense = Expense(
             expenseId = 11L,
             serverId = "e2",
-            currency = Currency(id = 1, serverId = "c1", code = "USD", name = "US Dollar"),
+            currency = Currency(id = 1, serverId = "c1", code = "USD", name = "US Dollar", rate = BigDecimal.ONE),
             expenseType = ExpenseType.Spending,
             person = expenseOwner,
             subjectExpenseSplitWithPersons = listOf(

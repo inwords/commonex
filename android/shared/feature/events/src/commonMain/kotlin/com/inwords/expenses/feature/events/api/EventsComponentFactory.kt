@@ -4,6 +4,7 @@ import com.inwords.expenses.core.network.HostConfig
 import com.inwords.expenses.core.storage.utils.TransactionHelper
 import com.inwords.expenses.core.utils.SuspendLazy
 import com.inwords.expenses.feature.events.data.db.dao.CurrenciesDao
+import com.inwords.expenses.feature.events.data.db.dao.CurrencyRatesMetadataDao
 import com.inwords.expenses.feature.events.data.db.dao.EventsDao
 import com.inwords.expenses.feature.events.data.db.dao.PersonsDao
 import com.inwords.expenses.feature.settings.api.SettingsRepository
@@ -21,6 +22,7 @@ interface EventsComponentFactoryCommonDeps {
     val eventsDao: EventsDao
     val personsDao: PersonsDao
     val currenciesDao: CurrenciesDao
+    val currencyRatesMetadataDao: CurrencyRatesMetadataDao
 
     val transactionHelper: TransactionHelper
 

@@ -12,6 +12,7 @@ import com.inwords.expenses.feature.expenses.domain.model.ExpenseSplitWithPerson
 import com.inwords.expenses.feature.expenses.domain.model.ExpenseType
 import com.inwords.expenses.feature.expenses.domain.store.ExpensesLocalStore
 import com.inwords.expenses.feature.expenses.ui.list.ExpensesPaneDestination
+import com.ionspin.kotlin.bignum.decimal.BigDecimal
 import com.ionspin.kotlin.bignum.decimal.toBigDecimal
 import io.mockk.coEvery
 import io.mockk.justRun
@@ -46,7 +47,7 @@ internal class ExpenseRevertDialogViewModelTest {
 
     private val event = Event(1L, "ev-1", "Trip", "1234", 1L)
     private val person = Person(1L, "p1", "Alice")
-    private val currency = Currency(1L, null, "EUR", "Euro")
+    private val currency = Currency(1L, null, "EUR", "Euro", rate = BigDecimal.ONE)
     private val expense = Expense(
         expenseId = 10L,
         serverId = "ex-10",

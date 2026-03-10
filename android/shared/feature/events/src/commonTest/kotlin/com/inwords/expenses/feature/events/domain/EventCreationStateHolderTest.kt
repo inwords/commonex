@@ -1,14 +1,15 @@
 package com.inwords.expenses.feature.events.domain
 
 import com.inwords.expenses.feature.events.domain.model.Currency
+import com.ionspin.kotlin.bignum.decimal.BigDecimal
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 internal class EventCreationStateHolderTest {
 
-    private val currencyEur = Currency(id = 1L, serverId = null, code = "EUR", name = "Euro")
-    private val currencyUsd = Currency(id = 2L, serverId = null, code = "USD", name = "US Dollar")
+    private val currencyEur = Currency(id = 1L, serverId = null, code = "EUR", name = "Euro", rate = BigDecimal.ONE)
+    private val currencyUsd = Currency(id = 2L, serverId = null, code = "USD", name = "US Dollar", rate = BigDecimal.ONE)
 
     @Test
     fun initialState_allFieldsEmpty() {

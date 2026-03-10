@@ -1,5 +1,6 @@
 package com.inwords.expenses.feature.events.data.db.converter
 
+import com.inwords.expenses.core.utils.normalizeCurrencyRate
 import com.inwords.expenses.feature.events.data.db.entity.CurrencyEntity
 import com.inwords.expenses.feature.events.data.db.entity.EventEntity
 import com.inwords.expenses.feature.events.data.db.entity.PersonEntity
@@ -24,10 +25,14 @@ internal fun Person.toEntity(): PersonEntity {
 }
 
 internal fun Currency.toEntity(): CurrencyEntity {
+    val normalizedRate = rate.normalizeCurrencyRate()
+
     return CurrencyEntity(
         currencyId = id,
         currencyServerId = serverId,
         code = code,
         name = name,
+        rateUnscaled = normalizedRate.significand,
+        rateScale = normalizedRate.exponent,
     )
 }

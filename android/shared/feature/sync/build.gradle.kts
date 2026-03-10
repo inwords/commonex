@@ -49,4 +49,5 @@ dependencies {
     add("androidHostTestImplementation", shared.junit.jupiter.api)
     add("androidHostTestImplementation", shared.mockk)
     add("androidHostTestImplementation", shared.turbine)
+    add("androidHostTestImplementation", shared.ionspin.kotlin.bignum)
 }

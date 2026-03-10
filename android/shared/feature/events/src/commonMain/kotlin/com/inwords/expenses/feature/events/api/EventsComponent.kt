@@ -49,7 +49,10 @@ class EventsComponent internal constructor(
     internal val settingsRepositoryLazy: Lazy<SettingsRepository> get() = deps.settingsRepositoryLazy
 
     val currenciesLocalStore: Lazy<CurrenciesLocalStore> = lazy {
-        CurrenciesLocalStoreImpl(currenciesDaoLazy = lazy { deps.currenciesDao })
+        CurrenciesLocalStoreImpl(
+            currenciesDaoLazy = lazy { deps.currenciesDao },
+            currencyRatesMetadataDaoLazy = lazy { deps.currencyRatesMetadataDao },
+        )
     }
 
     private val currenciesRemoteStore: Lazy<CurrenciesRemoteStore> = lazy {
@@ -83,7 +86,7 @@ class EventsComponent internal constructor(
         CurrenciesPullTask(
             transactionHelperLazy = transactionHelper,
             currenciesLocalStoreLazy = currenciesLocalStore,
-            currenciesRemoteStoreLazy = currenciesRemoteStore
+            currenciesRemoteStoreLazy = currenciesRemoteStore,
         )
     }
 
