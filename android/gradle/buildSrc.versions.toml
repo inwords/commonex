@@ -1,5 +1,5 @@
 [versions]
-android-gradle-plugin = "9.0.1" # https://developer.android.com/build/releases/gradle-plugin#fixed_issues
+android-gradle-plugin = "9.1.0" # https://developer.android.com/build/releases/gradle-plugin#fixed_issues
 kotlin = "2.3.0"
 
 [libraries]
