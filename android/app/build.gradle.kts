@@ -31,8 +31,8 @@ android {
         applicationId = "ru.commonex"
         minSdk = 26
         targetSdk = 36
-        versionCode = 5
-        versionName = "2026.02.1"
+        versionCode = 6
+        versionName = "2026.03.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         testInstrumentationRunnerArguments["clearPackageData"] = "true"
