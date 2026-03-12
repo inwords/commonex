@@ -31,7 +31,7 @@ android {
         applicationId = "ru.commonex"
         minSdk = 26
         targetSdk = 36
-        versionCode = 6
+        versionCode = 7
         versionName = "2026.03.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
