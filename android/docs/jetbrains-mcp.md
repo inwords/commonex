@@ -54,6 +54,8 @@ When MCP is available:
 
 - Prefer JetBrains MCP tools for project-aware queries and inspections
 - Prefer `execute_terminal_command` for Gradle validation run from the IDE context
+- On Windows-hosted Android projects, expect `execute_terminal_command` to follow the IDE terminal's shell semantics, which may be PowerShell even if the agent session itself reports `bash`
+- For environment-sensitive commands, prefer shell-native syntax for the IDE terminal (`;`, `Select-String`, `Get-Content`, `Get-Date`, explicit `adb.exe` paths in PowerShell) instead of assuming Unix shell behavior or `PATH` parity with WSL
 
 When MCP is unavailable or limited:
 
