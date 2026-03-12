@@ -56,6 +56,7 @@ When MCP is available:
 - Prefer `execute_terminal_command` for Gradle validation run from the IDE context
 - On Windows-hosted Android projects, expect `execute_terminal_command` to follow the IDE terminal's shell semantics, which may be PowerShell even if the agent session itself reports `bash`
 - For environment-sensitive commands, prefer shell-native syntax for the IDE terminal (`;`, `Select-String`, `Get-Content`, `Get-Date`, explicit `adb.exe` paths in PowerShell) instead of assuming Unix shell behavior or `PATH` parity with WSL
+- For long Gradle runs, treat the JetBrains terminal timeout as an output-capture limit, not proof that Gradle stopped. Before rerunning a long task, poll for the wrapper process or expected output files and wait for the existing run to finish if it is still active
 
 When MCP is unavailable or limited:
 
