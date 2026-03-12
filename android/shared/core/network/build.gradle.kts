@@ -2,6 +2,7 @@ import com.inwords.expenses.plugins.SharedKmmLibraryPlugin.Companion.applyKmmDef
 
 plugins {
     id("shared-kmm-library-plugin")
+    alias(shared.plugins.kotlin.serialization)
 }
 
 kotlin {
@@ -44,6 +45,7 @@ kotlin {
                 implementation(shared.kotlin.test)
                 implementation(shared.coroutines.test)
                 implementation(shared.ktor.client.mock)
+                implementation(shared.kotlinx.serialization.json)
             }
         }
     }

@@ -4,6 +4,7 @@ import com.inwords.expenses.core.network.dto.ErrorResponseDto
 import com.inwords.expenses.core.utils.IoResult
 import com.inwords.expenses.core.utils.SuspendLazy
 import io.ktor.client.HttpClient
+import io.ktor.client.call.NoTransformationFoundException
 import io.ktor.client.call.body
 import io.ktor.client.plugins.ClientRequestException
 import io.ktor.client.plugins.RedirectResponseException
@@ -44,6 +45,7 @@ fun <T : Any> NetworkResult<T>.toIoResult(): IoResult<T> {
                 IoResult.Error.Failure
             }
         }
+
         is NetworkResult.Error.Http.Redirect -> IoResult.Error.Retry
         is NetworkResult.Error.Http.Server -> IoResult.Error.Retry
         is NetworkResult.Error.Parse -> IoResult.Error.Failure
@@ -63,6 +65,8 @@ suspend fun NetworkResult.Error.Http.Client.getErrorCode(): String? {
     return try {
         exception.response.body<ErrorResponseDto>().code // FIXME parse and propagate other fields too
     } catch (_: ContentConvertException) {
+        null
+    } catch (_: NoTransformationFoundException) {
         // TODO add log
         null
     }
