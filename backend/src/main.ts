@@ -9,9 +9,11 @@ import {join} from 'path';
 import {BusinessErrorFilter} from '#api/http/filters/business-error.filter';
 import {ValidationExceptionFilter} from '#api/http/filters/validation-exception.filter';
 import {fastifyHttpMetricsPlugin} from '#frameworks/observability/fastify-http-metrics.plugin';
+import {env} from './config';
 
 async function bootstrap(): Promise<void> {
-  const fastifyAdapter = new FastifyAdapter({http2: true});
+  const useHttp2 = env.ENVIRONMENT === 'prod';
+  const fastifyAdapter = new FastifyAdapter(useHttp2 ? {http2: true} : undefined);
   const fastifyInstance = fastifyAdapter.getInstance();
 
   await fastifyInstance.register(fastifyHttpMetricsPlugin, {
