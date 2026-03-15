@@ -20,7 +20,7 @@ compose-multiplatform = "1.10.2" # https://github.com/JetBrains/compose-multipla
 androidx-compose-ui-test = "1.10.4" # https://developer.android.com/jetpack/androidx/releases/compose-ui
 lifecycle-multiplatform = "2.10.0-beta01"
 
-appfunctions = "1.0.0-alpha07"
+appfunctions = "1.0.0-alpha08" # https://developer.android.com/jetpack/androidx/releases/appfunctions
 
 jupiter = "6.0.2" # https://docs.junit.org/current/release-notes/index.html
 mockk = "1.14.9" # https://github.com/mockk/mockk/releases
