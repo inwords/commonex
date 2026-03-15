@@ -10,7 +10,7 @@ import androidx.appfunctions.AppFunctionSerializable
  * @property amount The debt amount in decimal string form.
  * @property currencyCode The currency code of the debt amount.
  */
-@AppFunctionSerializable(isDescribedByKdoc = true)
+@AppFunctionSerializable(isDescribedByKDoc = true)
 internal data class AppFunctionDebt(
     val debtorName: String,
     val creditorName: String,

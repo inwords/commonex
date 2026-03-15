@@ -38,7 +38,7 @@ internal class CommonExAppFunctions {
      *
      * @return All available currencies, sorted by currency code.
      */
-    @AppFunction(isDescribedByKdoc = true)
+    @AppFunction(isDescribedByKDoc = true)
     suspend fun listCurrencies(@Suppress("unused") appFunctionContext: AppFunctionContext): List<AppFunctionCurrency> = withContext(IO) {
         loadAvailableCurrencies().map { currency ->
             currency.toAppFunctionCurrency()
@@ -55,7 +55,7 @@ internal class CommonExAppFunctions {
      * @throws AppFunctionInvalidArgumentException If the event name or owner name is invalid.
      * @throws AppFunctionElementNotFoundException If the requested currency is unavailable.
      */
-    @AppFunction(isDescribedByKdoc = true)
+    @AppFunction(isDescribedByKDoc = true)
     suspend fun createEvent(
         @Suppress("unused") appFunctionContext: AppFunctionContext,
         name: String,
@@ -81,7 +81,7 @@ internal class CommonExAppFunctions {
      *
      * @return All local events with participant counts and primary currency codes when available.
      */
-    @AppFunction(isDescribedByKdoc = true)
+    @AppFunction(isDescribedByKDoc = true)
     suspend fun listEvents(@Suppress("unused") appFunctionContext: AppFunctionContext): List<AppFunctionEvent> = withContext(IO) {
         val events = eventsComponent.getEventsUseCaseLazy.value.getEvents().first()
         coroutineScope {
@@ -102,7 +102,7 @@ internal class CommonExAppFunctions {
      * @throws AppFunctionInvalidArgumentException If the event name is blank.
      * @throws AppFunctionElementNotFoundException If the event is missing.
      */
-    @AppFunction(isDescribedByKdoc = true)
+    @AppFunction(isDescribedByKDoc = true)
     suspend fun getDebts(
         @Suppress("unused") appFunctionContext: AppFunctionContext,
         eventName: String,
@@ -136,7 +136,7 @@ internal class CommonExAppFunctions {
      * @throws AppFunctionElementNotFoundException If the event is missing.
      * @throws AppFunctionElementAlreadyExistsException If the participant already exists in the event.
      */
-    @AppFunction(isDescribedByKdoc = true)
+    @AppFunction(isDescribedByKDoc = true)
     suspend fun addParticipant(
         @Suppress("unused") appFunctionContext: AppFunctionContext,
         eventName: String,
@@ -181,7 +181,7 @@ internal class CommonExAppFunctions {
      * @throws AppFunctionInvalidArgumentException If the names or description are blank or amount is not positive.
      * @throws AppFunctionElementNotFoundException If the event or payer cannot be found.
      */
-    @AppFunction(isDescribedByKdoc = true)
+    @AppFunction(isDescribedByKDoc = true)
     suspend fun addExpense(
         @Suppress("unused") appFunctionContext: AppFunctionContext,
         eventName: String,

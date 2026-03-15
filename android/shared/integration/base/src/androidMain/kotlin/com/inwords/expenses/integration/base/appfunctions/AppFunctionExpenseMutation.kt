@@ -12,7 +12,7 @@ import androidx.appfunctions.AppFunctionSerializable
  * @property currencyCode The event primary currency code.
  * @property splitBetweenParticipants The number of participants included in the equal split.
  */
-@AppFunctionSerializable(isDescribedByKdoc = true)
+@AppFunctionSerializable(isDescribedByKDoc = true)
 internal data class AppFunctionExpenseMutation(
     val event: AppFunctionEvent,
     val payerName: String,
