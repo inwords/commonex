@@ -55,7 +55,7 @@ lifecycle-viewmodel-compose-multiplatform = { group = "org.jetbrains.androidx.li
 lifecycle-viewmodel-navigation3-multiplatform = { group = "org.jetbrains.androidx.lifecycle", name = "lifecycle-viewmodel-navigation3", version.ref = "lifecycle-multiplatform" } # https://mvnrepository.com/artifact/org.jetbrains.androidx.lifecycle/lifecycle-viewmodel-navigation3
 
 work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx", version = "2.11.1" } # https://developer.android.com/jetpack/androidx/releases/work
-core-ktx = { group = "androidx.core", name = "core-ktx", version = "1.17.0" } # https://developer.android.com/jetpack/androidx/releases/core
+core-ktx = { group = "androidx.core", name = "core-ktx", version = "1.18.0" } # https://developer.android.com/jetpack/androidx/releases/core
 concurrent-futures-ktx = { group = "androidx.concurrent", name = "concurrent-futures-ktx", version = "1.3.0" }
 annotation = { group = "androidx.annotation", name = "annotation", version = "1.9.1" }
 
