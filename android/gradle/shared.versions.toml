@@ -108,7 +108,7 @@ compose-multiplatform-compiler = { id = "org.jetbrains.compose", version.ref = "
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 room = { id = "androidx.room", version.ref = "room" }
-wire = { id = "com.squareup.wire", version = "5.5.1" } # https://square.github.io/wire/changelog/
+wire = { id = "com.squareup.wire", version = "6.0.0" } # https://square.github.io/wire/changelog/
 gradle-versions-checker = { id = "com.github.ben-manes.versions", version = "0.53.0" }
 android-junit5 = { id = "de.mannodermaus.android-junit", version = "2.0.1" } # https://github.com/mannodermaus/android-junit5/releases
 # https://github.com/getsentry/sentry-kotlin-multiplatform?tab=readme-ov-file#cocoa-sdk-version-compatibility-table
