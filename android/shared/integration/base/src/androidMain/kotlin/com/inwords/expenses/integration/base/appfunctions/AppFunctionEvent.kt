@@ -10,7 +10,7 @@ import androidx.appfunctions.AppFunctionSerializable
  * @property participantCount The known participant count when available.
  * @property primaryCurrencyCode The event primary currency code when available.
  */
-@AppFunctionSerializable(isDescribedByKdoc = true)
+@AppFunctionSerializable(isDescribedByKDoc = true)
 internal data class AppFunctionEvent(
     val id: Long,
     val name: String,
