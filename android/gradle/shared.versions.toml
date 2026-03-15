@@ -3,7 +3,7 @@ kotlin = "2.3.0" # https://github.com/jetbrains/kotlin/releases https://kotlinla
 ksp = "2.3.4" # https://github.com/google/ksp/releases
 
 room = "2.8.4" # https://developer.android.com/jetpack/androidx/releases/room
-datastore = "1.2.0" # https://developer.android.com/jetpack/androidx/releases/datastore
+datastore = "1.2.1" # https://developer.android.com/jetpack/androidx/releases/datastore
 
 ktor = "3.4.1" # https://github.com/ktorio/ktor/releases
 cronet = "143.7445.0"
