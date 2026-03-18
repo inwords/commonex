@@ -1,0 +1,149 @@
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Belgrade"
+    labels:
+      - "dependencies"
+      - "github-actions"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "npm"
+    directory: "/backend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Belgrade"
+    labels:
+      - "dependencies"
+      - "backend"
+    open-pull-requests-limit: 5
+    groups:
+      backend-npm:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "npm"
+    directory: "/web"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Belgrade"
+    labels:
+      - "dependencies"
+      - "web"
+    open-pull-requests-limit: 5
+    groups:
+      web-npm:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "gradle"
+    directory: "/android"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Belgrade"
+    labels:
+      - "dependencies"
+      - "android"
+    open-pull-requests-limit: 5
+    groups:
+      android-gradle:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "docker"
+    directory: "/backend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Belgrade"
+    labels:
+      - "dependencies"
+      - "backend"
+      - "docker"
+    open-pull-requests-limit: 2
+    groups:
+      backend-docker:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "docker"
+    directory: "/web"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Belgrade"
+    labels:
+      - "dependencies"
+      - "web"
+      - "docker"
+    open-pull-requests-limit: 2
+    groups:
+      web-docker:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "docker"
+    directory: "/infra/nginx"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Belgrade"
+    labels:
+      - "dependencies"
+      - "infra"
+      - "docker"
+    open-pull-requests-limit: 2
+    groups:
+      infra-nginx-docker:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "docker"
+    directory: "/infra/otel-collector"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Belgrade"
+    labels:
+      - "dependencies"
+      - "infra"
+      - "docker"
+    open-pull-requests-limit: 2
+    groups:
+      infra-otel-collector-docker:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "docker-compose"
+    directory: "/infra"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Belgrade"
+    labels:
+      - "dependencies"
+      - "infra"
+      - "docker"
+    open-pull-requests-limit: 2
+    groups:
+      infra-docker-compose:
+        patterns:
+          - "*"
