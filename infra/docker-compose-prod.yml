@@ -1,6 +1,6 @@
 services:
   db:
-    image: postgres:17-alpine3.23
+    image: postgres:18-alpine3.23
     deploy:
       resources:
         limits:
@@ -151,7 +151,7 @@ services:
       - monitoring-network
 
   victoriametrics:
-    image: victoriametrics/victoria-metrics:v1.127.0
+    image: victoriametrics/victoria-metrics:v1.138.0
     container_name: victoriametrics
     deploy:
       resources:
@@ -172,7 +172,7 @@ services:
       - monitoring-network
 
   victoriatraces:
-    image: victoriametrics/victoria-traces:v0.3.0
+    image: victoriametrics/victoria-traces:v0.8.0
     container_name: victoriatraces
     deploy:
       resources:
@@ -193,7 +193,7 @@ services:
       - monitoring-network
 
   grafana:
-    image: grafana/grafana:12.2
+    image: grafana/grafana:12.4
     container_name: grafana
     deploy:
       resources:
@@ -226,7 +226,7 @@ services:
       - db-network
 
   certbot:
-    image: certbot/certbot:v5.0.0
+    image: certbot/certbot:v5.4.0
     deploy:
       resources:
         limits:
