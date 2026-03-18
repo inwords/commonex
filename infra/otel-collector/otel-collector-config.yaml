@@ -18,7 +18,10 @@ exporters:
     compression: gzip
     encoding: proto
     metrics_endpoint: http://victoriametrics:8428/opentelemetry/v1/metrics
-    traces_endpoint: http://victoriatraces:10428/insert/opentelemetry/v1/traces
+    tls:
+      insecure: true
+  otlp/victoriatraces:
+    endpoint: victoriatraces:4317
     tls:
       insecure: true
 
@@ -43,4 +46,4 @@ service:
     traces:
       receivers: [ otlp ]
       processors: [ batch ]
-      exporters: [ otlphttp/victoriametrics, spanmetrics ]
+      exporters: [ otlp/victoriatraces, spanmetrics ]
