@@ -1,7 +1,7 @@
 # Stage 1: Builder
 FROM golang:1.25-alpine3.23 AS builder
 
-ARG OTEL_VERSION=0.136.0
+ARG OTEL_VERSION=0.148.0
 
 WORKDIR /build
 
