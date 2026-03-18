@@ -54,12 +54,16 @@ CommonEx is a multi-platform expense sharing application with Android/iOS (KMM),
 ## Workflow agent rules
 
 - **For non-trivial or long-running tasks**, read [`docs/agent-workflows.md`](docs/agent-workflows.md) and follow the Architect → Plan → Code → Evaluate → Review → Refine → Report lifecycle; use it to decide when to advance vs stop and ask and how to choose
-  validation depth.
+  validation depth, planning tracks, readiness gates, plan deltas, discovery depth, debugging flow, and worktree usage.
 - Identify the target project first: `android/`, `backend/`, `web/`, or `infra/`.
 - Read `AGENTS.md` and the project instruction file; follow the most specific guidance.
 - Follow project-scoped MCP validation/tooling rules where defined (for example, Android MCP-first validation policy in `android/AGENTS.md`).
 - Important: try to fix things at the cause, not the symptom. Keep changes minimal and focused.
-- For non-trivial work, propose a short plan before editing.
+- For non-trivial work, choose a planning track (`Quick Change`, `Feature Track`, or `System Track`) and propose a short plan before editing.
+- If scope changes materially mid-task, update the active plan with a delta instead of restarting the whole plan from scratch.
+- Prefer repo-native discovery order: canonical docs -> target project instructions/docs -> targeted repo search -> upstream docs only when freshness is required.
+- For concrete bugs, prefer `reproduce -> root cause -> minimal fix -> verify`; if reproduction fails, stop and report before making speculative edits.
+- Use parallel work only when ownership and dependencies are clear; use git worktrees only when overlap risk or environment isolation justifies them.
 - Stop and ask clarifying questions if you are less that 80% sure about the task.
 - Call out server-client mismatches before changing contracts.
 
