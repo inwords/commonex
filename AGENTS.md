@@ -64,7 +64,7 @@ CommonEx is a multi-platform expense sharing application with Android/iOS (KMM),
 - Prefer repo-native discovery order: canonical docs -> target project instructions/docs -> targeted repo search -> upstream docs only when freshness is required.
 - For concrete bugs, prefer `reproduce -> root cause -> minimal fix -> verify`; if reproduction fails, stop and report before making speculative edits.
 - Use parallel work only when ownership and dependencies are clear; use git worktrees only when overlap risk or environment isolation justifies them.
-- Stop and ask clarifying questions if you are less that 80% sure about the task.
+- Stop and ask clarifying questions if you are less than 80% sure about the task.
 - Call out server-client mismatches before changing contracts.
 
 ## Freshness and external documentation
