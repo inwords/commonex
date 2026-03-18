@@ -23,7 +23,7 @@ CommonEx is a multi-platform expense sharing application with Android/iOS (KMM),
 
 ## Cross-cutting standards
 
-- Use CRLF line endings in all files.
+- Prefer LF line endings in text files unless a file or tool explicitly requires a different EOL.
 - Keep changes minimal; preserve architecture and conventions already in place unless improving them.
 - Avoid editing generated and build output files, `.env` and secrets (e.g., `.next/`, `build/`).
 - When commands are listed, run them from the relevant project directory; there is no root `package.json`.
