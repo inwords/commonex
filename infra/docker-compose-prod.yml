@@ -187,6 +187,8 @@ services:
       - no-new-privileges:true
     command:
       - "--storageDataPath=/victoria-traces-data"
+      - "--otlpGRPCListenAddr=:4317"
+      - "--otlpGRPC.tls=false"
     volumes:
       - victoriatraces_data:/victoria-traces-data
     networks:
