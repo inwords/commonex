@@ -11,8 +11,8 @@ multi-project tasks.
 2. **Plan** – For non-trivial work, choose a planning track, then propose a concrete plan with scope, affected areas, dependencies, and validation. If the plan would touch contracts or multiple services, call out server-client or cross-project impact and
    **stop and ask** if unclear. Do not start implementation until the plan reaches `Implementation Readiness: PASS`.
 
-3. **Code** – Implement changes. Prefer minimal, focused edits; preserve existing architecture and conventions. Fix causes, not symptoms. Follow repo standards (CRLF, no edits to generated/build output, comments only when non-obvious). If scope changes
-   materially after coding starts, return to Plan and issue a `Plan Delta` before continuing.
+3. **Code** – Implement changes. Prefer minimal, focused edits; preserve existing architecture and conventions. Fix causes, not symptoms. Follow repo standards (prefer LF line endings, no edits to generated/build output, comments only when non-obvious). If
+   scope changes materially after coding starts, return to Plan and issue a `Plan Delta` before continuing.
 
 4. **Evaluate** – Run the chosen validation profile. Start with the smallest sufficient set (e.g. build + host tests + lint); escalate to broader or instrumented validation only when justified by the change. If a command fails repeatedly with no progress,
    **stop and ask**; do not retry blindly.

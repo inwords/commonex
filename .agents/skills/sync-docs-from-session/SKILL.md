@@ -141,7 +141,7 @@ Prefer links to a single source of truth over duplicated content.
     - a new doc plus minimal backlinks
 7) Draft a minimal edit plan (file list + change summary), distinguishing concise instruction updates, canonical-doc updates, and any proposed new doc creation.
 8) Present proposed edits, explicitly split into Tier A and Tier B.
-9) Apply Tier A immediately after presenting the proposal. Preserve CRLF line endings.
+9) Apply Tier A immediately after presenting the proposal. Preserve the repo's preferred LF line endings unless a file or tool explicitly requires a different EOL.
 10) If Tier B exists, ask for confirmation and apply only the confirmed Tier B items.
 11) Summarize updates and note any files not changed due to missing evidence.
 
@@ -159,7 +159,7 @@ Prefer links to a single source of truth over duplicated content.
 - For inferred pattern changes, document: when to apply the pattern, when not to apply it, and one short implementation shape example.
 - For new-doc proposals, include: why existing docs are a poor fit, the proposed path/title, and which existing docs should link to it.
 - Preserve existing structure and tone.
-- Maintain CRLF line endings.
+- Maintain the repo's preferred LF line endings unless a file or tool explicitly requires a different EOL.
 
 ## Stop conditions
 
