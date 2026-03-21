@@ -43,6 +43,29 @@ This document is the canonical mobile reference for the KMM offline-first model,
 - `HandleDeeplinks` matches incoming URLs against Navigation deep-link definitions and navigates to the matching destination.
 - `JoinEventViewModel` auto-triggers join when the incoming deep link already contains a token or pin code.
 
+### iOS Universal Links — AASA file missing (as of 2026-03-21)
+
+iOS Universal Links require the server to host an Apple App Site Association file at `https://commonex.ru/.well-known/apple-app-site-association`. Currently the server returns an HTML page (Next.js fallback) instead of the required JSON. Without a valid AASA file, iOS will never open Universal Links in the app — they will always open in Safari.
+
+**To fix**, the server must serve the following at `/.well-known/apple-app-site-association` with `Content-Type: application/json`:
+
+```json
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["<TEAM_ID>.<BUNDLE_ID>"],
+        "components": [
+          { "/": "/event/*" }
+        ]
+      }
+    ]
+  }
+}
+```
+
+Replace `<TEAM_ID>` and `<BUNDLE_ID>` with the actual Apple Developer Team ID and the app's bundle identifier. This is a server/Next.js configuration fix — the iOS app code (`onContinueUserActivity` handler) is already correctly implemented.
+
 ## Share Links
 
 - Mobile share text is created from the current event state in `MenuViewModel`.
