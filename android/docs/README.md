@@ -21,6 +21,10 @@ Use this index as the Android and iOS operational doc map. Keep detailed guidanc
 - [`../marathon/README.md`](../marathon/README.md) - Local Marathon runner setup and usage.
 - [`../gradle/README.md`](../gradle/README.md) - Gradle profiler, dependency-updates, and baseline-profile tooling.
 
+## iOS Sync
+
+- [`ios-background-sync.md`](ios-background-sync.md) - Planned approach for reliable iOS background sync (beginBackgroundTask + BGTaskScheduler).
+
 ## iOS Release And Validation
 
 - [`ios-validation-checklist.md`](ios-validation-checklist.md) - Pre-submission simulator, archive, device, and privacy-report validation.

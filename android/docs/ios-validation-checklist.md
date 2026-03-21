@@ -8,6 +8,7 @@ Use this checklist to validate the iOS app before TestFlight or App Store submis
 - Open `android/iosApp/iosApp.xcodeproj` when using Xcode UI flows such as Archive, Organizer, and Privacy Report generation.
 - Gradle wrapper (run from `android/` directory)
 - For device tests: physical iPhone connected
+- `DEVELOPMENT_TEAM` is hardcoded in the `.pbxproj` file. This is intentional — the project has a single developer, so signing-config indirection (`.xcconfig`, CI build settings) is unnecessary.
 
 ## 1. Simulator Build
 
