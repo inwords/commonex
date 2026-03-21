@@ -38,7 +38,6 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
-import kotlin.time.ExperimentalTime
 
 internal class EventsRemoteStoreImpl(
     private val client: SuspendLazy<HttpClient>,
@@ -186,7 +185,6 @@ internal class EventsRemoteStoreImpl(
         }.toIoResult()
     }
 
-    @OptIn(ExperimentalTime::class)
     override suspend fun createEventShareToken(
         eventServerId: String,
         pinCode: String,

@@ -24,7 +24,7 @@ architecture with feature-based organization.
 
 **Key Technologies:**
 
-- Kotlin 2.3.0 with Compose compiler plugin
+- Kotlin 2.3.20 with Compose compiler plugin
 - Jetpack Compose with Material3 design system
 - Ktor client for networking with Cronet backend (Android) and Darwin backend (iOS)
 - Room database with KSP for code generation

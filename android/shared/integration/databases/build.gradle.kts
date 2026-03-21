@@ -82,7 +82,6 @@ kotlin {
     compilerOptions {
         // Common compiler options applied to all Kotlin source sets
         freeCompilerArgs.add("-Xexpect-actual-classes")
-        freeCompilerArgs.add("-opt-in=kotlin.time.ExperimentalTime")
     }
 }
 

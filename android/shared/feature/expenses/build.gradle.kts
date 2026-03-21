@@ -73,10 +73,6 @@ kotlin {
             }
         }
     }
-
-    compilerOptions {
-        freeCompilerArgs.add("-opt-in=kotlin.time.ExperimentalTime")
-    }
 }
 
 compose.resources {

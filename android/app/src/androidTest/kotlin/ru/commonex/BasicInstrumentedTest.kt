@@ -17,7 +17,6 @@ import ru.commonex.screens.LocalEventsScreen
 import ru.commonex.screens.MenuDialogScreen
 import ru.commonex.ui.MainActivity
 import kotlin.io.encoding.Base64
-import kotlin.io.encoding.ExperimentalEncodingApi
 
 // TODO bring back JUnit5 when it is able to work with Marathon
 // .\gradlew :app:connectedAutotestAndroidTest -Dcom.android.tools.r8.disableApiModeling
@@ -152,7 +151,6 @@ class BasicInstrumentedTest {
      * - Select person from participants list
      * - Verify expenses screen loads
      */
-    @OptIn(ExperimentalEncodingApi::class)
     @Test
     fun testJoinExistingEvent() = composeRule.runTest {
         LocalEventsScreen()

@@ -11,7 +11,6 @@ kotlin {
     compilerOptions {
         jvmTarget.set(JvmTarget.JVM_17)
         freeCompilerArgs.addAll(
-            "-Xdata-flow-based-exhaustiveness",
             "-Xreturn-value-checker=check",
             "-Xexplicit-backing-fields",
         )
