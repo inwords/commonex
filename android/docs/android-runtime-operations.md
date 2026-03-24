@@ -5,6 +5,8 @@ This document is the canonical operational reference for Android app startup beh
 ## Source Of Truth
 
 - Android application entry point: `android/app/src/main/kotlin/ru/commonex/App.kt`
+- Shared PostHog analytics bootstrap: `android/shared/core/analytics/src/commonMain/kotlin/com/inwords/expenses/core/analytics/`
+- iOS PostHog bridge implementation: `android/iosApp/iosApp/IOSPostHogBridge.swift`
 - Android manifest and startup providers: `android/app/src/main/AndroidManifest.xml`
 - Shared runtime bootstrap: `android/shared/integration/base/src/commonMain/kotlin/com/inwords/expenses/integration/base/`
 - Android AppFunctions entry points: `android/shared/integration/base/src/androidMain/kotlin/com/inwords/expenses/integration/base/appfunctions/`
@@ -14,9 +16,10 @@ This document is the canonical operational reference for Android app startup beh
 - The Android app uses `ru.commonex.App` as the `Application` class.
 - Startup order in `App.onCreate()` is:
     1. initialize Sentry
-    2. enable Android `StrictMode` in non-production builds
-    3. register shared/platform components
-    4. start sync observation
+    2. initialize PostHog product analytics
+    3. enable Android `StrictMode` in non-production builds
+    4. register shared/platform components
+    5. start sync observation
 
 Current production classification:
 
@@ -31,6 +34,19 @@ Current production classification:
     - `tracesSampleRate = 0.2` in production
     - `tracesSampleRate = 1.0` in non-production builds
 - Android and iOS both use the same shared initialization function, so changes here affect both platforms unless platform-specific branching is added.
+
+## PostHog
+
+- PostHog is initialized from shared KMM code through `initializePostHog(production, postHogBridge?)` in `shared:core:analytics`.
+- Runtime configuration is source-defined in `shared/core/analytics/src/commonMain/`, matching the repo's Sentry-style client-token pattern. The current production configuration uses PostHog's EU ingest host.
+- The current first-pass analytics setup is intentionally limited:
+    - `captureApplicationLifecycleEvents = true` for install, open, update, and background lifecycle events
+    - `captureScreenViews = false`
+    - `optOut = true` for non-production builds so debug/autotest traffic does not pollute analytics
+- Android actuals initialize the SDK directly from Kotlin. iOS uses Kotlin's reverse-import bridge pattern: shared code computes the config, and `iosApp.swift` supplies a Swift `PostHogBridge` implementation because the repo currently links `posthog-ios`
+  through Swift Package Manager instead of a Kotlin/Native native-library import.
+  TODO Migrate to https://kotlinlang.org/docs/multiplatform/multiplatform-spm-import.html when stable.
+- This integration is currently meant to cover installs and active-usage analytics first; shared custom user events are not wired yet.
 
 ## StrictMode
 
@@ -88,5 +104,5 @@ Operational constraints:
 ## Related Docs
 
 - `mobile-sync-and-sharing.md` - share links, universal links, and sync-task behavior
-- `ios-app-privacy.md` - privacy consequences of shared Sentry initialization
+- `ios-app-privacy.md` - privacy consequences of Sentry and PostHog on iOS
 - `ios-validation-checklist.md` - iOS device validation for startup, links, and sync recovery

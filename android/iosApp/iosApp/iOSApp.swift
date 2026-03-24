@@ -12,6 +12,10 @@ struct iOSApp: App {
         #endif
 
         InitializeSentryKt.initializeSentry(production: production)
+        InitializePostHogKt.initializePostHog(
+            production: production,
+            postHogBridge: IOSPostHogBridge()
+        )
         RegisterComponentsKt.registerComponents()
         EnableSyncKt.enableSync()
     }
