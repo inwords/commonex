@@ -1,5 +1,6 @@
 package com.inwords.expenses.feature.events.domain.model
 
+import com.inwords.expenses.core.observability.captureMessageIfNull
 import com.ionspin.kotlin.bignum.decimal.BigDecimal
 
 object SeededCurrencies {
@@ -65,6 +66,10 @@ object SeededCurrencies {
     }
 
     fun nameForCode(code: String): String {
-        return currencyNamesByCode[code] ?: code // FIXME: non-fatal
+        return currencyNamesByCode[code]
+            .captureMessageIfNull("SeededCurrencies is missing a display name for a backend currency code") {
+                setContext("currency_code", code)
+            }
+            ?: code
     }
 }

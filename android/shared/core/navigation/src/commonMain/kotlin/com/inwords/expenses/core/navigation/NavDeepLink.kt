@@ -1,5 +1,7 @@
 package com.inwords.expenses.core.navigation
 
+import com.inwords.expenses.core.observability.Observability
+import com.inwords.expenses.core.observability.ObservabilityLevel
 import io.ktor.http.URLProtocol
 import io.ktor.http.Url
 import kotlinx.serialization.KSerializer
@@ -72,8 +74,15 @@ class NavDeepLink<T : Destination>(
 
         return try {
             Json.decodeFromJsonElement(serializer, jsonObject)
-        } catch (_: IllegalArgumentException) {
-            // FIXME: non-fatal error
+        } catch (exception: IllegalArgumentException) {
+            Observability.captureException(exception) {
+                level = ObservabilityLevel.WARNING
+                setMessage("NavDeepLink failed to decode a matched deeplink")
+                setContext("base_path", basePath)
+                setContext("deeplink_host", deeplinkUrl.host)
+                setContext("deeplink_path", deeplinkSegments.joinToString(separator = "/", prefix = "/"))
+                setContext("query_keys", deeplinkUrl.parameters.entries().joinToString(",") { (key, _) -> key })
+            }
             null
         }
     }

@@ -22,6 +22,7 @@ kotlin {
         commonMain {
             dependencies {
                 implementation(project(":shared:core:utils"))
+                implementation(project(":shared:core:observability"))
                 implementation(project(":shared:core:locator"))
                 implementation(project(":shared:feature:events"))
                 implementation(project(":shared:feature:expenses"))
