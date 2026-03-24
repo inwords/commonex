@@ -8,7 +8,7 @@ final class IOSPostHogBridge: NSObject, PostHogBridge {
         let postHogConfig = PostHogConfig(apiKey: config.apiKey, host: config.host)
         postHogConfig.captureApplicationLifecycleEvents = config.captureApplicationLifecycleEvents
         postHogConfig.captureScreenViews = config.captureScreenViews
-        postHogConfig.enableSwizzling = config.enableSwizzling
+        postHogConfig.enableSwizzling = false
         postHogConfig.debug = config.debug
         postHogConfig.optOut = config.optOut
 
