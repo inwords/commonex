@@ -111,6 +111,7 @@ android {
 
 dependencies {
     implementation(project(":shared:core:utils"))
+    implementation(project(":shared:core:analytics"))
     implementation(project(":shared:core:ui-design"))
     implementation(project(":shared:integration:base"))
 
@@ -118,6 +119,9 @@ dependencies {
     implementation(shared.cronet.embedded)
 
     implementation(shared.androidx.appfunctions.service)
+
+    // analytics
+    implementation(shared.posthog.android)
 
     // compose
     val composeBom = platform(shared.compose.bom)

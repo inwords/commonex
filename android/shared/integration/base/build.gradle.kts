@@ -1,4 +1,6 @@
 import com.inwords.expenses.plugins.SharedKmmLibraryPlugin.Companion.applyKmmDefaults
+import org.jetbrains.kotlin.gradle.plugin.mpp.Framework
+import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 
 plugins {
     id("shared-kmm-library-plugin")
@@ -36,6 +38,7 @@ kotlin {
                 implementation(project(":shared:core:utils"))
                 implementation(project(":shared:core:locator"))
                 implementation(project(":shared:core:storage-utils"))
+                api(project(":shared:core:analytics"))
                 api(project(":shared:core:navigation"))
                 implementation(project(":shared:core:network"))
                 implementation(project(":shared:feature:events"))
@@ -87,6 +90,12 @@ kotlin {
             "-Xcontext-parameters",
             "-Xexpect-actual-classes"
         )
+    }
+
+    targets.withType<KotlinNativeTarget>().configureEach {
+        binaries.withType<Framework>().configureEach {
+            export(project(":shared:core:analytics"))
+        }
     }
 }
 
