@@ -16,6 +16,7 @@ import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import com.inwords.expenses.core.locator.ComponentsMap
 import com.inwords.expenses.core.locator.inject
+import com.inwords.expenses.core.observability.Observability
 import com.inwords.expenses.core.utils.IoResult
 import com.inwords.expenses.feature.events.api.EventsComponent
 import com.inwords.expenses.feature.expenses.api.ExpensesComponent
@@ -203,7 +204,7 @@ private const val KEY_EVENT_ID = "EVENT_ID"
 private fun Data.getEventId(): Long? {
     val eventId = getLong(KEY_EVENT_ID, -1L)
     if (eventId == -1L) {
-        // TODO non-fatal error
+        Observability.captureMessage("Sync worker input data is missing a valid event id")
         return null
     }
     return eventId

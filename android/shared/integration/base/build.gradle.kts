@@ -6,7 +6,6 @@ plugins {
     id("shared-kmm-library-plugin")
     alias(shared.plugins.compose.compiler)
     alias(shared.plugins.compose.multiplatform.compiler)
-    alias(shared.plugins.sentry.kotlin.multiplatform)
     alias(shared.plugins.ksp)
 }
 
@@ -39,6 +38,7 @@ kotlin {
                 implementation(project(":shared:core:locator"))
                 implementation(project(":shared:core:storage-utils"))
                 api(project(":shared:core:analytics"))
+                implementation(project(":shared:core:observability"))
                 api(project(":shared:core:navigation"))
                 implementation(project(":shared:core:network"))
                 implementation(project(":shared:feature:events"))

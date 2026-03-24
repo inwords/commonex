@@ -1,5 +1,6 @@
 package com.inwords.expenses.feature.events.domain
 
+import com.inwords.expenses.core.observability.Observability
 import com.inwords.expenses.feature.events.api.EventHooks
 import com.inwords.expenses.feature.events.domain.store.local.EventsLocalStore
 import com.inwords.expenses.feature.events.domain.store.remote.EventsRemoteStore
@@ -44,9 +45,12 @@ class DeleteEventUseCase internal constructor(
                     EventNetworkError.NotFound,
                     EventNetworkError.Gone -> deleteLocalEvent(event.id)
 
-                    // TODO log non-fatal error and notify user
-                    // This should not happen - local and remote data are inconsistent
-                    EventNetworkError.InvalidAccessCode -> DeleteEventResult.RemoteFailed
+                    EventNetworkError.InvalidAccessCode -> {
+                        Observability.captureMessage("DeleteEventUseCase received InvalidAccessCode while deleting a synced local event") {
+                            setContext("event_server_id", event.serverId)
+                        }
+                        DeleteEventResult.RemoteFailed
+                    }
 
                     EventNetworkError.OtherError -> DeleteEventResult.RemoteFailed
                 }

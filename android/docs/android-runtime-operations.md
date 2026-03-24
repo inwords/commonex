@@ -6,6 +6,7 @@ This document is the canonical operational reference for Android app startup beh
 
 - Android application entry point: `android/app/src/main/kotlin/ru/commonex/App.kt`
 - Shared PostHog analytics bootstrap: `android/shared/core/analytics/src/commonMain/kotlin/com/inwords/expenses/core/analytics/`
+- Shared observability bootstrap and reporting: `android/shared/core/observability/src/commonMain/kotlin/com/inwords/expenses/core/observability/`
 - iOS PostHog bridge implementation: `android/iosApp/iosApp/IOSPostHogBridge.swift`
 - Android manifest and startup providers: `android/app/src/main/AndroidManifest.xml`
 - Shared runtime bootstrap: `android/shared/integration/base/src/commonMain/kotlin/com/inwords/expenses/integration/base/`
@@ -29,6 +30,8 @@ Current production classification:
 ## Sentry
 
 - Sentry is initialized from shared KMM code through `initializeSentry(production)`.
+- The Sentry runtime config and shared `Observability.captureMessage(...)` / `Observability.captureException(...)` wrappers live in `shared:core:observability`.
+- `shared:integration:base/initializeSentry.kt` is a thin compatibility delegate so Android app startup and iOS framework exports keep the same entry point.
 - The current runtime behavior sets:
     - `environment = production | development`
     - `tracesSampleRate = 0.2` in production

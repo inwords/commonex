@@ -4,6 +4,7 @@ import com.inwords.expenses.core.network.HostConfig
 import com.inwords.expenses.core.network.requestWithExceptionHandling
 import com.inwords.expenses.core.network.toIoResult
 import com.inwords.expenses.core.network.url
+import com.inwords.expenses.core.observability.captureMessageIfNull
 import com.inwords.expenses.core.utils.IoResult
 import com.inwords.expenses.core.utils.SuspendLazy
 import com.inwords.expenses.feature.events.domain.model.Currency
@@ -39,7 +40,9 @@ internal class ExpensesRemoteStoreImpl(
         currencies: List<Currency>,
         persons: List<Person>
     ): IoResult<List<Expense>> {
-        val serverId = event.serverId ?: return IoResult.Error.Failure // FIXME: non-fatal error
+        val serverId = event.serverId
+            .captureMessageIfNull("ExpensesRemoteStore.getExpenses called for an unsynced event")
+            ?: return IoResult.Error.Failure
         return client.requestWithExceptionHandling {
             post {
                 url(hostConfig) { pathSegments = listOf("api", "v2", "user", "event", serverId, "expenses") }
@@ -66,9 +69,20 @@ internal class ExpensesRemoteStoreImpl(
         currencies: List<Currency>,
         persons: List<Person>
     ): IoResult<Expense> {
-        val serverId = event.serverId ?: return IoResult.Error.Failure // FIXME: non-fatal error, should not happen
-        val userWhoPaidId = expense.person.serverId ?: return IoResult.Error.Failure // FIXME: non-fatal error, should not happen
-        val currencyServerId = expense.currency.serverId ?: return IoResult.Error.Failure // FIXME: non-fatal error, should not happen
+        val serverId = event.serverId
+            .captureMessageIfNull("ExpensesRemoteStore.addExpenseToEvent called for an unsynced event")
+            ?: return IoResult.Error.Failure
+        val userWhoPaidId = expense.person.serverId
+            .captureMessageIfNull("ExpensesRemoteStore.addExpenseToEvent found an expense payer without a server id") {
+                setContext("event_server_id", serverId)
+            }
+            ?: return IoResult.Error.Failure
+        val currencyServerId = expense.currency.serverId
+            .captureMessageIfNull("ExpensesRemoteStore.addExpenseToEvent found an expense currency without a server id") {
+                setContext("event_server_id", serverId)
+                setContext("currency_code", expense.currency.code)
+            }
+            ?: return IoResult.Error.Failure
         return client.requestWithExceptionHandling {
             post {
                 url(hostConfig) { pathSegments = listOf("api", "v2", "user", "event", serverId, "expense") }
@@ -82,8 +96,11 @@ internal class ExpensesRemoteStoreImpl(
                         },
                         userWhoPaidId = userWhoPaidId,
                         splitInformation = expense.subjectExpenseSplitWithPersons.map { expenseSplitWithPerson ->
-                            // FIXME: non-fatal error, should not happen
-                            val splitInformationUserId = expenseSplitWithPerson.person.serverId ?: return IoResult.Error.Failure
+                            val splitInformationUserId = expenseSplitWithPerson.person.serverId
+                                .captureMessageIfNull("ExpensesRemoteStore.addExpenseToEvent found an expense split person without a server id") {
+                                    setContext("event_server_id", serverId)
+                                }
+                                ?: return IoResult.Error.Failure
                             SplitInformationRequest(
                                 userId = splitInformationUserId,
                                 amount = expenseSplitWithPerson.originalAmount.doubleValue(false),
@@ -102,10 +119,16 @@ internal class ExpensesRemoteStoreImpl(
         currencies: List<Currency>,
         persons: List<Person>
     ): Expense? {
+        val currency = currencies.firstOrNull { it.serverId == currencyId }
+            .captureMessageIfNull("ExpensesRemoteStore failed to resolve a currency returned by the backend") {
+                setContext("expense_server_id", id)
+                setContext("currency_server_id", currencyId)
+            }
+            ?: return null
         return Expense(
             expenseId = localExpense?.expenseId ?: 0L,
             serverId = id,
-            currency = currencies.firstOrNull { it.serverId == currencyId } ?: return null, // FIXME non-fatal error
+            currency = currency,
             expenseType = when (expenseType) {
                 "expense" -> ExpenseType.Spending
                 "refund" -> ExpenseType.Replenishment

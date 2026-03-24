@@ -1,5 +1,6 @@
 package com.inwords.expenses.feature.events.domain.task
 
+import com.inwords.expenses.core.observability.captureMessageIfNull
 import com.inwords.expenses.core.storage.utils.TransactionHelper
 import com.inwords.expenses.core.utils.IO
 import com.inwords.expenses.core.utils.IoResult
@@ -28,8 +29,11 @@ class EventPushTask internal constructor(
         val localEventDetails = eventsLocalStore.getEventWithDetails(eventId) ?: return@withContext IoResult.Error.Failure
 
         if (localEventDetails.event.serverId != null) return@withContext IoResult.Success(Unit)
-        // FIXME: non-fatal error, should not happen
-        val primaryCurrencyServerId = localEventDetails.primaryCurrency.serverId ?: return@withContext IoResult.Error.Failure
+        val primaryCurrencyServerId = localEventDetails.primaryCurrency.serverId
+            .captureMessageIfNull("EventPushTask cannot push an event with an unsynced primary currency") {
+                setContext("primary_currency_code", localEventDetails.primaryCurrency.code)
+            }
+            ?: return@withContext IoResult.Error.Failure
 
         val remoteEventDetailsResult = eventsRemoteStore.createEvent(
             event = localEventDetails.event,
@@ -41,7 +45,9 @@ class EventPushTask internal constructor(
             is IoResult.Success -> remoteEventDetailsResult.data
             is IoResult.Error -> return@withContext remoteEventDetailsResult
         }
-        val networkServerId = networkEventDetails.event.serverId ?: return@withContext IoResult.Error.Failure // FIXME: non-fatal error
+        val networkServerId = networkEventDetails.event.serverId
+            .captureMessageIfNull("EventPushTask received a created event without a server id")
+            ?: return@withContext IoResult.Error.Failure
 
         val localPersons = localEventDetails.persons
         val updatedPersons = networkEventDetails.persons.mapIndexed { i, networkPerson ->

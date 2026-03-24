@@ -1,5 +1,6 @@
 package com.inwords.expenses.feature.events.domain.task
 
+import com.inwords.expenses.core.observability.captureMessageIfNull
 import com.inwords.expenses.core.utils.IO
 import com.inwords.expenses.core.utils.IoResult
 import com.inwords.expenses.feature.events.domain.store.local.EventsLocalStore
@@ -21,7 +22,9 @@ class EventPersonsPushTask internal constructor(
      */
     suspend fun pushEventPersons(eventId: Long): IoResult<*> = withContext(IO) {
         val localEvent = eventsLocalStore.getEventWithDetails(eventId) ?: return@withContext IoResult.Error.Failure
-        val eventServerId = localEvent.event.serverId ?: return@withContext IoResult.Error.Failure // FIXME: non-fatal error
+        val eventServerId = localEvent.event.serverId
+            .captureMessageIfNull("EventPersonsPushTask cannot push persons for an unsynced event")
+            ?: return@withContext IoResult.Error.Failure
 
         val personsToAdd = localEvent.persons.filter { it.serverId == null }
 

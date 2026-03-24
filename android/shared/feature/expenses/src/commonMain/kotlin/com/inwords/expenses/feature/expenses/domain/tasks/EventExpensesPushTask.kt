@@ -1,5 +1,7 @@
 package com.inwords.expenses.feature.expenses.domain.tasks
 
+import com.inwords.expenses.core.observability.Observability
+import com.inwords.expenses.core.observability.captureMessageIfNull
 import com.inwords.expenses.core.storage.utils.TransactionHelper
 import com.inwords.expenses.core.utils.IO
 import com.inwords.expenses.core.utils.IoResult
@@ -42,7 +44,14 @@ class EventExpensesPushTask internal constructor(
         if (expensesToAdd.isEmpty()) return@withContext IoResult.Success(Unit)
 
         val expensesToAddFiltered = expensesToAdd.filter { it.person.serverId != null && it.currency.serverId != null }
-        if (expensesToAddFiltered.isEmpty()) return@withContext IoResult.Success(Unit) // FIXME: non-fatal
+        val eventServerId = localEvent.event.serverId ?: return@withContext IoResult.Error.Failure
+        if (expensesToAddFiltered.isEmpty()) {
+            Observability.captureMessage("EventExpensesPushTask found pending expenses without synced person or currency data") {
+                setContext("event_server_id", eventServerId)
+                setContext("pending_expenses_count", expensesToAdd.size.toString())
+            }
+            return@withContext IoResult.Success(Unit)
+        }
 
         val networkResults = expensesRemoteStore.addExpensesToEvent(
             event = localEvent.event,
@@ -57,7 +66,11 @@ class EventExpensesPushTask internal constructor(
                     is IoResult.Success -> networkResult.data
                     is IoResult.Error -> return@forEachIndexed
                 }
-                val networkExpenseServerId = networkExpense.serverId ?: return@forEachIndexed // FIXME: non-fatal error, should not happen
+                val networkExpenseServerId = networkExpense.serverId
+                    .captureMessageIfNull("EventExpensesPushTask received a pushed expense without a server id") {
+                        setContext("event_server_id", eventServerId)
+                    }
+                    ?: return@forEachIndexed
                 transactionHelper.immediateWriteTransaction {
                     expensesLocalStore.updateExpenseServerId(networkExpense.expenseId, networkExpenseServerId)
                     networkExpense.subjectExpenseSplitWithPersons.forEachIndexed { splitIndex, networkSplit ->

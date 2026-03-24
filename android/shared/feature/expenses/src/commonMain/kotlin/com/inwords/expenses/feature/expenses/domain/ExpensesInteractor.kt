@@ -1,5 +1,6 @@
 package com.inwords.expenses.feature.expenses.domain
 
+import com.inwords.expenses.core.observability.Observability
 import com.inwords.expenses.core.utils.divide
 import com.inwords.expenses.feature.events.domain.model.Currency
 import com.inwords.expenses.feature.events.domain.model.Event
@@ -171,7 +172,12 @@ class ExpensesInteractor internal constructor(
 
         val primaryCurrencyCode = currencyRatesCache.getCurrencyById(event.primaryCurrencyId)?.code
             ?: currenciesLocalStore.getCurrencyCodeById(event.primaryCurrencyId)
-            ?: return null // FIXME: non-fatal error
+            ?: run {
+                Observability.captureMessage("ExpensesInteractor could not resolve the primary currency code for an event") {
+                    event.serverId?.let { setContext("event_server_id", it) }
+                }
+                return null
+            }
 
         return { currencyExchanger.exchange(it, originalCurrency.code, primaryCurrencyCode) }
     }

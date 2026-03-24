@@ -3,6 +3,7 @@ package com.inwords.expenses.feature.expenses.ui.list
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.inwords.expenses.core.navigation.NavigationController
+import com.inwords.expenses.core.observability.Observability
 import com.inwords.expenses.core.ui.utils.SimpleScreenState
 import com.inwords.expenses.core.utils.IO
 import com.inwords.expenses.core.utils.UNCONFINED
@@ -263,7 +264,7 @@ internal class ExpensesViewModel(
                     destination = ChoosePersonPaneDestination
                 )
             } else {
-                // FIXME: non-fatal error, show a message to the user
+                Observability.captureMessage("ExpensesViewModel failed to join a local event because it no longer exists")
             }
         }
     }

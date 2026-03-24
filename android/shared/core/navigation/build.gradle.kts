@@ -23,6 +23,7 @@ kotlin {
         commonMain {
             dependencies {
                 implementation(project(":shared:core:utils"))
+                implementation(project(":shared:core:observability"))
 
                 // TODO the whole ktor for URL parsing
                 implementation(shared.ktor.client.core)

@@ -6,6 +6,7 @@ import com.inwords.expenses.core.network.getConditional
 import com.inwords.expenses.core.network.requestWithExceptionHandling
 import com.inwords.expenses.core.network.toIoResult
 import com.inwords.expenses.core.network.url
+import com.inwords.expenses.core.observability.Observability
 import com.inwords.expenses.core.utils.IoResult
 import com.inwords.expenses.core.utils.SuspendLazy
 import com.inwords.expenses.core.utils.normalizeCurrencyRate
@@ -50,8 +51,12 @@ internal class CurrenciesRemoteStoreImpl(
         val rate = exchangeRate[code]?.jsonPrimitive?.content?.let { rawRate ->
             try {
                 BigDecimal.parseString(rawRate).normalizeCurrencyRate()
-            } catch (_: ArithmeticException) {
-                // FIXME: non-fatal
+            } catch (exception: ArithmeticException) {
+                Observability.captureException(exception) {
+                    setMessage("CurrenciesRemoteStore received an invalid exchange rate from the backend")
+                    setContext("currency_code", code)
+                    setContext("raw_rate", rawRate)
+                }
                 null
             }
         } ?: throw ContentConvertException("Missing or invalid exchange rate for $code")

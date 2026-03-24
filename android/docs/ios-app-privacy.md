@@ -23,7 +23,7 @@ This document reconciles CommonEx iOS app behavior with the privacy policy, Appl
 - `shared/core/analytics/src/commonMain/kotlin/com/inwords/expenses/core/analytics/initializePostHog.kt` computes the shared PostHog runtime config.
 - `shared/core/analytics/src/commonMain/kotlin/com/inwords/expenses/core/analytics/PostHogProjectConfig.kt` supplies the embedded PostHog token/host, currently pointing at the EU cloud.
 - `iosApp/iosApp/IOSPostHogBridge.swift` provides the Swift `PostHogBridge` implementation that talks to the `posthog-ios` SDK from app startup. Current config keeps `captureApplicationLifecycleEvents = true`, `captureScreenViews = false`, `enableSwizzling = false`, and `optOut = true` for non-production builds.
-- `shared/integration/base/initializeSentry.kt` sets a non-zero trace sample rate, so performance traces should be treated as enabled alongside crash diagnostics.
+- `shared/core/observability/src/commonMain/kotlin/com/inwords/expenses/core/observability/initializeSentry.kt` sets a non-zero trace sample rate, so performance traces should be treated as enabled alongside crash diagnostics.
 - `iosApp/iosApp/iosApp.entitlements` declares `applinks:commonex.ru` for universal links.
 - `iosApp/iosApp.xcodeproj/project.pbxproj` now includes both Sentry and PostHog Swift packages.
 
