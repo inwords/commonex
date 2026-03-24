@@ -6,7 +6,7 @@ This document reconciles CommonEx iOS app behavior with the privacy policy, Appl
 
 - **Current iOS crash reporting state**: The iOS target initializes Sentry from `iosApp/iosApp/iOSApp.swift`, so the current iOS binary should be treated as collecting Sentry crash diagnostics.
 - **Crash reporting toggle**: The app does **not** offer an in-app toggle to disable Sentry on platforms where it is enabled.
-- **Analytics**: The iOS target now initializes PostHog for limited product analytics because the embedded PostHog project token in `shared/core/analytics/src/commonMain/kotlin/com/inwords/expenses/core/analytics/PostHogProjectConfig.kt` is configured. The current scope is mobile lifecycle analytics only (for example install/open/update/background) for product improvement, not ads or cross-app tracking. Non-production builds are opted out, and the current PostHog host is the EU cloud (`https://eu.i.posthog.com`).
+- **Analytics**: The iOS target now initializes PostHog for limited product analytics because `shared/core/analytics/src/commonMain/kotlin/com/inwords/expenses/core/analytics/initializePostHog.kt` currently embeds the PostHog project token and host. The current scope is mobile lifecycle analytics only (for example install/open/update/background) for product improvement, not ads or cross-app tracking. Non-production builds are opted out, and the current PostHog host is the EU cloud (`https://eu.i.posthog.com`).
 - **Future analytics changes**: If you expand analytics beyond the current PostHog lifecycle events (for example custom identified user events), update `web/public/privacy.html`, `web/public/terms.html`, this document, the App Store Connect privacy answers, and re-check whether an app-level `PrivacyInfo.xcprivacy` is now required before enabling the change in production.
 - **User content**: Event names, participant names, and expense data are stored locally and synced to our backend; this is core app functionality, not third-party analytics.
 
@@ -20,9 +20,8 @@ This document reconciles CommonEx iOS app behavior with the privacy policy, Appl
 ## Current Runtime Inputs That Affect Privacy Review
 
 - `iosApp/iosApp/iOSApp.swift` initializes Sentry on app startup for both Debug and Release, with production/development environment selection.
-- `shared/core/analytics/src/commonMain/kotlin/com/inwords/expenses/core/analytics/initializePostHog.kt` computes the shared PostHog runtime config.
-- `shared/core/analytics/src/commonMain/kotlin/com/inwords/expenses/core/analytics/PostHogProjectConfig.kt` supplies the embedded PostHog token/host, currently pointing at the EU cloud.
-- `iosApp/iosApp/IOSPostHogBridge.swift` provides the Swift `PostHogBridge` implementation that talks to the `posthog-ios` SDK from app startup. Current config keeps `captureApplicationLifecycleEvents = true`, `captureScreenViews = false`, `enableSwizzling = false`, and `optOut = true` for non-production builds.
+- `shared/core/analytics/src/commonMain/kotlin/com/inwords/expenses/core/analytics/initializePostHog.kt` computes the shared PostHog runtime config and currently embeds the PostHog token/host, pointing at the EU cloud.
+- `iosApp/iosApp/IOSPostHogBridge.swift` provides the Swift `PostHogBridge` implementation that talks to the `posthog-ios` SDK from app startup. Current config keeps `captureApplicationLifecycleEvents = true`, `captureScreenViews = false`, hardcodes `enableSwizzling = false` on iOS, and keeps `optOut = true` for non-production builds.
 - `shared/core/observability/src/commonMain/kotlin/com/inwords/expenses/core/observability/initializeSentry.kt` sets a non-zero trace sample rate, so performance traces should be treated as enabled alongside crash diagnostics.
 - `iosApp/iosApp/iosApp.entitlements` declares `applinks:commonex.ru` for universal links.
 - `iosApp/iosApp.xcodeproj/project.pbxproj` now includes both Sentry and PostHog Swift packages.

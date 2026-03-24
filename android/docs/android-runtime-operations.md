@@ -40,7 +40,7 @@ Current production classification:
 
 ## PostHog
 
-- PostHog is initialized from shared KMM code through `initializePostHog(production, postHogBridge?)` in `shared:core:analytics`.
+- PostHog is initialized from shared KMM code through `initializePostHog(production, postHogBridge)` in `shared:core:analytics`.
 - Runtime configuration is source-defined in `shared/core/analytics/src/commonMain/`, matching the repo's Sentry-style client-token pattern. The current production configuration uses PostHog's EU ingest host.
 - The current first-pass analytics setup is intentionally limited:
     - `captureApplicationLifecycleEvents = true` for install, open, update, and background lifecycle events

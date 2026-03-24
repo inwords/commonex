@@ -120,9 +120,6 @@ dependencies {
 
     implementation(shared.androidx.appfunctions.service)
 
-    // analytics
-    implementation(shared.posthog.android)
-
     // compose
     val composeBom = platform(shared.compose.bom)
     implementation(composeBom)
