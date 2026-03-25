@@ -26,9 +26,7 @@ internal fun ExpensesComponent.getExpenseRevertDialogNavModule(
                 initializer {
                     ExpenseRevertDialogViewModel(
                         navigationController = navigationController,
-                        expensesInteractor = expensesInteractorLazy.value,
-                        expensesLocalStore = expensesLocalStore.value,
-                        eventsLocalStore = eventsLocalStore,
+                        revertExpenseUseCase = revertExpenseUseCaseLazy.value,
                         expenseId = key.expenseId,
                         eventId = key.eventId,
                         expenseDescription = key.expenseDescription,

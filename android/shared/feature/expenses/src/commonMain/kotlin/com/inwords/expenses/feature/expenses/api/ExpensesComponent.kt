@@ -17,8 +17,15 @@ import com.inwords.expenses.feature.events.domain.store.local.EventsLocalStore
 import com.inwords.expenses.feature.expenses.data.db.ExpensesLocalStoreImpl
 import com.inwords.expenses.feature.expenses.data.db.dao.ExpensesDao
 import com.inwords.expenses.feature.expenses.data.network.ExpensesRemoteStoreImpl
+import com.inwords.expenses.feature.expenses.domain.AddCustomSplitExpenseUseCase
+import com.inwords.expenses.feature.expenses.domain.AddEqualSplitExpenseUseCase
 import com.inwords.expenses.feature.expenses.domain.CurrencyRatesCache
-import com.inwords.expenses.feature.expenses.domain.ExpensesInteractor
+import com.inwords.expenses.feature.expenses.domain.ExpenseExchangeResolver
+import com.inwords.expenses.feature.expenses.domain.ExpensesRefreshRequestsHolder
+import com.inwords.expenses.feature.expenses.domain.GetExpensesDetailsUseCase
+import com.inwords.expenses.feature.expenses.domain.GetExpensesUseCase
+import com.inwords.expenses.feature.expenses.domain.RequestExpensesRefreshUseCase
+import com.inwords.expenses.feature.expenses.domain.RevertExpenseUseCase
 import com.inwords.expenses.feature.expenses.domain.store.ExpensesLocalStore
 import com.inwords.expenses.feature.expenses.domain.tasks.EventExpensesPullTask
 import com.inwords.expenses.feature.expenses.domain.tasks.EventExpensesPushTask
@@ -62,7 +69,6 @@ class ExpensesComponent(private val deps: Deps) : Component {
     internal val eventsSyncStateHolderLazy get() = deps.eventsSyncStateHolderLazy
     internal val joinEventUseCaseLazy get() = deps.joinEventUseCaseLazy
     internal val settingsRepositoryLazy get() = deps.settingsRepositoryLazy
-    internal val eventsLocalStore get() = deps.eventsLocalStore
 
     val expensesLocalStore: Lazy<ExpensesLocalStore> = lazy {
         ExpensesLocalStoreImpl(
@@ -84,6 +90,13 @@ class ExpensesComponent(private val deps: Deps) : Component {
         )
     }
 
+    private val expenseExchangeResolver = lazy {
+        ExpenseExchangeResolver(
+            currenciesLocalStoreLazy = lazy { deps.currenciesLocalStore },
+            currencyRatesCacheLazy = currencyRatesCache,
+        )
+    }
+
     val eventExpensesPushTask: Lazy<EventExpensesPushTask> = lazy {
         EventExpensesPushTask(
             eventsLocalStoreLazy = lazy { deps.eventsLocalStore },
@@ -97,15 +110,50 @@ class ExpensesComponent(private val deps: Deps) : Component {
         EventExpensesPullTask(
             eventsLocalStoreLazy = lazy { deps.eventsLocalStore },
             expensesLocalStoreLazy = expensesLocalStore,
-            expensesRemoteStoreLazy = expensesRemoteStore
+            expensesRemoteStoreLazy = expensesRemoteStore,
         )
     }
 
-    val expensesInteractorLazy: Lazy<ExpensesInteractor> = lazy {
-        ExpensesInteractor(
+    val getExpensesUseCaseLazy: Lazy<GetExpensesUseCase> = lazy {
+        GetExpensesUseCase(
             expensesLocalStoreLazy = expensesLocalStore,
-            currenciesLocalStoreLazy = lazy { deps.currenciesLocalStore },
-            currencyRatesCacheLazy = currencyRatesCache,
+        )
+    }
+
+    internal val getExpensesDetailsUseCaseLazy: Lazy<GetExpensesDetailsUseCase> = lazy {
+        GetExpensesDetailsUseCase(
+            expensesLocalStoreLazy = expensesLocalStore,
+        )
+    }
+
+    val addEqualSplitExpenseUseCaseLazy: Lazy<AddEqualSplitExpenseUseCase> = lazy {
+        AddEqualSplitExpenseUseCase(
+            expensesLocalStoreLazy = expensesLocalStore,
+            expenseExchangeResolverLazy = expenseExchangeResolver,
+        )
+    }
+
+    internal val addCustomSplitExpenseUseCaseLazy: Lazy<AddCustomSplitExpenseUseCase> = lazy {
+        AddCustomSplitExpenseUseCase(
+            expensesLocalStoreLazy = expensesLocalStore,
+            expenseExchangeResolverLazy = expenseExchangeResolver,
+        )
+    }
+
+    internal val revertExpenseUseCaseLazy: Lazy<RevertExpenseUseCase> = lazy {
+        RevertExpenseUseCase(
+            eventsLocalStoreLazy = lazy { deps.eventsLocalStore },
+            expensesLocalStoreLazy = expensesLocalStore,
+        )
+    }
+
+    val expensesRefreshRequestsHolderLazy: Lazy<ExpensesRefreshRequestsHolder> = lazy {
+        ExpensesRefreshRequestsHolder()
+    }
+
+    val requestExpensesRefreshUseCaseLazy: Lazy<RequestExpensesRefreshUseCase> = lazy {
+        RequestExpensesRefreshUseCase(
+            expensesRefreshRequestsHolderLazy = expensesRefreshRequestsHolderLazy,
         )
     }
 

@@ -13,7 +13,8 @@ import com.inwords.expenses.feature.events.domain.JoinEventUseCase
 import com.inwords.expenses.feature.events.domain.model.Event
 import com.inwords.expenses.feature.events.ui.dialog.delete.DeleteEventDialogDestination
 import com.inwords.expenses.feature.events.ui.local.LocalEventsUiModel.LocalEventUiModel
-import com.inwords.expenses.feature.expenses.domain.ExpensesInteractor
+import com.inwords.expenses.feature.expenses.domain.GetExpensesDetailsUseCase
+import com.inwords.expenses.feature.expenses.domain.RequestExpensesRefreshUseCase
 import com.inwords.expenses.feature.expenses.ui.list.ExpensesPaneUiModel.LocalEvents
 import com.inwords.expenses.feature.settings.api.SettingsRepository
 import io.mockk.coEvery
@@ -108,7 +109,8 @@ internal class ExpensesViewModelDeletionTest {
     }
     private val joinEventUseCase = mockk<JoinEventUseCase>(relaxed = true)
     private val deleteEventUseCase = mockk<DeleteEventUseCase>(relaxed = true)
-    private val expensesInteractor = mockk<ExpensesInteractor>(relaxed = true)
+    private val getExpensesDetailsUseCase = mockk<GetExpensesDetailsUseCase>(relaxed = true)
+    private val requestExpensesRefreshUseCase = mockk<RequestExpensesRefreshUseCase>(relaxed = true)
     private val eventsSyncStateHolder = mockk<EventsSyncStateHolder>(relaxed = true) {
         every { getStateFor(any()) } returns MutableStateFlow(false)
     }
@@ -347,7 +349,8 @@ internal class ExpensesViewModelDeletionTest {
             getEventsUseCase = getEventsUseCase,
             joinEventUseCase = joinEventUseCase,
             deleteEventUseCase = deleteEventUseCase,
-            expensesInteractor = expensesInteractor,
+            getExpensesDetailsUseCase = getExpensesDetailsUseCase,
+            requestExpensesRefreshUseCase = requestExpensesRefreshUseCase,
             eventsSyncStateHolder = eventsSyncStateHolder,
             settingsRepository = settingsRepository,
             unconfinedDispatcher = testDispatcher,

@@ -7,7 +7,8 @@ import com.inwords.expenses.feature.events.domain.model.Event
 import com.inwords.expenses.feature.events.domain.model.EventDetails
 import com.inwords.expenses.feature.events.domain.model.Person
 import com.inwords.expenses.feature.events.domain.model.SeededCurrencies
-import com.inwords.expenses.feature.expenses.domain.ExpensesInteractor
+import com.inwords.expenses.feature.expenses.domain.ExpensesRefreshRequestsHolder
+import com.inwords.expenses.feature.expenses.domain.GetExpensesUseCase
 import com.inwords.expenses.feature.expenses.domain.model.Expense
 import com.inwords.expenses.feature.expenses.domain.model.ExpenseType
 import com.inwords.expenses.feature.sync.data.EventsSyncManagerObserverDelegate
@@ -145,11 +146,13 @@ internal class EventsSyncObserverTest {
         val getCurrentEventStateUseCase = mockk<GetCurrentEventStateUseCase>(relaxed = true) {
             every { currentEvent } returns currentEventState
         }
-        val expensesInteractor = mockk<ExpensesInteractor>(relaxed = true) {
+        val getExpensesUseCase = mockk<GetExpensesUseCase>(relaxed = true) {
             expenseFlows.forEach { (eventId, expensesFlow) ->
                 every { getExpensesFlow(eventId) } returns expensesFlow
             }
-            every { this@mockk.refreshExpenses } returns refreshExpensesFlow
+        }
+        val expensesRefreshRequestsHolder = mockk<ExpensesRefreshRequestsHolder>(relaxed = true) {
+            every { refreshExpensesRequests } returns refreshExpensesFlow
         }
         val eventsSyncManager = mockk<EventsSyncManagerObserverDelegate>(relaxed = true) {
             every { pushAllEventInfo(any()) } answers {
@@ -159,10 +162,11 @@ internal class EventsSyncObserverTest {
         }
 
         val observer = EventsSyncObserver(
-            getCurrentEventStateUseCaseLazy = lazy { getCurrentEventStateUseCase },
-            expensesInteractorLazy = lazy { expensesInteractor },
-            eventsSyncStateHolderLazy = lazy { mockk<EventsSyncStateHolder>(relaxed = true) },
-            eventsSyncManagerLazy = lazy { eventsSyncManager },
+            getCurrentEventStateUseCaseLazy = lazyOf(getCurrentEventStateUseCase),
+            getExpensesUseCaseLazy = lazyOf(getExpensesUseCase),
+            expensesRefreshRequestsHolderLazy = lazyOf(expensesRefreshRequestsHolder),
+            eventsSyncStateHolderLazy = lazyOf(mockk<EventsSyncStateHolder>(relaxed = true)),
+            eventsSyncManagerLazy = lazyOf(eventsSyncManager),
         )
 
         return TestHarness(

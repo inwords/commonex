@@ -179,7 +179,8 @@ private fun buildSyncComponent(
     platformDeps.createSyncComponent(
         commonDeps = object : SyncComponentFactoryCommonDeps {
             override val getCurrentEventStateUseCaseLazy get() = eventsComponent.value.getCurrentEventStateUseCaseLazy
-            override val expensesInteractorLazy get() = expensesComponent.value.expensesInteractorLazy
+            override val getExpensesUseCaseLazy get() = expensesComponent.value.getExpensesUseCaseLazy
+            override val expensesRefreshRequestsHolderLazy get() = expensesComponent.value.expensesRefreshRequestsHolderLazy
             override val eventsSyncStateHolderLazy get() = eventsComponent.value.eventsSyncStateHolderLazy
         }
     )

@@ -4,7 +4,8 @@ import com.inwords.expenses.core.utils.flatMapLatestNoBuffer
 import com.inwords.expenses.feature.events.domain.EventsSyncStateHolder
 import com.inwords.expenses.feature.events.domain.GetCurrentEventStateUseCase
 import com.inwords.expenses.feature.events.domain.model.Person
-import com.inwords.expenses.feature.expenses.domain.ExpensesInteractor
+import com.inwords.expenses.feature.expenses.domain.ExpensesRefreshRequestsHolder
+import com.inwords.expenses.feature.expenses.domain.GetExpensesUseCase
 import com.inwords.expenses.feature.expenses.domain.model.Expense
 import com.inwords.expenses.feature.sync.data.EventsSyncManagerObserverDelegate
 import kotlinx.coroutines.CoroutineScope
@@ -18,12 +19,14 @@ import kotlinx.coroutines.launch
 
 class EventsSyncObserver internal constructor(
     getCurrentEventStateUseCaseLazy: Lazy<GetCurrentEventStateUseCase>,
-    expensesInteractorLazy: Lazy<ExpensesInteractor>,
+    getExpensesUseCaseLazy: Lazy<GetExpensesUseCase>,
+    expensesRefreshRequestsHolderLazy: Lazy<ExpensesRefreshRequestsHolder>,
     eventsSyncStateHolderLazy: Lazy<EventsSyncStateHolder>,
     eventsSyncManagerLazy: Lazy<EventsSyncManagerObserverDelegate>
 ) {
     private val getCurrentEventStateUseCase by getCurrentEventStateUseCaseLazy
-    private val expensesInteractor by expensesInteractorLazy
+    private val getExpensesUseCase by getExpensesUseCaseLazy
+    private val expensesRefreshRequestsHolder by expensesRefreshRequestsHolderLazy
     private val eventsSyncStateHolder by eventsSyncStateHolderLazy
     private val eventsSyncManager by eventsSyncManagerLazy
 
@@ -40,11 +43,11 @@ class EventsSyncObserver internal constructor(
                     .distinctUntilChanged()
                     .flatMapLatestNoBuffer { (currentEventId, personIdsSet) ->
                         currentEventId ?: return@flatMapLatestNoBuffer emptyFlow()
-                        expensesInteractor.getExpensesFlow(currentEventId).map { Triple(currentEventId, personIdsSet, it.expensesToIdsSet()) }
+                        getExpensesUseCase.getExpensesFlow(currentEventId).map { Triple(currentEventId, personIdsSet, it.expensesToIdsSet()) }
                     }
                     .distinctUntilChanged()
                     .map { it.first },
-                expensesInteractor.refreshExpenses
+                expensesRefreshRequestsHolder.refreshExpensesRequests
                     .map { it.id }
             )
                 .conflate()

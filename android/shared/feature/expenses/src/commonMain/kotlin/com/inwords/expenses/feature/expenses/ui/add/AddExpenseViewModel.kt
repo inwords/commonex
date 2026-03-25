@@ -17,7 +17,9 @@ import com.inwords.expenses.feature.events.domain.GetCurrentEventStateUseCase
 import com.inwords.expenses.feature.events.domain.model.Currency
 import com.inwords.expenses.feature.events.domain.model.Event
 import com.inwords.expenses.feature.events.domain.model.Person
-import com.inwords.expenses.feature.expenses.domain.ExpensesInteractor
+import com.inwords.expenses.feature.expenses.domain.AddCustomSplitExpenseUseCase
+import com.inwords.expenses.feature.expenses.domain.AddEqualSplitExpenseUseCase
+import com.inwords.expenses.feature.expenses.domain.EqualSplitCalculator
 import com.inwords.expenses.feature.expenses.domain.model.ExpenseType
 import com.inwords.expenses.feature.expenses.domain.model.PersonWithAmount
 import com.inwords.expenses.feature.expenses.ui.add.AddExpensePaneDestination.Replenishment
@@ -47,7 +49,8 @@ import kotlinx.coroutines.plus
 internal class AddExpenseViewModel(
     private val navigationController: NavigationController,
     getCurrentEventStateUseCase: GetCurrentEventStateUseCase,
-    private val expensesInteractor: ExpensesInteractor,
+    private val addEqualSplitExpenseUseCase: AddEqualSplitExpenseUseCase,
+    private val addCustomSplitExpenseUseCase: AddCustomSplitExpenseUseCase,
     settingsRepository: SettingsRepository,
     private val replenishment: Replenishment?,
     private val stringProvider: StringProvider = DefaultStringProvider,
@@ -255,7 +258,7 @@ internal class AddExpenseViewModel(
 
             val newSplit = split.ifEmpty {
                 val amount = wholeAmount?.amount?.let { amount ->
-                    ExpensesInteractor.calculateEqualSplit(
+                    EqualSplitCalculator.calculateDraftAmount(
                         amount = amount,
                         selectedSubjectPersonsSize = selectedSubjectPersons.size
                     )
@@ -326,7 +329,7 @@ internal class AddExpenseViewModel(
             val selectedPerson = state.persons.firstOrNull { it.selected }?.person ?: return@launch
             val description = state.description.trim().ifEmpty { stringProvider.getString(Res.string.expenses_no_description) }
             if (state.equalSplit) {
-                expensesInteractor.addExpenseEqualSplit(
+                addEqualSplitExpenseUseCase.addExpense(
                     event = state.event,
                     wholeAmount = state.wholeAmount.amount ?: return@launch,
                     expenseType = state.expenseType,
@@ -339,7 +342,7 @@ internal class AddExpenseViewModel(
                 val personWithAmountSplit = state.split?.map {
                     PersonWithAmount(it.person.person, it.amount.amount ?: return@launch)
                 } ?: return@launch
-                expensesInteractor.addExpenseCustomSplit(
+                addCustomSplitExpenseUseCase.addExpense(
                     event = state.event,
                     expenseType = state.expenseType,
                     description = description,

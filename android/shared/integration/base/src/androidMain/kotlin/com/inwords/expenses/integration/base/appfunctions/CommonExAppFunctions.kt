@@ -108,7 +108,7 @@ internal class CommonExAppFunctions {
         eventName: String,
     ): List<AppFunctionDebt> = withContext(IO) {
         val eventDetails = findEventDetailsByName(eventName)
-        val expenses = expensesComponent.expensesInteractorLazy.value
+        val expenses = expensesComponent.getExpensesUseCaseLazy.value
             .getExpensesFlow(eventDetails.event.id)
             .first()
 
@@ -162,7 +162,7 @@ internal class CommonExAppFunctions {
             inTransaction = true,
         )
 
-        expensesComponent.expensesInteractorLazy.value.enqueueAsyncSync(event)
+        expensesComponent.requestExpensesRefreshUseCaseLazy.value.requestRefresh(event)
 
         AppFunctionParticipantMutation(
             event = eventDetails.toAppFunctionEvent(participantCountOverride = eventDetails.persons.size + 1),
@@ -199,8 +199,7 @@ internal class CommonExAppFunctions {
             personName = normalizedPayerName,
         )
 
-        val interactor = expensesComponent.expensesInteractorLazy.value
-        interactor.addExpenseEqualSplit(
+        expensesComponent.addEqualSplitExpenseUseCaseLazy.value.addExpense(
             event = eventDetails.event,
             wholeAmount = amountBigDecimal,
             expenseType = ExpenseType.Spending,
@@ -209,7 +208,7 @@ internal class CommonExAppFunctions {
             selectedCurrency = eventDetails.primaryCurrency,
             selectedPerson = payer,
         )
-        interactor.enqueueAsyncSync(eventDetails.event)
+        expensesComponent.requestExpensesRefreshUseCaseLazy.value.requestRefresh(eventDetails.event)
 
         AppFunctionExpenseMutation(
             event = eventDetails.toAppFunctionEvent(),

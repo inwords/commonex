@@ -9,7 +9,7 @@ import com.inwords.expenses.core.utils.asImmutableMap
 import com.inwords.expenses.core.utils.flatMapLatestNoBuffer
 import com.inwords.expenses.core.utils.stateInWhileSubscribed
 import com.inwords.expenses.feature.events.domain.GetCurrentEventStateUseCase
-import com.inwords.expenses.feature.expenses.domain.ExpensesInteractor
+import com.inwords.expenses.feature.expenses.domain.GetExpensesDetailsUseCase
 import com.inwords.expenses.feature.expenses.ui.add.AddExpensePaneDestination
 import com.inwords.expenses.feature.expenses.ui.common.DebtShortUiModel
 import com.inwords.expenses.feature.expenses.ui.converter.toUiModel
@@ -25,13 +25,13 @@ import kotlinx.coroutines.flow.map
 internal class DebtsListViewModel(
     private val navigationController: NavigationController,
     getCurrentEventStateUseCase: GetCurrentEventStateUseCase,
-    expensesInteractor: ExpensesInteractor,
+    getExpensesDetailsUseCase: GetExpensesDetailsUseCase,
     viewModelScope: CoroutineScope = CoroutineScope(SupervisorJob() + IO),
 ) : ViewModel(viewModelScope = viewModelScope) {
 
     val state: StateFlow<SimpleScreenState<DebtsListPaneUiModel>> = getCurrentEventStateUseCase.currentEvent
         .filterNotNull() // TODO mvp
-        .flatMapLatestNoBuffer { expensesInteractor.getExpensesDetails(it) }
+        .flatMapLatestNoBuffer { getExpensesDetailsUseCase.getExpensesDetails(it) }
         .map { expensesDetails ->
             val creditors = hashMapOf<PersonUiModel, ImmutableList<DebtShortUiModel>>()
             expensesDetails.debtCalculator.barterAccumulatedDebts.forEach { (debtor, barterAccumulatedDebts) ->

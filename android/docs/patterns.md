@@ -53,6 +53,28 @@ Quick review checklist for architectural refactors:
 - Is visibility no wider than necessary?
 - Is dependency wiring readable without jumping across many files?
 
+### Use Case Entry Methods
+
+For use cases, prefer descriptive domain method names instead of `invoke`.
+
+Apply the pattern like this:
+
+- Name the main entrypoint after the action or query it performs, for example `addExpense(...)`, `requestRefresh(...)`, or `getExpensesDetails(...)`.
+- Keep the method name readable at call sites so navigation, UI, and integration code still express intent without jumping to the implementation.
+
+Do not use `invoke` as the default main method name for use cases. It hides domain meaning and makes call sites harder to scan during reviews and refactors.
+
+### Immediate Lazy Wrappers
+
+When a dependency or value already exists and an API only needs `Lazy<T>`, use `lazyOf(value)` instead of `lazy { value }`.
+
+Apply the pattern like this:
+
+- Use `lazyOf(existingDependency)` for already-created stores, helpers, or components.
+- Use `lazy { ... }` only when the initialization itself should be deferred.
+
+This keeps wiring explicit about whether the value is already materialized or still needs lazy construction.
+
 ### Component Factory Common Deps
 
 For KMP `*ComponentFactory` APIs, extract repeated shared `Deps` members into a `*ComponentFactoryCommonDeps` interface in `commonMain` when the same members are declared in both Android and iOS `actual interface Deps`.
@@ -199,6 +221,7 @@ field = MutableStateFlow(initialState)
 
 For ViewModels with flow-based state (`stateInWhileSubscribed`, `combine`) or methods that launch coroutines, host tests must pass `viewModelScope = backgroundScope` and run `runCurrent()` and `advanceUntilIdle()` before collecting
 state (e.g. `state.test { }`) or verifying mocks (`coVerify`/`verify`), so execution stays on the test dispatcher and assertions are deterministic. Otherwise, tests can be flaky when the default scope uses a different dispatcher.
+If the production code can derive its execution context from the injected `viewModelScope`, prefer that over adding a second dispatcher parameter just for tests. This keeps the constructor smaller and makes `viewModelScope = backgroundScope` the single test seam.
 If the class launches with an explicit dispatcher (e.g. `scope.launch(IO)`), passing only `viewModelScope = backgroundScope` is not enough — `advanceUntilIdle()` does not run work on that dispatcher. Make the dispatcher injectable (e.g.
 `workDispatcher: CoroutineDispatcher = IO`) and pass `testDispatcher` in tests. Example: `DeleteEventDialogViewModel`, `DeleteEventDialogViewModelTest`.
 Examples: `CreateEventViewModelTest`, `MenuViewModelTest`,

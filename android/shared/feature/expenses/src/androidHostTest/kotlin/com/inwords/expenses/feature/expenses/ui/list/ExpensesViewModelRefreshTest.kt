@@ -15,7 +15,8 @@ import com.inwords.expenses.feature.events.domain.model.Event
 import com.inwords.expenses.feature.events.domain.model.EventDetails
 import com.inwords.expenses.feature.events.domain.model.Person
 import com.inwords.expenses.feature.expenses.domain.DebtCalculator
-import com.inwords.expenses.feature.expenses.domain.ExpensesInteractor
+import com.inwords.expenses.feature.expenses.domain.GetExpensesDetailsUseCase
+import com.inwords.expenses.feature.expenses.domain.RequestExpensesRefreshUseCase
 import com.inwords.expenses.feature.expenses.domain.model.ExpensesDetails
 import com.inwords.expenses.feature.expenses.ui.list.ExpensesPaneUiModel.Expenses
 import com.inwords.expenses.feature.settings.api.SettingsRepository
@@ -110,9 +111,10 @@ internal class ExpensesViewModelRefreshTest {
     }
     private val joinEventUseCase = mockk<JoinEventUseCase>(relaxed = true)
     private val deleteEventUseCase = mockk<DeleteEventUseCase>(relaxed = true)
-    private val expensesInteractor = mockk<ExpensesInteractor>(relaxed = true) {
+    private val getExpensesDetailsUseCase = mockk<GetExpensesDetailsUseCase>(relaxed = true) {
         every { getExpensesDetails(any()) } returns flowOf(TestFixtures.expensesDetails)
     }
+    private val requestExpensesRefreshUseCase = mockk<RequestExpensesRefreshUseCase>(relaxed = true)
     private val settingsRepository = mockk<SettingsRepository>(relaxed = true) {
         coEvery { getCurrentPersonId() } returns currentPersonIdFlow
     }
@@ -177,7 +179,8 @@ internal class ExpensesViewModelRefreshTest {
             getEventsUseCase = getEventsUseCase,
             joinEventUseCase = joinEventUseCase,
             deleteEventUseCase = deleteEventUseCase,
-            expensesInteractor = expensesInteractor,
+            getExpensesDetailsUseCase = getExpensesDetailsUseCase,
+            requestExpensesRefreshUseCase = requestExpensesRefreshUseCase,
             eventsSyncStateHolder = eventsSyncStateHolder,
             settingsRepository = settingsRepository,
             unconfinedDispatcher = testDispatcher,

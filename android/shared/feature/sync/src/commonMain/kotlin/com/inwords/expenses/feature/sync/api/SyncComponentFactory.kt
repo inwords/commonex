@@ -2,7 +2,8 @@ package com.inwords.expenses.feature.sync.api
 
 import com.inwords.expenses.feature.events.domain.EventsSyncStateHolder
 import com.inwords.expenses.feature.events.domain.GetCurrentEventStateUseCase
-import com.inwords.expenses.feature.expenses.domain.ExpensesInteractor
+import com.inwords.expenses.feature.expenses.domain.ExpensesRefreshRequestsHolder
+import com.inwords.expenses.feature.expenses.domain.GetExpensesUseCase
 
 expect class SyncComponentFactory {
 
@@ -14,6 +15,7 @@ expect class SyncComponentFactory {
 interface SyncComponentFactoryCommonDeps {
 
     val getCurrentEventStateUseCaseLazy: Lazy<GetCurrentEventStateUseCase>
-    val expensesInteractorLazy: Lazy<ExpensesInteractor>
+    val getExpensesUseCaseLazy: Lazy<GetExpensesUseCase>
+    val expensesRefreshRequestsHolderLazy: Lazy<ExpensesRefreshRequestsHolder>
     val eventsSyncStateHolderLazy: Lazy<EventsSyncStateHolder>
 }
