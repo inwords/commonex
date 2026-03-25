@@ -43,7 +43,8 @@ internal fun ExpensesComponent.getAddExpensePaneNavModule(
                     AddExpenseViewModel(
                         navigationController = navigationController,
                         getCurrentEventStateUseCase = getCurrentEventStateUseCaseLazy.value,
-                        expensesInteractor = expensesInteractorLazy.value,
+                        addEqualSplitExpenseUseCase = addEqualSplitExpenseUseCaseLazy.value,
+                        addCustomSplitExpenseUseCase = addCustomSplitExpenseUseCaseLazy.value,
                         settingsRepository = settingsRepositoryLazy.value,
                         replenishment = key.replenishment,
                     )

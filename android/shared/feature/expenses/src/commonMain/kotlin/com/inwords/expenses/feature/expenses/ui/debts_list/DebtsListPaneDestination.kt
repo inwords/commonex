@@ -23,7 +23,7 @@ internal fun ExpensesComponent.getDebtsListPaneNavModule(
                     DebtsListViewModel(
                         navigationController = navigationController,
                         getCurrentEventStateUseCase = getCurrentEventStateUseCaseLazy.value,
-                        expensesInteractor = expensesInteractorLazy.value,
+                        getExpensesDetailsUseCase = getExpensesDetailsUseCaseLazy.value,
                     )
                 }
             })

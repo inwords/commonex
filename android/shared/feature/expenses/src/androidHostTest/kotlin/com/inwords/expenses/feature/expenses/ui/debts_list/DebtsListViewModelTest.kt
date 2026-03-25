@@ -10,7 +10,7 @@ import com.inwords.expenses.feature.events.domain.model.Event
 import com.inwords.expenses.feature.events.domain.model.EventDetails
 import com.inwords.expenses.feature.events.domain.model.Person
 import com.inwords.expenses.feature.expenses.domain.DebtCalculator
-import com.inwords.expenses.feature.expenses.domain.ExpensesInteractor
+import com.inwords.expenses.feature.expenses.domain.GetExpensesDetailsUseCase
 import com.inwords.expenses.feature.expenses.domain.model.ExpensesDetails
 import com.inwords.expenses.feature.expenses.ui.add.AddExpensePaneDestination
 import com.inwords.expenses.feature.expenses.ui.common.DebtShortUiModel
@@ -41,7 +41,7 @@ internal class DebtsListViewModelTest {
     private val testDispatcher = StandardTestDispatcher()
     private val navigationController = mockk<NavigationController>(relaxed = true)
     private val getCurrentEventStateUseCase = mockk<GetCurrentEventStateUseCase>(relaxed = true)
-    private val expensesInteractor = mockk<ExpensesInteractor>(relaxed = true)
+    private val getExpensesDetailsUseCase = mockk<GetExpensesDetailsUseCase>(relaxed = true)
 
     private val event = Event(1L, null, "Trip", "1234", 1L)
     private val person = Person(1L, null, "Alice")
@@ -72,12 +72,12 @@ internal class DebtsListViewModelTest {
     fun state_emitsLoadingThenSuccess_whenEventAndExpensesDetailsEmitted() = runTest {
         val currentEventFlow = MutableStateFlow<EventDetails?>(eventDetails)
         every { getCurrentEventStateUseCase.currentEvent } returns currentEventFlow
-        every { expensesInteractor.getExpensesDetails(any()) } returns flowOf(expensesDetails)
+        every { getExpensesDetailsUseCase.getExpensesDetails(any()) } returns flowOf(expensesDetails)
 
         val viewModel = DebtsListViewModel(
             navigationController = navigationController,
             getCurrentEventStateUseCase = getCurrentEventStateUseCase,
-            expensesInteractor = expensesInteractor,
+            getExpensesDetailsUseCase = getExpensesDetailsUseCase,
             viewModelScope = backgroundScope,
         )
         runCurrent()
@@ -97,12 +97,12 @@ internal class DebtsListViewModelTest {
     fun onNavIconClicked_popsBackStack() = runTest {
         val currentEventFlow = MutableStateFlow<EventDetails?>(eventDetails)
         every { getCurrentEventStateUseCase.currentEvent } returns currentEventFlow
-        every { expensesInteractor.getExpensesDetails(any()) } returns flowOf(expensesDetails)
+        every { getExpensesDetailsUseCase.getExpensesDetails(any()) } returns flowOf(expensesDetails)
 
         val viewModel = DebtsListViewModel(
             navigationController = navigationController,
             getCurrentEventStateUseCase = getCurrentEventStateUseCase,
-            expensesInteractor = expensesInteractor,
+            getExpensesDetailsUseCase = getExpensesDetailsUseCase,
             viewModelScope = backgroundScope,
         )
         runCurrent()
@@ -117,12 +117,12 @@ internal class DebtsListViewModelTest {
     fun onReplenishmentClick_navigatesToAddExpensePaneDestinationWithReplenishment() = runTest {
         val currentEventFlow = MutableStateFlow<EventDetails?>(eventDetails)
         every { getCurrentEventStateUseCase.currentEvent } returns currentEventFlow
-        every { expensesInteractor.getExpensesDetails(any()) } returns flowOf(expensesDetails)
+        every { getExpensesDetailsUseCase.getExpensesDetails(any()) } returns flowOf(expensesDetails)
 
         val viewModel = DebtsListViewModel(
             navigationController = navigationController,
             getCurrentEventStateUseCase = getCurrentEventStateUseCase,
-            expensesInteractor = expensesInteractor,
+            getExpensesDetailsUseCase = getExpensesDetailsUseCase,
             viewModelScope = backgroundScope,
         )
         runCurrent()

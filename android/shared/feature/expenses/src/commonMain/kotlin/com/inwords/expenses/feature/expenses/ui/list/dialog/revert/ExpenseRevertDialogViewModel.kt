@@ -6,9 +6,7 @@ import com.inwords.expenses.core.navigation.NavigationController
 import com.inwords.expenses.core.ui.utils.DefaultStringProvider
 import com.inwords.expenses.core.ui.utils.StringProvider
 import com.inwords.expenses.core.utils.IO
-import com.inwords.expenses.feature.events.domain.store.local.EventsLocalStore
-import com.inwords.expenses.feature.expenses.domain.ExpensesInteractor
-import com.inwords.expenses.feature.expenses.domain.store.ExpensesLocalStore
+import com.inwords.expenses.feature.expenses.domain.RevertExpenseUseCase
 import com.inwords.expenses.feature.expenses.ui.list.ExpensesPaneDestination
 import expenses.shared.feature.expenses.generated.resources.Res
 import expenses.shared.feature.expenses.generated.resources.expenses_revert_description
@@ -19,9 +17,7 @@ import kotlinx.coroutines.launch
 
 internal class ExpenseRevertDialogViewModel(
     private val navigationController: NavigationController,
-    private val expensesInteractor: ExpensesInteractor,
-    private val expensesLocalStore: ExpensesLocalStore,
-    private val eventsLocalStore: EventsLocalStore,
+    private val revertExpenseUseCase: RevertExpenseUseCase,
     private val expenseId: Long,
     private val eventId: Long,
     private val expenseDescription: String,
@@ -35,21 +31,19 @@ internal class ExpenseRevertDialogViewModel(
         if (revertJob?.isActive == true) return
 
         revertJob = viewModelScope.launch {
-            val event = eventsLocalStore.getEvent(eventId)
-            val originalExpense = expensesLocalStore.getExpense(expenseId)
-            if (event == null || originalExpense == null) {
-                navigationController.popBackStack()
-                return@launch
-            }
-
-            expensesInteractor.revertExpense(
-                event = event,
-                originalExpense = originalExpense,
+            val reverted = revertExpenseUseCase.revertExpense(
+                eventId = eventId,
+                expenseId = expenseId,
                 description = stringProvider.getString(
                     Res.string.expenses_revert_description,
                     expenseDescription,
-                )
+                ),
             )
+
+            if (!reverted) {
+                navigationController.popBackStack()
+                return@launch
+            }
 
             navigationController.popBackStack(
                 toDestination = ExpensesPaneDestination,

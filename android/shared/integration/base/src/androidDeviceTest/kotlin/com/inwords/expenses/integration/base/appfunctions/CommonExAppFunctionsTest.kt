@@ -16,11 +16,12 @@ import com.inwords.expenses.feature.events.domain.model.EventDetails
 import com.inwords.expenses.feature.events.domain.model.Person
 import com.inwords.expenses.feature.events.domain.store.local.EventsLocalStore
 import com.inwords.expenses.feature.expenses.api.ExpensesComponent
-import com.inwords.expenses.feature.expenses.domain.ExpensesInteractor
+import com.inwords.expenses.feature.expenses.domain.AddEqualSplitExpenseUseCase
+import com.inwords.expenses.feature.expenses.domain.GetExpensesUseCase
+import com.inwords.expenses.feature.expenses.domain.RequestExpensesRefreshUseCase
 import com.inwords.expenses.feature.expenses.domain.model.Expense
 import com.inwords.expenses.feature.expenses.domain.model.ExpenseSplitWithPerson
 import com.inwords.expenses.feature.expenses.domain.model.ExpenseType
-import com.inwords.expenses.feature.expenses.domain.store.ExpensesLocalStore
 import com.ionspin.kotlin.bignum.decimal.BigDecimal
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -49,8 +50,9 @@ internal class CommonExAppFunctionsTest {
     private lateinit var getCurrenciesUseCase: GetCurrenciesUseCase
     private lateinit var getEventsUseCase: GetEventsUseCase
     private lateinit var eventsLocalStore: EventsLocalStore
-    private lateinit var expensesLocalStore: ExpensesLocalStore
-    private lateinit var expensesInteractor: ExpensesInteractor
+    private lateinit var getExpensesUseCase: GetExpensesUseCase
+    private lateinit var addEqualSplitExpenseUseCase: AddEqualSplitExpenseUseCase
+    private lateinit var requestExpensesRefreshUseCase: RequestExpensesRefreshUseCase
 
     @Before
     fun setup() {
@@ -64,19 +66,21 @@ internal class CommonExAppFunctionsTest {
         getCurrenciesUseCase = mockk(relaxed = true)
         getEventsUseCase = mockk(relaxed = true)
         eventsLocalStore = mockk(relaxed = true)
-        expensesLocalStore = mockk(relaxed = true)
-        expensesInteractor = mockk(relaxed = true)
+        getExpensesUseCase = mockk(relaxed = true)
+        addEqualSplitExpenseUseCase = mockk(relaxed = true)
+        requestExpensesRefreshUseCase = mockk(relaxed = true)
 
-        every { eventsComponent.createEventFromParametersUseCaseLazy } returns lazy { createEventFromParametersUseCase }
-        every { eventsComponent.getCurrenciesUseCaseLazy } returns lazy { getCurrenciesUseCase }
-        every { eventsComponent.getEventsUseCaseLazy } returns lazy { getEventsUseCase }
-        every { eventsComponent.eventsLocalStore } returns lazy { eventsLocalStore }
+        every { eventsComponent.createEventFromParametersUseCaseLazy } returns lazyOf(createEventFromParametersUseCase)
+        every { eventsComponent.getCurrenciesUseCaseLazy } returns lazyOf(getCurrenciesUseCase)
+        every { eventsComponent.getEventsUseCaseLazy } returns lazyOf(getEventsUseCase)
+        every { eventsComponent.eventsLocalStore } returns lazyOf(eventsLocalStore)
 
-        every { expensesComponent.expensesLocalStore } returns lazy { expensesLocalStore }
-        every { expensesComponent.expensesInteractorLazy } returns lazy { expensesInteractor }
+        every { expensesComponent.getExpensesUseCaseLazy } returns lazyOf(getExpensesUseCase)
+        every { expensesComponent.addEqualSplitExpenseUseCaseLazy } returns lazyOf(addEqualSplitExpenseUseCase)
+        every { expensesComponent.requestExpensesRefreshUseCaseLazy } returns lazyOf(requestExpensesRefreshUseCase)
 
-        ComponentsMap.registerComponent(EventsComponent::class, lazy { eventsComponent })
-        ComponentsMap.registerComponent(ExpensesComponent::class, lazy { expensesComponent })
+        ComponentsMap.registerComponent(EventsComponent::class, lazyOf(eventsComponent))
+        ComponentsMap.registerComponent(ExpensesComponent::class, lazyOf(expensesComponent))
     }
 
     @After
@@ -326,7 +330,7 @@ internal class CommonExAppFunctionsTest {
         )
         every { eventsLocalStore.getEventsFlow() } returns flowOf(listOf(event))
         coEvery { eventsLocalStore.getEventWithDetails(1) } returns eventDetails
-        every { expensesInteractor.getExpensesFlow(1) } returns flowOf(emptyList())
+        every { getExpensesUseCase.getExpensesFlow(1) } returns flowOf(emptyList())
 
         val result = appFunctions.getDebts(appFunctionContext, "Trip")
 
@@ -361,7 +365,7 @@ internal class CommonExAppFunctionsTest {
         )
         every { eventsLocalStore.getEventsFlow() } returns flowOf(listOf(event))
         coEvery { eventsLocalStore.getEventWithDetails(1) } returns eventDetails
-        every { expensesInteractor.getExpensesFlow(1) } returns flowOf(listOf(expense))
+        every { getExpensesUseCase.getExpensesFlow(1) } returns flowOf(listOf(expense))
 
         val result = appFunctions.getDebts(appFunctionContext, "Trip")
 
@@ -414,7 +418,7 @@ internal class CommonExAppFunctionsTest {
         assertEquals("EUR", result.currencyCode)
         assertEquals(2, result.splitBetweenParticipants)
         coVerify {
-            expensesInteractor.addExpenseEqualSplit(
+            addEqualSplitExpenseUseCase.addExpense(
                 event = event,
                 wholeAmount = any(),
                 expenseType = ExpenseType.Spending,
@@ -525,7 +529,7 @@ internal class CommonExAppFunctionsTest {
 
         assertEquals(3, result.splitBetweenParticipants)
         coVerify {
-            expensesInteractor.addExpenseEqualSplit(
+            addEqualSplitExpenseUseCase.addExpense(
                 event = event,
                 wholeAmount = any(),
                 expenseType = ExpenseType.Spending,

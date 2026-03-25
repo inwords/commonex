@@ -27,7 +27,8 @@ internal fun ExpensesComponent.getExpensesPaneNavModule(
                         getEventsUseCase = getEventsUseCaseLazy.value,
                         joinEventUseCase = joinEventUseCaseLazy.value,
                         deleteEventUseCase = deleteEventUseCaseLazy.value,
-                        expensesInteractor = expensesInteractorLazy.value,
+                        getExpensesDetailsUseCase = getExpensesDetailsUseCaseLazy.value,
+                        requestExpensesRefreshUseCase = requestExpensesRefreshUseCaseLazy.value,
                         eventsSyncStateHolder = eventsSyncStateHolderLazy.value,
                         settingsRepository = settingsRepositoryLazy.value,
                     )

@@ -26,7 +26,8 @@ import com.inwords.expenses.feature.events.ui.dialog.delete.DeleteEventDialogDes
 import com.inwords.expenses.feature.events.ui.join.JoinEventPaneDestination
 import com.inwords.expenses.feature.events.ui.local.LocalEventsUiModel
 import com.inwords.expenses.feature.events.ui.local.LocalEventsUiModel.LocalEventUiModel
-import com.inwords.expenses.feature.expenses.domain.ExpensesInteractor
+import com.inwords.expenses.feature.expenses.domain.GetExpensesDetailsUseCase
+import com.inwords.expenses.feature.expenses.domain.RequestExpensesRefreshUseCase
 import com.inwords.expenses.feature.expenses.ui.add.AddExpensePaneDestination
 import com.inwords.expenses.feature.expenses.ui.common.DebtShortUiModel
 import com.inwords.expenses.feature.expenses.ui.converter.toUiModel
@@ -62,7 +63,8 @@ internal class ExpensesViewModel(
     private val getEventsUseCase: GetEventsUseCase,
     private val joinEventUseCase: JoinEventUseCase,
     private val deleteEventUseCase: DeleteEventUseCase,
-    private val expensesInteractor: ExpensesInteractor,
+    private val getExpensesDetailsUseCase: GetExpensesDetailsUseCase,
+    private val requestExpensesRefreshUseCase: RequestExpensesRefreshUseCase,
     eventsSyncStateHolder: EventsSyncStateHolder,
     settingsRepository: SettingsRepository,
     unconfinedDispatcher: CoroutineDispatcher = UNCONFINED,
@@ -113,7 +115,7 @@ internal class ExpensesViewModel(
             if (currentEvent == null) {
                 flowOf(null)
             } else {
-                expensesInteractor.getExpensesDetails(currentEvent)
+                getExpensesDetailsUseCase.getExpensesDetails(currentEvent)
                     .debounceAfterInitial(500.milliseconds)
             }
         }
@@ -251,7 +253,7 @@ internal class ExpensesViewModel(
         pullToRefreshStateManager.onUserTriggeredRefresh(viewModelScope, event.id)
         refreshJob?.cancel()
         refreshJob = viewModelScope.launch(start = CoroutineStart.UNDISPATCHED) {
-            expensesInteractor.enqueueAsyncSync(event)
+            requestExpensesRefreshUseCase.requestRefresh(event)
         }
     }
 

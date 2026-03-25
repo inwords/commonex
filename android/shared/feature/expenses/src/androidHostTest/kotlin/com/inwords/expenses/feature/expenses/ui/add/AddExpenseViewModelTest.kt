@@ -9,7 +9,8 @@ import com.inwords.expenses.feature.events.domain.model.Currency
 import com.inwords.expenses.feature.events.domain.model.Event
 import com.inwords.expenses.feature.events.domain.model.EventDetails
 import com.inwords.expenses.feature.events.domain.model.Person
-import com.inwords.expenses.feature.expenses.domain.ExpensesInteractor
+import com.inwords.expenses.feature.expenses.domain.AddCustomSplitExpenseUseCase
+import com.inwords.expenses.feature.expenses.domain.AddEqualSplitExpenseUseCase
 import com.inwords.expenses.feature.expenses.domain.model.ExpenseType
 import com.inwords.expenses.feature.expenses.ui.add.AddExpensePaneUiModel.CurrencyInfoUiModel
 import com.inwords.expenses.feature.expenses.ui.add.AddExpensePaneUiModel.ExpenseSplitWithPersonUiModel
@@ -85,7 +86,8 @@ internal class AddExpenseViewModelTest {
     private val getCurrentEventStateUseCase = mockk<GetCurrentEventStateUseCase>(relaxed = true) {
         every { this@mockk.currentEvent } returns currentEventFlow
     }
-    private val expensesInteractor = mockk<ExpensesInteractor>(relaxed = true)
+    private val addEqualSplitExpenseUseCase = mockk<AddEqualSplitExpenseUseCase>(relaxed = true)
+    private val addCustomSplitExpenseUseCase = mockk<AddCustomSplitExpenseUseCase>(relaxed = true)
     private val settingsRepository = mockk<SettingsRepository>(relaxed = true) {
         coEvery { getCurrentPersonId() } returns currentPersonIdFlow
     }
@@ -557,7 +559,7 @@ internal class AddExpenseViewModelTest {
 
             // Then
             coVerify(exactly = 1) {
-                expensesInteractor.addExpenseEqualSplit(
+                addEqualSplitExpenseUseCase.addExpense(
                     event = TestFixtures.event,
                     wholeAmount = "12.0".trim().toBigDecimal(),
                     expenseType = ExpenseType.Spending,
@@ -601,7 +603,7 @@ internal class AddExpenseViewModelTest {
 
             // Then
             coVerify(exactly = 1) {
-                expensesInteractor.addExpenseCustomSplit(
+                addCustomSplitExpenseUseCase.addExpense(
                     event = TestFixtures.event,
                     expenseType = ExpenseType.Spending,
                     description = any(),
@@ -639,8 +641,8 @@ internal class AddExpenseViewModelTest {
             runCurrent()
 
             // Then
-            coVerify(exactly = 0) { expensesInteractor.addExpenseEqualSplit(any(), any(), any(), any(), any(), any(), any()) }
-            coVerify(exactly = 0) { expensesInteractor.addExpenseCustomSplit(any(), any(), any(), any(), any(), any()) }
+            coVerify(exactly = 0) { addEqualSplitExpenseUseCase.addExpense(any(), any(), any(), any(), any(), any(), any()) }
+            coVerify(exactly = 0) { addCustomSplitExpenseUseCase.addExpense(any(), any(), any(), any(), any(), any()) }
             coVerify(exactly = 0) { navigationController.popBackStack() }
 
             cancelAndIgnoreRemainingEvents()
@@ -869,7 +871,7 @@ internal class AddExpenseViewModelTest {
 
             // Then - should use the default "no description" string
             coVerify(exactly = 1) {
-                expensesInteractor.addExpenseEqualSplit(
+                addEqualSplitExpenseUseCase.addExpense(
                     event = TestFixtures.event,
                     wholeAmount = "10".toBigDecimal(),
                     expenseType = ExpenseType.Spending,
@@ -905,7 +907,7 @@ internal class AddExpenseViewModelTest {
 
             // Then
             coVerify(exactly = 1) {
-                expensesInteractor.addExpenseEqualSplit(
+                addEqualSplitExpenseUseCase.addExpense(
                     description = "expenses_no_description",
                     event = any(),
                     wholeAmount = any(),
@@ -1180,7 +1182,7 @@ internal class AddExpenseViewModelTest {
             runCurrent()
 
             // Then - should not create expense or navigate
-            coVerify(exactly = 0) { expensesInteractor.addExpenseCustomSplit(any(), any(), any(), any(), any(), any()) }
+            coVerify(exactly = 0) { addCustomSplitExpenseUseCase.addExpense(any(), any(), any(), any(), any(), any()) }
             coVerify(exactly = 0) { navigationController.popBackStack() }
 
             cancelAndIgnoreRemainingEvents()
@@ -1206,7 +1208,7 @@ internal class AddExpenseViewModelTest {
             runCurrent()
 
             // Then - should not call expense creation
-            coVerify(exactly = 0) { expensesInteractor.addExpenseEqualSplit(any(), any(), any(), any(), any(), any(), any()) }
+            coVerify(exactly = 0) { addEqualSplitExpenseUseCase.addExpense(any(), any(), any(), any(), any(), any(), any()) }
             coVerify(exactly = 0) { navigationController.popBackStack() }
 
             cancelAndIgnoreRemainingEvents()
@@ -1239,7 +1241,8 @@ internal class AddExpenseViewModelTest {
         return AddExpenseViewModel(
             navigationController = navigationController,
             getCurrentEventStateUseCase = getCurrentEventStateUseCase,
-            expensesInteractor = expensesInteractor,
+            addEqualSplitExpenseUseCase = addEqualSplitExpenseUseCase,
+            addCustomSplitExpenseUseCase = addCustomSplitExpenseUseCase,
             settingsRepository = settingsRepository,
             replenishment = replenishment,
             stringProvider = object : com.inwords.expenses.core.ui.utils.StringProvider {
