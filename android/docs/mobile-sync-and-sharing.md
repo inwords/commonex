@@ -88,12 +88,12 @@ Replace `<TEAM_ID>` and `<BUNDLE_ID>` with the actual Apple Developer Team ID an
 - It pushes only local expenses whose `serverId` is null.
 - Partial network responses (success for some expenses, error for others) are supported: iterate over the full results list with index so alignment with local expenses is preserved; persist only successful results.
 - After a successful push it writes back the remote expense `serverId` and the backend-confirmed `exchangedAmount` values for each split.
-- Mobile currently sends automatic-rate expense payloads only:
-  `CreateExpenseRequest` includes `amount` per split but not client-supplied `exchangedAmount`.
+- Mobile sends `amount` for every split and includes client-supplied `exchangedAmount` only when the local expense uses a custom rate (`isCustomRate == true`).
 
 - `EventExpensesPullTask` has the same synced-event/person/currency prerequisites.
 - Pull currently performs insert-only reconciliation:
   it fetches remote expenses and upserts only those whose remote `serverId` does not already exist locally.
+- Pulled V2 expense payloads must include `isCustomRate`; mobile preserves that backend state so custom-rate expenses created on another client keep their custom conversion semantics after sync.
 - Current implication:
   pull does not update or delete previously synced local expenses when the server changes an existing remote expense.
 

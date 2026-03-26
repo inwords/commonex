@@ -344,6 +344,7 @@ private fun mockExpense(): Expense {
                 exchangedAmount = 150.toBigDecimal(),
             )
         ),
+        isCustomRate = false,
         timestamp = Instant.parseOrNull("2026-03-02T18:43:00Z")!!,
         description = "Preview expense",
     )

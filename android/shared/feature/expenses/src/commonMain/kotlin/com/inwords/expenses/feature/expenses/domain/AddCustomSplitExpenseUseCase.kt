@@ -1,5 +1,6 @@
 package com.inwords.expenses.feature.expenses.domain
 
+import com.inwords.expenses.core.utils.normalizeAmount
 import com.inwords.expenses.feature.events.domain.model.Currency
 import com.inwords.expenses.feature.events.domain.model.Event
 import com.inwords.expenses.feature.events.domain.model.Person
@@ -8,6 +9,7 @@ import com.inwords.expenses.feature.expenses.domain.model.ExpenseSplitWithPerson
 import com.inwords.expenses.feature.expenses.domain.model.ExpenseType
 import com.inwords.expenses.feature.expenses.domain.model.PersonWithAmount
 import com.inwords.expenses.feature.expenses.domain.store.ExpensesLocalStore
+import com.ionspin.kotlin.bignum.decimal.BigDecimal
 import kotlin.time.Clock
 
 internal class AddCustomSplitExpenseUseCase internal constructor(
@@ -25,8 +27,11 @@ internal class AddCustomSplitExpenseUseCase internal constructor(
         selectedCurrency: Currency,
         selectedPerson: Person,
         personWithAmountSplit: List<PersonWithAmount>,
+        overrideRate: BigDecimal?,
     ) {
-        val exchanger = expenseExchangeResolver.resolve(event, selectedCurrency) ?: return
+        val exchanger = overrideRate?.let { rate ->
+            { amount: BigDecimal -> (amount * rate).normalizeAmount() }
+        } ?: expenseExchangeResolver.resolve(event, selectedCurrency) ?: return
         val subjectExpenseSplitWithPersons = personWithAmountSplit.map { personWithAmount ->
             ExpenseSplitWithPerson(
                 expenseSplitId = 0,
@@ -46,6 +51,7 @@ internal class AddCustomSplitExpenseUseCase internal constructor(
                 expenseType = expenseType,
                 person = selectedPerson,
                 subjectExpenseSplitWithPersons = subjectExpenseSplitWithPersons,
+                isCustomRate = overrideRate != null,
                 timestamp = Clock.System.now(),
                 description = description,
             ),

@@ -122,7 +122,8 @@ Expense-create currency modes on V2:
 Current client usage:
 
 - Web uses `/api/v3/user/currencies/all` to fetch the current UTC-day USD-based rate map and may send custom `exchangedAmount` values on V2 expense creation when the user overrides the automatic rate.
-- Shared mobile KMM clients currently send automatic-rate V2 expense payloads only and do not include `exchangedAmount` in create-expense requests.
+- Shared mobile KMM clients send `amount` for every V2 expense split and include `exchangedAmount` only for custom-rate expenses (`expense.isCustomRate == true`).
+- V2 expense-read responses must include `isCustomRate` so mobile can preserve backend-confirmed custom-rate state when syncing expenses created on another client.
 - V3 currencies-with-rates currently returns both the backend currency list and an `exchangeRate` map keyed by currency code.
 - Shared mobile KMM currency refreshes use conditional GET with `If-None-Match` when a local `ETag` is available.
 - Shared mobile persists currency data in Room and stores only the last seen `ETag` as local currency-cache metadata.

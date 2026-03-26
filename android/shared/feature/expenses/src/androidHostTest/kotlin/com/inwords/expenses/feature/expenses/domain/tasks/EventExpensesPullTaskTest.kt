@@ -179,6 +179,7 @@ internal class EventExpensesPullTaskTest {
                     exchangedAmount = BigDecimal.parseString("10"),
                 )
             ),
+            isCustomRate = false,
             timestamp = Clock.System.now(),
             description = description,
         )

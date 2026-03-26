@@ -9,5 +9,8 @@ internal data class SplitInformationRequest(
     val amount: Double, // TODO pass as String
 
     @SerialName("userId")
-    val userId: String
+    val userId: String,
+
+    @SerialName("exchangedAmount")
+    val exchangedAmount: Double? = null,
 )

@@ -562,6 +562,7 @@ internal fun mockExpensesPaneUiModel(withDebts: Boolean): ExpensesPaneUiModel {
                         exchangedAmount = 100.toBigDecimal(),
                     )
                 ),
+                isCustomRate = false,
                 timestamp = Clock.System.now(),
                 description = "Lunch",
             ).toUiModel(primaryCurrencyName = "EUR", currentPersonId = person1.id),
@@ -586,6 +587,7 @@ internal fun mockExpensesPaneUiModel(withDebts: Boolean): ExpensesPaneUiModel {
                         exchangedAmount = 132423423.toBigDecimal(),
                     )
                 ),
+                isCustomRate = false,
                 timestamp = Clock.System.now(),
                 description = "Dinner and some text",
             ).toUiModel(primaryCurrencyName = "EUR", currentPersonId = person1.id)

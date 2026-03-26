@@ -48,7 +48,9 @@ internal class AddExpenseViewModelTest {
     // region Test Fixtures
     private object TestFixtures {
         val USD = Currency(id = 100, serverId = null, code = "USD", name = "US Dollar", rate = BigDecimal.ONE)
-        val EUR = Currency(id = 101, serverId = null, code = "EUR", name = "Euro", rate = BigDecimal.ONE)
+        val EUR = Currency(id = 101, serverId = null, code = "EUR", name = "Euro", rate = BigDecimal.parseString("0.85"))
+        val EUR_SMALL = Currency(id = 102, serverId = null, code = "EUR", name = "Euro", rate = BigDecimal.parseString("0.8677"))
+        val JPY = Currency(id = 103, serverId = null, code = "JPY", name = "Japanese Yen", rate = BigDecimal.parseString("158.4072"))
 
         val person1 = Person(id = 1, serverId = "s1", name = "Vasilii")
         val person2 = Person(id = 2, serverId = "s2", name = "Dania")
@@ -186,6 +188,7 @@ internal class AddExpenseViewModelTest {
             awaitLoading()
             val initial = awaitSuccess()
             assertTrue(initial.currencies.byCode("USD").selected)
+            assertEquals(null, initial.exchangeRate)
 
             viewModel.onCurrencyClicked(
                 CurrencyInfoUiModel(
@@ -197,6 +200,145 @@ internal class AddExpenseViewModelTest {
 
             val updated = awaitSuccess()
             assertTrue(updated.currencies.byCode("EUR").selected)
+            assertEquals("1.1765", updated.exchangeRate?.rateRaw)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `should show exchange rate for foreign currency and clear it for primary currency`() = testScope.runTest {
+        currentEventFlow.value = TestFixtures.eventDetails
+        val viewModel = createViewModel()
+        runCurrent()
+        advanceUntilIdle()
+
+        viewModel.state.test {
+            awaitLoading()
+            val initial = awaitSuccess()
+            assertEquals(null, initial.exchangeRate)
+
+            viewModel.onCurrencyClicked(
+                CurrencyInfoUiModel(
+                    currencyName = TestFixtures.EUR.name,
+                    currencyCode = TestFixtures.EUR.code,
+                    selected = false
+                )
+            )
+
+            val eurState = awaitSuccess()
+            val exchangeRate = checkNotNull(eurState.exchangeRate)
+            assertEquals("EUR", exchangeRate.originalCurrencyCode)
+            assertEquals("USD", exchangeRate.primaryCurrencyCode)
+            assertEquals("1.1765", exchangeRate.rateRaw)
+            assertFalse(exchangeRate.isCustom)
+
+            viewModel.onCurrencyClicked(
+                CurrencyInfoUiModel(
+                    currencyName = TestFixtures.USD.name,
+                    currencyCode = TestFixtures.USD.code,
+                    selected = false
+                )
+            )
+
+            val usdState = awaitSuccess()
+            assertEquals(null, usdState.exchangeRate)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `should only mark exchange rate as custom when it differs from fetched rate`() = testScope.runTest {
+        currentEventFlow.value = TestFixtures.eventDetails
+        val viewModel = createViewModel()
+        runCurrent()
+        advanceUntilIdle()
+
+        viewModel.state.test {
+            awaitLoading()
+            awaitSuccess()
+
+            viewModel.onCurrencyClicked(
+                CurrencyInfoUiModel(
+                    currencyName = TestFixtures.EUR.name,
+                    currencyCode = TestFixtures.EUR.code,
+                    selected = false
+                )
+            )
+
+            assertFalse(checkNotNull(awaitSuccess().exchangeRate).isCustom)
+
+            viewModel.onExchangeRateChanged("1.25")
+            val overridden = checkNotNull(awaitSuccess().exchangeRate)
+            assertEquals("1.25", overridden.rateRaw)
+            assertTrue(overridden.isCustom)
+
+            viewModel.onExchangeRateChanged("1.1765")
+            assertFalse(checkNotNull(awaitSuccess().exchangeRate).isCustom)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `should keep exchange rate available for very small foreign currency ratio`() = testScope.runTest {
+        currentEventFlow.value = TestFixtures.eventDetails.copy(
+            event = TestFixtures.event.copy(primaryCurrencyId = TestFixtures.EUR_SMALL.id),
+            currencies = listOf(TestFixtures.EUR_SMALL, TestFixtures.JPY),
+            primaryCurrency = TestFixtures.EUR_SMALL,
+        )
+        val viewModel = createViewModel()
+        runCurrent()
+        advanceUntilIdle()
+
+        viewModel.state.test {
+            awaitLoading()
+            val initial = awaitSuccess()
+            assertEquals(null, initial.exchangeRate)
+
+            viewModel.onCurrencyClicked(
+                CurrencyInfoUiModel(
+                    currencyName = TestFixtures.JPY.name,
+                    currencyCode = TestFixtures.JPY.code,
+                    selected = false,
+                )
+            )
+            advanceUntilIdle()
+
+            val updated = awaitSuccess()
+            val exchangeRate = checkNotNull(updated.exchangeRate)
+            assertEquals("JPY", exchangeRate.originalCurrencyCode)
+            assertEquals("EUR", exchangeRate.primaryCurrencyCode)
+            assertEquals("0.0055", exchangeRate.rateRaw)
+            assertFalse(exchangeRate.isCustom)
+
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `should disable save when exchange rate is not positive`() = testScope.runTest {
+        currentEventFlow.value = TestFixtures.eventDetails
+        val viewModel = createViewModel()
+        runCurrent()
+        advanceUntilIdle()
+
+        viewModel.state.test {
+            awaitLoading()
+            awaitSuccess()
+
+            viewModel.onCurrencyClicked(
+                CurrencyInfoUiModel(
+                    currencyName = TestFixtures.EUR.name,
+                    currencyCode = TestFixtures.EUR.code,
+                    selected = false
+                )
+            )
+            awaitSuccess()
+
+            viewModel.onWholeAmountChanged("10")
+            awaitSuccess()
+
+            viewModel.onExchangeRateChanged("0")
+            assertFalse(awaitSuccess().canSave)
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -566,7 +708,8 @@ internal class AddExpenseViewModelTest {
                     description = any(),
                     selectedSubjectPersons = match { it.size == 3 && it.containsAll(listOf(TestFixtures.person1, TestFixtures.person2, TestFixtures.person3)) },
                     selectedCurrency = TestFixtures.USD,
-                    selectedPerson = TestFixtures.person1
+                    selectedPerson = TestFixtures.person1,
+                    overrideRate = null,
                 )
             }
             coVerify(exactly = 1) { navigationController.popBackStack() }
@@ -614,11 +757,101 @@ internal class AddExpenseViewModelTest {
                         map[TestFixtures.person1] == "4".toBigDecimal() &&
                             map[TestFixtures.person2] == "5".toBigDecimal() &&
                             map.containsKey(TestFixtures.person3)
-                    }
+                    },
+                    overrideRate = null,
                 )
             }
             coVerify(exactly = 1) { navigationController.popBackStack() }
 
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `should pass exchange rate override for equal split confirmation`() = testScope.runTest {
+        currentEventFlow.value = TestFixtures.eventDetails
+        val viewModel = createViewModel()
+        runCurrent()
+        advanceUntilIdle()
+
+        viewModel.state.test {
+            awaitLoading()
+            awaitSuccess()
+            viewModel.onCurrencyClicked(
+                CurrencyInfoUiModel(
+                    currencyName = TestFixtures.EUR.name,
+                    currencyCode = TestFixtures.EUR.code,
+                    selected = false
+                )
+            )
+            awaitSuccess()
+            viewModel.onWholeAmountChanged("10")
+            awaitSuccess()
+            viewModel.onExchangeRateChanged("1.25")
+            awaitSuccess()
+
+            viewModel.onConfirmClicked()
+            runCurrent()
+
+            coVerify(exactly = 1) {
+                addEqualSplitExpenseUseCase.addExpense(
+                    event = TestFixtures.event,
+                    wholeAmount = "10".toBigDecimal(),
+                    expenseType = ExpenseType.Spending,
+                    description = any(),
+                    selectedSubjectPersons = any(),
+                    selectedCurrency = TestFixtures.EUR,
+                    selectedPerson = TestFixtures.person1,
+                    overrideRate = BigDecimal.parseString("1.25"),
+                )
+            }
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `should pass exchange rate override for custom split confirmation`() = testScope.runTest {
+        currentEventFlow.value = TestFixtures.eventDetails
+        val viewModel = createViewModel()
+        runCurrent()
+        advanceUntilIdle()
+
+        viewModel.state.test {
+            awaitLoading()
+            awaitSuccess()
+            viewModel.onCurrencyClicked(
+                CurrencyInfoUiModel(
+                    currencyName = TestFixtures.EUR.name,
+                    currencyCode = TestFixtures.EUR.code,
+                    selected = false
+                )
+            )
+            awaitSuccess()
+            viewModel.onEqualSplitChange(false)
+            viewModel.onWholeAmountChanged("9")
+            val uiModel = awaitSuccess()
+            val person1Row = uiModel.split.byPersonId(TestFixtures.person1.id)
+            val person2Row = uiModel.split.byPersonId(TestFixtures.person2.id)
+            viewModel.onSplitAmountChanged(person1Row, "4")
+            viewModel.onSplitAmountChanged(person2Row, "5")
+            awaitSuccess()
+            viewModel.onExchangeRateChanged("1.25")
+            awaitSuccess()
+
+            viewModel.onConfirmClicked()
+            runCurrent()
+
+            coVerify(exactly = 1) {
+                addCustomSplitExpenseUseCase.addExpense(
+                    event = TestFixtures.event,
+                    expenseType = ExpenseType.Spending,
+                    description = any(),
+                    selectedCurrency = TestFixtures.EUR,
+                    selectedPerson = TestFixtures.person1,
+                    personWithAmountSplit = any(),
+                    overrideRate = BigDecimal.parseString("1.25"),
+                )
+            }
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -641,8 +874,8 @@ internal class AddExpenseViewModelTest {
             runCurrent()
 
             // Then
-            coVerify(exactly = 0) { addEqualSplitExpenseUseCase.addExpense(any(), any(), any(), any(), any(), any(), any()) }
-            coVerify(exactly = 0) { addCustomSplitExpenseUseCase.addExpense(any(), any(), any(), any(), any(), any()) }
+            coVerify(exactly = 0) { addEqualSplitExpenseUseCase.addExpense(any(), any(), any(), any(), any(), any(), any(), any()) }
+            coVerify(exactly = 0) { addCustomSplitExpenseUseCase.addExpense(any(), any(), any(), any(), any(), any(), any()) }
             coVerify(exactly = 0) { navigationController.popBackStack() }
 
             cancelAndIgnoreRemainingEvents()
@@ -677,6 +910,7 @@ internal class AddExpenseViewModelTest {
             assertEquals(TestFixtures.person3.id, uiModel.split.first().person.personId)
             assertEquals("7.5", uiModel.split.first().amount)
             assertEquals("7.5", uiModel.wholeAmount)
+            assertEquals("1.1765", uiModel.exchangeRate?.rateRaw)
             assertTrue(uiModel.canSave)
 
             cancelAndIgnoreRemainingEvents()
@@ -878,7 +1112,8 @@ internal class AddExpenseViewModelTest {
                     description = "expenses_no_description", // default from StringProvider mock
                     selectedSubjectPersons = any(),
                     selectedCurrency = TestFixtures.USD,
-                    selectedPerson = TestFixtures.person1
+                    selectedPerson = TestFixtures.person1,
+                    overrideRate = null,
                 )
             }
 
@@ -914,7 +1149,8 @@ internal class AddExpenseViewModelTest {
                     expenseType = any(),
                     selectedSubjectPersons = any(),
                     selectedCurrency = any(),
-                    selectedPerson = any()
+                    selectedPerson = any(),
+                    overrideRate = null,
                 )
             }
 
@@ -1182,7 +1418,7 @@ internal class AddExpenseViewModelTest {
             runCurrent()
 
             // Then - should not create expense or navigate
-            coVerify(exactly = 0) { addCustomSplitExpenseUseCase.addExpense(any(), any(), any(), any(), any(), any()) }
+            coVerify(exactly = 0) { addCustomSplitExpenseUseCase.addExpense(any(), any(), any(), any(), any(), any(), any()) }
             coVerify(exactly = 0) { navigationController.popBackStack() }
 
             cancelAndIgnoreRemainingEvents()
@@ -1208,7 +1444,7 @@ internal class AddExpenseViewModelTest {
             runCurrent()
 
             // Then - should not call expense creation
-            coVerify(exactly = 0) { addEqualSplitExpenseUseCase.addExpense(any(), any(), any(), any(), any(), any(), any()) }
+            coVerify(exactly = 0) { addEqualSplitExpenseUseCase.addExpense(any(), any(), any(), any(), any(), any(), any(), any()) }
             coVerify(exactly = 0) { navigationController.popBackStack() }
 
             cancelAndIgnoreRemainingEvents()

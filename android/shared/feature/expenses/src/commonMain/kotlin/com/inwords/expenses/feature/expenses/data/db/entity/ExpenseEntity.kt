@@ -63,6 +63,9 @@ data class ExpenseEntity(
     @ColumnInfo(ColumnNames.PERSON_ID)
     val personId: Long,
 
+    @ColumnInfo(ColumnNames.IS_CUSTOM_RATE)
+    val isCustomRate: Boolean,
+
     @ColumnInfo(ColumnNames.TIMESTAMP)
     val timestamp: Instant,
 
@@ -83,6 +86,7 @@ data class ExpenseEntity(
         const val CURRENCY_ID = "currency_id"
         const val EXPENSE_TYPE = "expense_type"
         const val PERSON_ID = "person_id"
+        const val IS_CUSTOM_RATE = "is_custom_rate"
         const val TIMESTAMP = "timestamp"
         const val DESCRIPTION = "description"
     }

@@ -54,6 +54,9 @@ When MCP is available:
 
 - Prefer JetBrains MCP tools for project-aware queries and inspections
 - Prefer `execute_terminal_command` for Gradle validation run from the IDE context
+- Prefer the JetBrains MCP terminal for local Android UI-test builds and Marathon runs. In this repo, the IDE terminal is the preferred execution path for agent-driven UI validation because it uses the Android IDE environment directly and is more reliable for SDK-dependent, long-running commands than bouncing between shells
+- For Marathon, run the repo script `.\scripts\run-marathon.ps1` from the Android project root instead of hand-writing `ANDROID_SDK_ROOT` setup inline. The script resolves the SDK from env vars or `android/local.properties`, exports the SDK vars for the current PowerShell process, builds the autotest APKs, and launches Marathon
+- If PowerShell execution policy blocks direct `.ps1` execution in the IDE terminal, invoke the same script as `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-marathon.ps1`
 - On Windows-hosted Android projects, expect `execute_terminal_command` to follow the IDE terminal's shell semantics, which may be PowerShell even if the agent session itself reports `bash`
 - For environment-sensitive commands, prefer shell-native syntax for the IDE terminal (`;`, `Select-String`, `Get-Content`, `Get-Date`, explicit `adb.exe` paths in PowerShell) instead of assuming Unix shell behavior or `PATH` parity with WSL
 - For long Gradle runs, treat the JetBrains terminal timeout as an output-capture limit, not proof that Gradle stopped. Before rerunning a long task, poll for the wrapper process or expected output files and wait for the existing run to finish if it is still active

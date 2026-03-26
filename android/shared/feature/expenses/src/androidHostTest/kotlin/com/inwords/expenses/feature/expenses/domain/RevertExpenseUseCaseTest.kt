@@ -58,6 +58,7 @@ internal class RevertExpenseUseCaseTest {
             subjectExpenseSplitWithPersons = listOf(
                 ExpenseSplitWithPerson(1L, 20L, bob, 5.toBigDecimal(), 5.toBigDecimal()),
             ),
+            isCustomRate = true,
             timestamp = Instant.fromEpochMilliseconds(0),
             description = "Dinner",
         )
@@ -80,6 +81,7 @@ internal class RevertExpenseUseCaseTest {
 
         assertTrue(result)
         assertEquals(ExpenseType.Replenishment, capturedExpense.captured.expenseType)
+        assertTrue(capturedExpense.captured.isCustomRate)
         assertEquals(BigDecimal.parseString("-5"), capturedExpense.captured.subjectExpenseSplitWithPersons.single().originalAmount)
         assertEquals(BigDecimal.parseString("-5"), capturedExpense.captured.subjectExpenseSplitWithPersons.single().exchangedAmount)
         assertEquals("Revert", capturedExpense.captured.description)

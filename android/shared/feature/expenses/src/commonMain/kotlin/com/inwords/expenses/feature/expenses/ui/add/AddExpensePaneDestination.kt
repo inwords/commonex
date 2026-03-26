@@ -53,6 +53,7 @@ internal fun ExpensesComponent.getAddExpensePaneNavModule(
             AddExpensePane(
                 state = viewModel.state.collectAsStateWithLifecycle().value,
                 onCurrencyClicked = viewModel::onCurrencyClicked,
+                onExchangeRateChanged = viewModel::onExchangeRateChanged,
                 onExpenseTypeClicked = viewModel::onExpenseTypeClicked,
                 onPersonClicked = viewModel::onPersonClicked,
                 onSubjectPersonClicked = viewModel::onSubjectPersonClicked,

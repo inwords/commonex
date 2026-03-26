@@ -71,6 +71,10 @@ kotlin {
         commonTest {
             dependencies {
                 implementation(shared.kotlin.test)
+                implementation(shared.coroutines.test)
+                implementation(shared.ktor.client.mock)
+                implementation(shared.ktor.client.content.negotiation)
+                implementation(shared.ktor.serialization.kotlinx.json)
             }
         }
     }

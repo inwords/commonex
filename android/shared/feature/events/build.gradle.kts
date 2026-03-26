@@ -69,6 +69,10 @@ kotlin {
         commonTest {
             dependencies {
                 implementation(shared.kotlin.test)
+                implementation(shared.coroutines.test)
+                implementation(shared.ktor.client.mock)
+                implementation(shared.ktor.client.content.negotiation)
+                implementation(shared.ktor.serialization.kotlinx.json)
             }
         }
     }
@@ -90,7 +94,4 @@ dependencies {
     add("androidHostTestImplementation", shared.junit.jupiter.api)
     add("androidHostTestImplementation", shared.mockk)
     add("androidHostTestImplementation", shared.turbine)
-    add("androidHostTestImplementation", shared.ktor.client.mock)
-    add("androidHostTestImplementation", shared.ktor.client.content.negotiation)
-    add("androidHostTestImplementation", shared.ktor.serialization.kotlinx.json)
 }

@@ -1,0 +1,548 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 4,
+    "identityHash": "0a83f31347eb52f9822ff4256bb829c9",
+    "entities": [
+      {
+        "tableName": "event",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`event_id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `event_server_id` TEXT, `name` TEXT NOT NULL, `pin_code` TEXT NOT NULL, `primary_currency_id` INTEGER NOT NULL, FOREIGN KEY(`primary_currency_id`) REFERENCES `currency`(`currency_id`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
+        "fields": [
+          {
+            "fieldPath": "eventId",
+            "columnName": "event_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "eventServerId",
+            "columnName": "event_server_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pinCode",
+            "columnName": "pin_code",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "primaryCurrencyId",
+            "columnName": "primary_currency_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "event_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_event_primary_currency_id",
+            "unique": false,
+            "columnNames": [
+              "primary_currency_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_event_primary_currency_id` ON `${TABLE_NAME}` (`primary_currency_id`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "currency",
+            "onDelete": "RESTRICT",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "primary_currency_id"
+            ],
+            "referencedColumns": [
+              "currency_id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "expense",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`expense_id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `expense_server_id` TEXT, `event_id` INTEGER NOT NULL, `currency_id` INTEGER NOT NULL, `expense_type` TEXT NOT NULL, `person_id` INTEGER NOT NULL, `is_custom_rate` INTEGER NOT NULL, `timestamp` INTEGER NOT NULL, `description` TEXT NOT NULL, FOREIGN KEY(`event_id`) REFERENCES `event`(`event_id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`currency_id`) REFERENCES `currency`(`currency_id`) ON UPDATE NO ACTION ON DELETE RESTRICT , FOREIGN KEY(`person_id`) REFERENCES `person`(`person_id`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
+        "fields": [
+          {
+            "fieldPath": "expenseId",
+            "columnName": "expense_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "serverId",
+            "columnName": "expense_server_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "eventId",
+            "columnName": "event_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "currencyId",
+            "columnName": "currency_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "expenseType",
+            "columnName": "expense_type",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "personId",
+            "columnName": "person_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isCustomRate",
+            "columnName": "is_custom_rate",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "timestamp",
+            "columnName": "timestamp",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "description",
+            "columnName": "description",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "expense_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_expense_event_id",
+            "unique": false,
+            "columnNames": [
+              "event_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_expense_event_id` ON `${TABLE_NAME}` (`event_id`)"
+          },
+          {
+            "name": "index_expense_currency_id",
+            "unique": false,
+            "columnNames": [
+              "currency_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_expense_currency_id` ON `${TABLE_NAME}` (`currency_id`)"
+          },
+          {
+            "name": "index_expense_person_id",
+            "unique": false,
+            "columnNames": [
+              "person_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_expense_person_id` ON `${TABLE_NAME}` (`person_id`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "event",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "event_id"
+            ],
+            "referencedColumns": [
+              "event_id"
+            ]
+          },
+          {
+            "table": "currency",
+            "onDelete": "RESTRICT",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "currency_id"
+            ],
+            "referencedColumns": [
+              "currency_id"
+            ]
+          },
+          {
+            "table": "person",
+            "onDelete": "RESTRICT",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "person_id"
+            ],
+            "referencedColumns": [
+              "person_id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "expense_split",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`expense_split_id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `expense_id` INTEGER NOT NULL, `person_id` INTEGER NOT NULL, `original_amount_unscaled` BLOB NOT NULL, `original_amount_scale` INTEGER NOT NULL, `exchanged_amount_unscaled` BLOB NOT NULL, `exchanged_amount_scale` INTEGER NOT NULL, FOREIGN KEY(`expense_id`) REFERENCES `expense`(`expense_id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`person_id`) REFERENCES `person`(`person_id`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
+        "fields": [
+          {
+            "fieldPath": "expenseSplitId",
+            "columnName": "expense_split_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "expenseId",
+            "columnName": "expense_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "personId",
+            "columnName": "person_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "originalAmountUnscaled",
+            "columnName": "original_amount_unscaled",
+            "affinity": "BLOB",
+            "notNull": true
+          },
+          {
+            "fieldPath": "originalAmountScale",
+            "columnName": "original_amount_scale",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "exchangedAmountUnscaled",
+            "columnName": "exchanged_amount_unscaled",
+            "affinity": "BLOB",
+            "notNull": true
+          },
+          {
+            "fieldPath": "exchangedAmountScale",
+            "columnName": "exchanged_amount_scale",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "expense_split_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_expense_split_person_id",
+            "unique": false,
+            "columnNames": [
+              "person_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_expense_split_person_id` ON `${TABLE_NAME}` (`person_id`)"
+          },
+          {
+            "name": "index_expense_split_expense_id",
+            "unique": false,
+            "columnNames": [
+              "expense_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_expense_split_expense_id` ON `${TABLE_NAME}` (`expense_id`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "expense",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "expense_id"
+            ],
+            "referencedColumns": [
+              "expense_id"
+            ]
+          },
+          {
+            "table": "person",
+            "onDelete": "RESTRICT",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "person_id"
+            ],
+            "referencedColumns": [
+              "person_id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "currency",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`currency_id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `currency_server_id` TEXT, `code` TEXT NOT NULL, `name` TEXT NOT NULL, `rate_unscaled` BLOB NOT NULL, `rate_scale` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "currencyId",
+            "columnName": "currency_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "currencyServerId",
+            "columnName": "currency_server_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "code",
+            "columnName": "code",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rateUnscaled",
+            "columnName": "rate_unscaled",
+            "affinity": "BLOB",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rateScale",
+            "columnName": "rate_scale",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "currency_id"
+          ]
+        }
+      },
+      {
+        "tableName": "currency_rates_metadata",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`currency_rates_metadata_id` INTEGER NOT NULL, `etag` TEXT, `last_rates_update_utc_date` TEXT NOT NULL, PRIMARY KEY(`currency_rates_metadata_id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "currency_rates_metadata_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "eTag",
+            "columnName": "etag",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "lastRatesUpdateUtcDate",
+            "columnName": "last_rates_update_utc_date",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "currency_rates_metadata_id"
+          ]
+        }
+      },
+      {
+        "tableName": "person",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`person_id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `person_server_id` TEXT, `name` TEXT NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "personId",
+            "columnName": "person_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "personServerId",
+            "columnName": "person_server_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "person_id"
+          ]
+        }
+      },
+      {
+        "tableName": "event_currency_cross_ref",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`event_id` INTEGER NOT NULL, `currency_id` INTEGER NOT NULL, PRIMARY KEY(`event_id`, `currency_id`), FOREIGN KEY(`event_id`) REFERENCES `event`(`event_id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`currency_id`) REFERENCES `currency`(`currency_id`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
+        "fields": [
+          {
+            "fieldPath": "eventId",
+            "columnName": "event_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "currencyId",
+            "columnName": "currency_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "event_id",
+            "currency_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_event_currency_cross_ref_event_id",
+            "unique": false,
+            "columnNames": [
+              "event_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_event_currency_cross_ref_event_id` ON `${TABLE_NAME}` (`event_id`)"
+          },
+          {
+            "name": "index_event_currency_cross_ref_currency_id",
+            "unique": false,
+            "columnNames": [
+              "currency_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_event_currency_cross_ref_currency_id` ON `${TABLE_NAME}` (`currency_id`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "event",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "event_id"
+            ],
+            "referencedColumns": [
+              "event_id"
+            ]
+          },
+          {
+            "table": "currency",
+            "onDelete": "RESTRICT",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "currency_id"
+            ],
+            "referencedColumns": [
+              "currency_id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "event_person_cross_ref",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`event_id` INTEGER NOT NULL, `person_id` INTEGER NOT NULL, PRIMARY KEY(`event_id`, `person_id`), FOREIGN KEY(`event_id`) REFERENCES `event`(`event_id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`person_id`) REFERENCES `person`(`person_id`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
+        "fields": [
+          {
+            "fieldPath": "eventId",
+            "columnName": "event_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "personId",
+            "columnName": "person_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "event_id",
+            "person_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_event_person_cross_ref_event_id",
+            "unique": false,
+            "columnNames": [
+              "event_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_event_person_cross_ref_event_id` ON `${TABLE_NAME}` (`event_id`)"
+          },
+          {
+            "name": "index_event_person_cross_ref_person_id",
+            "unique": false,
+            "columnNames": [
+              "person_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_event_person_cross_ref_person_id` ON `${TABLE_NAME}` (`person_id`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "event",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "event_id"
+            ],
+            "referencedColumns": [
+              "event_id"
+            ]
+          },
+          {
+            "table": "person",
+            "onDelete": "RESTRICT",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "person_id"
+            ],
+            "referencedColumns": [
+              "person_id"
+            ]
+          }
+        ]
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '0a83f31347eb52f9822ff4256bb829c9')"
+    ]
+  }
+}

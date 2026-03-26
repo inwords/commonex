@@ -333,6 +333,7 @@ internal class EventExpensesPushTaskTest {
                     exchangedAmount = BigDecimal.parseString(value),
                 )
             },
+            isCustomRate = false,
             timestamp = Clock.System.now(),
             description = "Expense$expenseId",
         )

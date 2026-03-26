@@ -6,6 +6,7 @@ import kotlinx.collections.immutable.ImmutableList
 internal data class AddExpensePaneUiModel(
     val description: String,
     val currencies: ImmutableList<CurrencyInfoUiModel>,
+    val exchangeRate: ExchangeRateUiModel?,
     val expenseType: ExpenseType,
     val persons: ImmutableList<PersonInfoUiModel>,
     val subjectPersons: ImmutableList<PersonInfoUiModel>,
@@ -19,6 +20,13 @@ internal data class AddExpensePaneUiModel(
         val currencyName: String,
         val currencyCode: String,
         val selected: Boolean,
+    )
+
+    data class ExchangeRateUiModel(
+        val originalCurrencyCode: String,
+        val primaryCurrencyCode: String,
+        val rateRaw: String,
+        val isCustom: Boolean,
     )
 
     data class PersonInfoUiModel(

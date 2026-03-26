@@ -41,6 +41,7 @@ internal class ExpenseToUiModelTest {
                     exchangedAmount = 70.toBigDecimal(),
                 )
             ),
+            isCustomRate = false,
             timestamp = Clock.System.now(),
             description = "Lunch",
         )
@@ -70,6 +71,7 @@ internal class ExpenseToUiModelTest {
                     exchangedAmount = 40.toBigDecimal(),
                 )
             ),
+            isCustomRate = false,
             timestamp = Clock.System.now(),
             description = "Taxi",
         )

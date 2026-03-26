@@ -19,6 +19,7 @@ internal fun ExpenseWithDetailsQuery.toDomain(): Expense {
         expenseType = this.expense.expenseType,
         person = this.person.toDomain(),
         subjectExpenseSplitWithPersons = this.expenseSplitWithPersons.map { it.toDomain() },
+        isCustomRate = this.expense.isCustomRate,
         timestamp = this.expense.timestamp,
         description = this.expense.description,
     )

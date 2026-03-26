@@ -36,6 +36,7 @@ internal class RevertExpenseUseCase internal constructor(
                     exchangedAmount = split.exchangedAmount.negate(),
                 )
             },
+            isCustomRate = originalExpense.isCustomRate,
             timestamp = Clock.System.now(),
             description = description,
         )
