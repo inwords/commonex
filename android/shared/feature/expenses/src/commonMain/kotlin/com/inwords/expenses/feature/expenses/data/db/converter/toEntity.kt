@@ -13,6 +13,7 @@ internal fun Expense.toEntity(event: Event): ExpenseEntity {
         currencyId = this.currency.id,
         expenseType = this.expenseType,
         personId = this.person.id,
+        isCustomRate = this.isCustomRate,
         timestamp = this.timestamp,
         description = this.description,
     )

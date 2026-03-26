@@ -104,6 +104,9 @@ internal class ExpensesRemoteStoreImpl(
                             SplitInformationRequest(
                                 userId = splitInformationUserId,
                                 amount = expenseSplitWithPerson.originalAmount.doubleValue(false),
+                                exchangedAmount = expenseSplitWithPerson.exchangedAmount
+                                    .takeIf { expense.isCustomRate }
+                                    ?.doubleValue(false),
                             )
                         },
                         description = expense.description,
@@ -136,6 +139,7 @@ internal class ExpensesRemoteStoreImpl(
             },
             person = persons.firstOrNull { it.serverId == userWhoPaidId } ?: return null,
             subjectExpenseSplitWithPersons = splitInformation.map { it.toDomain(persons) ?: return null },
+            isCustomRate = isCustomRate,
             timestamp = createdAt,
             description = description,
         )

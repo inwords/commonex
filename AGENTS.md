@@ -44,7 +44,7 @@ CommonEx is a multi-platform expense sharing application with Android/iOS (KMM),
 
 - Use .agents/skills/sync-docs-from-session to propose doc/instruction updates from session-verified knowledge.
 - Repo skills: `android/.agents/skills/add-ui-test` (Android UI tests), `android/.agents/skills/prepare-mobile-release` (mobile release SOP), `android/.agents/skills/run-android-local-long-task` (long local Android runs; see
-  `android/docs/local-agent-prerequisites.md` for prerequisites), `.agents/skills/sync-docs-from-session` (doc sync).
+  `android/docs/local-agent-prerequisites.md` for prerequisites), `.agents/skills/sync-docs-from-session` (doc sync), `.agents/skills/write-unit-tests` (repo unit-test writing guidance).
 - Skills may include `agents/openai.yaml` for UI metadata/discoverability.
 - Prefer `docs/README.md` for cross-project doc discovery and a project-local `docs/README.md` when that project has multiple focused docs.
 - Keep instructions short and linked rather than duplicated.

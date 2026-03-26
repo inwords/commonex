@@ -27,7 +27,9 @@ internal data class ExpenseDto(
     @SerialName("splitInformation")
     val splitInformation: List<SplitInformationDto>,
 
+    @SerialName("isCustomRate")
+    val isCustomRate: Boolean,
+
     @SerialName("createdAt")
     val createdAt: Instant
 )
-

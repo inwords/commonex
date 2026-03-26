@@ -13,6 +13,7 @@ data class Expense(
     val expenseType: ExpenseType,
     val person: Person,
     val subjectExpenseSplitWithPersons: List<ExpenseSplitWithPerson>,
+    val isCustomRate: Boolean,
     val timestamp: Instant,
     val description: String,
 ) {

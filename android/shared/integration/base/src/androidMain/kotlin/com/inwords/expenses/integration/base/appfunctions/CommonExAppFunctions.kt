@@ -207,6 +207,7 @@ internal class CommonExAppFunctions {
             selectedSubjectPersons = eventDetails.persons,
             selectedCurrency = eventDetails.primaryCurrency,
             selectedPerson = payer,
+            overrideRate = null,
         )
         expensesComponent.requestExpensesRefreshUseCaseLazy.value.requestRefresh(eventDetails.event)
 

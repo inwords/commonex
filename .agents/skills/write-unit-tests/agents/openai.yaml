@@ -1,0 +1,4 @@
+interface:
+  display_name: "Write Unit Tests"
+  short_description: "Add focused unit-test coverage"
+  default_prompt: "Use $write-unit-tests to add or update focused unit tests in the correct project and source set, matching local test patterns and validating with the narrowest relevant command."

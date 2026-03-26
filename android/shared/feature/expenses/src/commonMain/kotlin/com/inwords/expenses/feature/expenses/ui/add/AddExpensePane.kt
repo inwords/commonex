@@ -1,5 +1,11 @@
 package com.inwords.expenses.feature.expenses.ui.add
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -44,6 +50,7 @@ import com.inwords.expenses.core.ui.utils.SimpleScreenState
 import com.inwords.expenses.feature.events.domain.model.Person
 import com.inwords.expenses.feature.expenses.domain.model.ExpenseType
 import com.inwords.expenses.feature.expenses.ui.add.AddExpensePaneUiModel.CurrencyInfoUiModel
+import com.inwords.expenses.feature.expenses.ui.add.AddExpensePaneUiModel.ExchangeRateUiModel
 import com.inwords.expenses.feature.expenses.ui.add.AddExpensePaneUiModel.ExpenseSplitWithPersonUiModel
 import com.inwords.expenses.feature.expenses.ui.add.AddExpensePaneUiModel.PersonInfoUiModel
 import expenses.shared.feature.expenses.generated.resources.Res
@@ -52,6 +59,8 @@ import expenses.shared.feature.expenses.generated.resources.expenses_between
 import expenses.shared.feature.expenses.generated.resources.expenses_currency
 import expenses.shared.feature.expenses.generated.resources.expenses_description
 import expenses.shared.feature.expenses.generated.resources.expenses_equally
+import expenses.shared.feature.expenses.generated.resources.expenses_exchange_rate
+import expenses.shared.feature.expenses.generated.resources.expenses_exchange_rate_value
 import expenses.shared.feature.expenses.generated.resources.expenses_expense
 import expenses.shared.feature.expenses.generated.resources.expenses_no_expenses
 import expenses.shared.feature.expenses.generated.resources.expenses_paid_by
@@ -67,6 +76,7 @@ import org.jetbrains.compose.resources.stringResource
 internal fun AddExpensePane(
     state: SimpleScreenState<AddExpensePaneUiModel>,
     onCurrencyClicked: (CurrencyInfoUiModel) -> Unit,
+    onExchangeRateChanged: (String) -> Unit,
     onExpenseTypeClicked: (ExpenseType) -> Unit,
     onPersonClicked: (PersonInfoUiModel) -> Unit,
     onSubjectPersonClicked: (PersonInfoUiModel) -> Unit,
@@ -81,6 +91,7 @@ internal fun AddExpensePane(
         is SimpleScreenState.Success -> AddExpensePaneSuccess(
             state = state.data,
             onCurrencyClicked = onCurrencyClicked,
+            onExchangeRateChanged = onExchangeRateChanged,
             onExpenseTypeClicked = onExpenseTypeClicked,
             onPersonClicked = onPersonClicked,
             onSubjectPersonClicked = onSubjectPersonClicked,
@@ -122,6 +133,7 @@ private fun AddExpensePaneLoading(modifier: Modifier = Modifier) {
 private fun AddExpensePaneSuccess(
     state: AddExpensePaneUiModel,
     onCurrencyClicked: (CurrencyInfoUiModel) -> Unit,
+    onExchangeRateChanged: (String) -> Unit,
     onExpenseTypeClicked: (ExpenseType) -> Unit,
     onPersonClicked: (PersonInfoUiModel) -> Unit,
     onSubjectPersonClicked: (PersonInfoUiModel) -> Unit,
@@ -193,6 +205,27 @@ private fun AddExpensePaneSuccess(
             },
             onCheckedChange = { _, _, currencyInfo -> onCurrencyClicked.invoke(currencyInfo) },
         )
+
+        AnimatedContent(
+            targetState = state.exchangeRate,
+            transitionSpec = {
+                (expandVertically(expandFrom = Alignment.Top) + fadeIn())
+                    .togetherWith(shrinkVertically(shrinkTowards = Alignment.Top) + fadeOut())
+            },
+            contentKey = { exchangeRate -> exchangeRate != null },
+            label = "exchange_rate_visibility",
+        ) { exchangeRate ->
+            if (exchangeRate != null) {
+                ExchangeRateInput(
+                    exchangeRate = exchangeRate,
+                    enabled = exchangeRate == state.exchangeRate,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp, start = 8.dp, end = 8.dp, bottom = 4.dp),
+                    onExchangeRateChanged = onExchangeRateChanged,
+                )
+            }
+        }
 
         Text(
             modifier = Modifier
@@ -294,6 +327,41 @@ private fun currencyOptionTag(currencyCode: String): String {
 }
 
 @Composable
+private fun ExchangeRateInput(
+    exchangeRate: ExchangeRateUiModel,
+    onExchangeRateChanged: (String) -> Unit,
+    enabled: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    OutlinedTextField(
+        modifier = modifier.testTag("add_expense_exchange_rate_input"),
+        textStyle = MaterialTheme.typography.headlineSmall,
+        value = exchangeRate.rateRaw,
+        enabled = enabled,
+        label = { Text(text = stringResource(Res.string.expenses_exchange_rate)) },
+        supportingText = {
+            if (exchangeRate.rateRaw.isNotBlank()) {
+                Text(
+                    text = stringResource(
+                        Res.string.expenses_exchange_rate_value,
+                        exchangeRate.originalCurrencyCode,
+                        exchangeRate.rateRaw,
+                        exchangeRate.primaryCurrencyCode,
+                    )
+                )
+            }
+        },
+        onValueChange = onExchangeRateChanged,
+        keyboardOptions = KeyboardOptions(
+            autoCorrectEnabled = false,
+            keyboardType = KeyboardType.Decimal,
+            imeAction = ImeAction.Done,
+        ),
+        singleLine = true,
+    )
+}
+
+@Composable
 private fun SplitEqualPartsInput(
     amount: String,
     onAmountChanged: (String) -> Unit,
@@ -375,6 +443,7 @@ private fun AddExpensePaneSuccessEqualSplitPreview() {
     CommonExTheme {
         AddExpensePane(
             onCurrencyClicked = {},
+            onExchangeRateChanged = {},
             onExpenseTypeClicked = {},
             onPersonClicked = {},
             onSubjectPersonClicked = {},
@@ -394,6 +463,7 @@ private fun AddExpensePaneSuccessPreview() {
     CommonExTheme {
         AddExpensePane(
             onCurrencyClicked = {},
+            onExchangeRateChanged = {},
             onExpenseTypeClicked = {},
             onPersonClicked = {},
             onSubjectPersonClicked = {},
@@ -452,6 +522,7 @@ internal fun mockAddExpenseScreenUiModel(): AddExpensePaneUiModel {
                 selected = false
             ),
         ),
+        exchangeRate = null,
         expenseType = ExpenseType.Spending,
         persons = persistentListOf(
             PersonInfoUiModel(

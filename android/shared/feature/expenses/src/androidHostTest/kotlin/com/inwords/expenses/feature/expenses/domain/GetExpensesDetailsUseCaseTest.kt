@@ -43,6 +43,7 @@ internal class GetExpensesDetailsUseCaseTest {
                 ExpenseSplitWithPerson(1L, 77L, alice, 10.toBigDecimal(), 10.toBigDecimal()),
                 ExpenseSplitWithPerson(2L, 77L, bob, 10.toBigDecimal(), 10.toBigDecimal()),
             ),
+            isCustomRate = false,
             timestamp = Instant.fromEpochMilliseconds(0),
             description = "Lunch",
         )

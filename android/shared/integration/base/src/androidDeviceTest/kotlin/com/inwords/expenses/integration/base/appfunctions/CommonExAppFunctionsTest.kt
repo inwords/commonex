@@ -360,6 +360,7 @@ internal class CommonExAppFunctionsTest {
                 ExpenseSplitWithPerson(0, 1, alice, ten, ten),
                 ExpenseSplitWithPerson(0, 1, bob, ten, ten),
             ),
+            isCustomRate = false,
             timestamp = kotlin.time.Clock.System.now(),
             description = "Lunch",
         )
@@ -426,6 +427,7 @@ internal class CommonExAppFunctionsTest {
                 selectedSubjectPersons = listOf(alice, bob),
                 selectedCurrency = currency,
                 selectedPerson = alice,
+                overrideRate = null,
             )
         }
     }
@@ -537,6 +539,7 @@ internal class CommonExAppFunctionsTest {
                 selectedSubjectPersons = listOf(alice, bob, chris),
                 selectedCurrency = currency,
                 selectedPerson = alice,
+                overrideRate = null,
             )
         }
     }

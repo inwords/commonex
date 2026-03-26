@@ -57,6 +57,12 @@ internal class ExpenseDetailsScreen : BaseScreen() {
     }
 
     context(rule: ComposeTestRule)
+    fun verifyExchangeRate(exchangeRate: String): ExpenseDetailsScreen {
+        rule.onNodeWithTag("expense_item_pane_exchange_rate_value").assertTextEquals(exchangeRate)
+        return this
+    }
+
+    context(rule: ComposeTestRule)
     suspend fun verifyExchangeRateHidden(): ExpenseDetailsScreen {
         rule.onAllNodesWithTag("expense_item_pane_exchange_rate_value").assertCountEquals(0)
         return this

@@ -22,8 +22,16 @@ When updating this repo, change the version in the build/CI file above; docs tha
 ## local.properties and ANDROID_SDK_ROOT
 
 - **`android/local.properties`** must exist for local builds. It typically contains `sdk.dir=C\:\\path\\to\\Android\\Sdk` (or the equivalent path on your OS). The Android Gradle Plugin reads this to find the SDK.
-- **`ANDROID_SDK_ROOT`** (or `ANDROID_HOME`): if not set, Gradle uses `sdk.dir` from `local.properties`. Some tooling (e.g. Marathon, emulator) may require `ANDROID_SDK_ROOT` to be set explicitly; you can derive it from `sdk.dir` in `local.properties` (e.g.
-  `C:\Android\sdk`).
+- **`ANDROID_SDK_ROOT`** (or `ANDROID_HOME`): if not set, Gradle uses `sdk.dir` from `local.properties`. Marathon CLI still needs the SDK path exported in its own process, so future agents should prefer `.\scripts\run-marathon.ps1`, which derives the SDK path from `ANDROID_SDK_ROOT`, `ANDROID_HOME`, or `local.properties` and exports both variables before launching Marathon. If the script cannot resolve the SDK, derive it from `sdk.dir` in `local.properties` (for example `C:\Android\sdk`) and fix the environment or file.
+
+## Agent-Friendly Android UI-Test Setup
+
+For future agent runs (Codex, Claude, or similar) on this repo:
+
+1. Open the JetBrains project at `android/`, not the repository root.
+2. Make sure `android/local.properties` exists and contains a valid `sdk.dir=...`.
+3. For Compose UI / E2E validation, use the JetBrains MCP terminal and run `.\scripts\run-marathon.ps1` from `android/`.
+4. If the script fails to resolve the SDK path, fix `local.properties` first; set `ANDROID_SDK_ROOT` manually only when the repo script cannot be used.
 
 ## API and System Image (for device/emulator runs)
 

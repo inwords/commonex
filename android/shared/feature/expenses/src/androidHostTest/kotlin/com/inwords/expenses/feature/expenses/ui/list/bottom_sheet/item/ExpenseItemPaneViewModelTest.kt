@@ -62,6 +62,7 @@ internal class ExpenseItemPaneViewModelTest {
         subjectExpenseSplitWithPersons = listOf(
             ExpenseSplitWithPerson(1L, 10L, person, 10.toBigDecimal(), 10.toBigDecimal())
         ),
+        isCustomRate = false,
         timestamp = Instant.fromEpochMilliseconds(0),
         description = "Lunch",
     )

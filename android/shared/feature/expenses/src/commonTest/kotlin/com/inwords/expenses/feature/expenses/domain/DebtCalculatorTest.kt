@@ -51,6 +51,7 @@ internal class DebtCalculatorTest {
                 expenseType = expenseType,
                 person = payer,
                 subjectExpenseSplitWithPersons = splitWithPersons,
+                isCustomRate = false,
                 timestamp = timestamp,
                 description = description
             )

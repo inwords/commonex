@@ -14,8 +14,10 @@ import com.inwords.expenses.feature.expenses.domain.model.ExpenseType
 import com.inwords.expenses.feature.sync.data.EventsSyncManagerObserverDelegate
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
@@ -72,6 +74,7 @@ internal class EventsSyncObserverTest {
             expenseType = ExpenseType.Spending,
             person = alex,
             subjectExpenseSplitWithPersons = emptyList(),
+            isCustomRate = false,
             timestamp = kotlin.time.Instant.fromEpochMilliseconds(0),
             description = "Dinner"
         )
@@ -137,9 +140,54 @@ internal class EventsSyncObserverTest {
         harness.assertPushedEventIds(listOf(TestFixtures.event.id))
     }
 
+    @Test
+    fun `observeNewEventsIn does not retrigger sync when person order changes only`() = runTest {
+        val currentEventFlow = MutableStateFlow<EventDetails?>(null)
+        val expensesFlow = MutableStateFlow<List<Expense>>(emptyList())
+        val harness = createHarness(
+            currentEventState = currentEventFlow,
+            expenseFlows = mapOf(TestFixtures.event.id to expensesFlow),
+        )
+        val observerScope = CoroutineScope(StandardTestDispatcher(testScheduler))
+
+        harness.observer.observeNewEventsIn(observerScope)
+        advanceUntilIdle()
+
+        currentEventFlow.value = TestFixtures.eventDetails(persons = listOf(TestFixtures.alex, TestFixtures.sam))
+        advanceUntilIdle()
+        harness.assertPushedEventIds(listOf(TestFixtures.event.id))
+
+        currentEventFlow.value = TestFixtures.eventDetails(persons = listOf(TestFixtures.sam, TestFixtures.alex))
+        advanceUntilIdle()
+        harness.assertPushedEventIds(listOf(TestFixtures.event.id))
+    }
+
+    @Test
+    fun `observeNewEventsIn forwards sync state to holder`() = runTest {
+        val syncStateFlow = MutableStateFlow(emptySet<Long>())
+        val eventsSyncStateHolder = mockk<EventsSyncStateHolder>(relaxed = true)
+        val harness = createHarness(
+            currentEventState = MutableStateFlow(null),
+            expenseFlows = emptyMap(),
+            syncStateFlow = syncStateFlow,
+            eventsSyncStateHolder = eventsSyncStateHolder,
+        )
+        val observerScope = CoroutineScope(StandardTestDispatcher(testScheduler))
+
+        harness.observer.observeNewEventsIn(observerScope)
+        advanceUntilIdle()
+
+        syncStateFlow.value = setOf(TestFixtures.event.id)
+        advanceUntilIdle()
+
+        verify { eventsSyncStateHolder.setSyncState(setOf(TestFixtures.event.id)) }
+    }
+
     private fun createHarness(
         currentEventState: MutableStateFlow<EventDetails?>,
         expenseFlows: Map<Long, MutableStateFlow<List<Expense>>>,
+        syncStateFlow: Flow<Set<Long>> = emptyFlow(),
+        eventsSyncStateHolder: EventsSyncStateHolder = mockk(relaxed = true),
     ): TestHarness {
         val refreshExpensesFlow = MutableSharedFlow<Event>(extraBufferCapacity = 4)
         val pushedEventIds = CopyOnWriteArrayList<Long>()
@@ -158,14 +206,14 @@ internal class EventsSyncObserverTest {
             every { pushAllEventInfo(any()) } answers {
                 pushedEventIds += firstArg<Long>()
             }
-            every { getSyncState() } returns emptyFlow()
+            every { getSyncState() } returns syncStateFlow
         }
 
         val observer = EventsSyncObserver(
             getCurrentEventStateUseCaseLazy = lazyOf(getCurrentEventStateUseCase),
             getExpensesUseCaseLazy = lazyOf(getExpensesUseCase),
             expensesRefreshRequestsHolderLazy = lazyOf(expensesRefreshRequestsHolder),
-            eventsSyncStateHolderLazy = lazyOf(mockk<EventsSyncStateHolder>(relaxed = true)),
+            eventsSyncStateHolderLazy = lazyOf(eventsSyncStateHolder),
             eventsSyncManagerLazy = lazyOf(eventsSyncManager),
         )
 

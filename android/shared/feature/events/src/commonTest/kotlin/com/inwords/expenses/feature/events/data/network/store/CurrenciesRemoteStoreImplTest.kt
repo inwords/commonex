@@ -9,6 +9,7 @@ import io.ktor.client.engine.mock.respond
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.URLProtocol
 import io.ktor.http.headersOf
@@ -29,21 +30,24 @@ internal class CurrenciesRemoteStoreImplTest {
                 json(Json { ignoreUnknownKeys = true })
             }
             engine {
-                addHandler {
-                    val json = """
-                        {
-                          "currencies": [
-                            {"id": "srv-eur", "code": "EUR"},
-                            {"id": "srv-usd", "code": "USD"}
-                          ],
-                          "exchangeRate": {
-                            "EUR": 0.867713,
-                            "USD": 1
-                          }
-                        }
-                        """.trimIndent()
+                addHandler { request ->
+                    assertEquals(HttpMethod.Get, request.method)
+                    assertEquals("/api/v3/user/currencies/all", request.url.encodedPath)
                     respond(
-                        content = ByteReadChannel(json),
+                        content = ByteReadChannel(
+                            """
+                                {
+                                  "currencies": [
+                                    {"id": "srv-eur", "code": "EUR"},
+                                    {"id": "srv-usd", "code": "USD"}
+                                  ],
+                                  "exchangeRate": {
+                                    "EUR": 0.867713,
+                                    "USD": 1
+                                  }
+                                }
+                            """.trimIndent()
+                        ),
                         status = HttpStatusCode.OK,
                         headers = headersOf(
                             HttpHeaders.ContentType to listOf(ContentType.Application.Json.toString()),
@@ -66,6 +70,7 @@ internal class CurrenciesRemoteStoreImplTest {
             val modified = assertIs<CurrenciesRemoteStore.GetCurrenciesResult.Modified>(success.data)
             assertEquals("\"rates-v1\"", modified.eTag)
             assertEquals("srv-eur", modified.currencies.first().serverId)
+            assertEquals("EUR", modified.currencies.first().code)
             assertEquals("Euro", modified.currencies.first().name)
             assertEquals("0.8677", modified.currencies.first().rate.toStringExpanded())
         }
@@ -79,6 +84,8 @@ internal class CurrenciesRemoteStoreImplTest {
             }
             engine {
                 addHandler { request ->
+                    assertEquals(HttpMethod.Get, request.method)
+                    assertEquals("/api/v3/user/currencies/all", request.url.encodedPath)
                     assertEquals("\"cached-etag\"", request.headers[HttpHeaders.IfNoneMatch])
                     respond(
                         content = ByteReadChannel(""),
@@ -100,6 +107,56 @@ internal class CurrenciesRemoteStoreImplTest {
             val success = assertIs<IoResult.Success<CurrenciesRemoteStore.GetCurrenciesResult>>(result)
             val notModified = assertIs<CurrenciesRemoteStore.GetCurrenciesResult.NotModified>(success.data)
             assertEquals("\"cached-etag\"", notModified.eTag)
+        }
+    }
+
+    @Test
+    fun `getCurrencies returns failure when exchange rates are malformed`() = runTest {
+        val malformedPayloads = listOf(
+            """
+                {
+                  "currencies": [{"id": "srv-eur", "code": "EUR"}],
+                  "exchangeRate": {}
+                }
+            """.trimIndent(),
+            """
+                {
+                  "currencies": [{"id": "srv-eur", "code": "EUR"}],
+                  "exchangeRate": {
+                    "EUR": 1e9223372036854775807
+                  }
+                }
+            """.trimIndent(),
+        )
+
+        malformedPayloads.forEach { payload ->
+            val client = HttpClient(MockEngine) {
+                install(ContentNegotiation) {
+                    json(Json { ignoreUnknownKeys = true })
+                }
+                engine {
+                    addHandler {
+                        respond(
+                            content = ByteReadChannel(payload),
+                            status = HttpStatusCode.OK,
+                            headers = headersOf(
+                                HttpHeaders.ContentType to listOf(ContentType.Application.Json.toString()),
+                            )
+                        )
+                    }
+                }
+            }
+
+            client.use { httpClient ->
+                val store = CurrenciesRemoteStoreImpl(
+                    client = { httpClient },
+                    hostConfig = HostConfig(URLProtocol.HTTPS, "commonex.test"),
+                )
+
+                val result = store.getCurrencies(null)
+
+                assertIs<IoResult.Error.Failure>(result)
+            }
         }
     }
 }

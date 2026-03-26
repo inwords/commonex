@@ -315,7 +315,7 @@ See `android/docs/patterns.md` for ViewModel, Compose UI, state modeling, form i
 
 - **Unit tests:** JUnit 6 for host/JVM tests
 - **Instrumented tests (non-UI):** Android Tests with JUnit 6
-- **Instrumented tests (Compose UI E2E tests):** Android Tests with JUnit 4 And Marathon. `ComposeTestRule` with context receivers pattern. Run against the real backend; avoid mocks and hardcoded remote fixtures by creating required data in-test.
+- **Instrumented tests (Compose UI E2E tests):** Android Tests with JUnit 4 and Marathon. Prefer Marathon over `:app:connectedAutotestAndroidTest` for local UI-test validation because it matches the retried/sharded runner used in CI. Use `connectedAutotestAndroidTest` only for narrow targeted debugging when Marathon is unavailable or would be unnecessary overhead. Run against the real backend; avoid mocks and hardcoded remote fixtures by creating required data in-test.
 - **Room tests:** use `androidx.room:room-testing`/`MigrationTestHelper` for migration validation only (example `MigrationTest.kt` in `androidDeviceTest` source set).
 - **KMM library host tests:**
     - For shared-module Android host tests that assert `Flow` emissions, prefer Turbine (`app.cash.turbine`) over launching background collectors inside `runTest`; this avoids subscription-timing false negatives.
@@ -659,9 +659,9 @@ Room-backed rates rather than a hardcoded production map.
 
 - Use JetBrains MCP tools as the default validation path when MCP is available for the open Android project.
 - Prefer `execute_terminal_command` (MCP terminal) for compile/build/test validation after edits (for example running Gradle tasks).
+- For Android UI-test validation, prefer the MCP terminal and the repo script `.\scripts\run-marathon.ps1` so the Android SDK is configured consistently from the IDE environment or `local.properties`.
 - Prefer `get_file_problems` for per-file diagnostics on edited files.
-- Prefer other MCP IDE-aware tools for project queries and developer actions when relevant (for example: `get_run_configurations`, `execute_run_configuration`, `search_in_files_by_text`, `search_in_files_by_regex`, `list_directory_tree`,
-  `get_project_modules`, `get_project_dependencies`).
+- Prefer other MCP IDE-aware tools for project queries and developer actions when relevant (for example: `get_run_configurations`, `execute_run_configuration`, `search_in_files_by_text`, `search_in_files_by_regex`, `list_directory_tree`, `get_project_modules`, `get_project_dependencies`).
 - If MCP is unavailable or limited, run equivalent Gradle/CLI validation and explicitly note the fallback reason in the report.
 
 Before submitting changes, run these validation steps:
@@ -691,13 +691,17 @@ Before submitting changes, run these validation steps:
 # 7. Build autotest variant (release-like, includes R8 optimization, but no shrinking and no obfuscation)
 .\gradlew assembleAutotest
 
-# 8. Optional: Run instrumented tests (requires device/emulator)
+# 8. Optional, preferred for Compose UI / E2E validation: build and run Marathon using the repo script
+.\scripts\run-marathon.ps1
+
+# 9. Optional: re-run Marathon without rebuilding the APKs
+.\scripts\run-marathon.ps1 -SkipBuild
+
+# 10. Optional fallback: run connected instrumented tests directly for narrow targeted debugging
 .\gradlew :app:connectedAutotestAndroidTest "-Dcom.android.tools.r8.disableApiModeling=true"
 
-# 9. Optional: Run managed device tests (local Gradle Managed Devices testing)
+# 11. Optional: run managed device tests when you want local Gradle Managed Devices instead of a booted emulator
 .\gradlew :app:pixel6Api35AtdAutotestAndroidTest "-Dcom.android.tools.r8.disableApiModeling=true"
-
-# 10. Optional: Run instrumented tests with Marathon (requires device/emulator + marathon CLI) (see Marathon doc for details)
 ```
 
 ### Quick Validation (for small changes)

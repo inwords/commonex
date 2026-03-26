@@ -1,5 +1,6 @@
 package com.inwords.expenses.feature.expenses.domain
 
+import com.inwords.expenses.core.utils.normalizeAmount
 import com.inwords.expenses.feature.events.domain.model.Currency
 import com.inwords.expenses.feature.events.domain.model.Event
 import com.inwords.expenses.feature.events.domain.model.Person
@@ -26,8 +27,11 @@ class AddEqualSplitExpenseUseCase internal constructor(
         selectedSubjectPersons: List<Person>,
         selectedCurrency: Currency,
         selectedPerson: Person,
+        overrideRate: BigDecimal?,
     ) {
-        val exchanger = expenseExchangeResolver.resolve(event, selectedCurrency) ?: return
+        val exchanger = overrideRate?.let { rate ->
+            { amount: BigDecimal -> (amount * rate).normalizeAmount() }
+        } ?: expenseExchangeResolver.resolve(event, selectedCurrency) ?: return
         val originalAmount = EqualSplitCalculator.calculateStoredAmount(
             amount = wholeAmount,
             selectedSubjectPersonsSize = selectedSubjectPersons.size,
@@ -51,6 +55,7 @@ class AddEqualSplitExpenseUseCase internal constructor(
                 expenseType = expenseType,
                 person = selectedPerson,
                 subjectExpenseSplitWithPersons = subjectExpenseSplitWithPersons,
+                isCustomRate = overrideRate != null,
                 timestamp = Clock.System.now(),
                 description = description,
             ),

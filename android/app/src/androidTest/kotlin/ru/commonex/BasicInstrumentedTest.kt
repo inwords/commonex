@@ -7,16 +7,19 @@ import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import expenses.shared.feature.expenses.generated.resources.expenses_exchange_rate_value
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.RuleChain
 import org.junit.runner.RunWith
+import org.jetbrains.compose.resources.getString
 import ru.commonex.screens.ChoosePersonScreen
 import ru.commonex.screens.ExpensesScreen
 import ru.commonex.screens.LocalEventsScreen
 import ru.commonex.screens.MenuDialogScreen
 import ru.commonex.ui.MainActivity
 import kotlin.io.encoding.Base64
+import expenses.shared.feature.expenses.generated.resources.Res as ExpensesRes
 
 // TODO bring back JUnit5 when it is able to work with Marathon
 // .\gradlew :app:connectedAutotestAndroidTest -Dcom.android.tools.r8.disableApiModeling
@@ -118,6 +121,42 @@ class BasicInstrumentedTest {
             .chooseParticipant()
             .selectPerson("Test User 2")
             .verifyCurrentPerson(eventName, "Test User 2")
+    }
+
+    @Test
+    fun testCustomExchangeRateOverrideFlow() = composeRule.runTest {
+        val eventName = "Test event - FX override"
+        val description = "FX override"
+        val customRate = "1.2000"
+        val expectedDisplayedRate = "1.20"
+        val exchangeRateText = getString(
+            ExpensesRes.string.expenses_exchange_rate_value,
+            "USD",
+            expectedDisplayedRate,
+            "EUR",
+        )
+
+        createLocalEvent(eventName)
+
+        ExpensesScreen()
+            .clickAddExpense()
+            .selectCurrencyByCode("USD")
+            .waitUntilExchangeRateVisible()
+            .replaceExchangeRate(customRate)
+            .enterDescription(description)
+            .enterAmount("10")
+            .clickConfirm()
+            .verifyExpenseExists(description)
+
+        ExpensesScreen()
+            .clickOnExpense(description)
+            .waitUntilLoaded()
+            .verifyDescription(description)
+            .verifyTotalAmount("-12 EUR")
+            .verifyPaidBy("Test User 1")
+            .verifyOriginalCurrency("USD (US Dollar)")
+            .verifyExchangeRateVisible()
+            .verifyExchangeRate(exchangeRateText)
     }
 
     /**

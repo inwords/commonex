@@ -6,6 +6,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTextReplacement
 import expenses.shared.feature.expenses.generated.resources.Res
 import expenses.shared.feature.expenses.generated.resources.expenses_description
 import expenses.shared.feature.expenses.generated.resources.expenses_save
@@ -40,6 +41,18 @@ internal class AddExpenseScreen : BaseScreen() {
         return this
     }
 
+    context(rule: ComposeTestRule)
+    fun waitUntilExchangeRateVisible(): AddExpenseScreen {
+        waitForElementWithTag(EXCHANGE_RATE_INPUT_TAG)
+        return this
+    }
+
+    context(rule: ComposeTestRule)
+    fun replaceExchangeRate(rate: String): AddExpenseScreen {
+        rule.onNodeWithTag(EXCHANGE_RATE_INPUT_TAG).performScrollTo().performTextReplacement(rate)
+        return this
+    }
+
     /**
      * Clicks the equal split switch to toggle its state.
      * Default state is ON (equal split), so calling this will turn it OFF.
@@ -62,3 +75,5 @@ internal class AddExpenseScreen : BaseScreen() {
 private fun currencyOptionTag(currencyCode: String): String {
     return "add_expense_currency_option_$currencyCode"
 }
+
+private const val EXCHANGE_RATE_INPUT_TAG = "add_expense_exchange_rate_input"

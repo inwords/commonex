@@ -36,6 +36,7 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
 internal class MenuViewModelTest {
@@ -192,6 +193,116 @@ internal class MenuViewModelTest {
             val readyItem = awaitItem()
             val _ = assertIs<ShareState.Ready>(readyItem.shareState)
             cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun onCopyClicked_whenTokenCreationFails_emitsFallbackPendingClipboardCopy() = runTest {
+        val event = Event(1L, "ev-1", "Trip", "1234", 1L)
+        val details = EventDetails(
+            event = event,
+            persons = listOf(Person(1L, "p1", "Alice")),
+            currencies = listOf(Currency(1L, null, "EUR", "Euro", SeededCurrencies.usdToOtherRates.getValue("EUR"))),
+            primaryCurrency = Currency(1L, null, "EUR", "Euro", SeededCurrencies.usdToOtherRates.getValue("EUR")),
+        )
+        currentEventFlow.value = details
+        coEvery { createShareTokenUseCase.createShareToken("ev-1", "1234") } returns CreateShareTokenResult.RemoteFailed
+        val viewModel = MenuViewModel(
+            navigationController = navigationController,
+            getCurrentEventStateUseCase = getCurrentEventStateUseCase,
+            leaveEventUseCase = leaveEventUseCase,
+            shareManagerLazy = lazy { shareManager },
+            createShareTokenUseCaseLazy = lazy { createShareTokenUseCase },
+            stringProvider = formattingStringProvider,
+            viewModelScope = backgroundScope,
+        )
+        runCurrent()
+        advanceUntilIdle()
+
+        viewModel.state.test {
+            skipItems(1)
+            awaitItem()
+
+            viewModel.onCopyClicked()
+            runCurrent()
+            advanceUntilIdle()
+
+            val pendingCopy = assertIs<ShareState.PendingClipboardCopy>(awaitItem().shareState)
+            assertEquals("Trip", pendingCopy.shareText.eventName)
+            assertEquals("Trip|https://commonex.ru/event/ev-1?pinCode=1234", pendingCopy.shareText.fullText)
+            cancelAndIgnoreRemainingEvents()
+        }
+
+        coVerify(exactly = 1) { createShareTokenUseCase.createShareToken("ev-1", "1234") }
+    }
+
+    @Test
+    fun state_whenEventChanges_resetsPreviouslyGeneratedShareState() = runTest {
+        val firstEvent = Event(1L, "ev-1", "Trip", "1234", 1L)
+        val secondEvent = Event(2L, "ev-2", "Party", "5678", 1L)
+        val firstDetails = EventDetails(
+            event = firstEvent,
+            persons = listOf(Person(1L, "p1", "Alice")),
+            currencies = listOf(Currency(1L, null, "EUR", "Euro", SeededCurrencies.usdToOtherRates.getValue("EUR"))),
+            primaryCurrency = Currency(1L, null, "EUR", "Euro", SeededCurrencies.usdToOtherRates.getValue("EUR")),
+        )
+        val secondDetails = EventDetails(
+            event = secondEvent,
+            persons = listOf(Person(2L, "p2", "Bob")),
+            currencies = listOf(Currency(1L, null, "EUR", "Euro", SeededCurrencies.usdToOtherRates.getValue("EUR"))),
+            primaryCurrency = Currency(1L, null, "EUR", "Euro", SeededCurrencies.usdToOtherRates.getValue("EUR")),
+        )
+        currentEventFlow.value = firstDetails
+        coEvery { createShareTokenUseCase.createShareToken("ev-1", "1234") } returns CreateShareTokenResult.Created(
+            EventShareToken("tok", kotlin.time.Instant.fromEpochMilliseconds(0))
+        )
+        val viewModel = MenuViewModel(
+            navigationController = navigationController,
+            getCurrentEventStateUseCase = getCurrentEventStateUseCase,
+            leaveEventUseCase = leaveEventUseCase,
+            shareManagerLazy = lazy { shareManager },
+            createShareTokenUseCaseLazy = lazy { createShareTokenUseCase },
+            stringProvider = formattingStringProvider,
+            viewModelScope = backgroundScope,
+        )
+        runCurrent()
+        advanceUntilIdle()
+
+        viewModel.state.test {
+            skipItems(1)
+            val initialState = awaitItem()
+            assertEquals("Trip", initialState.eventName)
+            val initialShareState = assertIs<ShareState.Idle>(initialState.shareState)
+            assertEquals("ev-1", initialShareState.serverId)
+
+            viewModel.onShareClicked()
+            runCurrent()
+            advanceUntilIdle()
+
+            val readyState = assertIs<ShareState.Ready>(awaitItem().shareState)
+            assertTrue(readyState.shareText.fullText.startsWith("Trip|https://commonex.ru/event/ev-1?token=tok|"))
+
+            currentEventFlow.value = secondDetails
+            runCurrent()
+            advanceUntilIdle()
+
+            var resetState = awaitItem()
+            while (resetState.shareState !is ShareState.Idle) {
+                resetState = awaitItem()
+            }
+            assertEquals("Party", resetState.eventName)
+            val resetShareState = assertIs<ShareState.Idle>(resetState.shareState)
+            assertEquals("ev-2", resetShareState.serverId)
+            assertEquals("5678", resetShareState.pinCode)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    private val formattingStringProvider = object : StringProvider {
+        override suspend fun getString(stringResource: StringResource): String = "unused"
+
+        override suspend fun getString(stringResource: StringResource, vararg formatArgs: Any): String {
+            return formatArgs.joinToString("|")
         }
     }
 }
