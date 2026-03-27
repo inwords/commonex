@@ -49,6 +49,9 @@ export class GetEventExpensesResponseDto {
   splitInformation!: SplitInfo[];
 
   @ApiProperty()
+  isCustomRate!: boolean;
+
+  @ApiProperty()
   createdAt!: Date;
 
   @ApiProperty()
