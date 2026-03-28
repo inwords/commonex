@@ -8,3 +8,5 @@ export const CURRENCIES_LIST: Pick<ICurrency, 'code'>[] = [
   {code: CurrencyCode.TRY},
   {code: CurrencyCode.AED},
 ];
+
+export const SUPPORTED_CURRENCY_CODES = CURRENCIES_LIST.map(({code}) => code);

@@ -4,6 +4,7 @@ import {IQueryDetails} from '#domain/abstracts/relational-data-service/types';
 import {CurrencyRepositoryAbstract} from '#domain/abstracts/relational-data-service/repositories/currency.repository';
 import {ICurrency} from '#domain/entities/currency.entity';
 import {CurrencyEntity} from '#frameworks/relational-data-service/postgres/entities/currency.entity';
+import {createSupportedCurrencyCodesFilter} from './supported-currency-codes-filter';
 
 export class CurrencyRepository extends BaseRepository implements CurrencyRepositoryAbstract {
   readonly dataSource: DataSource;
@@ -33,18 +34,59 @@ export class CurrencyRepository extends BaseRepository implements CurrencyReposi
     return [result, queryDetails];
   };
 
-  public findAll: CurrencyRepositoryAbstract['findAll'] = async (input, trx) => {
-    const {limit} = input;
+  readonly findSupportedById: CurrencyRepositoryAbstract['findSupportedById'] = async (id, trx) => {
+    const supportedCurrencyFilter = createSupportedCurrencyCodesFilter(this.queryName);
     const ctx = trx?.ctx instanceof EntityManager ? trx.ctx : undefined;
 
     let query = this.getRepository(ctx).createQueryBuilder(this.queryName);
 
-    query = query.limit(limit);
+    query = query.where(`${this.queryName}.id = :id`, {id}).andWhere(supportedCurrencyFilter.condition, supportedCurrencyFilter.parameters);
+
+    const queryDetails = this.getQueryDetails(query);
+    const result = await query.getOne();
+
+    return [result, queryDetails];
+  };
+
+  public findAll: CurrencyRepositoryAbstract['findAll'] = async (input, trx) => {
+    const {limit, codes, orderBy, orderDirection = 'ASC'} = input;
+    const ctx = trx?.ctx instanceof EntityManager ? trx.ctx : undefined;
+
+    let query = this.getRepository(ctx).createQueryBuilder(this.queryName);
+
+    if (codes != null) {
+      query = query.where(codes.length > 0 ? `${this.queryName}.code IN (:...codes)` : '1 = 0', {
+        codes,
+      });
+    }
+
+    if (orderBy != null) {
+      query = query.orderBy(`${this.queryName}.${orderBy}`, orderDirection);
+    }
+
+    if (limit != null) {
+      query = query.limit(limit);
+    }
 
     const queryDetails = this.getQueryDetails(query);
     const result = await query.getMany();
 
     return [result, queryDetails];
+  };
+
+  readonly findAllSupported: CurrencyRepositoryAbstract['findAllSupported'] = async (input = {}, trx) => {
+    const {limit, orderBy, orderDirection} = input;
+    const supportedCurrencyFilter = createSupportedCurrencyCodesFilter(this.queryName);
+
+    return this.findAll(
+      {
+        limit,
+        codes: supportedCurrencyFilter.parameters['supportedCurrencyCodes'],
+        orderBy,
+        orderDirection,
+      },
+      trx,
+    );
   };
 
   readonly insert: CurrencyRepositoryAbstract['insert'] = async (

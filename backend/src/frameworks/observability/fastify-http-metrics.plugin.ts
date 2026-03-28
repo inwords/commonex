@@ -74,7 +74,7 @@ interface RequestState {
   sawError?: boolean; // set on onError, used only when deciding server_error
 }
 
-const isValidHttpStatusCode = (code: number) => {
+const isValidHttpStatusCode = (code: number): boolean => {
   return code >= 100 && code <= 599;
 };
 
@@ -215,7 +215,10 @@ const fastifyHttpMetricsPluginImpl: FastifyPluginCallback<FastifyHttpMetricsPlug
     }
 
     attrs[ATTR_NETWORK_PROTOCOL_NAME] = 'http';
-    attrs[ATTR_NETWORK_PROTOCOL_VERSION] = normalizeProtocolVersion(request.raw.httpVersion, request.raw.httpVersionMajor);
+    attrs[ATTR_NETWORK_PROTOCOL_VERSION] = normalizeProtocolVersion(
+      request.raw.httpVersion,
+      request.raw.httpVersionMajor,
+    );
 
     switch (kind) {
       case 'response':

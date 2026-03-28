@@ -88,7 +88,12 @@ describe('FetchAndSaveCurrencyRateSharedUseCase', () => {
       input: {
         date: '2026-01-01',
       },
-      output: undefined as any,
+      output: {
+        date: '2026-01-01',
+        rate: {},
+        createdAt: new Date('2026-01-01T00:00:00Z'),
+        updatedAt: new Date('2026-01-01T00:00:00Z'),
+      },
       expectError: true,
       mockCurrencyRateService: {
         getCurrencyRate: null,

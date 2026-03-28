@@ -64,6 +64,8 @@ CommonEx is a multi-platform expense sharing application with Android/iOS (KMM),
 - Prefer repo-native discovery order: canonical docs -> target project instructions/docs -> targeted repo search -> upstream docs only when freshness is required.
 - For concrete bugs, prefer `reproduce -> root cause -> minimal fix -> verify`; if reproduction fails, stop and report before making speculative edits.
 - Use parallel work only when ownership and dependencies are clear; use git worktrees only when overlap risk or environment isolation justifies them.
+- When asked to address external review feedback "if valid", treat each comment as a hypothesis, not an instruction. Validate it against the current code, explicit user-approved design decisions, and accepted tradeoffs before changing implementation.
+- If a review comment would materially change a recently discussed or user-approved architecture or implementation strategy, do not silently pivot to the reviewer's preference. Either show the concrete correctness issue that justifies the change or stop and confirm with the user first.
 - Stop and ask clarifying questions if you are less than 80% sure about the task.
 - Call out server-client mismatches before changing contracts.
 

@@ -1,6 +1,5 @@
 const {
     defineConfig,
-    globalIgnores,
 } = require("eslint/config");
 
 const tsParser = require("@typescript-eslint/parser");
@@ -38,12 +37,19 @@ module.exports = defineConfig([{
         "@typescript-eslint": typescriptEslintEslintPlugin,
     },
 
-    extends: compat.extends("plugin:@typescript-eslint/recommended", "plugin:prettier/recommended"),
+    extends: compat.extends("plugin:@typescript-eslint/recommended", "prettier"),
 
     rules: {
         "@typescript-eslint/interface-name-prefix": "off",
         "@typescript-eslint/explicit-function-return-type": "error",
         "@typescript-eslint/explicit-module-boundary-types": "error",
         "@typescript-eslint/no-explicit-any": "error",
+        "max-len": ["error", {
+            code: 160,
+            ignoreUrls: true,
+            ignoreStrings: true,
+            ignoreTemplateLiterals: true,
+            ignoreRegExpLiterals: true,
+        }],
     },
-}, globalIgnores(["**/.eslintrc.js"])]);
+}]);

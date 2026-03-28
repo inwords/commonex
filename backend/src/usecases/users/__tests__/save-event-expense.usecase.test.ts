@@ -2,23 +2,14 @@ import {RelationalDataService} from '#frameworks/relational-data-service/postgre
 import {appDbConfig} from '#frameworks/relational-data-service/postgres/config';
 import {SaveEventExpenseUseCase} from '../save-event-expense.usecase';
 import {EventServiceAbstract} from '#domain/abstracts/event-service/event-service';
-import {
-  TestCase,
-  prepareInitRelationalState,
-  validateRelationalStateChanges,
-  useFakeTimers,
-} from '../../__tests__/test-helpers';
+import {TestCase, prepareInitRelationalState, validateRelationalStateChanges, useFakeTimers} from '../../__tests__/test-helpers';
 import {Result, error, success} from '#packages/result';
-import {
-  EventNotFoundError,
-  EventDeletedError,
-  CurrencyNotFoundError,
-  CurrencyRateNotFoundError,
-} from '#domain/errors/errors';
+import {EventNotFoundError, EventDeletedError, CurrencyNotFoundError, CurrencyRateNotFoundError} from '#domain/errors/errors';
 import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-service/relational-data-service';
 import {EventService} from '#frameworks/event-service/event-service';
 import {CurrencyCode} from '#domain/entities/currency.entity';
 import {ExpenseType} from '#domain/entities/expense.entity';
+import {SupportedCurrencyService} from '#frameworks/supported-currency-service/supported-currency-service';
 
 type SaveEventExpenseTestCase = TestCase<SaveEventExpenseUseCase> & {
   mockEventService?: {
@@ -41,7 +32,7 @@ describe('SaveEventExpenseUseCase', () => {
     });
 
     eventService = new EventService();
-    useCase = new SaveEventExpenseUseCase(relationalDataService, eventService);
+    useCase = new SaveEventExpenseUseCase(relationalDataService, eventService, new SupportedCurrencyService(relationalDataService));
 
     await relationalDataService.initialize();
 

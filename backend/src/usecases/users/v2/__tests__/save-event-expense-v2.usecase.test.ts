@@ -1,13 +1,8 @@
 import {RelationalDataService} from '#frameworks/relational-data-service/postgres/relational-data-service';
 import {appDbConfig} from '#frameworks/relational-data-service/postgres/config';
-import {SaveEventExpenseV2UseCase} from '../save-event-expense-v2.usecase';
+import {SaveEventExpenseV2UseCase} from '#usecases/users/v2';
 import {EventServiceAbstract} from '#domain/abstracts/event-service/event-service';
-import {
-  TestCase,
-  prepareInitRelationalState,
-  validateRelationalStateChanges,
-  useFakeTimers,
-} from '../../../__tests__/test-helpers';
+import {TestCase, prepareInitRelationalState, validateRelationalStateChanges, useFakeTimers} from '../../../__tests__/test-helpers';
 import {Result, error, success} from '#packages/result';
 import {
   EventNotFoundError,
@@ -21,6 +16,7 @@ import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-s
 import {EventService} from '#frameworks/event-service/event-service';
 import {CurrencyCode} from '#domain/entities/currency.entity';
 import {ExpenseType} from '#domain/entities/expense.entity';
+import {SupportedCurrencyService} from '#frameworks/supported-currency-service/supported-currency-service';
 
 type SaveEventExpenseV2TestCase = TestCase<SaveEventExpenseV2UseCase> & {
   mockEventService: {
@@ -42,7 +38,7 @@ describe('SaveEventExpenseV2UseCase', () => {
     });
 
     eventService = new EventService();
-    useCase = new SaveEventExpenseV2UseCase(relationalDataService, eventService);
+    useCase = new SaveEventExpenseV2UseCase(relationalDataService, eventService, new SupportedCurrencyService(relationalDataService));
 
     await relationalDataService.initialize();
 
@@ -356,7 +352,7 @@ describe('SaveEventExpenseV2UseCase', () => {
         expenseType: ExpenseType.Expense,
         splitInformation: [
           {userId: 'user-1', amount: 40, exchangedAmount: 50}, // есть exchangedAmount
-          {userId: 'user-2', amount: 60},  // нет exchangedAmount (undefined)
+          {userId: 'user-2', amount: 60}, // нет exchangedAmount (undefined)
         ],
         pinCode: '1234',
       },
