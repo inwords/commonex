@@ -5,6 +5,7 @@ import {getCurrentDateWithoutTimeUTC, getDateWithoutTimeUTC} from '#packages/dat
 
 import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-service/relational-data-service';
 import {EventServiceAbstract} from '#domain/abstracts/event-service/event-service';
+import {SupportedCurrencyServiceAbstract} from '#domain/abstracts/supported-currency-service/supported-currency-service';
 import {IExpense, ISplitInfo} from '#domain/entities/expense.entity';
 import {ExpenseValueObject} from '#domain/value-objects/expense.value-object';
 import {Result, success, error, isError} from '#packages/result';
@@ -39,6 +40,7 @@ export class SaveEventExpenseV2UseCase implements UseCase<Input, Output> {
   constructor(
     private readonly rDataService: RelationalDataServiceAbstract,
     private readonly eventService: EventServiceAbstract,
+    private readonly supportedCurrencyService: SupportedCurrencyServiceAbstract,
   ) {}
 
   public async execute(input: Input): Promise<Output> {
@@ -107,8 +109,8 @@ export class SaveEventExpenseV2UseCase implements UseCase<Input, Output> {
           return success(expense);
         } else {
           // Автоматический курс (существующая логика)
-          const [expenseCurrencyCode] = await this.rDataService.currency.findById(restInput.currencyId, {ctx});
-          const [eventCurrencyCode] = await this.rDataService.currency.findById(event.currencyId, {ctx});
+          const expenseCurrencyCode = await this.supportedCurrencyService.findById(restInput.currencyId, {ctx});
+          const eventCurrencyCode = await this.supportedCurrencyService.findById(event.currencyId, {ctx});
 
           if (!eventCurrencyCode || !expenseCurrencyCode) {
             return error(new CurrencyNotFoundError());
@@ -118,7 +120,7 @@ export class SaveEventExpenseV2UseCase implements UseCase<Input, Output> {
             ? getDateWithoutTimeUTC(new Date(restInput.createdAt))
             : getCurrentDateWithoutTimeUTC();
 
-          const [currencyRate] = await this.rDataService.currencyRate.findByDate(getDateForExchangeRate, {ctx});
+          const currencyRate = await this.supportedCurrencyService.findRateByDate(getDateForExchangeRate, {ctx});
 
           if (!currencyRate) {
             return error(new CurrencyRateNotFoundError());

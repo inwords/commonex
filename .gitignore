@@ -1,2 +1,5 @@
 # Cursor IDE state files
 .cursor/environment.json
+
+# Local agent signal backlog
+.agents/local/

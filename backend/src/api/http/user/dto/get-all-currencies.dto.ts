@@ -15,14 +15,25 @@ export class CurrencyResponseDto {
   updatedAt!: Date;
 }
 
+export class CurrencyV3ResponseDto {
+  @ApiProperty()
+  id!: string;
+
+  @ApiProperty({enum: CurrencyCode})
+  code!: CurrencyCode;
+
+  @ApiProperty()
+  updatedAt!: Date;
+}
+
 export class GetAllCurrenciesResponseDto {
   @ApiProperty({type: [CurrencyResponseDto]})
   currencies!: CurrencyResponseDto[];
 }
 
 export class GetAllCurrenciesWithRatesResponseDto {
-  @ApiProperty({type: [CurrencyResponseDto]})
-  currencies!: CurrencyResponseDto[];
+  @ApiProperty({type: [CurrencyV3ResponseDto]})
+  currencies!: CurrencyV3ResponseDto[];
 
   @ApiProperty({
     description: 'Exchange rates relative to USD',

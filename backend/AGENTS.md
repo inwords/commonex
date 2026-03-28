@@ -14,7 +14,7 @@ CommonEx backend is a NestJS service that provides REST and gRPC APIs for the ex
 - Database: PostgreSQL with TypeORM
 - APIs: REST and gRPC
 - Observability: OpenTelemetry (`@fastify/otel` + allowlisted Node auto-instrumentations)
-- Linting: ESLint 9 flat config (`eslint.config.js`)
+- Linting: ESLint 10 flat config (`eslint.config.js`)
 - Testing: Jest 30 with ts-jest
 - Language: TypeScript 5.9
 
@@ -134,8 +134,19 @@ npm run db:drop
 - Keep the domain layer free of framework-specific code.
 - Keep TypeORM decorators and persistence logic in the `frameworks/` layer.
 - Use `class-validator` for API DTO validation.
+- When using TypeORM `getRawOne` / `getRawMany`, prefer precise raw result types that match the current `pg` parser behavior verified in this repo; avoid defensive unions such as `Date | string` unless that specific code path can actually return both.
+- Use SQL casts in raw projections only when they materially improve the returned JS type, for example `COUNT(...)::integer` to avoid `bigint` string results.
+- Backend lint source of truth is `eslint.config.js`; do not add or rely on legacy `.eslintrc.*` files.
+- Keep backend formatting aligned with the repo `.editorconfig`; backend Prettier is configured for LF line endings.
 - Keep HTTP guards/filters adapter-agnostic: avoid direct `fastify`/`express` request-response types; prefer
   `HttpAdapterHost`/`AbstractHttpAdapter` and generic request header typing.
+- When a user-facing backend flow needs currencies, rate maps, or currency-version metadata subject to support gating,
+  inject `SupportedCurrencyServiceAbstract` instead of reading raw `currency` / `currencyRate` repositories in the use
+  case. Reserve raw repository access for bootstrap, ingestion, devtools, or other full-dataset paths that
+  intentionally operate on the PostgreSQL superset.
+- For user-facing conditional GET routes that have both a lightweight revalidation path and a full payload path, keep
+  one shared version/validator shape for ETag generation and add tests that prove the `304` path emits the same
+  validator as the `200` path for the same DB state.
 - Keep changes minimal and focused on root causes.
 
 ## Common Tasks
@@ -172,6 +183,26 @@ npm run db:drop
   $env:DEVTOOLS_SECRET='test-secret'
   npm run db:migrate
   npm run test
+  ```
+- Temporary Docker DB-backed runs (PowerShell, when no local PostgreSQL is available):
+  ```powershell
+  docker run --rm -d --name commonex-backend-test-db `
+    -e POSTGRES_PASSWORD='postgres' `
+    -e POSTGRES_USER='postgres' `
+    -e POSTGRES_DB='postgres' `
+    -p 55432:5432 postgres:16-alpine
+
+  $env:POSTGRES_HOST='127.0.0.1'
+  $env:POSTGRES_PORT='55432'
+  $env:POSTGRES_USER_NAME='postgres'
+  $env:POSTGRES_PASSWORD='postgres'
+  $env:POSTGRES_DATABASE='postgres'
+  $env:POSTGRES_SCHEMA='public'
+  $env:OPEN_EXCHANGE_RATES_API_ID='test'
+  $env:DEVTOOLS_SECRET='test-secret'
+  node node_modules/ts-node/dist/bin.js --transpile-only scripts/migrate.ts
+  node node_modules/jest/bin/jest.js --runInBand
+  docker stop commonex-backend-test-db
   ```
 
 ## Deployment

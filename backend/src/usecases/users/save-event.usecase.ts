@@ -1,5 +1,6 @@
 import {UseCase} from '#packages/use-case';
 import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-service/relational-data-service';
+import {SupportedCurrencyServiceAbstract} from '#domain/abstracts/supported-currency-service/supported-currency-service';
 import {EventValueObject} from '#domain/value-objects/event.value-object';
 import {IUserInfo} from '#domain/entities/user-info.entity';
 import {IEvent} from '#domain/entities/event.entity';
@@ -13,11 +14,14 @@ type Output = Result<IEvent & {users: IUserInfo[]}, CurrencyNotFoundError>;
 
 @Injectable()
 export class SaveEventUseCase implements UseCase<Input, Output> {
-  constructor(private readonly rDataService: RelationalDataServiceAbstract) {}
+  constructor(
+    private readonly rDataService: RelationalDataServiceAbstract,
+    private readonly supportedCurrencyService: SupportedCurrencyServiceAbstract,
+  ) {}
 
   public async execute({event, users}: Input): Promise<Output> {
     return await this.rDataService.transaction(async (ctx) => {
-      const [currency] = await this.rDataService.currency.findById(event.currencyId, {ctx});
+      const currency = await this.supportedCurrencyService.findById(event.currencyId, {ctx});
 
       if (!currency) {
         return error(new CurrencyNotFoundError());

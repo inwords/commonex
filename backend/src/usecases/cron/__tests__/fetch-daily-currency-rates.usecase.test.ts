@@ -56,7 +56,7 @@ describe('FetchDailyCurrencyRatesUseCase', () => {
       name: 'должен успешно получить курсы валют на текущую дату',
       initRelationalState: {},
       input: undefined,
-      output: undefined as any,
+      output: undefined,
       mockDate: '2026-01-06',
       mockSharedUseCase: {
         execute: {

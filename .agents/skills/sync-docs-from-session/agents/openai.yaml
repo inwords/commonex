@@ -1,4 +1,4 @@
 interface:
   display_name: "Sync Docs From Session"
-  short_description: "Propose doc sync updates from session evidence with Tier A/Tier B handling"
-  default_prompt: "Use $sync-docs-from-session to propose doc updates from this session, auto-apply Tier A items after the proposal, and wait for confirmation before Tier B."
+  short_description: "Propose doc and instruction updates from session evidence, capture agent behavior signals, auto-store high-confidence items, and ask on suggested changes"
+  default_prompt: "Use $sync-docs-from-session to propose doc and instruction updates from this session, capture agent behavior signals, auto-store high-confidence changes after the proposal, and ask me which suggested changes to apply."

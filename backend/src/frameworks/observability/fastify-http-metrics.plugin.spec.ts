@@ -37,7 +37,7 @@ const collectHistogramDataPoints = async (
   metricReader: PeriodicExportingMetricReader,
   metricExporter: InMemoryMetricExporter,
   metricName: string,
-) => {
+): Promise<HistogramMetricData['dataPoints']> => {
   await meterProvider.forceFlush();
   await metricReader.collect();
 
@@ -127,9 +127,14 @@ const sendPartialBodyAndAbort = (port: number, path: string): Promise<void> => {
     socket.once('error', done);
     socket.once('close', done);
     socket.once('connect', () => {
-      const request = ['POST ' + path + ' HTTP/1.1', 'Host: 127.0.0.1', 'Content-Type: application/json', 'Content-Length: 100000', '', '{"a":"x"'].join(
-        '\r\n',
-      );
+      const request = [
+        'POST ' + path + ' HTTP/1.1',
+        'Host: 127.0.0.1',
+        'Content-Type: application/json',
+        'Content-Length: 100000',
+        '',
+        '{"a":"x"',
+      ].join('\r\n');
       socket.write(request);
       setTimeout(() => {
         socket.destroy();
@@ -344,7 +349,11 @@ describe('fastifyHttpMetricsPlugin', () => {
       );
 
       const timeoutPoint = requestDurationDataPoints.find(({attributes}) => {
-        return attributes['http.request.method'] === 'GET' && attributes['http.route'] === '/slow' && attributes['error.type'] === 'timeout';
+        return (
+          attributes['http.request.method'] === 'GET' &&
+          attributes['http.route'] === '/slow' &&
+          attributes['error.type'] === 'timeout'
+        );
       });
 
       expect(timeoutPoint).toBeDefined();

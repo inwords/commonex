@@ -6,6 +6,7 @@ import {error, success} from '#packages/result';
 import {CurrencyNotFoundError} from '#domain/errors/errors';
 import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-service/relational-data-service';
 import {CurrencyCode} from '#domain/entities/currency.entity';
+import {SupportedCurrencyService} from '#frameworks/supported-currency-service/supported-currency-service';
 
 type SaveEventTestCase = TestCase<SaveEventUseCase>;
 
@@ -19,7 +20,7 @@ describe('SaveEventUseCase', () => {
       showQueryDetails: false,
     });
 
-    useCase = new SaveEventUseCase(relationalDataService);
+    useCase = new SaveEventUseCase(relationalDataService, new SupportedCurrencyService(relationalDataService));
 
     await relationalDataService.initialize();
   });
@@ -130,6 +131,35 @@ describe('SaveEventUseCase', () => {
         event: {
           name: 'New Event',
           currencyId: 'non-existent',
+          pinCode: '1234',
+        },
+        users: [
+          {
+            name: 'John Doe',
+            createdAt: new Date('2023-01-01T00:00:00Z'),
+            updatedAt: new Date('2023-01-01T00:00:00Z'),
+          },
+        ],
+      },
+      output: error(new CurrencyNotFoundError()),
+      relationalStateChanges: {},
+    },
+    {
+      name: 'должен вернуть ошибку когда валюта существует в базе, но еще не поддерживается',
+      initRelationalState: {
+        currencies: [
+          {
+            id: 'currency-zzz',
+            code: 'ZZZ' as CurrencyCode,
+            createdAt: new Date('2023-01-01T00:00:00Z'),
+            updatedAt: new Date('2023-01-01T00:00:00Z'),
+          },
+        ],
+      },
+      input: {
+        event: {
+          name: 'New Event',
+          currencyId: 'currency-zzz',
           pinCode: '1234',
         },
         users: [

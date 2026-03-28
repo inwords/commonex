@@ -7,7 +7,9 @@ import {HttpService} from '@nestjs/axios';
 import {CurrencyRateService} from '#frameworks/currency-rate-service/currency-rate-service';
 import {EventServiceAbstract} from '#domain/abstracts/event-service/event-service';
 import {EventService} from '#frameworks/event-service/event-service';
+import {SupportedCurrencyServiceAbstract} from '#domain/abstracts/supported-currency-service/supported-currency-service';
 import {CurrencyValueObject} from '#domain/value-objects/currency.value-object';
+import {SupportedCurrencyService} from '#frameworks/supported-currency-service/supported-currency-service';
 import {CURRENCIES_LIST} from '../constants';
 
 export const providers: Provider[] = [
@@ -35,6 +37,13 @@ export const providers: Provider[] = [
     provide: EventServiceAbstract,
     useClass: EventService,
   },
+  {
+    provide: SupportedCurrencyServiceAbstract,
+    useFactory: (relationalDataService: RelationalDataServiceAbstract): SupportedCurrencyService => {
+      return new SupportedCurrencyService(relationalDataService);
+    },
+    inject: [RelationalDataServiceAbstract],
+  },
 ];
 
 @Module({
@@ -52,12 +61,7 @@ export class FrameworksLayer implements OnApplicationShutdown {
 
 const initOrUpdateCurrencies = async (rDataService: RelationalDataServiceAbstract): Promise<void> => {
   await rDataService.transaction('REPEATABLE READ', async (ctx) => {
-    const [currencies] = await rDataService.currency.findAll(
-      {limit: CURRENCIES_LIST.length},
-      {
-        ctx,
-      },
-    );
+    const [currencies] = await rDataService.currency.findAllSupported(undefined, {ctx});
 
     if (!currencies.length) {
       const currencies = CURRENCIES_LIST.map((currency) => new CurrencyValueObject(currency).value);
@@ -65,9 +69,7 @@ const initOrUpdateCurrencies = async (rDataService: RelationalDataServiceAbstrac
       await rDataService.currency.insert(currencies, {ctx});
     } else if (currencies.length !== CURRENCIES_LIST.length) {
       const existingCodes = new Set(currencies.map((c) => c.code));
-      const missingCurrencies = CURRENCIES_LIST.filter((c) => !existingCodes.has(c.code)).map(
-        (c) => new CurrencyValueObject(c).value,
-      );
+      const missingCurrencies = CURRENCIES_LIST.filter((c) => !existingCodes.has(c.code)).map((c) => new CurrencyValueObject(c).value);
 
       if (missingCurrencies.length > 0) {
         await rDataService.currency.insert(missingCurrencies, {ctx});
