@@ -128,6 +128,9 @@ Run commands from the `android/` directory unless a command explicitly says othe
 # Run instrumented tests (requires device/emulator)
 .\gradlew :app:connectedAutotestAndroidTest
 
+# Run one instrumented UI test from connectedAutotest (PowerShell: keep the property quoted)
+.\gradlew :app:connectedAutotestAndroidTest "-Dcom.android.tools.r8.disableApiModeling=true" "-Pandroid.testInstrumentationRunnerArguments.class=ru.commonex.BasicInstrumentedTest#testName"
+
 # Run device tests (requires device/emulator) (includes Room tests)
 .\gradlew connectedAndroidDeviceTest
 
@@ -316,6 +319,7 @@ See `android/docs/patterns.md` for ViewModel, Compose UI, state modeling, form i
 - **Unit tests:** JUnit 6 for host/JVM tests
 - **Instrumented tests (non-UI):** Android Tests with JUnit 6
 - **Instrumented tests (Compose UI E2E tests):** Android Tests with JUnit 4 and Marathon. Prefer Marathon over `:app:connectedAutotestAndroidTest` for local UI-test validation because it matches the retried/sharded runner used in CI. Use `connectedAutotestAndroidTest` only for narrow targeted debugging when Marathon is unavailable or would be unnecessary overhead. Run against the real backend; avoid mocks and hardcoded remote fixtures by creating required data in-test.
+- **Completion bar for UI work:** If you change Compose UI behavior or add/edit instrumented UI flows, do not report completion from compile/host tests alone. Run at least one relevant instrumented UI path and report the exact command and scope that were validated.
 - **Room tests:** use `androidx.room:room-testing`/`MigrationTestHelper` for migration validation only (example `MigrationTest.kt` in `androidDeviceTest` source set).
 - **KMM library host tests:**
     - For shared-module Android host tests that assert `Flow` emissions, prefer Turbine (`app.cash.turbine`) over launching background collectors inside `runTest`; this avoids subscription-timing false negatives.
@@ -679,8 +683,11 @@ Before submitting changes, run these validation steps:
 # 4. Check code quality (30-48 seconds)
 .\gradlew lint --continue
 
-# 5. Verify KMM targets compile (iOS: iosArm64, iosSimulatorArm64 only)
+# 5. On macOS hosts with Xcode installed, verify KMM iOS targets compile (iosArm64, iosSimulatorArm64 only)
 .\gradlew :shared:integration:base:linkDebugFrameworkIosSimulatorArm64
+
+# On Windows/Linux, skip the local iOS simulator/link step and report the host limitation instead.
+# See android/docs/local-agent-prerequisites.md for the iOS prerequisites.
 
 # If iOS tests are added, run iosSimulatorArm64Test (do not run iosX64Test)
 # .\gradlew iosSimulatorArm64Test
@@ -726,6 +733,8 @@ Before submitting changes, run these validation steps:
 .\gradlew allDevicesCheck
 .\gradlew lint --continue
 ```
+
+Treat `allTests` as a full local gate only on hosts that satisfy the iOS prerequisites from `android/docs/local-agent-prerequisites.md`. On Windows/Linux agents, use the Android-focused validation profile instead and report that the Apple-target portion requires a macOS host.
 
 **Trust these instructions:**
 
