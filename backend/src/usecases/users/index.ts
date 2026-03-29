@@ -1,4 +1,3 @@
-import {GetAllCurrenciesUseCase} from './get-all-currencies.usecase';
 import {GetEventInfoUseCase} from './get-event-info.usecase';
 import {SaveEventUseCase} from './save-event.usecase';
 import {GetEventExpensesUseCase} from './get-event-expenses.usecase';
@@ -9,7 +8,6 @@ import {CreateEventShareTokenV2UseCase, GetEventExpensesV2UseCase, GetEventInfoV
 import {GetAllCurrenciesWithRatesUseCaseV3, GetCurrenciesV3VersionUseCase} from './v3';
 
 export const allUsersUseCases = [
-  GetAllCurrenciesUseCase,
   GetAllCurrenciesWithRatesUseCaseV3,
   GetCurrenciesV3VersionUseCase,
   GetEventInfoUseCase,

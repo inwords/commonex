@@ -1,6 +1,5 @@
 import {Body, Controller} from '@nestjs/common';
 import {GrpcMethod} from '@nestjs/microservices';
-import {GetAllCurrenciesResponseDto} from '#api/http/user/dto/get-all-currencies.dto';
 import {CreateEventRequestDto, CreateEventResponseDto} from '#api/http/user/dto/create-event.dto';
 import {
   GetEventInfoParamsDto,
@@ -32,7 +31,6 @@ import {
 } from '#api/http/user/dto/create-event-share-token.dto';
 import {GetEventExpensesUseCase} from '#usecases/users/get-event-expenses.usecase';
 import {SaveEventExpenseUseCase} from '#usecases/users/save-event-expense.usecase';
-import {GetAllCurrenciesUseCase} from '#usecases/users/get-all-currencies.usecase';
 import {SaveEventUseCase} from '#usecases/users/save-event.usecase';
 import {GetEventInfoUseCase} from '#usecases/users/get-event-info.usecase';
 import {SaveUsersToEventUseCase} from '#usecases/users/save-users-to-event.usecase';
@@ -51,7 +49,6 @@ export class UserController {
   constructor(
     private readonly getEventExpensesUseCase: GetEventExpensesUseCase,
     private readonly saveEventExpenseUseCase: SaveEventExpenseUseCase,
-    private readonly getAllCurrenciesUseCase: GetAllCurrenciesUseCase,
     private readonly saveEventUseCase: SaveEventUseCase,
     private readonly getEventInfoUseCase: GetEventInfoUseCase,
     private readonly saveUsersToEventUseCase: SaveUsersToEventUseCase,
@@ -62,17 +59,6 @@ export class UserController {
     private readonly getEventExpensesV2UseCase: GetEventExpensesV2UseCase,
     private readonly createEventShareTokenV2UseCase: CreateEventShareTokenV2UseCase,
   ) {}
-
-  @GrpcMethod('UserService', 'GetAllCurrencies')
-  async getAllCurrencies(): Promise<GetAllCurrenciesResponseDto> {
-    const result = await this.getAllCurrenciesUseCase.execute();
-
-    if (isError(result)) {
-      throw result.error;
-    }
-
-    return {currencies: result.value};
-  }
 
   @GrpcMethod('UserService', 'CreateEvent')
   async createEvent(@Body() body: CreateEventRequestDto): Promise<CreateEventResponseDto> {
