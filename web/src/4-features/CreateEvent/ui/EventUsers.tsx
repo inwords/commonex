@@ -1,18 +1,23 @@
-import {TextFieldElement, useFieldArray, useForm} from 'react-hook-form-mui';
+import {TextFieldElement, useFieldArray, useFormContext} from 'react-hook-form-mui';
 import React, {useEffect} from 'react';
 import {Button, Stack} from '@mui/material';
+import {UserDraft} from '@/5-entities/user/types/types';
+
+type EventUsersFormValues = {
+  users: Array<UserDraft>;
+};
 
 export const EventUsers = () => {
-  const {control, setValue} = useForm();
+  const {control, setValue} = useFormContext<EventUsersFormValues>();
 
   const {fields, append} = useFieldArray({
-    control, // control props comes from useForm (optional: if you are using FormProvider)
-    name: 'users', // unique name for your Field Array
+    control,
+    name: 'users',
   });
 
   useEffect(() => {
-    setValue('users', [{name: undefined}]);
-  }, []);
+    setValue('users', [{name: ''}]);
+  }, [setValue]);
 
   return (
     <Stack direction={'column'} spacing={2}>
@@ -24,7 +29,7 @@ export const EventUsers = () => {
         );
       })}
 
-      <Button onClick={() => append({})} variant={'outlined'}>
+      <Button onClick={() => append({name: ''})} variant={'outlined'}>
         Добавить участника
       </Button>
     </Stack>

@@ -4,7 +4,7 @@ CommonEx Web is the browser client for the CommonEx expense-sharing platform.
 
 ## Runtime Model
 
-- Framework shell: Next.js 14
+- Framework shell: Next.js 16
 - UI/state stack: Material UI + MobX + react-hook-form
 - Routing model: client-side SPA routing via `BrowserRouter` inside `src/app/page.tsx`
 - Production artifact: static export (`next.config.mjs` sets `output: "export"`)
@@ -20,6 +20,8 @@ npm run dev
 npm run build
 npm run lint
 ```
+
+`npm run lint` uses the ESLint CLI through `eslint.config.mjs`, keeping Next core-web-vitals rules via `eslint-config-next`.
 
 There is currently no checked-in `npm run test` script in this project.
 

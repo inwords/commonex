@@ -5,8 +5,9 @@ interface Props {
   name: string;
   label: string;
   disabled?: boolean;
+  required?: boolean;
 }
 
-export const SelectUser = observer(({name, label, disabled}: Props) => {
-  return <SelectElement name={name} label={label} options={userStore.usersToSelect} disabled={disabled} />;
+export const SelectUser = observer(({name, label, disabled, required}: Props) => {
+  return <SelectElement name={name} label={label} options={userStore.usersToSelect} disabled={disabled} required={required} />;
 });
