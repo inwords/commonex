@@ -56,10 +56,10 @@ export class SaveEventExpenseUseCase implements UseCase<Input, Output> {
 
         return success(expense);
       } else {
-        const expenseCurrencyCode = await this.supportedCurrencyService.findById(input.currencyId, {ctx});
-        const eventCurrencyCode = await this.supportedCurrencyService.findById(event.currencyId, {ctx});
+        const expenseCurrency = await this.supportedCurrencyService.findById(input.currencyId, {ctx});
+        const eventCurrency = await this.supportedCurrencyService.findById(event.currencyId, {ctx});
 
-        if (!eventCurrencyCode || !expenseCurrencyCode) {
+        if (!eventCurrency || !expenseCurrency) {
           return error(new CurrencyNotFoundError());
         }
 
@@ -71,8 +71,8 @@ export class SaveEventExpenseUseCase implements UseCase<Input, Output> {
           return error(new CurrencyRateNotFoundError());
         }
 
-        const expenseCurrencyRate = currencyRate.rate[expenseCurrencyCode.code];
-        const eventCurrencyRate = currencyRate.rate[eventCurrencyCode.code];
+        const expenseCurrencyRate = currencyRate.rate[expenseCurrency.code];
+        const eventCurrencyRate = currencyRate.rate[eventCurrency.code];
 
         if (expenseCurrencyRate === undefined || eventCurrencyRate === undefined) {
           return error(new CurrencyRateNotFoundError());

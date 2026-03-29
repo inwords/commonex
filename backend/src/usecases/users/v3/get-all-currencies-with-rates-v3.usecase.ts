@@ -7,6 +7,8 @@ import {getCurrentDateWithoutTimeUTC} from '#packages/date-utils';
 import {CurrencyRateNotFoundError} from '#domain/errors';
 import {buildCurrenciesV3VersionFromResponse, CurrenciesV3Version} from './currencies-v3-cache';
 
+type SupportedExchangeRateMap = Partial<Record<CurrencyCode, number>>;
+
 type Output = Result<
   {
     response: {
@@ -15,7 +17,7 @@ type Output = Result<
         code: CurrencyCode;
         updatedAt: Date;
       }>;
-      exchangeRate: Record<string, number>;
+      exchangeRate: SupportedExchangeRateMap;
     };
     version: CurrenciesV3Version;
   },
@@ -40,13 +42,14 @@ export class GetAllCurrenciesWithRatesUseCaseV3 implements UseCase<void, Output>
       return error(new CurrencyRateNotFoundError());
     }
 
+    const exchangeRate: SupportedExchangeRateMap = currencyRate.rate;
     const response = {
       currencies: currencies.map((currency) => ({
         id: currency.id,
         code: currency.code,
         updatedAt: currency.updatedAt,
       })),
-      exchangeRate: currencyRate.rate,
+      exchangeRate,
     };
 
     return success({
