@@ -42,7 +42,7 @@ HTTP API versioning is path-based.
 
 Current observed pattern:
 
-- `/api/user/...` for legacy or v1-style routes such as event creation, event deletion, and base currency list access
+- `/api/user/...` for legacy or v1-style routes such as event creation and event deletion
 - `/api/v2/user/...` for event reads and mutations that use request bodies and support share-token based event access
 - `/api/v3/user/...` for currencies-with-rates access used by the web client
 
@@ -60,7 +60,8 @@ Representative routes:
 Current canonical-client guidance:
 
 - Web and mobile should treat V2 as the canonical event read/mutation surface.
-- V1 remains in use for legacy create/delete/base-currency routes.
+- V1 remains in use for legacy create/delete routes only.
+- Public currencies access is V3-only: `/api/v3/user/currencies/all` is the supported HTTP contract.
 - The backend still has a legacy V1 expense-read route (`GET /api/user/event/:eventId/expenses`) without pin-code validation in its current implementation; do not model new client behavior on that route.
 
 When changing routes:

@@ -14,7 +14,8 @@ CommonEx backend is a NestJS service that provides REST and gRPC APIs for the ex
 - Database: PostgreSQL with TypeORM
 - APIs: REST and gRPC
 - Observability: OpenTelemetry (`@fastify/otel` + allowlisted Node auto-instrumentations)
-- Linting: ESLint 10 flat config (`eslint.config.js`)
+- Linting: ESLint 10 flat config (`eslint.config.js`) with `eslint-config-prettier` compatibility
+- Formatting: Prettier 3.8 is explicit-only via `npm run format`; backend lint does not run Prettier as an ESLint rule
 - Testing: Jest 30 with ts-jest
 - Language: TypeScript 5.9
 
@@ -81,6 +82,7 @@ npm run start:prod
 
 npm run build
 npm run lint
+npm run format
 
 npm run test
 npm run test:watch
@@ -137,7 +139,8 @@ npm run db:drop
 - When using TypeORM `getRawOne` / `getRawMany`, prefer precise raw result types that match the current `pg` parser behavior verified in this repo; avoid defensive unions such as `Date | string` unless that specific code path can actually return both.
 - Use SQL casts in raw projections only when they materially improve the returned JS type, for example `COUNT(...)::integer` to avoid `bigint` string results.
 - Backend lint source of truth is `eslint.config.js`; do not add or rely on legacy `.eslintrc.*` files.
-- Keep backend formatting aligned with the repo `.editorconfig`; backend Prettier is configured for LF line endings.
+- Keep backend formatting aligned with the repo `.editorconfig`; backend Prettier is configured for LF line endings, but it is reserved for explicit formatting runs rather than `lint --fix`.
+- Backend line-length enforcement is `160` characters via ESLint `max-len`; keep intentional multiline layouts when they already fit instead of reflowing them just because they can fit on one line.
 - Keep HTTP guards/filters adapter-agnostic: avoid direct `fastify`/`express` request-response types; prefer
   `HttpAdapterHost`/`AbstractHttpAdapter` and generic request header typing.
 - When a user-facing backend flow needs currencies, rate maps, or currency-version metadata subject to support gating,
