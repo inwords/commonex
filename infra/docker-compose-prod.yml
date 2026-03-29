@@ -33,6 +33,7 @@ services:
     security_opt:
       - no-new-privileges:true
     environment:
+      - ENVIRONMENT=${ENVIRONMENT}
       - POSTGRES_HOST=${POSTGRES_HOST}
       - POSTGRES_PORT=${POSTGRES_PORT}
       - POSTGRES_USER_NAME=${POSTGRES_USER_NAME}
@@ -64,6 +65,7 @@ services:
     security_opt:
       - no-new-privileges:true
     environment:
+      - ENVIRONMENT=${ENVIRONMENT}
       - POSTGRES_HOST=${POSTGRES_HOST}
       - POSTGRES_PORT=${POSTGRES_PORT}
       - POSTGRES_USER_NAME=${POSTGRES_USER_NAME}
