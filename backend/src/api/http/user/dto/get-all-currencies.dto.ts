@@ -22,5 +22,5 @@ export class GetAllCurrenciesWithRatesResponseDto {
     additionalProperties: {type: 'number'},
     example: {USD: 1, EUR: 0.92, RUB: 95.5},
   })
-  exchangeRate!: Record<string, number>;
+  exchangeRate!: Partial<Record<CurrencyCode, number>>;
 }
