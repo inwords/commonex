@@ -2,7 +2,6 @@ import {Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post, Query}
 import {UserRoutes} from './user.constants';
 import {ApiResponse, ApiTags} from '@nestjs/swagger';
 
-import {CurrencyResponseDto} from './dto/get-all-currencies.dto';
 import {CreateEventRequestDto, CreateEventResponseDto} from './dto/create-event.dto';
 import {GetEventInfoParamsDto, GetEventInfoRequestV1Dto, GetEventInfoResponseDto} from './dto/get-event-info.dto';
 import {DeleteEventParamsDto, DeleteEventRequestDto, DeleteEventResponseDto} from './dto/delete-event.dto';
@@ -14,7 +13,6 @@ import {
 import {GetEventExpensesParamsDto, GetEventExpensesResponseDto} from './dto/get-event-expenses.dto';
 import {CreateExpenseParamsDto, CreateExpenseRequestV1Dto, CreateExpenseResponseDto} from './dto/create-expense.dto';
 
-import {GetAllCurrenciesUseCase} from '#usecases/users/get-all-currencies.usecase';
 import {GetEventExpensesUseCase} from '#usecases/users/get-event-expenses.usecase';
 import {SaveEventExpenseUseCase} from '#usecases/users/save-event-expense.usecase';
 import {SaveEventUseCase} from '#usecases/users/save-event.usecase';
@@ -29,25 +27,11 @@ export class UserController {
   constructor(
     private readonly getEventExpensesUseCase: GetEventExpensesUseCase,
     private readonly saveEventExpenseUseCase: SaveEventExpenseUseCase,
-    private readonly getAllCurrenciesUseCase: GetAllCurrenciesUseCase,
     private readonly saveEventUseCase: SaveEventUseCase,
     private readonly getEventInfoUseCase: GetEventInfoUseCase,
     private readonly saveUsersToEventUseCase: SaveUsersToEventUseCase,
     private readonly deleteEventUseCase: DeleteEventUseCase,
   ) {}
-
-  @Get(UserRoutes.getAllCurrencies)
-  @HttpCode(HttpStatus.OK)
-  @ApiResponse({status: HttpStatus.OK, type: [CurrencyResponseDto]})
-  async getAllCurrencies(): Promise<CurrencyResponseDto[]> {
-    const result = await this.getAllCurrenciesUseCase.execute();
-
-    if (isError(result)) {
-      throw result.error;
-    }
-
-    return result.value;
-  }
 
   @Post(UserRoutes.createEvent)
   @HttpCode(HttpStatus.CREATED)

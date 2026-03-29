@@ -3,10 +3,8 @@ syntax = "proto3";
 package user;
 
 import "google/protobuf/timestamp.proto";
-import "google/protobuf/empty.proto";
 
 service UserService {
-  rpc GetAllCurrencies (google.protobuf.Empty) returns (GetAllCurrenciesResponse);
   rpc CreateEvent (CreateEventRequest) returns (EventResponse);
   rpc GetEventInfo (GetEventInfoRequest) returns (EventInfoResponse);
   rpc AddUsersToEvent (AddUsersToEventRequest) returns (AddUsersToEventResponse);
@@ -31,10 +29,6 @@ enum CurrencyCode {
 message Currency {
   string id = 1;
   CurrencyCode code = 2;
-}
-
-message GetAllCurrenciesResponse {
-  repeated Currency currencies = 1;
 }
 
 message CreateEventRequest {

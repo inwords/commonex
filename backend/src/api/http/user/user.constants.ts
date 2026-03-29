@@ -1,6 +1,5 @@
 export const UserRoutes = {
   root: '/user',
-  getAllCurrencies: `/currencies/all`,
   createEvent: '/event',
   getEventInfo: `/event/:eventId`,
   deleteEvent: `/event/:eventId`,
