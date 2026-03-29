@@ -2,15 +2,19 @@ import {EventUsers} from '@/4-features/CreateEvent/ui/EventUsers';
 import {FormContainer} from 'react-hook-form-mui';
 import React from 'react';
 import {Button, Stack} from '@mui/material';
-import {User} from '@/5-entities/user/types/types';
+import {UserDraft} from '@/5-entities/user/types/types';
+
+type AddUsersToEventFormValues = {
+  users: Array<UserDraft>;
+};
 
 interface Props {
-  onSuccess: (data: User) => void;
+  onSuccess: (data: Array<UserDraft>) => void;
 }
 
 export const AddUsersToEventForm = ({onSuccess}: Props) => {
   return (
-    <FormContainer
+    <FormContainer<AddUsersToEventFormValues>
       onSuccess={(data) => {
         onSuccess(data.users);
       }}

@@ -7,12 +7,17 @@ import {eventService} from '@/5-entities/event/services/event-service';
 import {useNavigate} from 'react-router';
 import {ROUTES} from '@/6-shared/routing/constants';
 
+type FindEventFormValues = {
+  eventId: string;
+  pinCode: string;
+};
+
 export const FindEventForm = () => {
   const navigate = useNavigate();
 
   return (
     <Box display="flex" justifyContent="center" marginTop={'20px'}>
-      <FormContainer
+      <FormContainer<FindEventFormValues>
         onSuccess={async (d) => {
           await eventService.getEventInfo(d.eventId, {pinCode: d.pinCode});
 

@@ -22,7 +22,7 @@ export const AddExpenseFormRefund = observer(() => {
   } as CreateExpenseRefundForm;
 
   return (
-    <FormContainer
+    <FormContainer<CreateExpenseRefundForm>
       onSuccess={async (d) => {
         if (id && eventStore.currentEvent?.pinCode) {
           expenseStore.setIsExpenseRefundModalOpen(false);

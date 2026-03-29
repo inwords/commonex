@@ -11,8 +11,8 @@ client-rendered SPA: `src/app/page.tsx` mounts `BrowserRouter`, and production b
 
 ## Technology Stack
 
-- **Framework**: Next.js v14 with App Router shell
-- **UI Library**: Material UI v5
+- **Framework**: Next.js v16 with App Router shell
+- **UI Library**: Material UI v7
 - **State Management**: MobX
 - **Forms**: react-hook-form with MUI integration
 - **Language**: TypeScript
@@ -39,7 +39,7 @@ Feature-driven with strict folder structure (Feature-Sliced Design):
 - **Features**: `src/4-features/`
 - **Entities**: `src/5-entities/`
 - **Shared utilities**: `src/6-shared/`
-- **Configuration**: `next.config.mjs`, `tsconfig.json`
+- **Configuration**: `next.config.mjs`, `eslint.config.mjs`, `tsconfig.json`
 - **Container runtime**: `Dockerfile`, `nginx.conf`
 
 ## Prerequisites
@@ -83,7 +83,7 @@ npm run build
 ### Code Quality
 
 ```bash
-# Run linter
+# Run ESLint flat config (includes Next core-web-vitals rules via eslint-config-next)
 npm run lint
 ```
 
@@ -201,10 +201,15 @@ npm run lint
     - PowerShell: `Remove-Item -Recurse -Force .next`
 - **TypeScript errors**: Check `tsconfig.json` configuration
 - **Module resolution**: Verify import paths use `src/` prefix
+- **Dependency install blocked by PowerShell**: If `npm install` or `npm ci` fails in a dependency postinstall step because
+  PowerShell tries a `node_modules\.bin\*.ps1` shim, force npm to run lifecycle scripts through CMD:
+    - `$env:npm_config_script_shell='cmd.exe'; npm.cmd install`
+    - `$env:npm_config_script_shell='cmd.exe'; npm.cmd ci`
 - **PowerShell script execution blocked**: If `npm run lint` or `npm run build` fails with `node_modules\.bin\next.ps1`
-  execution policy errors, run Next via CMD shim:
-    - `.\node_modules\.bin\next.cmd lint`
+  or `node_modules\.bin\eslint.ps1` execution policy errors, run the CMD shims directly:
+    - `.\node_modules\.bin\eslint.cmd .`
     - `.\node_modules\.bin\next.cmd build`
+    - `.\node_modules\.bin\next.cmd dev`
     - The same issue can affect `npm run dev`
 
 ### Runtime Issues
