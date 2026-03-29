@@ -1,4 +1,4 @@
-import {User} from '@/5-entities/user/types/types';
+import {User, UserDraft} from '@/5-entities/user/types/types';
 
 export interface Event {
   id: string;
@@ -8,7 +8,7 @@ export interface Event {
   pinCode: string;
 }
 
-export type CreateEvent = Omit<Event, 'id' | 'users'> & {users: Array<Omit<User, 'id'>>};
+export type CreateEvent = Omit<Event, 'id' | 'users'> & {users: Array<UserDraft>};
 
 export interface CreateEventShareTokenResponse {
   token: string;

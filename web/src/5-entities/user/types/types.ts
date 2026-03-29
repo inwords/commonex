@@ -3,3 +3,5 @@ export interface User {
   name: string;
   eventId: string;
 }
+
+export type UserDraft = Pick<User, 'name'>;
