@@ -9,12 +9,13 @@ import {useNavigate} from 'react-router';
 import {ROUTES} from '@/6-shared/routing/constants';
 import {SelectCurrency} from '@/5-entities/currency/ui/SelectCurrency';
 import {eventService} from '@/5-entities/event/services/event-service';
+import {CreateEvent} from '@/5-entities/event/types/types';
 
 export const CreateEventForm = () => {
   const navigate = useNavigate();
 
   return (
-    <FormContainer
+    <FormContainer<CreateEvent>
       onSuccess={async (data) => {
         const eventId = await eventService.createEvent(data);
 

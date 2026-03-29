@@ -10,7 +10,7 @@ import {
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import MinimizeIcon from '@mui/icons-material/Minimize';
-import {useState, useEffect} from 'react';
+import {useState} from 'react';
 import {onboardingService, OnboardingStep} from '@/6-shared/services/onboarding-service';
 
 interface Step {
@@ -24,17 +24,14 @@ interface Props {
 }
 
 export const OnboardingTour = ({steps}: Props) => {
-  const [isVisible, setIsVisible] = useState(false);
+  const [isDismissed, setIsDismissed] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
 
-  useEffect(() => {
-    const stepKeys = steps.map((s) => s.step);
-    const completedSteps = onboardingService.getCompletedSteps();
-    const allStepsCompleted = stepKeys.every((step) => completedSteps.includes(step));
-
-    setIsVisible(!allStepsCompleted);
-  }, [steps]);
+  const stepKeys = steps.map((s) => s.step);
+  const completedSteps = onboardingService.getCompletedSteps();
+  const allStepsCompleted = stepKeys.every((step) => completedSteps.includes(step));
+  const isVisible = !isDismissed && !allStepsCompleted;
 
   const handleNext = () => {
     const currentStep = steps[currentStepIndex];
@@ -55,12 +52,12 @@ export const OnboardingTour = ({steps}: Props) => {
 
   const handleComplete = () => {
     steps.forEach((step) => onboardingService.completeStep(step.step));
-    setIsVisible(false);
+    setIsDismissed(true);
   };
 
   const handleClose = () => {
     steps.forEach((step) => onboardingService.completeStep(step.step));
-    setIsVisible(false);
+    setIsDismissed(true);
   };
 
   const handleMinimize = () => {

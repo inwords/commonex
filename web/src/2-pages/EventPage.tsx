@@ -23,32 +23,34 @@ export const EventPage = observer(() => {
   const canOpenPage = id && (token || navigatedFromMainForm);
 
   useEffect(() => {
-    if (canOpenPage) {
-      if (!navigatedFromMainForm && token) {
-        void currencyService.fetchCurrencies();
+    if (!canOpenPage || !id) {
+      return;
+    }
 
-        const params: {pinCode?: string; token?: string} = {};
+    if (!navigatedFromMainForm && token) {
+      void currencyService.fetchCurrencies();
 
-        if (token) {
-          params.token = token;
-        }
+      const params: {pinCode?: string; token?: string} = {};
 
-        const fn = async () => {
-          await eventService.getEventInfo(id, params);
+      if (token) {
+        params.token = token;
+      }
 
-          if (eventStore.currentEvent?.pinCode) {
-            void expenseService.fetchExpenses(id, eventStore.currentEvent.pinCode);
-          }
-        }
+      const fn = async () => {
+        await eventService.getEventInfo(id, params);
 
-        void fn();
-      } else {
         if (eventStore.currentEvent?.pinCode) {
           void expenseService.fetchExpenses(id, eventStore.currentEvent.pinCode);
         }
       }
+
+      void fn();
+    } else {
+      if (eventStore.currentEvent?.pinCode) {
+        void expenseService.fetchExpenses(id, eventStore.currentEvent.pinCode);
+      }
     }
-  }, []);
+  }, [canOpenPage, id, navigatedFromMainForm, token]);
 
   if (!canOpenPage) {
     return <Navigate to={ROUTES.Main} />;

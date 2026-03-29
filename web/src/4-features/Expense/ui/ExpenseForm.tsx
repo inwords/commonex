@@ -22,9 +22,15 @@ interface Props {
   expenseData?: Partial<CreateExpenseForm>;
 }
 
+type ExpenseSplitDraft = Partial<Omit<CreateExpenseForm['splitInformation'][number], 'exchangedAmount'>>;
+
+type ExpenseFormValues = Omit<CreateExpenseForm, 'splitInformation'> & {
+  splitInformation: Array<ExpenseSplitDraft>;
+};
+
 const ExpenseFormContent = observer(({readOnly = false}: Omit<Props, 'expenseData'>) => {
-  const {control, watch, setValue} = useFormContext();
-  const {fields, append, remove} = useFieldArray({
+  const {control, watch, setValue} = useFormContext<ExpenseFormValues>();
+  const {fields, append, remove} = useFieldArray<ExpenseFormValues>({
     control,
     name: 'splitInformation',
   });
@@ -43,7 +49,7 @@ const ExpenseFormContent = observer(({readOnly = false}: Omit<Props, 'expenseDat
         remove(i);
       }
     }
-  }, [isSplitEqually]);
+  }, [append, fields.length, isSplitEqually, remove]);
 
   // Устанавливаем автоматический курс при смене валюты (только если не readOnly)
   useEffect(() => {
@@ -56,9 +62,9 @@ const ExpenseFormContent = observer(({readOnly = false}: Omit<Props, 'expenseDat
 
     const autoRate = currencyStore.calculateExchangeRate(currencyId, eventCurrencyId);
     if (autoRate > 0) {
-      setValue('exchangeRate', autoRate.toFixed(2));
+      setValue('exchangeRate', Number(autoRate.toFixed(2)));
     }
-  }, [currencyId, eventCurrencyId, readOnly]);
+  }, [currencyId, eventCurrencyId, readOnly, setValue]);
 
   return (
     <>
@@ -113,10 +119,10 @@ export const ExpenseForm = observer(({onSuccess, readOnly = false, expenseData}:
   }) as CreateExpenseForm;
 
   return (
-    <FormContainer
+    <FormContainer<ExpenseFormValues>
       onSuccess={async (d) => {
         if (id && !readOnly) {
-          onSuccess?.(false, d, id);
+          onSuccess?.(false, d as CreateExpenseForm, id);
         }
       }}
       defaultValues={initialValues}
