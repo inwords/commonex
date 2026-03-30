@@ -1,7 +1,7 @@
 package com.inwords.expenses.feature.expenses.ui.converter
 
-import com.inwords.expenses.core.ui.utils.formatLocalDateTime
-import com.inwords.expenses.core.ui.utils.getDefaultDateTimeFormat
+import com.inwords.expenses.core.ui.utils.formatLocalTime
+import com.inwords.expenses.core.ui.utils.getTimeFormat
 import com.inwords.expenses.feature.events.domain.model.Person
 import com.inwords.expenses.feature.expenses.domain.model.BarterAccumulatedDebtSummary
 import com.inwords.expenses.feature.expenses.domain.model.Expense
@@ -31,7 +31,7 @@ internal fun Expense.toUiModel(
         personName = person.name,
         isPaidByCurrentPerson = person.id == currentPersonId,
         totalAmount = "$amountSign${totalAmount.toRoundedString()}",
-        timestamp = timestamp.formatLocalDateTime(getDefaultDateTimeFormat()),
+        timeText = timestamp.formatLocalTime(getTimeFormat()),
         description = description,
         currentPersonPartAmount = currentPersonSplit?.let { split ->
             "$amountSign${split.exchangedAmount.toRoundedString()}"

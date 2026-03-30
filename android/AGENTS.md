@@ -276,6 +276,7 @@ gradle/                       # Version catalogs and properties
 5. **Avoid duplicating code:** Prefer delegating to existing logic (e.g. domain interactors) instead of reimplementing in integration layers
 6. **Required persistence state:** Do not use nullable Room entity fields or local-store return types for required persisted state; initialize them in fresh-create and migration paths instead of modeling them as `T?`
 7. **Room data updates:** Prefer targeted DAO `UPDATE` queries over reading the row and rebuilding it via `upsert`
+8. **Explicit minimal-change requests:** If the user asks to minimize changes in existing Compose pane/ViewModel files, treat the committed file structure as the baseline and avoid incidental helper extraction, preview churn, or broad refactors in those files unless they are required for correctness.
 
 ### Component Factory Deps Pattern
 
@@ -319,7 +320,9 @@ See `android/docs/patterns.md` for ViewModel, Compose UI, state modeling, form i
 - **Unit tests:** JUnit 6 for host/JVM tests
 - **Instrumented tests (non-UI):** Android Tests with JUnit 6
 - **Instrumented tests (Compose UI E2E tests):** Android Tests with JUnit 4 and Marathon. Prefer Marathon over `:app:connectedAutotestAndroidTest` for local UI-test validation because it matches the retried/sharded runner used in CI. Use `connectedAutotestAndroidTest` only for narrow targeted debugging when Marathon is unavailable or would be unnecessary overhead. Run against the real backend; avoid mocks and hardcoded remote fixtures by creating required data in-test.
+- **Device fallback for targeted UI validation:** If `:app:connectedAutotestAndroidTest` is blocked by `No connected devices!`, use the managed-device path `:app:pixel6Api35AtdAutotestAndroidTest` for the same targeted test before reporting completion.
 - **Completion bar for UI work:** If you change Compose UI behavior or add/edit instrumented UI flows, do not report completion from compile/host tests alone. Run at least one relevant instrumented UI path and report the exact command and scope that were validated.
+- **Deterministic expense timestamps in instrumented tests:** To pin creation time when driving the real add-expense flow, use `com.inwords.expenses.feature.expenses.domain.ExpenseTimeBackdoor.overrideForTests(Instant?)` in a try/finally reset to `null`. Add-expense use cases read this for persisted `timestamp`; referencing a non-existent helper type breaks `:app:compileAutotestAndroidTestKotlin`.
 - **Room tests:** use `androidx.room:room-testing`/`MigrationTestHelper` for migration validation only (example `MigrationTest.kt` in `androidDeviceTest` source set).
 - **KMM library host tests:**
     - For shared-module Android host tests that assert `Flow` emissions, prefer Turbine (`app.cash.turbine`) over launching background collectors inside `runTest`; this avoids subscription-timing false negatives.

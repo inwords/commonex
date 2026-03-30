@@ -35,4 +35,7 @@
     <string name="expenses_split">Разделить</string>
     <string name="expenses_total_amount">Общая сумма</string>
     <string name="expenses_your_part">Ваша доля: %1$s</string>
+    <string name="expenses_total_spent">%1$s потрачено</string>
+    <string name="expenses_today">Сегодня</string>
+    <string name="expenses_yesterday">Вчера</string>
 </resources>

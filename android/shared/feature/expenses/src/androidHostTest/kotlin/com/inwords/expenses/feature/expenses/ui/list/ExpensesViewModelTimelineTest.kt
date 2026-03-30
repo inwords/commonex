@@ -6,7 +6,6 @@ import com.inwords.expenses.core.navigation.NavigationController
 import com.inwords.expenses.core.ui.utils.SimpleScreenState
 import com.inwords.expenses.core.ui.utils.StringProvider
 import com.inwords.expenses.feature.events.api.EventDeletionStateManager
-import com.inwords.expenses.feature.events.api.EventDeletionStateManager.EventDeletionState
 import com.inwords.expenses.feature.events.domain.DeleteEventUseCase
 import com.inwords.expenses.feature.events.domain.EventsSyncStateHolder
 import com.inwords.expenses.feature.events.domain.GetCurrentEventStateUseCase
@@ -19,10 +18,14 @@ import com.inwords.expenses.feature.events.domain.model.Person
 import com.inwords.expenses.feature.expenses.domain.DebtCalculator
 import com.inwords.expenses.feature.expenses.domain.GetExpensesDetailsUseCase
 import com.inwords.expenses.feature.expenses.domain.RequestExpensesRefreshUseCase
+import com.inwords.expenses.feature.expenses.domain.model.Expense
+import com.inwords.expenses.feature.expenses.domain.model.ExpenseSplitWithPerson
+import com.inwords.expenses.feature.expenses.domain.model.ExpenseType
 import com.inwords.expenses.feature.expenses.domain.model.ExpensesDetails
 import com.inwords.expenses.feature.expenses.ui.list.ExpensesPaneUiModel.Expenses
 import com.inwords.expenses.feature.settings.api.SettingsRepository
 import com.ionspin.kotlin.bignum.decimal.BigDecimal
+import com.ionspin.kotlin.bignum.decimal.toBigDecimal
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.justRun
@@ -33,7 +36,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
-import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runCurrent
@@ -44,60 +46,106 @@ import org.jetbrains.compose.resources.StringResource
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
-import kotlin.test.assertFalse
+import kotlin.test.assertEquals
 import kotlin.test.assertIs
-import kotlin.test.assertTrue
-import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Instant
 
 @OptIn(ExperimentalCoroutinesApi::class)
-internal class ExpensesViewModelRefreshTest {
+internal class ExpensesViewModelTimelineTest {
 
-    private object TestFixtures {
+    private object Fixtures {
         val primaryCurrency = Currency(
-            id = 100L,
-            serverId = "c1",
-            code = "USD",
-            name = "US Dollar",
+            id = 1L,
+            serverId = "currency-1",
+            code = "EUR",
+            name = "Euro",
             rate = BigDecimal.ONE,
         )
-
-        val person = Person(
+        val currentPerson = Person(
             id = 1L,
-            serverId = "p1",
-            name = "Alex"
+            serverId = "person-1",
+            name = "Alex",
         )
-
-        val event = Event(
+        val otherPerson = Person(
             id = 2L,
-            serverId = "e2",
+            serverId = "person-2",
+            name = "Ben",
+        )
+        val event = Event(
+            id = 10L,
+            serverId = "event-10",
             name = "Trip",
             pinCode = "1234",
-            primaryCurrencyId = primaryCurrency.id
+            primaryCurrencyId = primaryCurrency.id,
         )
-
         val eventDetails = EventDetails(
             event = event,
             currencies = listOf(primaryCurrency),
-            persons = listOf(person),
-            primaryCurrency = primaryCurrency
+            persons = listOf(currentPerson, otherPerson),
+            primaryCurrency = primaryCurrency,
         )
-
         val expensesDetails = ExpensesDetails(
             event = eventDetails,
-            expenses = emptyList(),
-            debtCalculator = DebtCalculator(emptyList(), primaryCurrency)
+            expenses = listOf(
+                expense(
+                    expenseId = 3L,
+                    expenseType = ExpenseType.Spending,
+                    totalAmount = 120,
+                    timestamp = "2026-03-28T20:00:00Z",
+                    description = "Dinner",
+                ),
+                expense(
+                    expenseId = 2L,
+                    expenseType = ExpenseType.Replenishment,
+                    totalAmount = 15,
+                    timestamp = "2026-03-28T10:00:00Z",
+                    description = "Refund",
+                ),
+                expense(
+                    expenseId = 1L,
+                    expenseType = ExpenseType.Spending,
+                    totalAmount = 60,
+                    timestamp = "2026-03-27T23:00:00Z",
+                    description = "Museum",
+                ),
+            ),
+            debtCalculator = DebtCalculator(emptyList(), primaryCurrency),
         )
+
+        private fun expense(
+            expenseId: Long,
+            expenseType: ExpenseType,
+            totalAmount: Int,
+            timestamp: String,
+            description: String,
+        ): Expense {
+            return Expense(
+                expenseId = expenseId,
+                serverId = "expense-$expenseId",
+                currency = primaryCurrency,
+                expenseType = expenseType,
+                person = currentPerson,
+                subjectExpenseSplitWithPersons = listOf(
+                    ExpenseSplitWithPerson(
+                        expenseSplitId = expenseId,
+                        expenseId = expenseId,
+                        person = otherPerson,
+                        originalAmount = totalAmount.toBigDecimal(),
+                        exchangedAmount = totalAmount.toBigDecimal(),
+                    ),
+                ),
+                isCustomRate = false,
+                timestamp = Instant.parse(timestamp),
+                description = description,
+            )
+        }
     }
 
     private val testDispatcher = StandardTestDispatcher()
     private val testScope = TestScope(testDispatcher)
 
-    private val currentEventFlow = MutableStateFlow<EventDetails?>(null)
-    private val currentPersonIdFlow = MutableStateFlow<Long?>(TestFixtures.person.id)
-    private val eventsFlow = MutableStateFlow(emptyList<Event>())
-    private val eventsDeletionStateFlow = MutableStateFlow<Map<Long, EventDeletionState>>(emptyMap())
-    private val eventSyncStateFlow = MutableStateFlow(false)
+    private val currentEventFlow = MutableStateFlow<EventDetails?>(Fixtures.eventDetails)
+    private val currentPersonIdFlow = MutableStateFlow<Long?>(Fixtures.currentPerson.id)
 
     private val navigationController = mockk<NavigationController>(relaxed = true) {
         justRun { navigateTo(any()) }
@@ -106,20 +154,20 @@ internal class ExpensesViewModelRefreshTest {
         every { currentEvent } returns currentEventFlow
     }
     private val eventDeletionStateManager = mockk<EventDeletionStateManager>(relaxed = true) {
-        every { eventsDeletionState } returns eventsDeletionStateFlow
-    }
-    private val eventsSyncStateHolder = mockk<EventsSyncStateHolder>(relaxed = true) {
-        every { getStateFor(any()) } returns eventSyncStateFlow
+        every { eventsDeletionState } returns MutableStateFlow(emptyMap())
     }
     private val getEventsUseCase = mockk<GetEventsUseCase>(relaxed = true) {
-        every { getEvents() } returns eventsFlow
+        every { getEvents() } returns MutableStateFlow(emptyList())
     }
     private val joinEventUseCase = mockk<JoinEventUseCase>(relaxed = true)
     private val deleteEventUseCase = mockk<DeleteEventUseCase>(relaxed = true)
     private val getExpensesDetailsUseCase = mockk<GetExpensesDetailsUseCase>(relaxed = true) {
-        every { getExpensesDetails(any()) } returns flowOf(TestFixtures.expensesDetails)
+        every { getExpensesDetails(any()) } returns flowOf(Fixtures.expensesDetails)
     }
     private val requestExpensesRefreshUseCase = mockk<RequestExpensesRefreshUseCase>(relaxed = true)
+    private val eventsSyncStateHolder = mockk<EventsSyncStateHolder>(relaxed = true) {
+        every { getStateFor(any()) } returns MutableStateFlow(false)
+    }
     private val settingsRepository = mockk<SettingsRepository>(relaxed = true) {
         coEvery { getCurrentPersonId() } returns currentPersonIdFlow
     }
@@ -135,51 +183,41 @@ internal class ExpensesViewModelRefreshTest {
     }
 
     @Test
-    fun `isRefreshing should reflect current event sync state`() = testScope.runTest {
-        currentEventFlow.value = TestFixtures.eventDetails
+    fun `state should expose timeline data and react to visible section changes`() = testScope.runTest {
         val viewModel = createViewModel()
         runCurrent()
         advanceUntilIdle()
 
         viewModel.state.test {
-            val initialState = when (val firstState = awaitItem()) {
+            val initial = when (val firstState = awaitItem()) {
                 is SimpleScreenState.Loading -> assertIs<SimpleScreenState.Success<ExpensesPaneUiModel>>(awaitItem())
                 is SimpleScreenState.Success<*> -> assertIs<SimpleScreenState.Success<ExpensesPaneUiModel>>(firstState)
                 else -> error("Unexpected initial state: $firstState")
             }
-            val initialData = initialState.data as Expenses
-            assertFalse(initialData.isRefreshing)
+            val initialData = initial.data as Expenses
+            assertEquals("180 EUR", initialData.totalSpending)
+            assertEquals(listOf("2026-03-28", "2026-03-27"), initialData.dayChips.map { it.dayKey })
+            assertEquals("2026-03-28", initialData.dayChips.selectedDayKey())
 
-            // Trigger user refresh - this sets isRefreshing to true immediately.
-            viewModel.onRefresh()
-            runCurrent()
-
-            val refreshingState = assertIs<SimpleScreenState.Success<ExpensesPaneUiModel>>(expectMostRecentItem())
-            val refreshingData = refreshingState.data as Expenses
-            assertTrue(refreshingData.isRefreshing)
-
-            // Set sync state to true - this should be detected by the refresh lifecycle
-            // (debounce is 0ms when syncing, so it's detected immediately).
-            eventSyncStateFlow.value = true
-            runCurrent()
-
-            // Set sync state to false - this triggers a 500ms debounce before the refresh lifecycle detects it.
-            eventSyncStateFlow.value = false
-            // Advance time to pass the debounce (500ms) and minimum display time (1500ms).
-            // The delay in onUserTriggeredRefresh ensures minimum display time is met.
-            advanceTimeBy(2100.milliseconds)
+            viewModel.onVisibleDayChanged("2026-03-27")
             advanceUntilIdle()
 
-            val stoppedState = assertIs<SimpleScreenState.Success<ExpensesPaneUiModel>>(expectMostRecentItem())
-            val stoppedData = stoppedState.data as Expenses
-            assertFalse(stoppedData.isRefreshing)
+            val afterScroll = assertIs<SimpleScreenState.Success<ExpensesPaneUiModel>>(awaitItem())
+            val afterScrollData = afterScroll.data as Expenses
+            assertEquals("2026-03-27", afterScrollData.dayChips.selectedDayKey())
+
+            viewModel.onDayChipClick("2026-03-28")
+            advanceUntilIdle()
+
+            val afterChipClick = assertIs<SimpleScreenState.Success<ExpensesPaneUiModel>>(awaitItem())
+            val afterChipClickData = afterChipClick.data as Expenses
+            assertEquals("2026-03-28", afterChipClickData.dayChips.selectedDayKey())
 
             cancelAndIgnoreRemainingEvents()
         }
     }
 
     private fun createViewModel(): ExpensesViewModel {
-        var stringRequestCount = 0
         return ExpensesViewModel(
             navigationController = navigationController,
             getCurrentEventStateUseCase = getCurrentEventStateUseCase,
@@ -193,6 +231,8 @@ internal class ExpensesViewModelRefreshTest {
             settingsRepository = settingsRepository,
             timelineUiModelFactory = ExpensesTimelineUiModelFactory(
                 stringProvider = object : StringProvider {
+                    private var stringRequestCount = 0
+
                     override suspend fun getString(stringResource: StringResource): String {
                         return when (stringRequestCount++) {
                             0 -> "Today"
@@ -212,5 +252,9 @@ internal class ExpensesViewModelRefreshTest {
             unconfinedDispatcher = testDispatcher,
             viewModelScope = this.testScope.backgroundScope,
         )
+    }
+
+    private fun List<Expenses.DayChipUiModel>.selectedDayKey(): String {
+        return single { it.isSelected }.dayKey
     }
 }

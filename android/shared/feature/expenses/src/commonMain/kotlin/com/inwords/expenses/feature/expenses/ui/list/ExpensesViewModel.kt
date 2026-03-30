@@ -30,14 +30,15 @@ import com.inwords.expenses.feature.expenses.domain.GetExpensesDetailsUseCase
 import com.inwords.expenses.feature.expenses.domain.RequestExpensesRefreshUseCase
 import com.inwords.expenses.feature.expenses.ui.add.AddExpensePaneDestination
 import com.inwords.expenses.feature.expenses.ui.common.DebtShortUiModel
-import com.inwords.expenses.feature.expenses.ui.converter.toUiModel
 import com.inwords.expenses.feature.expenses.ui.debts_list.DebtsListPaneDestination
+import com.inwords.expenses.feature.expenses.ui.list.ExpensesPaneUiModel.Expenses.DayChipUiModel
 import com.inwords.expenses.feature.expenses.ui.list.ExpensesPaneUiModel.Expenses.ExpenseUiModel
 import com.inwords.expenses.feature.expenses.ui.list.ExpensesPaneUiModel.LocalEvents
 import com.inwords.expenses.feature.expenses.ui.list.bottom_sheet.item.ExpenseItemPaneDestination
 import com.inwords.expenses.feature.expenses.ui.utils.toRoundedString
 import com.inwords.expenses.feature.menu.ui.MenuDialogDestination
 import com.inwords.expenses.feature.settings.api.SettingsRepository
+import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.toPersistentList
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -67,6 +68,7 @@ internal class ExpensesViewModel(
     private val requestExpensesRefreshUseCase: RequestExpensesRefreshUseCase,
     eventsSyncStateHolder: EventsSyncStateHolder,
     settingsRepository: SettingsRepository,
+    private val timelineUiModelFactory: ExpensesTimelineUiModelFactory = ExpensesTimelineUiModelFactory(),
     unconfinedDispatcher: CoroutineDispatcher = UNCONFINED,
     viewModelScope: CoroutineScope = CoroutineScope(SupervisorJob() + IO),
 ) : ViewModel(viewModelScope = viewModelScope) {
@@ -77,6 +79,7 @@ internal class ExpensesViewModel(
 
     private val pullToRefreshStateManager = PullToRefreshStateManager(eventsSyncStateHolder)
     private val recentlyRemovedEventName = MutableStateFlow<String?>(null)
+    private val selectedDayKey = MutableStateFlow<SelectedDayKey?>(null)
 
     private val localEventsState = flow<SimpleScreenState<ExpensesPaneUiModel>> {
         var previousEvents = emptyList<Event>()
@@ -155,39 +158,43 @@ internal class ExpensesViewModel(
             .sortedBy { it.amount }
             .toPersistentList()
 
-        flowOf(
-            SimpleScreenState.Success(
-                ExpensesPaneUiModel.Expenses(
-                    eventId = expensesDetails.event.event.id,
-                    eventName = expensesDetails.event.event.name,
-                    currentPersonId = currentPerson.id,
-                    currentPersonName = currentPerson.name,
-                    debts = debts,
-                    expenses = expensesDetails.expenses.map { expense ->
-                        expense.toUiModel(
-                            primaryCurrencyName = expensesDetails.event.primaryCurrency.name,
-                            currentPersonId = currentPerson.id,
-                        )
-                    }.asImmutableListAdapter(),
-                    isRefreshing = false // will be updated later by combining with isRefreshingFlow
-                )
-            )
+        val timelineData = timelineUiModelFactory.create(
+            expensesDetails = expensesDetails,
+            currentPersonId = currentPerson.id,
+            debts = debts,
         )
+
+        flowOf(SimpleScreenState.Success(timelineData))
     }
         .flowOn(viewModelScope.coroutineContext[CoroutineDispatcher] ?: IO)
-        .combine(isRefreshingFlow) { state, isRefreshing ->
-            if (state is SimpleScreenState.Success) {
-                when (val data = state.data) {
-                    is ExpensesPaneUiModel.Expenses -> if (data.isRefreshing == isRefreshing) {
+        .combine(selectedDayKey) { state, selected ->
+            if (state !is SimpleScreenState.Success) return@combine state
+
+            when (val data = state.data) {
+                is ExpensesPaneUiModel.Expenses -> {
+                    val preferredDayKey = selected?.takeIf { it.eventId == data.eventId }?.dayKey
+                    val updatedDayChips = data.dayChips.withSelectedDay(preferredDayKey)
+                    if (updatedDayChips == data.dayChips) {
                         state
                     } else {
-                        state.copy(data = data.copy(isRefreshing = isRefreshing))
+                        state.copy(data = data.copy(dayChips = updatedDayChips))
                     }
-
-                    is LocalEvents -> state
                 }
-            } else {
-                state
+
+                is LocalEvents -> state
+            }
+        }
+        .combine(isRefreshingFlow) { state, isRefreshing ->
+            if (state !is SimpleScreenState.Success) return@combine state
+
+            when (val data = state.data) {
+                is ExpensesPaneUiModel.Expenses -> if (data.isRefreshing == isRefreshing) {
+                    state
+                } else {
+                    state.copy(data = data.copy(isRefreshing = isRefreshing))
+                }
+
+                is LocalEvents -> state
             }
         }
         .stateInWhileSubscribed(
@@ -257,6 +264,16 @@ internal class ExpensesViewModel(
         }
     }
 
+    fun onDayChipClick(dayKey: String) {
+        val data = (state.value as? SimpleScreenState.Success)?.data as? ExpensesPaneUiModel.Expenses ?: return
+        updateSelectedDayState(data, dayKey)
+    }
+
+    fun onVisibleDayChanged(dayKey: String) {
+        val data = (state.value as? SimpleScreenState.Success)?.data as? ExpensesPaneUiModel.Expenses ?: return
+        updateSelectedDayState(data, dayKey)
+    }
+
     fun onJoinLocalEventClick(event: LocalEventUiModel) {
         joinEventJob?.cancel()
         joinEventJob = viewModelScope.launch {
@@ -313,4 +330,38 @@ internal class ExpensesViewModel(
         }
     }
 
+    private fun updateSelectedDayState(data: ExpensesPaneUiModel.Expenses, dayKey: String) {
+        if (data.dayChips.none { it.dayKey == dayKey }) return
+
+        selectedDayKey.value = SelectedDayKey(data.eventId, dayKey)
+    }
+
+    private data class SelectedDayKey(
+        val eventId: Long,
+        val dayKey: String,
+    )
+
+}
+
+private fun ImmutableList<DayChipUiModel>.withSelectedDay(dayKey: String?): ImmutableList<DayChipUiModel> {
+    val list = this
+    if (isEmpty()) return list
+
+    val resolvedDayKey = dayKey?.takeIf { list.any { it.dayKey == dayKey } } ?: list.first().dayKey
+    var changed = false
+    val updated = list.map { chip ->
+        val isSelected = chip.dayKey == resolvedDayKey
+        if (chip.isSelected == isSelected) {
+            chip
+        } else {
+            changed = true
+            chip.copy(isSelected = isSelected)
+        }
+    }
+
+    return if (changed) {
+        updated.asImmutableListAdapter()
+    } else {
+        list
+    }
 }

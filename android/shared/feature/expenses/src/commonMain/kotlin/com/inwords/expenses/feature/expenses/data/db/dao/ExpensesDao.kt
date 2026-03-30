@@ -56,11 +56,19 @@ interface ExpensesDao {
     suspend fun updateExpenseServerId(expenseId: Long, serverId: String): Int
 
     @Transaction
-    @Query("SELECT * FROM ${ExpenseEntity.TABLE_NAME} WHERE ${ExpenseEntity.ColumnNames.EVENT_ID} = :eventId")
+    @Query(
+        "SELECT * FROM ${ExpenseEntity.TABLE_NAME} " +
+            "WHERE ${ExpenseEntity.ColumnNames.EVENT_ID} = :eventId " +
+            "ORDER BY ${ExpenseEntity.ColumnNames.TIMESTAMP} DESC, ${ExpenseEntity.ColumnNames.ID} DESC"
+    )
     fun queryByEventIdFlow(eventId: Long): Flow<List<ExpenseWithDetailsQuery>>
 
     @Transaction
-    @Query("SELECT * FROM ${ExpenseEntity.TABLE_NAME} WHERE ${ExpenseEntity.ColumnNames.EVENT_ID} = :eventId")
+    @Query(
+        "SELECT * FROM ${ExpenseEntity.TABLE_NAME} " +
+            "WHERE ${ExpenseEntity.ColumnNames.EVENT_ID} = :eventId " +
+            "ORDER BY ${ExpenseEntity.ColumnNames.TIMESTAMP} DESC, ${ExpenseEntity.ColumnNames.ID} DESC"
+    )
     suspend fun queryByEventId(eventId: Long): List<ExpenseWithDetailsQuery>
 
     @Transaction

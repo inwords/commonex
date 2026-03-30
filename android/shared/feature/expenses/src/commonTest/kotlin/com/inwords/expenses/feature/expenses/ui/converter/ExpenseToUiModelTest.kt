@@ -10,6 +10,7 @@ import com.ionspin.kotlin.bignum.decimal.toBigDecimal
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import kotlin.time.Clock
 
 internal class ExpenseToUiModelTest {
@@ -49,6 +50,7 @@ internal class ExpenseToUiModelTest {
         val uiModel = expense.toUiModel(primaryCurrencyName = "Euro", currentPersonId = currentPerson.id)
 
         assertEquals("-50", uiModel.currentPersonPartAmount)
+        assertTrue(uiModel.timeText.isNotBlank())
     }
 
     @Test

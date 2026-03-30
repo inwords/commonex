@@ -151,6 +151,7 @@ dependencies {
     androidTestImplementation(project(":shared:feature:expenses"))
     androidTestImplementation(project(":shared:feature:menu"))
     androidTestImplementation(shared.compose.components.resources.multiplatform)
+    androidTestImplementation(shared.kotlinx.datetime)
 
     baselineProfile(project(":baselineprofile"))
 }

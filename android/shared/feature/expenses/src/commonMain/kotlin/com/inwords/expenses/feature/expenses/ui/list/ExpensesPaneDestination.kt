@@ -41,6 +41,8 @@ internal fun ExpensesComponent.getExpensesPaneNavModule(
                 onExpenseClick = viewModel::onExpenseClick,
                 onDebtsDetailsClick = viewModel::onDebtsDetailsClick,
                 onReplenishmentClick = viewModel::onReplenishmentClick,
+                onDayChipClick = viewModel::onDayChipClick,
+                onVisibleDayChanged = viewModel::onVisibleDayChanged,
                 onCreateEventClick = viewModel::onCreateEventClick,
                 onJoinEventClick = viewModel::onJoinEventClick,
                 onJoinLocalEventClick = viewModel::onJoinLocalEventClick,

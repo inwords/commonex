@@ -7,6 +7,8 @@ import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.inwords.expenses.feature.expenses.domain.ExpenseTimeBackdoor
+import com.inwords.expenses.feature.expenses.domain.model.ExpenseType
 import expenses.shared.feature.expenses.generated.resources.expenses_exchange_rate_value
 import org.junit.Rule
 import org.junit.Test
@@ -19,6 +21,9 @@ import ru.commonex.screens.LocalEventsScreen
 import ru.commonex.screens.MenuDialogScreen
 import ru.commonex.ui.MainActivity
 import kotlin.io.encoding.Base64
+import kotlin.time.Instant
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import expenses.shared.feature.expenses.generated.resources.Res as ExpensesRes
 
 // TODO bring back JUnit5 when it is able to work with Marathon
@@ -456,6 +461,29 @@ class BasicInstrumentedTest {
             .verifyExpenseAmount("-300")
     }
 
+    @Test
+    fun testExpensesTimelineSummaryAndDayChips() = composeRule.runTest {
+        val eventName = "Test Timeline Event"
+        createLocalEvent(eventName)
+
+        val timelineDayKeys = createTimelineOperations()
+
+        ExpensesScreen()
+            .verifyTotalSpending("180 EUR")
+            .waitUntilDayHeaderVisible(timelineDayKeys.firstDayKey)
+            .verifyDayChipsStickyAndSynced(timelineDayKeys.secondDayKey)
+            .clickDayChip(timelineDayKeys.secondDayKey)
+            .waitUntilDayHeaderVisible(timelineDayKeys.secondDayKey)
+            .clickDayChip(timelineDayKeys.replenishmentOnlyDayKey)
+            .waitUntilDayHeaderVisible(timelineDayKeys.replenishmentOnlyDayKey)
+            .verifyDayHeaderTotalHidden(timelineDayKeys.replenishmentOnlyDayKey)
+            .openMenu()
+            .openEventsList()
+            .swipeToRevealActions(eventName)
+            .clickDeleteLocalOnly()
+            .assertEventNotExists(eventName)
+    }
+
     context(rule: ComposeTestRule)
     private suspend fun createLocalEvent(eventName: String): ExpensesScreen {
         return LocalEventsScreen()
@@ -481,6 +509,90 @@ class BasicInstrumentedTest {
                 .enterAmount(amount.toString())
                 .clickConfirm()
                 .verifyExpenseExists(description)
+        }
+    }
+
+    context(rule: ComposeTestRule)
+    private suspend fun createTimelineOperations(): TimelineDayKeys {
+        val firstDayInstant = Instant.parse("2026-03-28T12:00:00Z")
+        val secondDayInstant = Instant.parse("2026-03-27T12:00:00Z")
+        val replenishmentOnlyDayInstant = Instant.parse("2026-03-26T12:00:00Z")
+
+        val operations = listOf(
+            TimelineOperationInput(
+                timestamp = firstDayInstant,
+                expenseType = ExpenseType.Spending,
+                amount = 120,
+                description = "Timeline spending",
+            ),
+            TimelineOperationInput(
+                timestamp = Instant.parse("2026-03-28T08:00:00Z"),
+                expenseType = ExpenseType.Replenishment,
+                amount = 20,
+                description = "Timeline refund",
+            ),
+            TimelineOperationInput(
+                timestamp = Instant.parse("2026-03-28T07:30:00Z"),
+                expenseType = ExpenseType.Replenishment,
+                amount = 5,
+                description = "Timeline taxi refund",
+            ),
+            TimelineOperationInput(
+                timestamp = Instant.parse("2026-03-28T07:00:00Z"),
+                expenseType = ExpenseType.Replenishment,
+                amount = 5,
+                description = "Timeline snack refund",
+            ),
+            TimelineOperationInput(
+                timestamp = secondDayInstant,
+                expenseType = ExpenseType.Spending,
+                amount = 60,
+                description = "Timeline museum",
+            ),
+            TimelineOperationInput(
+                timestamp = replenishmentOnlyDayInstant,
+                expenseType = ExpenseType.Replenishment,
+                amount = 15,
+                description = "Timeline refund only day",
+            ),
+        )
+
+        operations.forEach { operation ->
+            createTimelineOperation(operation)
+        }
+
+        val timeZone = TimeZone.currentSystemDefault()
+        return TimelineDayKeys(
+            firstDayKey = firstDayInstant.toLocalDateTime(timeZone).date.toString(),
+            secondDayKey = secondDayInstant.toLocalDateTime(timeZone).date.toString(),
+            replenishmentOnlyDayKey = replenishmentOnlyDayInstant.toLocalDateTime(timeZone).date.toString(),
+        )
+    }
+
+    context(rule: ComposeTestRule)
+    private suspend fun createTimelineOperation(operation: TimelineOperationInput) {
+        withExpensesMutationTime(operation.timestamp) {
+            val addExpenseScreen = ExpensesScreen().clickAddExpense()
+            if (operation.expenseType == ExpenseType.Replenishment) {
+                addExpenseScreen.selectReplenishmentType()
+            }
+            addExpenseScreen
+                .enterDescription(operation.description)
+                .enterAmount(operation.amount.toString())
+                .clickConfirm()
+                .verifyExpenseExists(operation.description)
+        }
+    }
+
+    private suspend fun withExpensesMutationTime(
+        timestamp: Instant,
+        block: suspend () -> Unit,
+    ) {
+        ExpenseTimeBackdoor.overrideForTests(timestamp)
+        try {
+            block()
+        } finally {
+            ExpenseTimeBackdoor.overrideForTests(null)
         }
     }
 
@@ -534,6 +646,19 @@ class BasicInstrumentedTest {
     }
 
 }
+
+private data class TimelineDayKeys(
+    val firstDayKey: String,
+    val secondDayKey: String,
+    val replenishmentOnlyDayKey: String,
+)
+
+private data class TimelineOperationInput(
+    val timestamp: Instant,
+    val expenseType: ExpenseType,
+    val amount: Int,
+    val description: String,
+)
 
 private data class CurrencyTestModel(
     val code: String,

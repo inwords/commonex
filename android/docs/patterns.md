@@ -10,6 +10,29 @@
 - **Network:** Ktor client with Cronet backend for Android
 - **Async Operations:** Coroutines with structured concurrency
 
+### Compose Should Consume Display-Ready List Models
+
+For Compose list and timeline screens, prepare display-ready section models before the composable layer.
+
+Apply the pattern like this:
+
+- Build ordering, grouping, totals, date bucketing, label formatting, and scroll-target/index mapping in a ViewModel or a pure builder/factory called by the ViewModel.
+- Pass immutable UI models and lookup maps into Compose.
+- Keep Compose responsible for rendering and transient view behavior only, such as `LazyListState`, scroll animation, and tracking the currently visible section.
+
+Use this when:
+
+- sticky headers, chips, summaries, and rows all depend on the same derived list structure
+- the same grouped data needs to drive both rendering and navigation behavior
+
+Do not do list preparation in Compose for:
+
+- grouping raw rows by day
+- summing spendings or other aggregates
+- sorting or reversing persisted data
+
+Lightweight index mapping derived from the emitted UI model (for example mapping day keys to `LazyColumn` item indices for scroll targets) is fine in Compose via `remember`, because those indices are intrinsically tied to the item order the composable emits and cannot be known earlier. See `rememberExpensesTimelineListLayout` in `ExpensesPane.kt`.
+
 ### Early Return When for IoResult in Loops
 
 When handling `IoResult` in a loop (e.g. `forEachIndexed`), use `when` with early return for the error branch instead of cast + elvis:
@@ -227,6 +250,12 @@ If the class launches with an explicit dispatcher (e.g. `scope.launch(IO)`), pas
 Examples: `CreateEventViewModelTest`, `MenuViewModelTest`,
 `AddParticipantsToEventViewModelTest`.
 
+### flowOn with the ViewModelScope dispatcher
+
+When using `flowOn` with the same dispatcher as an injected `viewModelScope` (for example `viewModelScope.coroutineContext[CoroutineDispatcher] ?: IO`), host tests stay aligned with production if tests inject `viewModelScope = backgroundScope` on `StandardTestDispatcher`. Kotlin treats `coroutineContext[CoroutineDispatcher]` as **stdlib experimental**; opt in with `@OptIn(ExperimentalStdlibApi::class)` on the ViewModel class (or file) and `import kotlin.ExperimentalStdlibApi`. Prefer that explicit opt-in over casting `ContinuationInterceptor` unless the project standardizes otherwise.
+
+Reference: `shared/feature/expenses/.../ui/list/ExpensesViewModel.kt` (expenses timeline state pipeline).
+
 ### Ktor Mock Tests in `commonTest`
 
 For shared remote-store tests that only use multiplatform APIs such as Ktor `MockEngine`, `ContentNegotiation`, coroutines `runTest`, and `kotlin.test`, place the test in `commonTest` instead of `androidHostTest`.
@@ -440,6 +469,7 @@ Key principles:
 
 - **Separate cheap UI state from expensive data** - `isRefreshingFlow` changes frequently but shouldn't trigger data recalculation
 - **Combine UI state last** - After expensive transformations, so changes to UI state only update the final field
+- **Prefer chained `combine` over `merge` plus a fold** when several overlays (for example timeline day selection, then pull-to-refresh) apply to the same expensive emission. Example: `ExpensesViewModel` in `feature/expenses` list UI.
 - **Conditional updates** - Check if value actually changed before copying to avoid unnecessary emissions
 - **Use shareInWhileSubscribed for shared flows** - When the same flow is used in multiple combines
 
