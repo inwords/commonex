@@ -13,9 +13,24 @@ internal sealed interface ExpensesPaneUiModel {
         val currentPersonId: Long,
         val currentPersonName: String,
         val debts: ImmutableList<DebtShortUiModel>,
-        val expenses: ImmutableList<ExpenseUiModel>,
+        val totalSpending: String,
+        val dayChips: ImmutableList<DayChipUiModel>,
+        val daySections: ImmutableList<DaySectionUiModel>,
         val isRefreshing: Boolean,
     ) : ExpensesPaneUiModel {
+
+        data class DayChipUiModel(
+            val dayKey: String,
+            val label: String,
+            val isSelected: Boolean,
+        )
+
+        data class DaySectionUiModel(
+            val dayKey: String,
+            val headerLabel: String,
+            val spendingTotal: String?,
+            val expenses: ImmutableList<ExpenseUiModel>,
+        )
 
         data class ExpenseUiModel(
             val expenseId: Long,
@@ -24,7 +39,7 @@ internal sealed interface ExpensesPaneUiModel {
             val personName: String,
             val isPaidByCurrentPerson: Boolean,
             val totalAmount: String,
-            val timestamp: String,
+            val timeText: String,
             val description: String,
             val currentPersonPartAmount: String?,
         )

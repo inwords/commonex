@@ -15,6 +15,7 @@ Write or modify Android Compose UI instrumented tests in `android/app/src/androi
    Keep the test as end-to-end against the real backend and avoid mocks.
    Prefer long, coherent user flows with assertions only at critical transitions.
    Avoid hardcoded remote fixtures by creating required data within the test flow.
+   When the scenario depends on persisted timestamps or ordering, still create data through the real UI. If exact historical ordering is required, prefer a small `@VisibleForTesting` backdoor mutation-time seam at write time over DI/store seeding.
 
 2. Reuse or extend screen objects.
    Use or add classes in `android/app/src/androidTest/kotlin/ru/commonex/screens/`.

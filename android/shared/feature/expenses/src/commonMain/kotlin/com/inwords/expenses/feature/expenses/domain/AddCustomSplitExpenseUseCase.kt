@@ -10,7 +10,6 @@ import com.inwords.expenses.feature.expenses.domain.model.ExpenseType
 import com.inwords.expenses.feature.expenses.domain.model.PersonWithAmount
 import com.inwords.expenses.feature.expenses.domain.store.ExpensesLocalStore
 import com.ionspin.kotlin.bignum.decimal.BigDecimal
-import kotlin.time.Clock
 
 internal class AddCustomSplitExpenseUseCase internal constructor(
     expensesLocalStoreLazy: Lazy<ExpensesLocalStore>,
@@ -52,7 +51,7 @@ internal class AddCustomSplitExpenseUseCase internal constructor(
                 person = selectedPerson,
                 subjectExpenseSplitWithPersons = subjectExpenseSplitWithPersons,
                 isCustomRate = overrideRate != null,
-                timestamp = Clock.System.now(),
+                timestamp = ExpenseTimeBackdoor.now(),
                 description = description,
             ),
         )

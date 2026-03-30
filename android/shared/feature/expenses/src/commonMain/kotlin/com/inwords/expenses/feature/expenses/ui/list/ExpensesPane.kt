@@ -1,6 +1,9 @@
 package com.inwords.expenses.feature.expenses.ui.list
 
 import androidx.compose.animation.core.FastOutLinearInEasing
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -8,20 +11,28 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListLayoutInfo
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Menu
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -34,6 +45,13 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -50,20 +68,16 @@ import com.inwords.expenses.core.ui.design.button.BasicFloatingActionButton
 import com.inwords.expenses.core.ui.design.loading.DefaultProgressIndicator
 import com.inwords.expenses.core.ui.design.theme.CommonExTheme
 import com.inwords.expenses.core.ui.utils.SimpleScreenState
-import com.inwords.expenses.feature.events.domain.model.Currency
-import com.inwords.expenses.feature.events.domain.model.Person
 import com.inwords.expenses.feature.events.ui.common.EventInfoBlock
 import com.inwords.expenses.feature.events.ui.local.LocalEventsEmptyPane
 import com.inwords.expenses.feature.events.ui.local.LocalEventsPane
 import com.inwords.expenses.feature.events.ui.local.LocalEventsUiModel.LocalEventUiModel
-import com.inwords.expenses.feature.expenses.domain.model.Expense
-import com.inwords.expenses.feature.expenses.domain.model.ExpenseSplitWithPerson
 import com.inwords.expenses.feature.expenses.domain.model.ExpenseType
 import com.inwords.expenses.feature.expenses.ui.common.DebtShortUiModel
-import com.inwords.expenses.feature.expenses.ui.converter.toUiModel
+import com.inwords.expenses.feature.expenses.ui.list.ExpensesPaneUiModel.Expenses.DayChipUiModel
+import com.inwords.expenses.feature.expenses.ui.list.ExpensesPaneUiModel.Expenses.DaySectionUiModel
 import com.inwords.expenses.feature.expenses.ui.list.ExpensesPaneUiModel.Expenses.ExpenseUiModel
 import com.inwords.expenses.feature.expenses.ui.list.ExpensesPaneUiModel.LocalEvents
-import com.ionspin.kotlin.bignum.decimal.toBigDecimal
 import expenses.shared.feature.expenses.generated.resources.Res
 import expenses.shared.feature.expenses.generated.resources.common_error
 import expenses.shared.feature.expenses.generated.resources.expenses_app_name
@@ -71,11 +85,118 @@ import expenses.shared.feature.expenses.generated.resources.expenses_operation
 import expenses.shared.feature.expenses.generated.resources.expenses_operations
 import expenses.shared.feature.expenses.generated.resources.expenses_paid_by
 import expenses.shared.feature.expenses.generated.resources.expenses_paid_by_you
+import expenses.shared.feature.expenses.generated.resources.expenses_total_spent
 import expenses.shared.feature.expenses.generated.resources.expenses_your_part
+import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
-import kotlin.time.Clock
 
+/**
+ * Stable keys for the expenses timeline [LazyColumn] in [ExpensesPaneSuccess].
+ * Used with [androidx.compose.foundation.lazy.LazyListItemInfo.key] so scroll/sync logic can relate layout to days.
+ */
+private object ExpensesTimelineLazyListKeys {
+    const val STICKY_DAY_CHIPS = "expenses_timeline_sticky_day_chips"
+    fun dayHeader(dayKey: String): String = "expenses_timeline_day_header_$dayKey"
+}
+
+/**
+ * Lazily computed mapping from each section's calendar day key to the lazy row index of that day's header.
+ * Must match the item order emitted by [ExpensesPaneSuccess]'s [LazyColumn].
+ *
+ * [LazyListState](https://developer.android.com/reference/kotlin/androidx/compose/foundation/lazy/LazyListState) scroll
+ * APIs are index-based (no overload that takes an item key; see [LazyListItemInfo](https://developer.android.com/reference/kotlin/androidx/compose/foundation/lazy/LazyListItemInfo)).
+ * Indices are derived here from the same structure as the list so chip actions and visibility tracking stay aligned with list content.
+ */
+private data class ExpensesTimelineListLayout(
+    val orderedDayKeys: List<String>,
+    val dayHeaderIndexByDayKey: Map<String, Int>,
+    val stickyDayChipsItemIndex: Int?,
+    val firstDayHeaderIndex: Int,
+) {
+    /**
+     * Maps a lazy item index (the scroll “anchor” row) to the calendar day that should drive chip selection.
+     * [anchorItemIndex] is typically the topmost substantive row in the viewport (see [timelineScrollAnchorItemIndex]).
+     */
+    fun dayKeyForAnchor(anchorItemIndex: Int): String? {
+        val firstDayKey = orderedDayKeys.firstOrNull() ?: return null
+        if (anchorItemIndex < firstDayHeaderIndex) {
+            return firstDayKey
+        }
+        return orderedDayKeys.lastOrNull { dayKey ->
+            (dayHeaderIndexByDayKey[dayKey] ?: Int.MIN_VALUE) <= anchorItemIndex
+        }
+    }
+}
+
+@Composable
+private fun rememberExpensesTimelineListLayout(
+    daySections: ImmutableList<DaySectionUiModel>,
+    showDayChipsRow: Boolean,
+): ExpensesTimelineListLayout {
+    return remember(daySections, showDayChipsRow) {
+        val orderedDayKeys = daySections.map { it.dayKey }
+        if (orderedDayKeys.isEmpty()) {
+            return@remember ExpensesTimelineListLayout(
+                orderedDayKeys = emptyList(),
+                dayHeaderIndexByDayKey = emptyMap(),
+                stickyDayChipsItemIndex = null,
+                firstDayHeaderIndex = 0,
+            )
+        }
+        var index = STATIC_ITEMS_BEFORE_DAY_TIMELINE
+        val stickyIndex = if (showDayChipsRow) index++ else null
+        val map = HashMap<String, Int>(daySections.size)
+        for (section in daySections) {
+            map[section.dayKey] = index
+            index += 1 + section.expenses.size
+        }
+        val firstHeader = checkNotNull(map[orderedDayKeys.first()])
+        ExpensesTimelineListLayout(orderedDayKeys, map, stickyIndex, firstHeader)
+    }
+}
+
+private const val STATIC_ITEMS_BEFORE_DAY_TIMELINE = 3
+
+/**
+ * Lazy list items that are closest to the top of the viewport have the smallest [LazyListItemInfo.offset].
+ * That row is the standard geometric anchor for “what section is showing,” including when several rows overlap the viewport.
+ *
+ * When the sticky day-chips row is the topmost visible item, the semantic “current day” follows the content below it,
+ * so we use the next row down if one is visible.
+ */
+private fun timelineScrollAnchorItemIndex(
+    layoutInfo: LazyListLayoutInfo,
+    stickyDayChipsItemIndex: Int?,
+): Int? {
+    val visible = layoutInfo.visibleItemsInfo
+    if (visible.isEmpty()) {
+        return null
+    }
+    val topmost = visible.minBy { it.offset }
+    if (stickyDayChipsItemIndex == null || topmost.index != stickyDayChipsItemIndex) {
+        return topmost.index
+    }
+    val nextBelow = visible.asSequence()
+        .filter { it.index != stickyDayChipsItemIndex }
+        .minByOrNull { it.offset }
+    return nextBelow?.index ?: topmost.index
+}
+
+private fun currentVisibleTimelineDayKey(
+    listState: LazyListState,
+    layout: ExpensesTimelineListLayout,
+): String? {
+    if (layout.orderedDayKeys.isEmpty()) {
+        return null
+    }
+    val anchor = timelineScrollAnchorItemIndex(listState.layoutInfo, layout.stickyDayChipsItemIndex)
+        ?: return null
+    return layout.dayKeyForAnchor(anchor)
+}
 
 @Composable
 internal fun ExpensesPane(
@@ -85,6 +206,8 @@ internal fun ExpensesPane(
     onExpenseClick: (expense: ExpenseUiModel) -> Unit,
     onDebtsDetailsClick: () -> Unit,
     onReplenishmentClick: (debtor: DebtShortUiModel) -> Unit,
+    onDayChipClick: (dayKey: String) -> Unit,
+    onVisibleDayChanged: (dayKey: String) -> Unit,
     onCreateEventClick: () -> Unit,
     onJoinEventClick: () -> Unit,
     onJoinLocalEventClick: (event: LocalEventUiModel) -> Unit,
@@ -104,8 +227,10 @@ internal fun ExpensesPane(
                     onExpenseClick = onExpenseClick,
                     onDebtsDetailsClick = onDebtsDetailsClick,
                     onReplenishmentClick = onReplenishmentClick,
+                    onDayChipClick = onDayChipClick,
+                    onVisibleDayChanged = onVisibleDayChanged,
                     onRefresh = onRefresh,
-                    modifier = modifier
+                    modifier = modifier,
                 )
 
                 is LocalEvents -> LocalEventsPane(
@@ -116,7 +241,7 @@ internal fun ExpensesPane(
                     onDeleteOnlyLocalEventClick = onDeleteOnlyLocalEventClick,
                     onKeepLocalEventClick = onKeepLocalEventClick,
                     localEvents = state.localEvents,
-                    modifier = modifier
+                    modifier = modifier,
                 )
             }
         }
@@ -135,7 +260,11 @@ internal fun ExpensesPane(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(
+    ExperimentalFoundationApi::class,
+    ExperimentalMaterial3Api::class,
+    ExperimentalMaterial3ExpressiveApi::class,
+)
 @Composable
 private fun ExpensesPaneSuccess(
     state: ExpensesPaneUiModel.Expenses,
@@ -144,8 +273,10 @@ private fun ExpensesPaneSuccess(
     onExpenseClick: (expense: ExpenseUiModel) -> Unit,
     onDebtsDetailsClick: () -> Unit,
     onReplenishmentClick: (debtor: DebtShortUiModel) -> Unit,
+    onDayChipClick: (dayKey: String) -> Unit,
+    onVisibleDayChanged: (dayKey: String) -> Unit,
     onRefresh: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
     Scaffold(
@@ -158,7 +289,7 @@ private fun ExpensesPaneSuccess(
             val fadeProgress = ((collapsedFraction - fadeStart) / (1f - fadeStart)).coerceIn(0f, 1f)
             val easedProgress = FastOutLinearInEasing.transform(fadeProgress)
             val appBarContainerColor = MaterialTheme.colorScheme.surface.copy(
-                alpha = 1f - easedProgress
+                alpha = 1f - easedProgress,
             )
             TopAppBar(
                 title = {
@@ -171,7 +302,7 @@ private fun ExpensesPaneSuccess(
                             modifier = Modifier.align(Alignment.Center),
                             text = stringResource(Res.string.expenses_app_name),
                             fontStyle = FontStyle.Italic,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
                         )
 
                         IconButton(
@@ -229,10 +360,21 @@ private fun ExpensesPaneSuccess(
             onRefresh = onRefresh,
         ) {
             val listState = rememberLazyListState()
+            val showDayChipsRow = state.dayChips.size > 1
+            val listLayout = rememberExpensesTimelineListLayout(state.daySections, showDayChipsRow)
+            val listLayoutState = rememberUpdatedState(listLayout)
+            val onVisibleDayChangedUpdated = rememberUpdatedState(onVisibleDayChanged)
+            LaunchedEffect(listState) {
+                snapshotFlow { currentVisibleTimelineDayKey(listState, listLayoutState.value) }
+                    .filterNotNull()
+                    .distinctUntilChanged()
+                    .collect { dayKey -> onVisibleDayChangedUpdated.value.invoke(dayKey) }
+            }
             LazyColumn(
-                modifier = modifier
+                modifier = Modifier
                     .fillMaxSize()
-                    .consumeWindowInsets(PaddingValues(bottom = bottomPadding)),
+                    .consumeWindowInsets(PaddingValues(bottom = bottomPadding))
+                    .testTag("expenses_timeline_list"),
                 state = listState,
                 contentPadding = PaddingValues(
                     top = topPadding,
@@ -258,27 +400,147 @@ private fun ExpensesPaneSuccess(
                 }
 
                 item {
-                    Text(
-                        modifier = Modifier.padding(start = 16.dp, top = 24.dp, end = 16.dp, bottom = 4.dp),
-                        text = stringResource(Res.string.expenses_operations),
-                        style = MaterialTheme.typography.headlineMedium
-                    )
+                    Row(modifier = Modifier.padding(start = 16.dp, top = 24.dp, end = 16.dp, bottom = 12.dp)) {
+                        Text(
+                            modifier = Modifier
+                                .alignByBaseline()
+                                .padding(end = 16.dp),
+                            text = stringResource(Res.string.expenses_operations),
+                            style = MaterialTheme.typography.headlineMedium
+                        )
+                        Text(
+                            modifier = Modifier
+                                .alignByBaseline()
+                                .testTag("expenses_total_spending_value"),
+                            text = stringResource(Res.string.expenses_total_spent, state.totalSpending),
+                            style = MaterialTheme.typography.bodyLarge,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
                 }
 
-                items(
-                    count = state.expenses.size,
-                    key = { index ->
-                        state.expenses[state.expenses.lastIndex - index].expenseId
+                if (showDayChipsRow) {
+                    stickyHeader(key = ExpensesTimelineLazyListKeys.STICKY_DAY_CHIPS) {
+                        val coroutineScope = rememberCoroutineScope()
+                        val isStuck by remember(listLayout) {
+                            derivedStateOf {
+                                val stickyIndex = listLayout.stickyDayChipsItemIndex
+                                stickyIndex != null && listState.firstVisibleItemIndex >= stickyIndex
+                            }
+                        }
+                        val statusBarTopPadding = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+                        val animatedTopPadding by animateDpAsState(
+                            targetValue = if (isStuck) statusBarTopPadding else 0.dp, // TODO: maybe `topPadding`?
+                            label = "dayChipsBarTopPadding",
+                        )
+                        DayChipsBar(
+                            dayChips = state.dayChips,
+                            onDayChipClick = { chip ->
+                                onDayChipClick(chip.dayKey)
+                                val itemIndex = listLayout.dayHeaderIndexByDayKey[chip.dayKey] ?: return@DayChipsBar
+                                coroutineScope.launch { listState.animateScrollToItem(itemIndex) }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(MaterialTheme.colorScheme.surface)
+                                .padding(top = animatedTopPadding),
+                        )
                     }
-                ) { index ->
-                    val expense = state.expenses[state.expenses.lastIndex - index]
-                    ExpenseItem(
-                        expense = expense,
-                        onExpenseClick = onExpenseClick,
-                        modifier = Modifier.padding(horizontal = 8.dp)
-                    )
+                }
+
+                state.daySections.forEachIndexed { index, daySection ->
+                    item(
+                        key = ExpensesTimelineLazyListKeys.dayHeader(daySection.dayKey),
+                        contentType = "day_header",
+                    ) {
+                        DaySectionHeader(
+                            daySection = daySection,
+                            modifier = Modifier
+                                .padding(start = 16.dp, end = 16.dp, top = if (index == 0) 8.dp else 16.dp, bottom = 16.dp)
+                                .fillMaxWidth(),
+                        )
+                    }
+
+                    items(
+                        items = daySection.expenses,
+                        key = { expense -> expense.expenseId },
+                        contentType = { "expense_item" },
+                    ) { expense ->
+                        ExpenseItem(
+                            expense = expense,
+                            onExpenseClick = onExpenseClick,
+                            modifier = Modifier.padding(horizontal = 8.dp),
+                        )
+                    }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun DayChipsBar(
+    dayChips: List<DayChipUiModel>,
+    onDayChipClick: (chip: DayChipUiModel) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val chipsListState = rememberLazyListState()
+    val selectedChipIndex = remember(dayChips) { dayChips.indexOfFirst { it.isSelected } }
+    LaunchedEffect(selectedChipIndex) {
+        if (selectedChipIndex < 0) return@LaunchedEffect
+        val visibleIndices = chipsListState.layoutInfo.visibleItemsInfo.mapTo(HashSet()) { it.index }
+        if (selectedChipIndex !in visibleIndices) {
+            chipsListState.animateScrollToItem((selectedChipIndex - 1).coerceAtLeast(0))
+        }
+    }
+
+    LazyRow(
+        state = chipsListState,
+        modifier = modifier
+            .fillMaxWidth()
+            .testTag("expenses_day_chips_row"),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        contentPadding = PaddingValues(start = 8.dp, end = 8.dp, bottom = 8.dp),
+    ) {
+        items(
+            items = dayChips,
+            key = { it.dayKey },
+        ) { chip ->
+            FilterChip(
+                modifier = Modifier.testTag("expenses_day_chip_${chip.dayKey}"),
+                selected = chip.isSelected,
+                onClick = { onDayChipClick(chip) },
+                label = {
+                    Text(text = chip.label)
+                },
+            )
+        }
+    }
+}
+
+@Composable
+private fun DaySectionHeader(
+    daySection: DaySectionUiModel,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier.testTag("expenses_day_header_${daySection.dayKey}"),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = daySection.headerLabel,
+            style = MaterialTheme.typography.bodyLarge,
+        )
+        daySection.spendingTotal?.let { spendingTotal ->
+            Text(
+                modifier = Modifier.testTag("expenses_day_header_total_${daySection.dayKey}"),
+                text = spendingTotal,
+                style = MaterialTheme.typography.bodyLarge,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
     }
 }
@@ -315,7 +577,8 @@ private fun ExpenseItem(
             .fillMaxWidth()
             .padding(vertical = 4.dp)
             .clip(MaterialTheme.shapes.medium)
-            .clickable { onExpenseClick.invoke(expense) },
+            .clickable { onExpenseClick.invoke(expense) }
+            .testTag("expense_item_${expense.expenseId}"),
         shape = MaterialTheme.shapes.medium,
         color = MaterialTheme.colorScheme.surfaceContainerLow,
     ) {
@@ -385,7 +648,7 @@ private fun ExpenseItem(
                         }
                     }
                     Text(
-                        text = expense.timestamp,
+                        text = expense.timeText,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1
@@ -418,19 +681,21 @@ private fun ExpenseItem(
 private fun ExpensesPanePreviewSuccessWithCreditors() {
     CommonExTheme {
         ExpensesPane(
+            state = SimpleScreenState.Success(mockExpensesPaneUiModel(withDebts = true)),
             onMenuClick = {},
             onAddExpenseClick = {},
             onExpenseClick = {},
             onDebtsDetailsClick = {},
             onReplenishmentClick = {},
+            onDayChipClick = {},
+            onVisibleDayChanged = {},
+            onCreateEventClick = {},
             onJoinEventClick = {},
             onJoinLocalEventClick = {},
             onDeleteEventClick = {},
             onDeleteOnlyLocalEventClick = {},
             onKeepLocalEventClick = {},
-            onCreateEventClick = {},
             onRefresh = {},
-            state = SimpleScreenState.Success(mockExpensesPaneUiModel(withDebts = true))
         )
     }
 }
@@ -440,158 +705,150 @@ private fun ExpensesPanePreviewSuccessWithCreditors() {
 private fun ExpensesPanePreviewSuccessWithoutCreditors() {
     CommonExTheme {
         ExpensesPane(
+            state = SimpleScreenState.Success(mockExpensesPaneUiModel(withDebts = false)),
             onMenuClick = {},
             onAddExpenseClick = {},
             onExpenseClick = {},
             onDebtsDetailsClick = {},
             onReplenishmentClick = {},
+            onDayChipClick = {},
+            onVisibleDayChanged = {},
+            onCreateEventClick = {},
             onJoinEventClick = {},
             onJoinLocalEventClick = {},
             onDeleteEventClick = {},
             onDeleteOnlyLocalEventClick = {},
             onKeepLocalEventClick = {},
-            onCreateEventClick = {},
             onRefresh = {},
-            state = SimpleScreenState.Success(mockExpensesPaneUiModel(withDebts = false))
         )
     }
 }
 
-@Composable
 @Preview
+@Composable
 private fun ExpensesPanePreviewEmpty() {
     CommonExTheme {
         ExpensesPane(
+            state = SimpleScreenState.Empty,
             onMenuClick = {},
             onAddExpenseClick = {},
             onExpenseClick = {},
             onDebtsDetailsClick = {},
             onReplenishmentClick = {},
+            onDayChipClick = {},
+            onVisibleDayChanged = {},
+            onCreateEventClick = {},
             onJoinEventClick = {},
             onJoinLocalEventClick = {},
-            onCreateEventClick = {},
-            onRefresh = {},
             onDeleteEventClick = {},
             onDeleteOnlyLocalEventClick = {},
             onKeepLocalEventClick = {},
-            state = SimpleScreenState.Empty
+            onRefresh = {},
         )
     }
 }
 
-@Composable
 @Preview
+@Composable
 private fun ExpensesPanePreviewLoading() {
     CommonExTheme {
         ExpensesPane(
+            state = SimpleScreenState.Loading,
             onMenuClick = {},
             onAddExpenseClick = {},
             onExpenseClick = {},
             onDebtsDetailsClick = {},
             onReplenishmentClick = {},
+            onDayChipClick = {},
+            onVisibleDayChanged = {},
+            onCreateEventClick = {},
             onJoinEventClick = {},
             onJoinLocalEventClick = {},
-            onCreateEventClick = {},
-            onRefresh = {},
             onDeleteEventClick = {},
             onDeleteOnlyLocalEventClick = {},
             onKeepLocalEventClick = {},
-            state = SimpleScreenState.Loading
+            onRefresh = {},
         )
     }
 }
 
 internal fun mockExpensesPaneUiModel(withDebts: Boolean): ExpensesPaneUiModel {
-    val person1 = Person(
-        id = 1,
-        serverId = "11",
-        name = "Василий"
-    )
-    val person2 = Person(
-        id = 2,
-        serverId = "12",
-        name = "Максим"
-    )
     return ExpensesPaneUiModel.Expenses(
         eventId = 1,
         eventName = "France trip",
-        currentPersonId = person1.id,
-        currentPersonName = person1.name,
+        currentPersonId = 1,
+        currentPersonName = "Vasiliy",
         debts = persistentListOf(
             DebtShortUiModel(
-                personId = person1.id,
-                personName = person1.name,
+                personId = 2,
+                personName = "Maksim",
                 currencyCode = "EUR",
                 currencyName = "Euro",
-                amount = "100"
+                amount = "100",
             ),
-            DebtShortUiModel(
-                personId = person2.id,
-                personName = person2.name,
-                currencyCode = "EUR",
-                currencyName = "Euro",
-                amount = "150"
-            )
         ).takeIf { withDebts } ?: persistentListOf(),
-        expenses = persistentListOf(
-            Expense(
-                expenseId = 1,
-                serverId = "11",
-                currency = Currency(
-                    id = 1,
-                    serverId = "11",
-                    code = "RUB",
-                    name = "Russian Ruble",
-                    rate = 1.toBigDecimal(),
-                ),
-                expenseType = ExpenseType.Spending,
-                person = person1,
-                subjectExpenseSplitWithPersons = listOf(
-                    ExpenseSplitWithPerson(
-                        expenseSplitId = 1,
-                        expenseId = 1,
-                        person = person1,
-                        originalAmount = 100.toBigDecimal(),
-                        exchangedAmount = 100.toBigDecimal(),
-                    ),
-                    ExpenseSplitWithPerson(
-                        expenseSplitId = 2,
-                        expenseId = 1,
-                        person = person2,
-                        originalAmount = 150.333.toBigDecimal(),
-                        exchangedAmount = 100.toBigDecimal(),
-                    )
-                ),
-                isCustomRate = false,
-                timestamp = Clock.System.now(),
-                description = "Lunch",
-            ).toUiModel(primaryCurrencyName = "EUR", currentPersonId = person1.id),
-            Expense(
-                expenseId = 2,
-                serverId = "12",
-                currency = Currency(
-                    id = 2,
-                    serverId = "11",
-                    code = "USD",
-                    name = "US Dollar",
-                    rate = 1.toBigDecimal(),
-                ),
-                expenseType = ExpenseType.Replenishment,
-                person = person2,
-                subjectExpenseSplitWithPersons = listOf(
-                    ExpenseSplitWithPerson(
-                        expenseSplitId = 4,
-                        expenseId = 2,
-                        person = person2,
-                        originalAmount = 132423423.toBigDecimal(),
-                        exchangedAmount = 132423423.toBigDecimal(),
-                    )
-                ),
-                isCustomRate = false,
-                timestamp = Clock.System.now(),
-                description = "Dinner and some text",
-            ).toUiModel(primaryCurrencyName = "EUR", currentPersonId = person1.id)
+        totalSpending = "180 EUR",
+        dayChips = persistentListOf(
+            DayChipUiModel(dayKey = "2026-03-28", label = "Today", isSelected = true),
+            DayChipUiModel(dayKey = "2026-03-27", label = "Yesterday", isSelected = false),
         ),
-        isRefreshing = false
+        daySections = persistentListOf(
+            DaySectionUiModel(
+                dayKey = "2026-03-28",
+                headerLabel = "28 March 2026",
+                spendingTotal = "120 EUR",
+                expenses = persistentListOf(
+                    mockExpenseUiModel(
+                        expenseId = 1,
+                        expenseType = ExpenseType.Spending,
+                        totalAmount = "-120",
+                        timeText = "18:30",
+                        description = "Lunch",
+                    ),
+                    mockExpenseUiModel(
+                        expenseId = 2,
+                        expenseType = ExpenseType.Replenishment,
+                        totalAmount = "+20",
+                        timeText = "12:05",
+                        description = "Refund",
+                    ),
+                ),
+            ),
+            DaySectionUiModel(
+                dayKey = "2026-03-27",
+                headerLabel = "27 March 2026",
+                spendingTotal = "60 EUR",
+                expenses = persistentListOf(
+                    mockExpenseUiModel(
+                        expenseId = 3,
+                        expenseType = ExpenseType.Spending,
+                        totalAmount = "-60",
+                        timeText = "09:15",
+                        description = "Museum",
+                    ),
+                ),
+            ),
+        ),
+        isRefreshing = false,
+    )
+}
+
+private fun mockExpenseUiModel(
+    expenseId: Long,
+    expenseType: ExpenseType,
+    totalAmount: String,
+    timeText: String,
+    description: String,
+): ExpenseUiModel {
+    return ExpenseUiModel(
+        expenseId = expenseId,
+        currencyText = "Euro",
+        expenseType = expenseType,
+        personName = "Vasiliy",
+        isPaidByCurrentPerson = true,
+        totalAmount = totalAmount,
+        timeText = timeText,
+        description = description,
+        currentPersonPartAmount = null,
     )
 }

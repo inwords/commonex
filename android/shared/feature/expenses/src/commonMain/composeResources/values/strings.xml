@@ -35,4 +35,7 @@
     <string name="expenses_split">Split</string>
     <string name="expenses_total_amount">Total amount</string>
     <string name="expenses_your_part">Your part: %1$s</string>
+    <string name="expenses_total_spent">%1$s spent</string>
+    <string name="expenses_today">Today</string>
+    <string name="expenses_yesterday">Yesterday</string>
 </resources>

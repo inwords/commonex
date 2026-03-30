@@ -9,7 +9,6 @@ import com.inwords.expenses.feature.expenses.domain.model.ExpenseSplitWithPerson
 import com.inwords.expenses.feature.expenses.domain.model.ExpenseType
 import com.inwords.expenses.feature.expenses.domain.store.ExpensesLocalStore
 import com.ionspin.kotlin.bignum.decimal.BigDecimal
-import kotlin.time.Clock
 
 class AddEqualSplitExpenseUseCase internal constructor(
     expensesLocalStoreLazy: Lazy<ExpensesLocalStore>,
@@ -56,7 +55,7 @@ class AddEqualSplitExpenseUseCase internal constructor(
                 person = selectedPerson,
                 subjectExpenseSplitWithPersons = subjectExpenseSplitWithPersons,
                 isCustomRate = overrideRate != null,
-                timestamp = Clock.System.now(),
+                timestamp = ExpenseTimeBackdoor.now(),
                 description = description,
             ),
         )
