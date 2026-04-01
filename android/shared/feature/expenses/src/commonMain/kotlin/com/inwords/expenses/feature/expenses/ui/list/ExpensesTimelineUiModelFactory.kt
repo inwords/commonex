@@ -81,6 +81,8 @@ internal class ExpensesTimelineUiModelFactory(
         currentLocalDate: LocalDate,
         locale: Locale,
     ): List<DayChipUiModel> {
+        if (sections.isEmpty()) return emptyList()
+
         val todayLabel = stringProvider.getString(Res.string.expenses_today)
         val yesterdayLabel = stringProvider.getString(Res.string.expenses_yesterday)
 
