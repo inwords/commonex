@@ -10,20 +10,21 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.inwords.expenses.feature.expenses.domain.ExpenseTimeBackdoor
 import com.inwords.expenses.feature.expenses.domain.model.ExpenseType
 import expenses.shared.feature.expenses.generated.resources.expenses_exchange_rate_value
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
+import org.jetbrains.compose.resources.getString
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.RuleChain
 import org.junit.runner.RunWith
-import org.jetbrains.compose.resources.getString
 import ru.commonex.screens.ChoosePersonScreen
 import ru.commonex.screens.ExpensesScreen
 import ru.commonex.screens.LocalEventsScreen
 import ru.commonex.screens.MenuDialogScreen
 import ru.commonex.ui.MainActivity
 import kotlin.io.encoding.Base64
+import kotlin.time.Duration.Companion.days
 import kotlin.time.Instant
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
 import expenses.shared.feature.expenses.generated.resources.Res as ExpensesRes
 
 // TODO bring back JUnit5 when it is able to work with Marathon
@@ -461,27 +462,36 @@ class BasicInstrumentedTest {
             .verifyExpenseAmount("-300")
     }
 
+    /**
+     * Tests timeline day chips as one coherent flow:
+     * - Create event
+     * - Add operations across multiple calendar days so the day chips row overflows horizontally
+     * - Verify total spending summary
+     * - Scroll the timeline to a later day and verify the corresponding chip becomes selected before the chips row turns sticky
+     * - Tap a replenishment-only day chip and verify its chip becomes selected and its header is shown below the sticky chips without a spending total
+     * - Tap an overflowed day chip and verify its chip becomes selected and chip-driven navigation still lands on the requested day
+     */
     @Test
-    fun testExpensesTimelineSummaryAndDayChips() = composeRule.runTest {
+    fun testExpensesTimelineDayChipsSupportStickyNavigationAcrossOverflowedDays() = composeRule.runTest {
         val eventName = "Test Timeline Event"
         createLocalEvent(eventName)
 
-        val timelineDayKeys = createTimelineOperations()
+        val timelineDayKeys = createTimelineDayChipsScenario()
 
         ExpensesScreen()
             .verifyTotalSpending("180 EUR")
             .waitUntilDayHeaderVisible(timelineDayKeys.firstDayKey)
-            .verifyDayChipsStickyAndSynced(timelineDayKeys.secondDayKey)
-            .clickDayChip(timelineDayKeys.secondDayKey)
-            .waitUntilDayHeaderVisibleBelowDayChips(timelineDayKeys.secondDayKey)
+            .scrollTimelineToDayHeader(timelineDayKeys.secondDayKey)
+            .verifyDayChipSelected(timelineDayKeys.secondDayKey)
+            .stickDayChipsToTopAppBar()
             .clickDayChip(timelineDayKeys.replenishmentOnlyDayKey)
             .waitUntilDayHeaderVisibleBelowDayChips(timelineDayKeys.replenishmentOnlyDayKey)
+            .verifyDayChipSelected(timelineDayKeys.replenishmentOnlyDayKey)
             .verifyDayHeaderTotalHidden(timelineDayKeys.replenishmentOnlyDayKey)
+            .clickDayChip(timelineDayKeys.overflowTargetDayKey)
+            .waitUntilDayHeaderVisibleBelowDayChips(timelineDayKeys.overflowTargetDayKey)
+            .verifyDayChipSelected(timelineDayKeys.overflowTargetDayKey)
             .openMenu()
-            .openEventsList()
-            .swipeToRevealActions(eventName)
-            .clickDeleteLocalOnly()
-            .assertEventNotExists(eventName)
     }
 
     context(rule: ComposeTestRule)
@@ -513,35 +523,48 @@ class BasicInstrumentedTest {
     }
 
     context(rule: ComposeTestRule)
-    private suspend fun createTimelineOperations(): TimelineDayKeys {
+    private suspend fun createTimelineDayChipsScenario(): TimelineDayKeys {
         val firstDayInstant = Instant.parse("2026-03-28T12:00:00Z")
         val secondDayInstant = Instant.parse("2026-03-27T12:00:00Z")
         val replenishmentOnlyDayInstant = Instant.parse("2026-03-26T12:00:00Z")
+        val overflowTargetDayInstant = replenishmentOnlyDayInstant - 5.days
 
         val operations = listOf(
             TimelineOperationInput(
-                timestamp = firstDayInstant,
-                expenseType = ExpenseType.Spending,
-                amount = 120,
-                description = "Timeline spending",
+                timestamp = overflowTargetDayInstant,
+                expenseType = ExpenseType.Replenishment,
+                amount = 11,
+                description = "Timeline overflow refund 1",
             ),
             TimelineOperationInput(
-                timestamp = Instant.parse("2026-03-28T08:00:00Z"),
+                timestamp = replenishmentOnlyDayInstant - 4.days,
                 expenseType = ExpenseType.Replenishment,
-                amount = 20,
-                description = "Timeline refund",
+                amount = 12,
+                description = "Timeline overflow refund 2",
             ),
             TimelineOperationInput(
-                timestamp = Instant.parse("2026-03-28T07:30:00Z"),
+                timestamp = replenishmentOnlyDayInstant - 3.days,
                 expenseType = ExpenseType.Replenishment,
-                amount = 5,
-                description = "Timeline taxi refund",
+                amount = 13,
+                description = "Timeline overflow refund 3",
             ),
             TimelineOperationInput(
-                timestamp = Instant.parse("2026-03-28T07:00:00Z"),
+                timestamp = replenishmentOnlyDayInstant - 2.days,
                 expenseType = ExpenseType.Replenishment,
-                amount = 5,
-                description = "Timeline snack refund",
+                amount = 14,
+                description = "Timeline overflow refund 4",
+            ),
+            TimelineOperationInput(
+                timestamp = replenishmentOnlyDayInstant - 1.days,
+                expenseType = ExpenseType.Replenishment,
+                amount = 15,
+                description = "Timeline overflow refund 5",
+            ),
+            TimelineOperationInput(
+                timestamp = replenishmentOnlyDayInstant,
+                expenseType = ExpenseType.Replenishment,
+                amount = 15,
+                description = "Timeline refund only day",
             ),
             TimelineOperationInput(
                 timestamp = secondDayInstant,
@@ -550,10 +573,10 @@ class BasicInstrumentedTest {
                 description = "Timeline museum",
             ),
             TimelineOperationInput(
-                timestamp = replenishmentOnlyDayInstant,
-                expenseType = ExpenseType.Replenishment,
-                amount = 15,
-                description = "Timeline refund only day",
+                timestamp = firstDayInstant,
+                expenseType = ExpenseType.Spending,
+                amount = 120,
+                description = "Timeline spending",
             ),
         )
 
@@ -561,11 +584,11 @@ class BasicInstrumentedTest {
             createTimelineOperation(operation)
         }
 
-        val timeZone = TimeZone.currentSystemDefault()
         return TimelineDayKeys(
-            firstDayKey = firstDayInstant.toLocalDateTime(timeZone).date.toString(),
-            secondDayKey = secondDayInstant.toLocalDateTime(timeZone).date.toString(),
-            replenishmentOnlyDayKey = replenishmentOnlyDayInstant.toLocalDateTime(timeZone).date.toString(),
+            firstDayKey = firstDayInstant.toTimelineDayKey(),
+            secondDayKey = secondDayInstant.toTimelineDayKey(),
+            replenishmentOnlyDayKey = replenishmentOnlyDayInstant.toTimelineDayKey(),
+            overflowTargetDayKey = overflowTargetDayInstant.toTimelineDayKey(),
         )
     }
 
@@ -651,6 +674,7 @@ private data class TimelineDayKeys(
     val firstDayKey: String,
     val secondDayKey: String,
     val replenishmentOnlyDayKey: String,
+    val overflowTargetDayKey: String,
 )
 
 private data class TimelineOperationInput(
@@ -664,3 +688,7 @@ private data class CurrencyTestModel(
     val code: String,
     val name: String,
 )
+
+private fun Instant.toTimelineDayKey(): String {
+    return toLocalDateTime(TimeZone.currentSystemDefault()).date.toString()
+}

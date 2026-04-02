@@ -312,7 +312,8 @@ private fun AddExpensePaneSuccess(
             modifier = Modifier
                 .align(Alignment.End)
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 16.dp),
+                .padding(horizontal = 8.dp, vertical = 16.dp)
+                .testTag("add_expense_save_button"),
             onClick = onConfirmClicked,
             text = stringResource(Res.string.expenses_save),
             imageVector = Icons.Outlined.Check,

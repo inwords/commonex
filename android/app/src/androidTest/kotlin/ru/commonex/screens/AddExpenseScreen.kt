@@ -10,7 +10,6 @@ import androidx.compose.ui.test.performTextReplacement
 import expenses.shared.feature.expenses.generated.resources.Res
 import expenses.shared.feature.expenses.generated.resources.expenses_description
 import expenses.shared.feature.expenses.generated.resources.expenses_repayment
-import expenses.shared.feature.expenses.generated.resources.expenses_save
 import expenses.shared.feature.expenses.generated.resources.expenses_total_amount
 import org.jetbrains.compose.resources.getString
 
@@ -73,11 +72,9 @@ internal class AddExpenseScreen : BaseScreen() {
     }
 
     context(rule: ComposeTestRule)
-    suspend fun clickConfirm(): ExpensesScreen {
-        val saveLabel = getString(Res.string.expenses_save)
-        rule.onNodeWithText(saveLabel).performScrollTo().performClick()
-        waitForElementWithTextDoesNotExist(saveLabel)
-        rule.waitForIdle()
+    fun clickConfirm(): ExpensesScreen {
+        rule.onNodeWithTag("add_expense_save_button").performScrollTo().performClick()
+        waitForElementWithTagDoesNotExist("add_expense_save_button")
         return ExpensesScreen()
     }
 }

@@ -35,6 +35,7 @@ Write the smallest useful tests that lock observable behavior without coupling t
 - Put multiplatform-safe tests in `commonTest`.
 - Use `androidHostTest` only for JVM-only APIs, platform wiring, or when the module already follows that pattern.
 - Reuse existing `runTest`, Turbine, `MockEngine`, and fixture helpers instead of building new harnesses.
+- When a bug comes from UI-derived pure logic, lock the branch matrix in `commonTest` or `androidHostTest` first, then leave only real Compose layout or semantics gaps for a targeted instrumented regression.
 - For adapter tests, keep assertions on request shape and code-owned result mapping; leave generic retry and transport coverage to the shared network utilities that already own it.
 - Prefer focused validation first, for example `.\gradlew :module:testAndroidHostTest --tests "pkg.ClassTest"`.
 
@@ -60,6 +61,7 @@ Write the smallest useful tests that lock observable behavior without coupling t
 - Assert business meaning, not private helpers, incidental ordering, or mock call counts unless those are the contract.
 - Keep fixtures minimal and local unless the module already uses shared builders.
 - Focus on code-owned behavior. Cover malformed upstream payloads or impossible contract violations only when production code has an explicit branch for them.
+- Prefer pure resolver or mapper tests for edge branches such as empty input, exact boundary hits, exclusion filters, and fallback paths before escalating to UI coverage.
 - When refactoring, preserve behavior and write tests against the existing external contract.
 
 ## Deliverable

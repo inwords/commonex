@@ -569,6 +569,7 @@ Events are shared via secure token-based links that expire in 14 days:
 - Combine steps **only if** the flow is coherent and failure localization remains clear; keep each test’s intent obvious from its name and comments.
 - When combining, keep assertions at each critical transition (creation, share link, deletion, join) so failures are easy to pinpoint.
 - Avoid duplicate assertions between steps; keep each check unique to its transition.
+- For timeline/chip UI flows, prefer one coherent instrumented scenario when the interactions belong to the same user journey; if chip selection logic is already covered by host tests, keep the instrumented assertions focused on sticky behavior and navigation/rendered destinations unless the user explicitly asks to verify the selected chip state in the UI flow.
 - Don’t hesitate to modify existing tests when they’re a better fit for new scenario checks; keep changes minimal and maintain clarity.
 
 ### Adding Participants to Existing Events

@@ -18,9 +18,6 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListItemInfo
-import androidx.compose.foundation.lazy.LazyListLayoutInfo
-import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -49,7 +46,6 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -83,6 +79,7 @@ import com.inwords.expenses.feature.expenses.ui.list.ExpensesPaneUiModel.Expense
 import com.inwords.expenses.feature.expenses.ui.list.ExpensesPaneUiModel.Expenses.DaySectionUiModel
 import com.inwords.expenses.feature.expenses.ui.list.ExpensesPaneUiModel.Expenses.ExpenseUiModel
 import com.inwords.expenses.feature.expenses.ui.list.ExpensesPaneUiModel.LocalEvents
+import com.inwords.expenses.feature.expenses.ui.list.ExpensesTimelineVisibleDayResolver.Layout
 import expenses.shared.feature.expenses.generated.resources.Res
 import expenses.shared.feature.expenses.generated.resources.common_error
 import expenses.shared.feature.expenses.generated.resources.expenses_app_name
@@ -100,12 +97,29 @@ import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * Stable keys for the expenses timeline [LazyColumn] in [ExpensesPaneSuccess].
+ * Stable key for the sticky day-chips row item in expenses timeline [LazyColumn].
  * Used with [androidx.compose.foundation.lazy.LazyListItemInfo.key] so scroll/sync logic can relate layout to days.
  */
-private object ExpensesTimelineLazyListKeys {
-    const val STICKY_DAY_CHIPS = "expenses_timeline_sticky_day_chips"
-    fun dayHeader(dayKey: String): String = "expenses_timeline_day_header_$dayKey"
+private const val STICKY_DAY_CHIPS_ITEM_KEY = "expenses_timeline_sticky_day_chips"
+
+private data class ExpensesTimelineListLayout(
+    val visibleDayLayout: Layout,
+    val dayChipsRowItemIndex: Int?,
+) {
+    val dayHeaderIndexByDayKey: Map<String, Int>
+        get() = visibleDayLayout.dayHeaderIndexByDayKey
+
+    companion object {
+
+        val Empty = ExpensesTimelineListLayout(
+            visibleDayLayout = Layout(
+                orderedDayKeys = emptyList(),
+                orderedDayHeaderIndices = emptyList(),
+                dayHeaderIndexByDayKey = emptyMap(),
+            ),
+            dayChipsRowItemIndex = null,
+        )
+    }
 }
 
 /**
@@ -113,95 +127,42 @@ private object ExpensesTimelineLazyListKeys {
  * Must match the item order emitted by [ExpensesPaneSuccess]'s [LazyColumn].
  *
  * [LazyListState](https://developer.android.com/reference/kotlin/androidx/compose/foundation/lazy/LazyListState) scroll
- * APIs are index-based (no overload that takes an item key; see [LazyListItemInfo](https://developer.android.com/reference/kotlin/androidx/compose/foundation/lazy/LazyListItemInfo)).
- * Indices are derived here from the same structure as the list so chip actions and visibility tracking stay aligned with list content.
+ * APIs are index-based, so indices are derived here from the same structure as the list so chip
+ * actions and visibility tracking stay aligned with list content.
  */
-private data class ExpensesTimelineListLayout(
-    val orderedDayKeys: List<String>,
-    val dayHeaderIndexByDayKey: Map<String, Int>,
-    val stickyDayChipsItemIndex: Int?,
-    val firstDayHeaderIndex: Int,
-) {
-    /**
-     * Maps a lazy item index (the scroll “anchor” row) to the calendar day that should drive chip selection.
-     * [anchorItemIndex] is typically the topmost substantive row in the viewport (see [timelineScrollAnchorItemIndex]).
-     */
-    fun dayKeyForAnchor(anchorItemIndex: Int): String? {
-        val firstDayKey = orderedDayKeys.firstOrNull() ?: return null
-        if (anchorItemIndex < firstDayHeaderIndex) {
-            return firstDayKey
-        }
-        return orderedDayKeys.lastOrNull { dayKey ->
-            (dayHeaderIndexByDayKey[dayKey] ?: Int.MIN_VALUE) <= anchorItemIndex
-        }
-    }
-}
-
 @Composable
 private fun rememberExpensesTimelineListLayout(
     daySections: ImmutableList<DaySectionUiModel>,
     showDayChipsRow: Boolean,
 ): ExpensesTimelineListLayout {
     return remember(daySections, showDayChipsRow) {
-        val orderedDayKeys = daySections.map { it.dayKey }
-        if (orderedDayKeys.isEmpty()) {
-            return@remember ExpensesTimelineListLayout(
-                orderedDayKeys = emptyList(),
-                dayHeaderIndexByDayKey = emptyMap(),
-                stickyDayChipsItemIndex = null,
-                firstDayHeaderIndex = 0,
-            )
+        if (daySections.isEmpty()) {
+            return@remember ExpensesTimelineListLayout.Empty
         }
+
         var index = STATIC_ITEMS_BEFORE_DAY_TIMELINE
-        val stickyIndex = if (showDayChipsRow) index++ else null
+        val dayChipsRowIndex = if (showDayChipsRow) index++ else null
         val map = HashMap<String, Int>(daySections.size)
+        val dayHeaderIndices = ArrayList<Int>(daySections.size)
+        val orderedDayKeys = ArrayList<String>(daySections.size)
         for (section in daySections) {
             map[section.dayKey] = index
+            dayHeaderIndices += index
             index += 1 + section.expenses.size
+            orderedDayKeys += section.dayKey
         }
-        val firstHeader = checkNotNull(map[orderedDayKeys.first()])
-        ExpensesTimelineListLayout(orderedDayKeys, map, stickyIndex, firstHeader)
+        ExpensesTimelineListLayout(
+            visibleDayLayout = Layout(
+                orderedDayKeys = orderedDayKeys,
+                orderedDayHeaderIndices = dayHeaderIndices,
+                dayHeaderIndexByDayKey = map,
+            ),
+            dayChipsRowItemIndex = dayChipsRowIndex,
+        )
     }
 }
 
 private const val STATIC_ITEMS_BEFORE_DAY_TIMELINE = 3
-
-/**
- * Lazy list items that are closest to the top of the viewport have the smallest [LazyListItemInfo.offset].
- * That row is the standard geometric anchor for “what section is showing,” including when several rows overlap the viewport.
- *
- * When the sticky day-chips row is the topmost visible item, the semantic “current day” follows the content below it,
- * so we use the next row down if one is visible.
- */
-private fun timelineScrollAnchorItemIndex(
-    layoutInfo: LazyListLayoutInfo,
-    stickyDayChipsItemIndex: Int?,
-): Int? {
-    val visible = layoutInfo.visibleItemsInfo
-    if (visible.isEmpty()) {
-        return null
-    }
-    val topmost = visible.minBy { it.offset }
-    if (stickyDayChipsItemIndex == null || topmost.index != stickyDayChipsItemIndex) {
-        return topmost.index
-    }
-    val nextBelow = visible.asSequence()
-        .filter { it.index != stickyDayChipsItemIndex }
-        .minByOrNull { it.offset }
-    return nextBelow?.index ?: topmost.index
-}
-
-private fun currentVisibleTimelineDayKey(
-    listState: LazyListState,
-    layout: ExpensesTimelineListLayout,
-): String? {
-    if (layout.orderedDayKeys.isEmpty()) {
-        return null
-    }
-    val anchor = timelineScrollAnchorItemIndex(listState.layoutInfo, layout.stickyDayChipsItemIndex)
-        ?: return null
-    return layout.dayKeyForAnchor(anchor)
-}
 
 @Composable
 internal fun ExpensesPane(
@@ -293,7 +254,7 @@ private fun ExpensesPaneSuccess(
                 alpha = 1f - easedProgress,
             )
             TopAppBar(
-                modifier = Modifier.testTag("expenses_top_app_bar"),
+                modifier = Modifier.testTag(ExpensesPaneTags.TOP_APP_BAR),
                 title = {
                     Box(
                         modifier = Modifier
@@ -310,7 +271,7 @@ private fun ExpensesPaneSuccess(
                         IconButton(
                             modifier = Modifier
                                 .align(Alignment.CenterEnd)
-                                .testTag("expenses_menu_button"),
+                                .testTag(ExpensesPaneTags.MENU_BUTTON),
                             onClick = onMenuClick,
                         ) {
                             Icon(
@@ -371,7 +332,6 @@ private fun ExpensesPaneSuccess(
                 var dayChipsRowHeightPx by remember { mutableIntStateOf(0) }
 
                 val listLayout = rememberExpensesTimelineListLayout(state.daySections, showDayChipsRow)
-                val listLayoutState = rememberUpdatedState(listLayout)
                 val listState = rememberLazyListState()
 
                 val coroutineScope = rememberCoroutineScope()
@@ -392,18 +352,26 @@ private fun ExpensesPaneSuccess(
                 var inlineDayChipsTopPx by remember { mutableFloatStateOf(Float.MAX_VALUE) }
                 val showStickyDayChipsOverlay by remember(listState, listLayout, topPaddingPx) {
                     derivedStateOf {
-                        val stickyIndex = listLayout.stickyDayChipsItemIndex ?: return@derivedStateOf false
+                        val dayChipsRowIndex = listLayout.dayChipsRowItemIndex ?: return@derivedStateOf false
                         when {
                             topPaddingPx <= 0f -> false
-                            listState.firstVisibleItemIndex > stickyIndex -> true
-                            listState.firstVisibleItemIndex < stickyIndex -> false
+                            listState.firstVisibleItemIndex > dayChipsRowIndex -> true
+                            listState.firstVisibleItemIndex < dayChipsRowIndex -> false
                             else -> inlineDayChipsTopPx <= topPaddingPx
                         }
                     }
                 }
 
-                LaunchedEffect(listState) {
-                    snapshotFlow { currentVisibleTimelineDayKey(listState, listLayoutState.value) }
+                LaunchedEffect(listState, listLayout) {
+                    snapshotFlow {
+                        ExpensesTimelineVisibleDayResolver.currentDayKey(
+                            visibleItems = listState.layoutInfo.visibleItemsInfo,
+                            layout = listLayout.visibleDayLayout,
+                            excludedItemIndex = listLayout.dayChipsRowItemIndex,
+                            stickyDayChipsHeightPx = dayChipsRowHeightPx,
+                            hasStickyDayChipsOverlay = showStickyDayChipsOverlay,
+                        )
+                    }
                         .filterNotNull()
                         .distinctUntilChanged()
                         .collect(onVisibleDayChanged)
@@ -412,7 +380,7 @@ private fun ExpensesPaneSuccess(
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
-                        .testTag("expenses_timeline_list"),
+                        .testTag(ExpensesPaneTags.TIMELINE_LIST),
                     state = listState,
                     contentPadding = PaddingValues(
                         top = topPadding,
@@ -438,7 +406,7 @@ private fun ExpensesPaneSuccess(
                     }
 
                     item {
-                        Row(modifier = Modifier.padding(start = 16.dp, top = 24.dp, end = 16.dp, bottom = 12.dp)) {
+                        Row(modifier = Modifier.padding(start = 16.dp, top = 24.dp, end = 16.dp, bottom = if (showDayChipsRow) 4.dp else 8.dp)) {
                             Text(
                                 modifier = Modifier
                                     .alignByBaseline()
@@ -449,7 +417,7 @@ private fun ExpensesPaneSuccess(
                             Text(
                                 modifier = Modifier
                                     .alignByBaseline()
-                                    .testTag("expenses_total_spending_value"),
+                                    .testTag(ExpensesPaneTags.TOTAL_SPENDING_VALUE),
                                 text = stringResource(Res.string.expenses_total_spent, state.totalSpending),
                                 style = MaterialTheme.typography.bodyLarge,
                                 maxLines = 1,
@@ -460,7 +428,7 @@ private fun ExpensesPaneSuccess(
 
                     if (showDayChipsRow) {
                         item(
-                            key = ExpensesTimelineLazyListKeys.STICKY_DAY_CHIPS,
+                            key = STICKY_DAY_CHIPS_ITEM_KEY,
                             contentType = "day_chips",
                         ) {
                             DayChipsBar(
@@ -480,15 +448,15 @@ private fun ExpensesPaneSuccess(
                                             Modifier
                                         }
                                     ),
-                                rowTestTag = if (showStickyDayChipsOverlay) null else "expenses_day_chips_row",
-                                chipTestTagPrefix = if (showStickyDayChipsOverlay) null else "expenses_day_chip_",
+                                rowTestTag = if (showStickyDayChipsOverlay) null else ExpensesPaneTags.DAY_CHIPS_ROW,
+                                chipTestTagPrefix = if (showStickyDayChipsOverlay) null else ExpensesPaneTags.DAY_CHIP_PREFIX,
                             )
                         }
                     }
 
                     state.daySections.forEachIndexed { index, daySection ->
                         item(
-                            key = ExpensesTimelineLazyListKeys.dayHeader(daySection.dayKey),
+                            key = ExpensesPaneTags.timelineDayHeaderKey(daySection.dayKey),
                             contentType = "day_header",
                         ) {
                             DaySectionHeader(
@@ -524,9 +492,10 @@ private fun ExpensesPaneSuccess(
                             .onGloballyPositioned { coordinates ->
                                 dayChipsRowHeightPx = coordinates.size.height
                             }
-                            .background(MaterialTheme.colorScheme.surface),
-                        rowTestTag = "expenses_day_chips_row",
-                        chipTestTagPrefix = "expenses_day_chip_",
+                            .clip(MaterialTheme.shapes.extraLarge)
+                            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.8f)),
+                        rowTestTag = ExpensesPaneTags.DAY_CHIPS_ROW,
+                        chipTestTagPrefix = ExpensesPaneTags.DAY_CHIP_PREFIX,
                     )
                 }
             }
@@ -546,9 +515,9 @@ private fun DayChipsBar(
     val selectedChipIndex = remember(dayChips) { dayChips.indexOfFirst { it.isSelected } }
     LaunchedEffect(selectedChipIndex) {
         if (selectedChipIndex < 0) return@LaunchedEffect
-        val visibleIndices = chipsListState.layoutInfo.visibleItemsInfo.mapTo(HashSet()) { it.index }
-        if (selectedChipIndex !in visibleIndices) {
-            chipsListState.animateScrollToItem((selectedChipIndex - 1).coerceAtLeast(0))
+        val isSelectedChipVisible = chipsListState.layoutInfo.visibleItemsInfo.any { it.index == selectedChipIndex }
+        if (!isSelectedChipVisible) {
+            chipsListState.animateScrollToItem(selectedChipIndex)
         }
     }
 
@@ -558,7 +527,7 @@ private fun DayChipsBar(
             .fillMaxWidth()
             .then(if (rowTestTag == null) Modifier else Modifier.testTag(rowTestTag)),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
-        contentPadding = PaddingValues(start = 8.dp, end = 8.dp, bottom = 8.dp),
+        contentPadding = PaddingValues(all = 8.dp),
     ) {
         items(
             items = dayChips,
@@ -586,7 +555,7 @@ private fun DaySectionHeader(
     modifier: Modifier = Modifier,
 ) {
     Row(
-        modifier = modifier.testTag("expenses_day_header_${daySection.dayKey}"),
+        modifier = modifier.testTag(ExpensesPaneTags.dayHeader(daySection.dayKey)),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -596,7 +565,7 @@ private fun DaySectionHeader(
         )
         daySection.spendingTotal?.let { spendingTotal ->
             Text(
-                modifier = Modifier.testTag("expenses_day_header_total_${daySection.dayKey}"),
+                modifier = Modifier.testTag(ExpensesPaneTags.dayHeaderTotal(daySection.dayKey)),
                 text = spendingTotal,
                 style = MaterialTheme.typography.bodyLarge,
                 maxLines = 1,
@@ -638,8 +607,7 @@ private fun ExpenseItem(
             .fillMaxWidth()
             .padding(vertical = 4.dp)
             .clip(MaterialTheme.shapes.medium)
-            .clickable { onExpenseClick.invoke(expense) }
-            .testTag("expense_item_${expense.expenseId}"),
+            .clickable { onExpenseClick.invoke(expense) },
         shape = MaterialTheme.shapes.medium,
         color = MaterialTheme.colorScheme.surfaceContainerLow,
     ) {

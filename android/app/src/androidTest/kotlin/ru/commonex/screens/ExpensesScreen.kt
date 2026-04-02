@@ -3,18 +3,14 @@ package ru.commonex.screens
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.hasTestTag
-import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.compose.ui.test.onAllNodesWithTag
-import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollToNode
-import androidx.compose.ui.test.performTouchInput
-import androidx.compose.ui.test.swipeDown
-import androidx.compose.ui.test.swipeUp
+import androidx.compose.ui.test.performScrollToIndex
+import androidx.compose.ui.test.performScrollToKey
+import com.inwords.expenses.feature.expenses.ui.list.ExpensesPaneTags
 import expenses.shared.feature.events.generated.resources.events_info_with_person
 import expenses.shared.feature.expenses.generated.resources.Res
 import expenses.shared.feature.expenses.generated.resources.expenses_details
@@ -27,12 +23,6 @@ import expenses.shared.feature.events.generated.resources.Res as EventsRes
 
 @OptIn(ExperimentalTestApi::class)
 internal class ExpensesScreen : BaseScreen() {
-
-    context(rule: ComposeTestRule)
-    suspend fun waitUntilLoaded(): ExpensesScreen {
-        waitForElementWithTag("expenses_timeline_list")
-        return this
-    }
 
     context(rule: ComposeTestRule)
     suspend fun waitUntilLoadedEmpty(): ExpensesScreen {
@@ -58,12 +48,8 @@ internal class ExpensesScreen : BaseScreen() {
 
     context(rule: ComposeTestRule)
     fun openMenu(): MenuDialogScreen {
-        repeat(2) {
-            swipeTimelineDown()
-        }
-
-        waitForElementWithTag("expenses_menu_button")
-        rule.onNodeWithTag("expenses_menu_button").performClick()
+        waitForElementWithTag(ExpensesPaneTags.MENU_BUTTON)
+        rule.onNodeWithTag(ExpensesPaneTags.MENU_BUTTON).performClick()
         return MenuDialogScreen()
     }
 
@@ -90,7 +76,7 @@ internal class ExpensesScreen : BaseScreen() {
 
     context(rule: ComposeTestRule)
     fun verifyExpenseExists(description: String): ExpensesScreen {
-        scrollTimelineToText(description)
+        waitForElementWithText(description)
         assertElementWithTextExists(description)
         return this
     }
@@ -102,11 +88,10 @@ internal class ExpensesScreen : BaseScreen() {
     }
 
     context(rule: ComposeTestRule)
-    suspend fun verifyTotalSpending(totalSpending: String): ExpensesScreen {
+    fun verifyTotalSpending(totalSpending: String): ExpensesScreen {
         val amountPart = totalSpending.substringBefore(' ').trim()
         val currencyPart = totalSpending.substringAfterLast(' ').trim()
-        scrollTimelineToTag("expenses_total_spending_value")
-        val totalLabelText = rule.onNodeWithTag("expenses_total_spending_value")
+        val totalLabelText = rule.onNodeWithTag(ExpensesPaneTags.TOTAL_SPENDING_VALUE)
             .fetchSemanticsNode()
             .config[SemanticsProperties.Text]
             .joinToString(separator = " ") { annotatedString -> annotatedString.text }
@@ -117,18 +102,15 @@ internal class ExpensesScreen : BaseScreen() {
     }
 
     context(rule: ComposeTestRule)
-    suspend fun waitUntilDayHeaderVisible(dayKey: String): ExpensesScreen {
-        val tag = "expenses_day_header_$dayKey"
-        scrollTimelineToTag(tag)
-        rule.onNodeWithTag(tag).assertIsDisplayed()
+    fun waitUntilDayHeaderVisible(dayKey: String): ExpensesScreen {
+        waitForElementWithTag(ExpensesPaneTags.dayHeader(dayKey))
         return this
     }
 
     context(rule: ComposeTestRule)
-    suspend fun waitUntilDayHeaderVisibleBelowDayChips(dayKey: String): ExpensesScreen {
-        val tag = dayHeaderTag(dayKey)
-        scrollTimelineToTag(tag)
-        rule.waitUntil(timeoutMillis = 5_000) {
+    fun waitUntilDayHeaderVisibleBelowDayChips(dayKey: String): ExpensesScreen {
+        val tag = ExpensesPaneTags.dayHeader(dayKey)
+        rule.waitUntil(timeoutMillis = 10_000) {
             val dayHeaderTop = dayHeaderTop(dayKey) ?: return@waitUntil false
             val chipsBottom = chipsRowBottom() ?: return@waitUntil false
             dayHeaderTop >= chipsBottom - 4f
@@ -138,71 +120,52 @@ internal class ExpensesScreen : BaseScreen() {
     }
 
     context(rule: ComposeTestRule)
-    suspend fun clickDayChip(dayKey: String): ExpensesScreen {
-        val tag = "expenses_day_chip_$dayKey"
-        scrollTimelineToTag(tag)
-        rule.onNodeWithTag(tag).performClick()
+    fun scrollTimelineToDayHeader(dayKey: String): ExpensesScreen {
+        rule.onNodeWithTag(ExpensesPaneTags.TIMELINE_LIST)
+            .performScrollToKey(ExpensesPaneTags.timelineDayHeaderKey(dayKey))
+            .performClick()
+        rule.onNodeWithTag(ExpensesPaneTags.dayHeader(dayKey)).assertIsDisplayed()
+        return this
+    }
+
+    context(rule: ComposeTestRule)
+    fun clickDayChip(dayKey: String): ExpensesScreen {
+        rule.onNodeWithTag(ExpensesPaneTags.DAY_CHIPS_ROW)
+            .performScrollToKey(dayKey)
+            .performClick()
+        rule.onNodeWithTag(ExpensesPaneTags.dayChip(dayKey)).performClick()
+        return this
+    }
+
+    context(rule: ComposeTestRule)
+    fun verifyDayChipSelected(dayKey: String): ExpensesScreen {
+        rule.onNodeWithTag(ExpensesPaneTags.dayChip(dayKey))
+            .fetchSemanticsNode()
+            .config[SemanticsProperties.Selected]
         return this
     }
 
     context(rule: ComposeTestRule)
     fun verifyDayHeaderTotalHidden(dayKey: String): ExpensesScreen {
-        waitForElementWithTagDoesNotExist("expenses_day_header_total_$dayKey")
+        waitForElementWithTagDoesNotExist(ExpensesPaneTags.dayHeaderTotal(dayKey))
         return this
     }
 
     context(rule: ComposeTestRule)
-    suspend fun verifyDayChipsStickyAndSynced(dayKey: String): ExpensesScreen {
-        val dayHeaderTag = dayHeaderTag(dayKey)
-        scrollTimelineToTag(dayHeaderTag)
+    fun stickDayChipsToTopAppBar(): ExpensesScreen {
+        rule.onNodeWithTag(ExpensesPaneTags.DAY_CHIPS_ROW).assertIsDisplayed()
 
-        rule.onNodeWithTag("expenses_day_chips_row").assertIsDisplayed()
-        stickDayChipsToTopAppBar()
+        if (areDayChipsAttachedToTopAppBar()) return this
 
         swipeTimelineUp()
-
-        rule.waitUntil(timeoutMillis = 5_000) {
-            areDayChipsAttachedToTopAppBar()
-        }
+        assertDayChipsAttachedToTopAppBar()
 
         return this
     }
-
-    context(rule: ComposeTestRule)
-    private fun scrollTimelineToText(text: String) {
-        if (rule.onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty()) {
-            return
-        }
-
-        rule.waitUntil(timeoutMillis = 10_000) {
-            try {
-                rule.onNodeWithTag("expenses_timeline_list")
-                    .performScrollToNode(hasText(text))
-                true
-            } catch (_: AssertionError) {
-                false
-            }
-        }
-    }
-
-    context(rule: ComposeTestRule)
-    private fun scrollTimelineToTag(tag: String) {
-        if (rule.onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty()) {
-            return
-        }
-
-        rule.onNodeWithTag("expenses_timeline_list")
-            .performScrollToNode(hasTestTag(tag))
-        waitForElementWithTag(tag)
-    }
-
-    private fun dayHeaderTag(dayKey: String): String = "expenses_day_header_$dayKey"
-
-    private fun dayChipTag(dayKey: String): String = "expenses_day_chip_$dayKey"
 
     context(rule: ComposeTestRule)
     private fun chipsRowTop(): Float? {
-        return rule.onAllNodesWithTag("expenses_day_chips_row")
+        return rule.onAllNodesWithTag(ExpensesPaneTags.DAY_CHIPS_ROW)
             .fetchSemanticsNodes()
             .firstOrNull()
             ?.boundsInRoot
@@ -211,7 +174,7 @@ internal class ExpensesScreen : BaseScreen() {
 
     context(rule: ComposeTestRule)
     private fun chipsRowBottom(): Float? {
-        return rule.onAllNodesWithTag("expenses_day_chips_row")
+        return rule.onAllNodesWithTag(ExpensesPaneTags.DAY_CHIPS_ROW)
             .fetchSemanticsNodes()
             .firstOrNull()
             ?.boundsInRoot
@@ -220,7 +183,7 @@ internal class ExpensesScreen : BaseScreen() {
 
     context(rule: ComposeTestRule)
     private fun dayHeaderTop(dayKey: String): Float? {
-        return rule.onAllNodesWithTag(dayHeaderTag(dayKey))
+        return rule.onAllNodesWithTag(ExpensesPaneTags.dayHeader(dayKey))
             .fetchSemanticsNodes()
             .firstOrNull()
             ?.boundsInRoot
@@ -229,7 +192,7 @@ internal class ExpensesScreen : BaseScreen() {
 
     context(rule: ComposeTestRule)
     private fun topAppBarBottom(): Float? {
-        return rule.onAllNodesWithTag("expenses_top_app_bar")
+        return rule.onAllNodesWithTag(ExpensesPaneTags.TOP_APP_BAR)
             .fetchSemanticsNodes()
             .firstOrNull()
             ?.boundsInRoot
@@ -241,15 +204,6 @@ internal class ExpensesScreen : BaseScreen() {
         val chipsTop = chipsRowTop() ?: return false
         val appBarBottom = topAppBarBottom() ?: return false
         return abs(chipsTop - appBarBottom) <= 4f
-    }
-
-    context(rule: ComposeTestRule)
-    private fun stickDayChipsToTopAppBar() {
-        repeat(MaxStickySearchSwipes) {
-            if (areDayChipsAttachedToTopAppBar()) return
-            swipeTimelineUp()
-        }
-        assertDayChipsAttachedToTopAppBar()
     }
 
     context(rule: ComposeTestRule)
@@ -268,18 +222,13 @@ internal class ExpensesScreen : BaseScreen() {
 
     context(rule: ComposeTestRule)
     private fun swipeTimelineUp() {
-        rule.onNodeWithTag("expenses_timeline_list").performTouchInput { swipeUp() }
-        rule.waitForIdle()
-    }
-
-    context(rule: ComposeTestRule)
-    private fun swipeTimelineDown() {
-        rule.onNodeWithTag("expenses_timeline_list").performTouchInput { swipeDown() }
+        rule.onNodeWithTag(ExpensesPaneTags.TIMELINE_LIST).performScrollToIndex(FIRST_DAY_HEADER_INDEX)
         rule.waitForIdle()
     }
 
     private companion object {
-        const val MaxStickySearchSwipes = 6
+
+        private const val FIRST_DAY_HEADER_INDEX = 4
     }
 
 }
