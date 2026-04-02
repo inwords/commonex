@@ -33,6 +33,37 @@ Do not do list preparation in Compose for:
 
 Lightweight index mapping derived from the emitted UI model (for example mapping day keys to `LazyColumn` item indices for scroll targets) is fine in Compose via `remember`, because those indices are intrinsically tied to the item order the composable emits and cannot be known earlier. See `rememberExpensesTimelineListLayout` in `ExpensesPane.kt`.
 
+### Sticky Timeline Controls Under a Scrolling TopAppBar
+
+When timeline controls such as day chips must pin directly under a scrolling Material3 `TopAppBar`, prefer an inline `LazyColumn` item plus a separately rendered overlay copy instead of `stickyHeader()`.
+
+Apply the pattern like this:
+
+- Keep the chips row as a normal lazy item so list height, item order, and scroll physics stay stable.
+- When the sticky controls belong directly under the `Scaffold` top bar, use `paddingValues.calculateTopPadding()` as the sticky boundary and as the overlay `offset(y = ...)`.
+- Measure only the inline row top with `onGloballyPositioned { coordinates.boundsInRoot() }` and show the overlay copy when that top crosses the `topPadding` boundary.
+- Keep the inline row in the list with `alpha(0f)` and cleared semantics while the overlay is active, so spacing stays stable and test tags do not duplicate.
+- When a chip scrolls to a day header, pass a negative `animateScrollToItem` offset equal to the measured pinned-row height so the header lands below the pinned controls instead of behind them.
+
+Use this when:
+
+- sticky content must sit under a collapsing or `enterAlways` app bar rather than at the lazy viewport start
+- window insets or app-bar motion make fixed `Dp` offsets drift or jump
+- the same sticky controls also drive programmatic section scrolling
+- the sticky controls live in the same `Scaffold` content layer that provides the `topPadding`
+
+Do not use this when:
+
+- native `stickyHeader()` already pins to the correct geometric boundary
+- the content only needs viewport-level sticking and does not depend on the scaffold content boundary
+- the composable is nested under extra offsets and `topPadding` no longer matches the coordinate space used to measure the inline row
+
+Validation:
+
+- during scroll, assert the pinned controls stay attached to the app-bar bottom
+- after a chip tap, assert the target day header top is at or below the pinned controls bottom
+- run UI specific test for expenses timeline
+
 ### Early Return When for IoResult in Loops
 
 When handling `IoResult` in a loop (e.g. `forEachIndexed`), use `when` with early return for the error branch instead of cast + elvis:

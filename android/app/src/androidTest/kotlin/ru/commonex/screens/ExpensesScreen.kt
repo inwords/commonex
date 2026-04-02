@@ -125,6 +125,19 @@ internal class ExpensesScreen : BaseScreen() {
     }
 
     context(rule: ComposeTestRule)
+    suspend fun waitUntilDayHeaderVisibleBelowDayChips(dayKey: String): ExpensesScreen {
+        val tag = dayHeaderTag(dayKey)
+        scrollTimelineToTag(tag)
+        rule.waitUntil(timeoutMillis = 5_000) {
+            val dayHeaderTop = dayHeaderTop(dayKey) ?: return@waitUntil false
+            val chipsBottom = chipsRowBottom() ?: return@waitUntil false
+            dayHeaderTop >= chipsBottom - 4f
+        }
+        rule.onNodeWithTag(tag).assertIsDisplayed()
+        return this
+    }
+
+    context(rule: ComposeTestRule)
     suspend fun clickDayChip(dayKey: String): ExpensesScreen {
         val tag = "expenses_day_chip_$dayKey"
         scrollTimelineToTag(tag)
@@ -144,12 +157,12 @@ internal class ExpensesScreen : BaseScreen() {
         scrollTimelineToTag(dayHeaderTag)
 
         rule.onNodeWithTag("expenses_day_chips_row").assertIsDisplayed()
-        val pinnedTop = requireNotNull(chipsRowTop()) { "Day chips row is not available" }
+        stickDayChipsToTopAppBar()
 
         swipeTimelineUp()
 
         rule.waitUntil(timeoutMillis = 5_000) {
-            chipsRowTop()?.let { currentTop -> abs(currentTop - pinnedTop) <= 4f } == true
+            areDayChipsAttachedToTopAppBar()
         }
 
         return this
@@ -197,6 +210,63 @@ internal class ExpensesScreen : BaseScreen() {
     }
 
     context(rule: ComposeTestRule)
+    private fun chipsRowBottom(): Float? {
+        return rule.onAllNodesWithTag("expenses_day_chips_row")
+            .fetchSemanticsNodes()
+            .firstOrNull()
+            ?.boundsInRoot
+            ?.bottom
+    }
+
+    context(rule: ComposeTestRule)
+    private fun dayHeaderTop(dayKey: String): Float? {
+        return rule.onAllNodesWithTag(dayHeaderTag(dayKey))
+            .fetchSemanticsNodes()
+            .firstOrNull()
+            ?.boundsInRoot
+            ?.top
+    }
+
+    context(rule: ComposeTestRule)
+    private fun topAppBarBottom(): Float? {
+        return rule.onAllNodesWithTag("expenses_top_app_bar")
+            .fetchSemanticsNodes()
+            .firstOrNull()
+            ?.boundsInRoot
+            ?.bottom
+    }
+
+    context(rule: ComposeTestRule)
+    private fun areDayChipsAttachedToTopAppBar(): Boolean {
+        val chipsTop = chipsRowTop() ?: return false
+        val appBarBottom = topAppBarBottom() ?: return false
+        return abs(chipsTop - appBarBottom) <= 4f
+    }
+
+    context(rule: ComposeTestRule)
+    private fun stickDayChipsToTopAppBar() {
+        repeat(MaxStickySearchSwipes) {
+            if (areDayChipsAttachedToTopAppBar()) return
+            swipeTimelineUp()
+        }
+        assertDayChipsAttachedToTopAppBar()
+    }
+
+    context(rule: ComposeTestRule)
+    private fun assertDayChipsAttachedToTopAppBar() {
+        val chipsTop = chipsRowTop()
+        val appBarBottom = topAppBarBottom()
+        check(
+            chipsTop != null &&
+                appBarBottom != null &&
+                abs(chipsTop - appBarBottom) <= 4f
+        ) {
+            "Expected day chips row to stay attached to the top app bar bottom, " +
+                "but chipsTop=$chipsTop and appBarBottom=$appBarBottom"
+        }
+    }
+
+    context(rule: ComposeTestRule)
     private fun swipeTimelineUp() {
         rule.onNodeWithTag("expenses_timeline_list").performTouchInput { swipeUp() }
         rule.waitForIdle()
@@ -207,4 +277,9 @@ internal class ExpensesScreen : BaseScreen() {
         rule.onNodeWithTag("expenses_timeline_list").performTouchInput { swipeDown() }
         rule.waitForIdle()
     }
+
+    private companion object {
+        const val MaxStickySearchSwipes = 6
+    }
+
 }
