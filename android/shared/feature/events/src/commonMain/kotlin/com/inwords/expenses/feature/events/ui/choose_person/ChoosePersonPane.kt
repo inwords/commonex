@@ -207,16 +207,12 @@ private fun PersonSelectionItem(
             label = "font_weight",
             transitionSpec = { tween(durationMillis = 300) }
         ) { selected -> if (selected) FontWeight.SemiBold.weight else FontWeight.Normal.weight }
-        val animatedNameTextColor by transition.animateColor(
-            label = "name_text_color",
-            transitionSpec = { tween(durationMillis = 300) }
-        ) { selected -> if (selected) colorScheme.onPrimaryContainer else colorScheme.onSurface }
 
         Text(
             text = person.name,
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight(animatedFontWeight),
-            color = animatedNameTextColor
+            color = colorScheme.onSurface
         )
     }
 }
