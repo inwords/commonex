@@ -65,7 +65,7 @@ androidx-appfunctions-service = { group = "androidx.appfunctions", name = "appfu
 
 guava = { group = "com.google.guava", name = "guava", version = "33.5.0-android" }
 
-posthog-android = { group = "com.posthog", name = "posthog-android", version = "3.39.0" } # https://github.com/PostHog/posthog-android/releases
+posthog-android = { group = "com.posthog", name = "posthog-android", version = "3.39.2" } # https://github.com/PostHog/posthog-android/releases
 
 profileinstaller = { group = "androidx.profileinstaller", name = "profileinstaller", version = "1.4.1" }
 
