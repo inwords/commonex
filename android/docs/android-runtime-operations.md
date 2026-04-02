@@ -31,6 +31,7 @@ Current production classification:
 
 - Sentry is initialized from shared KMM code through `initializeSentry(production)`.
 - The Sentry runtime config and shared `Observability.captureMessage(...)` / `Observability.captureException(...)` wrappers live in `shared:core:observability`.
+- The version source of truth for the shared SDK/plugin integration is `android/gradle/shared.versions.toml` (`sentry-kotlin-multiplatform`, `sentry-android-gradle`); do not duplicate concrete Sentry versions in runtime docs.
 - `shared:integration:base/initializeSentry.kt` is a thin compatibility delegate so Android app startup and iOS framework exports keep the same entry point.
 - The current runtime behavior sets:
     - `environment = production | development`

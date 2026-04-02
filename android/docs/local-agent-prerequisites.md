@@ -9,6 +9,7 @@ This document consolidates the local environment and tooling requirements for ru
 - **Android compile/target SDK:** `android/app/build.gradle.kts` (`compileSdk`, `targetSdk`)
 - **JDK (for running Gradle/CI):** `.github/workflows/android.yml` (`java-version` in setup-java steps)
 - **Gradle daemon toolchain metadata:** `android/gradle/gradle-daemon-jvm.properties`
+- **Android/KMM dependency and plugin versions:** `android/gradle/shared.versions.toml` (for runtime SDKs and Gradle plugins such as Sentry, Ktor, Room, Compose, and related mobile dependencies)
 
 When updating this repo, change the version in the build/CI file above; docs that say "see …" or "match CI" stay correct.
 
