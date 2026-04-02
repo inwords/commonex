@@ -1,8 +1,6 @@
 package com.inwords.expenses.feature.expenses.ui.list
 
 import androidx.compose.animation.core.FastOutLinearInEasing
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -11,17 +9,16 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListItemInfo
 import androidx.compose.foundation.lazy.LazyListLayoutInfo
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
@@ -48,16 +45,24 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -260,11 +265,7 @@ internal fun ExpensesPane(
     }
 }
 
-@OptIn(
-    ExperimentalFoundationApi::class,
-    ExperimentalMaterial3Api::class,
-    ExperimentalMaterial3ExpressiveApi::class,
-)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun ExpensesPaneSuccess(
     state: ExpensesPaneUiModel.Expenses,
@@ -292,6 +293,7 @@ private fun ExpensesPaneSuccess(
                 alpha = 1f - easedProgress,
             )
             TopAppBar(
+                modifier = Modifier.testTag("expenses_top_app_bar"),
                 title = {
                     Box(
                         modifier = Modifier
@@ -334,6 +336,7 @@ private fun ExpensesPaneSuccess(
         }
     ) { paddingValues ->
         val topPadding = paddingValues.calculateTopPadding()
+        val topPaddingPx = with(LocalDensity.current) { topPadding.toPx() }
         val bottomPadding = paddingValues.calculateBottomPadding()
         val horizontalPaddings = PaddingValues(
             start = paddingValues.calculateStartPadding(LocalLayoutDirection.current),
@@ -359,120 +362,172 @@ private fun ExpensesPaneSuccess(
             },
             onRefresh = onRefresh,
         ) {
-            val listState = rememberLazyListState()
-            val showDayChipsRow = state.dayChips.size > 1
-            val listLayout = rememberExpensesTimelineListLayout(state.daySections, showDayChipsRow)
-            val listLayoutState = rememberUpdatedState(listLayout)
-            val onVisibleDayChangedUpdated = rememberUpdatedState(onVisibleDayChanged)
-            LaunchedEffect(listState) {
-                snapshotFlow { currentVisibleTimelineDayKey(listState, listLayoutState.value) }
-                    .filterNotNull()
-                    .distinctUntilChanged()
-                    .collect { dayKey -> onVisibleDayChangedUpdated.value.invoke(dayKey) }
-            }
-            LazyColumn(
+            Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .consumeWindowInsets(PaddingValues(bottom = bottomPadding))
-                    .testTag("expenses_timeline_list"),
-                state = listState,
-                contentPadding = PaddingValues(
-                    top = topPadding,
-                    bottom = 88.dp + bottomPadding,
-                ),
             ) {
-                item {
-                    EventInfoBlock(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 16.dp),
-                        eventName = state.eventName,
-                        currentPersonName = state.currentPersonName
-                    )
-                }
+                val showDayChipsRow = state.dayChips.size > 1
+                var dayChipsRowHeightPx by remember { mutableIntStateOf(0) }
 
-                item {
-                    DebtsBlock(
-                        onDebtsDetailsClick = onDebtsDetailsClick,
-                        state = state,
-                        onReplenishmentClick = onReplenishmentClick,
-                    )
-                }
+                val listLayout = rememberExpensesTimelineListLayout(state.daySections, showDayChipsRow)
+                val listLayoutState = rememberUpdatedState(listLayout)
+                val listState = rememberLazyListState()
 
-                item {
-                    Row(modifier = Modifier.padding(start = 16.dp, top = 24.dp, end = 16.dp, bottom = 12.dp)) {
-                        Text(
-                            modifier = Modifier
-                                .alignByBaseline()
-                                .padding(end = 16.dp),
-                            text = stringResource(Res.string.expenses_operations),
-                            style = MaterialTheme.typography.headlineMedium
-                        )
-                        Text(
-                            modifier = Modifier
-                                .alignByBaseline()
-                                .testTag("expenses_total_spending_value"),
-                            text = stringResource(Res.string.expenses_total_spent, state.totalSpending),
-                            style = MaterialTheme.typography.bodyLarge,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
+                val coroutineScope = rememberCoroutineScope()
+                fun scrollToDayHeader(chip: DayChipUiModel) {
+                    onDayChipClick(chip.dayKey)
+                    val itemIndex = listLayout.dayHeaderIndexByDayKey[chip.dayKey] ?: return
+                    // LazyList scroll offsets are applied "forward", so reveal the target header
+                    // below the pinned chips row by using a negative obstruction height.
+                    val dayHeaderScrollOffsetPx = if (showDayChipsRow) -dayChipsRowHeightPx else 0
+                    coroutineScope.launch {
+                        listState.animateScrollToItem(
+                            index = itemIndex,
+                            scrollOffset = dayHeaderScrollOffsetPx,
                         )
                     }
                 }
 
-                if (showDayChipsRow) {
-                    stickyHeader(key = ExpensesTimelineLazyListKeys.STICKY_DAY_CHIPS) {
-                        val coroutineScope = rememberCoroutineScope()
-                        val isStuck by remember(listLayout) {
-                            derivedStateOf {
-                                val stickyIndex = listLayout.stickyDayChipsItemIndex
-                                stickyIndex != null && listState.firstVisibleItemIndex >= stickyIndex
-                            }
+                var inlineDayChipsTopPx by remember { mutableFloatStateOf(Float.MAX_VALUE) }
+                val showStickyDayChipsOverlay by remember(listState, listLayout, topPaddingPx) {
+                    derivedStateOf {
+                        val stickyIndex = listLayout.stickyDayChipsItemIndex ?: return@derivedStateOf false
+                        when {
+                            topPaddingPx <= 0f -> false
+                            listState.firstVisibleItemIndex > stickyIndex -> true
+                            listState.firstVisibleItemIndex < stickyIndex -> false
+                            else -> inlineDayChipsTopPx <= topPaddingPx
                         }
-                        val statusBarTopPadding = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-                        val animatedTopPadding by animateDpAsState(
-                            targetValue = if (isStuck) statusBarTopPadding else 0.dp, // TODO: maybe `topPadding`?
-                            label = "dayChipsBarTopPadding",
-                        )
-                        DayChipsBar(
-                            dayChips = state.dayChips,
-                            onDayChipClick = { chip ->
-                                onDayChipClick(chip.dayKey)
-                                val itemIndex = listLayout.dayHeaderIndexByDayKey[chip.dayKey] ?: return@DayChipsBar
-                                coroutineScope.launch { listState.animateScrollToItem(itemIndex) }
-                            },
+                    }
+                }
+
+                LaunchedEffect(listState) {
+                    snapshotFlow { currentVisibleTimelineDayKey(listState, listLayoutState.value) }
+                        .filterNotNull()
+                        .distinctUntilChanged()
+                        .collect(onVisibleDayChanged)
+                }
+
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .testTag("expenses_timeline_list"),
+                    state = listState,
+                    contentPadding = PaddingValues(
+                        top = topPadding,
+                        bottom = 88.dp + bottomPadding,
+                    ),
+                ) {
+                    item {
+                        EventInfoBlock(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .background(MaterialTheme.colorScheme.surface)
-                                .padding(top = animatedTopPadding),
+                                .padding(bottom = 16.dp),
+                            eventName = state.eventName,
+                            currentPersonName = state.currentPersonName
                         )
+                    }
+
+                    item {
+                        DebtsBlock(
+                            onDebtsDetailsClick = onDebtsDetailsClick,
+                            state = state,
+                            onReplenishmentClick = onReplenishmentClick,
+                        )
+                    }
+
+                    item {
+                        Row(modifier = Modifier.padding(start = 16.dp, top = 24.dp, end = 16.dp, bottom = 12.dp)) {
+                            Text(
+                                modifier = Modifier
+                                    .alignByBaseline()
+                                    .padding(end = 16.dp),
+                                text = stringResource(Res.string.expenses_operations),
+                                style = MaterialTheme.typography.headlineMedium
+                            )
+                            Text(
+                                modifier = Modifier
+                                    .alignByBaseline()
+                                    .testTag("expenses_total_spending_value"),
+                                text = stringResource(Res.string.expenses_total_spent, state.totalSpending),
+                                style = MaterialTheme.typography.bodyLarge,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
+
+                    if (showDayChipsRow) {
+                        item(
+                            key = ExpensesTimelineLazyListKeys.STICKY_DAY_CHIPS,
+                            contentType = "day_chips",
+                        ) {
+                            DayChipsBar(
+                                dayChips = state.dayChips,
+                                onDayChipClick = ::scrollToDayHeader,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .onGloballyPositioned { coordinates ->
+                                        inlineDayChipsTopPx = coordinates.boundsInRoot().top
+                                        dayChipsRowHeightPx = coordinates.size.height
+                                    }
+                                    .alpha(if (showStickyDayChipsOverlay) 0f else 1f)
+                                    .then(
+                                        if (showStickyDayChipsOverlay) {
+                                            Modifier.clearAndSetSemantics {}
+                                        } else {
+                                            Modifier
+                                        }
+                                    ),
+                                rowTestTag = if (showStickyDayChipsOverlay) null else "expenses_day_chips_row",
+                                chipTestTagPrefix = if (showStickyDayChipsOverlay) null else "expenses_day_chip_",
+                            )
+                        }
+                    }
+
+                    state.daySections.forEachIndexed { index, daySection ->
+                        item(
+                            key = ExpensesTimelineLazyListKeys.dayHeader(daySection.dayKey),
+                            contentType = "day_header",
+                        ) {
+                            DaySectionHeader(
+                                daySection = daySection,
+                                modifier = Modifier
+                                    .padding(start = 16.dp, end = 16.dp, top = if (index == 0) 8.dp else 16.dp, bottom = 16.dp)
+                                    .fillMaxWidth(),
+                            )
+                        }
+
+                        items(
+                            items = daySection.expenses,
+                            key = { expense -> expense.expenseId },
+                            contentType = { "expense_item" },
+                        ) { expense ->
+                            ExpenseItem(
+                                expense = expense,
+                                onExpenseClick = onExpenseClick,
+                                modifier = Modifier.padding(horizontal = 8.dp),
+                            )
+                        }
                     }
                 }
 
-                state.daySections.forEachIndexed { index, daySection ->
-                    item(
-                        key = ExpensesTimelineLazyListKeys.dayHeader(daySection.dayKey),
-                        contentType = "day_header",
-                    ) {
-                        DaySectionHeader(
-                            daySection = daySection,
-                            modifier = Modifier
-                                .padding(start = 16.dp, end = 16.dp, top = if (index == 0) 8.dp else 16.dp, bottom = 16.dp)
-                                .fillMaxWidth(),
-                        )
-                    }
-
-                    items(
-                        items = daySection.expenses,
-                        key = { expense -> expense.expenseId },
-                        contentType = { "expense_item" },
-                    ) { expense ->
-                        ExpenseItem(
-                            expense = expense,
-                            onExpenseClick = onExpenseClick,
-                            modifier = Modifier.padding(horizontal = 8.dp),
-                        )
-                    }
+                if (showDayChipsRow && showStickyDayChipsOverlay) {
+                    DayChipsBar(
+                        dayChips = state.dayChips,
+                        onDayChipClick = ::scrollToDayHeader,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .align(Alignment.TopCenter)
+                            .offset(y = topPadding)
+                            .onGloballyPositioned { coordinates ->
+                                dayChipsRowHeightPx = coordinates.size.height
+                            }
+                            .background(MaterialTheme.colorScheme.surface),
+                        rowTestTag = "expenses_day_chips_row",
+                        chipTestTagPrefix = "expenses_day_chip_",
+                    )
                 }
             }
         }
@@ -483,6 +538,8 @@ private fun ExpensesPaneSuccess(
 private fun DayChipsBar(
     dayChips: List<DayChipUiModel>,
     onDayChipClick: (chip: DayChipUiModel) -> Unit,
+    rowTestTag: String?,
+    chipTestTagPrefix: String?,
     modifier: Modifier = Modifier,
 ) {
     val chipsListState = rememberLazyListState()
@@ -499,7 +556,7 @@ private fun DayChipsBar(
         state = chipsListState,
         modifier = modifier
             .fillMaxWidth()
-            .testTag("expenses_day_chips_row"),
+            .then(if (rowTestTag == null) Modifier else Modifier.testTag(rowTestTag)),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         contentPadding = PaddingValues(start = 8.dp, end = 8.dp, bottom = 8.dp),
     ) {
@@ -508,7 +565,11 @@ private fun DayChipsBar(
             key = { it.dayKey },
         ) { chip ->
             FilterChip(
-                modifier = Modifier.testTag("expenses_day_chip_${chip.dayKey}"),
+                modifier = if (chipTestTagPrefix == null) {
+                    Modifier
+                } else {
+                    Modifier.testTag("$chipTestTagPrefix${chip.dayKey}")
+                },
                 selected = chip.isSelected,
                 onClick = { onDayChipClick(chip) },
                 label = {
