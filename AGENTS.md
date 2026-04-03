@@ -43,9 +43,7 @@ CommonEx is a multi-platform expense sharing application with Android/iOS (KMM),
 ## Documentation hygiene
 
 - Use .agents/skills/sync-docs-from-session to propose doc/instruction updates from session-verified knowledge.
-- Repo skills: `android/.agents/skills/add-ui-test` (Android UI tests), `android/.agents/skills/prepare-mobile-release` (mobile release SOP), `android/.agents/skills/run-android-local-long-task` (long local Android runs; see
-  `android/docs/local-agent-prerequisites.md` for prerequisites), `.agents/skills/sync-docs-from-session` (doc sync), `.agents/skills/write-unit-tests` (repo unit-test writing guidance).
-- Skills may include `agents/openai.yaml` for UI metadata/discoverability.
+- Skills are discovered automatically from `.agents/skills/` directories. Skills may include `agents/openai.yaml` for UI metadata/discoverability.
 - Prefer `docs/README.md` for cross-project doc discovery and a project-local `docs/README.md` when that project has multiple focused docs.
 - Keep instructions short and linked rather than duplicated.
 - If you add new scoped instructions, update this file with a pointer.
@@ -73,6 +71,6 @@ CommonEx is a multi-platform expense sharing application with Android/iOS (KMM),
 
 When to consult current official documentation (search or read upstream docs):
 
-- **Do search** for: recent library or tool versions, migration guides, tooling/configuration changes, version-specific errors, or APIs likely newer than the model’s knowledge. Prefer official docs, changelogs, release notes, and migration guides.
+- **Do search** for: recent library or tool versions, migration guides, tooling/configuration changes, version-specific errors, APIs likely newer than the model’s knowledge, any API you haven’t used in the current session, and configuration changes you’re not fully confident about. When the library major version in the project is newer than your training data, always verify against current docs. Prefer official docs, changelogs, release notes, and migration guides.
 - **Do not** search externally for stable, repo-local conventions already documented in this repo (e.g. build commands, validation steps, patterns in `AGENTS.md` or project docs).
 - **Flag conflicts**: If upstream documentation contradicts repo guidance, call out the conflict and suggest resolving it (e.g. update repo docs or align with upstream) rather than silently overriding.

@@ -13,11 +13,11 @@ CommonEx backend is a NestJS service that provides REST and gRPC APIs for the ex
 - Swagger static assets: `@fastify/static` runtime dependency (pinned; currently `9.0.0`)
 - Database: PostgreSQL with TypeORM
 - APIs: REST and gRPC
-- Observability: OpenTelemetry (`@fastify/otel` + allowlisted Node auto-instrumentations)
+- Observability: OpenTelemetry (`@fastify/otel` + allowlisted Node auto-instrumentations). See [`docs/otel-runtime.md`](docs/otel-runtime.md) for details.
 - Linting: ESLint 10 flat config (`eslint.config.js`) with `eslint-config-prettier` compatibility
 - Formatting: Prettier 3.8 is explicit-only via `npm run format`; backend lint does not run Prettier as an ESLint rule
-- Testing: Jest 30 with ts-jest
-- Language: TypeScript 5.9
+
+**Freshness note:** NestJS v11, ESLint 10 flat config, and TypeORM APIs may be newer than training data. Verify against current upstream docs when implementing.
 
 ## Architecture
 
@@ -29,19 +29,6 @@ Clean architecture with layered boundaries:
 - Frameworks (`src/frameworks`): persistence, external services, infrastructure adapters
 
 Flow direction: API -> use cases -> domain abstractions -> frameworks implementations.
-
-## Key File Locations
-
-- Main entry: `src/main.ts`
-- OpenTelemetry bootstrap: `src/otel.ts`
-- Env parsing and defaults: `src/config.ts`
-- App module: `src/app.module.ts`
-- Domain entities: `src/domain/entities/`
-- Value objects: `src/domain/value-objects/`
-- Use cases: `src/usecases/`
-- API controllers: `src/api/http/`, `src/api/grpc/`
-- TypeORM entities and repositories: `src/frameworks/relational-data-service/`
-- Migrations: `migrations/default/`
 
 ## Prerequisites
 
@@ -64,62 +51,30 @@ Flow direction: API -> use cases -> domain abstractions -> frameworks implementa
       `POSTGRES_SCHEMA`
     - `OPEN_EXCHANGE_RATES_API_ID`
     - `DEVTOOLS_SECRET`
-    - optional `OTEL_SERVICE_NAME` (defaults to `commonex-backend` in `src/config.ts`; set it only when you need a
-      non-default service name)
+    - optional `OTEL_SERVICE_NAME` (defaults to `commonex-backend` in `src/config.ts`)
     - PostgreSQL pool and timeout/keepalive defaults are defined in `src/config.ts` and applied in
-      `src/frameworks/relational-data-service/postgres/config.ts` (pool min/idle timeout, TCP keepalive, statement,
-      lock, idle-in-transaction, and client query timeouts)
+      `src/frameworks/relational-data-service/postgres/config.ts`
 
 ## Essential Commands
 
 Always run commands from `backend/`.
 
 ```bash
-npm run start
 npm run start:dev
-npm run start:debug
-npm run start:prod
-
 npm run build
 npm run lint
 npm run format
-
 npm run test
-npm run test:watch
 npm run test:cov
-
 npm run db:migrate
 npm run db:migrate:new
-npm run db:migrate:empty
-npm run db:migrate:docker_prod
-npm run db:drop
 ```
-
-`npm run test:e2e` points to `./test/jest-e2e.json`; this config file is currently missing in this repository.
 
 ## Runtime Endpoints
 
 - Swagger UI: `/swagger/api`
 - Health endpoint: `/health`
 - gRPC listener: `0.0.0.0:5000`
-- OTLP gRPC exporter target in backend runtime: `http://otelcollector:4317` (`src/otel.ts`)
-
-## OpenTelemetry Runtime
-
-- Bootstrap file: `src/otel.ts`
-- Fastify server tracing: `@fastify/otel` instrumentation is created in `src/otel.ts` and its plugin is manually
-  registered in `src/main.ts` before `NestFactory.create(...)`
-- Enabled auto-instrumentations are allowlisted to:
-  `@opentelemetry/instrumentation-grpc`,
-  `@opentelemetry/instrumentation-pg`,
-  `@opentelemetry/instrumentation-nestjs-core`,
-  `@opentelemetry/instrumentation-runtime-node`
-- HTTP server metrics are produced by `src/frameworks/observability/fastify-http-metrics.plugin.ts`, registered in
-  `src/main.ts` before Nest app creation.
-- `http.server.request.duration` histogram boundaries are configured via `NodeSDK` views in `src/otel.ts`
-  (meter `commonex-backend.fastify-http`).
-- Metrics export interval: `5000` ms (`PeriodicExportingMetricReader`)
-- Graceful SDK shutdown hooks are registered for `SIGTERM` and `SIGINT` via `process.once(...)`
 
 ## Development Workflow
 
@@ -136,110 +91,39 @@ npm run db:drop
 - Keep the domain layer free of framework-specific code.
 - Keep TypeORM decorators and persistence logic in the `frameworks/` layer.
 - Use `class-validator` for API DTO validation.
-- When using TypeORM `getRawOne` / `getRawMany`, prefer precise raw result types that match the current `pg` parser behavior verified in this repo; avoid defensive unions such as `Date | string` unless that specific code path can actually return both.
+- When using TypeORM `getRawOne` / `getRawMany`, prefer precise raw result types that match the current `pg` parser behavior; avoid defensive unions such as `Date | string` unless that code path can actually return both.
 - Use SQL casts in raw projections only when they materially improve the returned JS type, for example `COUNT(...)::integer` to avoid `bigint` string results.
 - Backend lint source of truth is `eslint.config.js`; do not add or rely on legacy `.eslintrc.*` files.
-- Keep backend formatting aligned with the repo `.editorconfig`; backend Prettier is configured for LF line endings, but it is reserved for explicit formatting runs rather than `lint --fix`.
-- Backend line-length enforcement is `160` characters via ESLint `max-len`; keep intentional multiline layouts when they already fit instead of reflowing them just because they can fit on one line.
+- Keep backend formatting aligned with the repo `.editorconfig`; backend Prettier is reserved for explicit formatting runs.
+- Backend line-length enforcement is `160` characters via ESLint `max-len`.
 - Keep HTTP guards/filters adapter-agnostic: avoid direct `fastify`/`express` request-response types; prefer
-  `HttpAdapterHost`/`AbstractHttpAdapter` and generic request header typing.
-- When a user-facing backend flow needs currencies, rate maps, or currency-version metadata subject to support gating,
-  inject `SupportedCurrencyServiceAbstract` instead of reading raw `currency` / `currencyRate` repositories in the use
-  case. Reserve raw repository access for bootstrap, ingestion, devtools, or other full-dataset paths that
-  intentionally operate on the PostgreSQL superset.
-- For user-facing conditional GET routes that have both a lightweight revalidation path and a full payload path, keep
-  one shared version/validator shape for ETag generation and add tests that prove the `304` path emits the same
-  validator as the `200` path for the same DB state.
+  `HttpAdapterHost`/`AbstractHttpAdapter`.
+- When a user-facing flow needs currencies or currency-version metadata subject to support gating,
+  inject `SupportedCurrencyServiceAbstract` instead of reading raw repositories in the use case.
+- For user-facing conditional GET routes, keep one shared version/validator shape for ETag generation and add tests that
+  prove the `304` path emits the same validator as the `200` path for the same DB state.
 - Keep changes minimal and focused on root causes.
 
 ## Common Tasks
 
-- Add a use case:
-    - create/update `src/usecases/...`
-    - wire dependencies in `usecases.layer.ts` / module providers
-    - add/update tests beside the use case
-- Add a REST endpoint:
-    - add DTO/controller under `src/api/http`
-    - map DTO -> use case input
-    - keep transport-specific types out of use-case/domain signatures
-- Add a migration:
-    - update TypeORM layer
-    - generate migration via `npm run db:migrate:new`
-    - verify and apply migration
+- Add a use case: create in `src/usecases/`, wire in `usecases.layer.ts`, add tests beside use case.
+- Add a REST endpoint: add DTO/controller under `src/api/http`, map DTO -> use case input.
+- Add a migration: update TypeORM layer, generate via `npm run db:migrate:new`, verify and apply.
 
 ## Testing
 
-- Unit/integration tests:
-  ```bash
-  npm run test
-  npm run test:cov
-  ```
-- Local DB-backed runs (PowerShell, when PostgreSQL is on `5432`):
-  ```powershell
-  $env:POSTGRES_HOST='127.0.0.1'
-  $env:POSTGRES_PORT='5432'
-  $env:POSTGRES_USER_NAME='postgres'
-  $env:POSTGRES_PASSWORD='postgres'
-  $env:POSTGRES_DATABASE='postgres'
-  $env:POSTGRES_SCHEMA='public'
-  $env:OPEN_EXCHANGE_RATES_API_ID='test'
-  $env:DEVTOOLS_SECRET='test-secret'
-  npm run db:migrate
-  npm run test
-  ```
-- Temporary Docker DB-backed runs (PowerShell, when no local PostgreSQL is available):
-  ```powershell
-  docker run --rm -d --name commonex-backend-test-db `
-    -e POSTGRES_PASSWORD='postgres' `
-    -e POSTGRES_USER='postgres' `
-    -e POSTGRES_DB='postgres' `
-    -p 55432:5432 postgres:16-alpine
+```bash
+npm run test
+npm run test:cov
+```
 
-  $env:POSTGRES_HOST='127.0.0.1'
-  $env:POSTGRES_PORT='55432'
-  $env:POSTGRES_USER_NAME='postgres'
-  $env:POSTGRES_PASSWORD='postgres'
-  $env:POSTGRES_DATABASE='postgres'
-  $env:POSTGRES_SCHEMA='public'
-  $env:OPEN_EXCHANGE_RATES_API_ID='test'
-  $env:DEVTOOLS_SECRET='test-secret'
-  node node_modules/ts-node/dist/bin.js --transpile-only scripts/migrate.ts
-  node node_modules/jest/bin/jest.js --runInBand
-  docker stop commonex-backend-test-db
-  ```
+For PowerShell-specific test setups (local DB, Docker DB), see [`docs/troubleshooting.md`](docs/troubleshooting.md).
 
 ## Deployment
 
 - Backend container runs migrations before app start (`db:migrate:docker_prod` then `start:prod`).
-- HTTP service runs on `3001`; gRPC service runs on `5000`.
+- HTTP service on `3001`; gRPC on `5000`.
 - Health endpoint: `/health`.
-- Production compose currently does not set `OTEL_SERVICE_NAME` on blue/green backend services, so the backend default
-  (`commonex-backend`) is used unless explicitly overridden.
-
-## Troubleshooting
-
-- Missing `@fastify/static`: app can fail during Swagger setup on Fastify.
-- Missing HTTP/Fastify spans after migration: ensure `fastifyOtelInstrumentation.plugin()` is registered in
-  `src/main.ts` before Nest app creation and `fastifyOtelInstrumentation` is included in NodeSDK instrumentations in
-  `src/otel.ts` (`@opentelemetry/instrumentation-http` is intentionally disabled).
-- Missing HTTP request metrics: ensure `fastifyHttpMetricsPlugin` is registered in `src/main.ts` and `src/otel.ts`
-  still defines the `http.server.request.duration` view for meter `commonex-backend.fastify-http`.
-- Grafana query note:
-  `sum by(http.route, http.request.method, http.response.status_code) (rate(http.server.request.duration_count[$__rate_interval]))`
-  is valid for request-rate panels; timeout/client-abort points can have missing `http.response.status_code`, which
-  may produce an empty-status series unless filtered.
-- Env parsing errors on startup: verify required `.env` keys are present and non-empty.
-- DB connection failures: verify PostgreSQL availability and credentials, then run `npm run db:migrate`.
-- Frequent PG reconnects: check `src/config.ts` and
-  `src/frameworks/relational-data-service/postgres/config.ts` for pool/connection settings (`min`, `idleTimeout`,
-  `keepAlive`, `keepAliveInitialDelayMillis`, `connectionTimeoutMillis`).
-- Query timeout layering: backend config sets client-side `query_timeout` slightly above server-side
-  `statement_timeout` to avoid client timeout racing before PostgreSQL statement timeout.
-- PowerShell script-policy issues on local machine: `npm run ...` can fail because package scripts resolve to
-  `*.ps1` shims such as `eslint.ps1` and `jest.ps1`. Use CMD or direct binary paths when needed, for example:
-  `.\node_modules\.bin\nest.cmd build`,
-  `.\node_modules\.bin\jest.cmd --runInBand`,
-  or `node node_modules/@nestjs/cli/bin/nest.js build`.
 
 ## Dependency Version Policy
 
@@ -248,10 +132,12 @@ npm run db:drop
 
 ## Validation Steps
 
-Before submitting backend changes, run:
+Before submitting backend changes:
 
 ```bash
 npm run lint
 npm run test
 npm run build
 ```
+
+For troubleshooting, see [`docs/troubleshooting.md`](docs/troubleshooting.md).

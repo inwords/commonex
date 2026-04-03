@@ -5,7 +5,7 @@
 GitHub: [Gradle Versions Plugin](https://github.com/ben-manes/gradle-versions-plugin)
 
 To check for dependency updates run:
-`./gradlew dependencyUpdates --refresh-dependencies -Drevision=release`
+`./gradlew --quiet dependencyUpdates --refresh-dependencies -Drevision=release`
 
 Report location:
 `./build/dependencyUpdates/report.txt`
@@ -84,10 +84,10 @@ Common commands from `android/`:
 
 ```bash
 # Generate the release baseline profile through the target app plugin wiring
-./gradlew :app:generateBaselineProfile
+./gradlew --quiet :app:generateBaselineProfile
 
 # Run startup macrobenchmarks for the baselineprofile module
-./gradlew :baselineprofile:connectedBenchmarkReleaseAndroidTest
+./gradlew --quiet :baselineprofile:connectedBenchmarkReleaseAndroidTest
 ```
 
 Current scope notes:

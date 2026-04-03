@@ -37,11 +37,11 @@ Apply in order; stop once the chosen profile passes.
 
 ### Fast local gate (use first for most tasks)
 
-Run from `android/` with `.\gradlew` (Windows) or `./gradlew` (Mac/Linux):
+Run from `android/` with `.\gradlew` (Windows) or `./gradlew` (Mac/Linux). **ALWAYS** use `--quiet` flag. Exit code 0 is **ALWAYS** success regardless of output.
 
-1. `.\gradlew assembleDebug`
-2. `.\gradlew testHostTest`
-3. `.\gradlew lintDebug`
+1. `./gradlew --quiet assembleDebug`
+2. `./gradlew --quiet testHostTest`
+3. `./gradlew --quiet lintDebug`
 
 Use for: Standard, Resources, or when the change is clearly limited in scope.
 
@@ -49,22 +49,22 @@ Use for: Standard, Resources, or when the change is clearly limited in scope.
 
 Use when the task touches `shared/`, DB, navigation, or build logic:
 
-1. `.\gradlew test`
-2. `.\gradlew testHostTest`
-3. `.\gradlew lint --continue`
-4. `.\gradlew :shared:integration:base:linkDebugFrameworkIosSimulatorArm64` (if shared/KMM code changed; KMM defines iosArm64 and iosSimulatorArm64 only, no iosX64)
+1. `./gradlew --quiet test`
+2. `./gradlew --quiet testHostTest`
+3. `./gradlew --quiet lint --continue`
+4. `./gradlew --quiet :shared:integration:base:linkDebugFrameworkIosSimulatorArm64` (if shared/KMM code changed; KMM defines iosArm64 and iosSimulatorArm64 only, no iosX64)
 
 ### Instrumented path (only when the task requires it)
 
 Use only when the task explicitly involves device/emulator behavior, UI E2E, or deeplinks:
 
-1. `.\gradlew assembleAutotest` and `.\gradlew :app:assembleAutotestAndroidTest`
+1. `./gradlew --quiet assembleAutotest` and `./gradlew --quiet :app:assembleAutotestAndroidTest`
 2. Then one of:
-    - Connected device/emulator: `.\gradlew :app:connectedAutotestAndroidTest "-Dcom.android.tools.r8.disableApiModeling=true"`
-    - Managed device: `.\gradlew :app:pixel6Api35AtdAutotestAndroidTest "-Dcom.android.tools.r8.disableApiModeling=true"`
+    - Connected device/emulator: `./gradlew --quiet :app:connectedAutotestAndroidTest "-Dcom.android.tools.r8.disableApiModeling=true"`
+    - Managed device: `./gradlew --quiet :app:pixel6Api35AtdAutotestAndroidTest "-Dcom.android.tools.r8.disableApiModeling=true"`
     - Marathon: see `android/marathon/README.md` (requires local `marathon/` distribution)
 
-PowerShell: quote `-D...` properties (e.g. `"-Dcom.android.tools.r8.disableApiModeling=true"`). If Gradle misparses, use `cmd /c "..."` for that command.
+PowerShell: use `.\gradlew` and quote `-D...` properties. If Gradle misparses, use `cmd /c "..."` for that command.
 
 ## Stop / Ask Conditions
 
@@ -91,5 +91,8 @@ Keep the report concise; avoid duplicating full command logs unless relevant to 
 
 - `android/AGENTS.md` – main Android instructions and commands
 - `android/docs/local-agent-prerequisites.md` – local environment and worktree copy rules
+- `android/docs/testing-patterns.md` – testing strategy and instrumented test architecture
+- `android/docs/compose-ui-rules.md` – mandatory Compose M3 UI/UX rules
+- `android/docs/feature-workflows.md` – step-by-step feature development procedures
 - `android/.agents/skills/add-ui-test/SKILL.md` – UI test authoring
 - `android/.agents/skills/prepare-mobile-release/SKILL.md` – release SOP

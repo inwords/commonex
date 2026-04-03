@@ -24,11 +24,11 @@ Follow the mobile release SOP: bump version on **Android and iOS** in lockstep, 
 - TAG = release/YYYY-MM-N/P (VERSION_NAME with dots replaced by hyphens + PATCH)
 - PATH_PREFIX = "" if RUN_FROM = android/, otherwise "android/"
 - IOS_PROJECT = PATH_PREFIX + "iosApp/iosApp.xcodeproj/project.pbxproj"
-- GRADLEW_CMD:
-    - repo-root + PowerShell: .\\android\\gradlew -p android
-    - repo-root + bash: ./android/gradlew -p android
-    - android/ + PowerShell: .\\gradlew
-    - android/ + bash: ./gradlew
+- GRADLEW_CMD (always append `--quiet`):
+    - repo-root + PowerShell: .\\android\\gradlew -p android --quiet
+    - repo-root + bash: ./android/gradlew -p android --quiet
+    - android/ + PowerShell: .\\gradlew --quiet
+    - android/ + bash: ./gradlew --quiet
 
 ## Preconditions (stop if any fail)
 
@@ -55,7 +55,7 @@ Follow the mobile release SOP: bump version on **Android and iOS** in lockstep, 
 ### Step 2: Generate baseline/startup profiles (Android)
 
 1) Run:
-    - GRADLEW_CMD :app:generateBaselineProfile
+    - GRADLEW_CMD --quiet :app:generateBaselineProfile
 2) Verify:
     - Build succeeds ("BUILD SUCCESSFUL")
     - Files updated:

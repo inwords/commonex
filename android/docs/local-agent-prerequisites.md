@@ -18,7 +18,7 @@ When updating this repo, change the version in the build/CI file above; docs tha
 - **JDK:** Use the same version as CI (see `java-version` in `.github/workflows/android.yml`). Set `JAVA_HOME` accordingly. Project JVM target is 17; the daemon is run with the JDK from CI.
 - **Gradle daemon metadata:** `android/gradle/gradle-daemon-jvm.properties` should stay aligned with the JDK used by CI for Gradle runs.
 - **Android SDK:** Compile/target SDK and min SDK are in `app/build.gradle.kts`; ensure the SDK you install provides the required API level. Use the Gradle wrapper; do not install Gradle separately (version is in `gradle/wrapper/gradle-wrapper.properties`).
-- **Commands:** Run `.\gradlew` from `android/` on Windows, `./gradlew` on Mac/Linux.
+- **Commands:** Run `.\gradlew --quiet` from `android/` on Windows, `./gradlew --quiet` on Mac/Linux.
 
 ## local.properties and ANDROID_SDK_ROOT
 

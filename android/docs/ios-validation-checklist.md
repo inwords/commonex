@@ -25,7 +25,7 @@ unchanged unless you also update `.github/workflows/android.yml`.
 Or via Gradle from `android/`:
 
 ```bash
-./gradlew :shared:integration:base:linkDebugFrameworkIosSimulatorArm64
+./gradlew --quiet :shared:integration:base:linkDebugFrameworkIosSimulatorArm64
 ```
 
 ## 2. Release Archive Build
@@ -45,16 +45,16 @@ The KMM plugin defines **iosArm64** and **iosSimulatorArm64** only. To verify sh
 
 ```bash
 cd android
-./gradlew :shared:integration:base:linkDebugFrameworkIosSimulatorArm64
+./gradlew --quiet :shared:integration:base:linkDebugFrameworkIosSimulatorArm64
 ```
 
 There are currently no checked-in `src/iosTest` or `src/iosSimulatorArm64Test` sources in this repo, so CI remains build-only unless an iOS test target is added later. If you introduce iOS tests, use this simulator command:
 
 ```bash
-./gradlew iosSimulatorArm64Test
+./gradlew --quiet iosSimulatorArm64Test
 ```
 
-Do not use `./gradlew iosX64Test`; that target is not configured in this project.
+Do not use `./gradlew --quiet iosX64Test`; that target is not configured in this project.
 
 Until then, the link task above is the repo's automated KMM iOS compilation check.
 

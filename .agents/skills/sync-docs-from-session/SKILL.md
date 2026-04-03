@@ -149,7 +149,7 @@ When a pattern qualifies:
 
 1) Add it to the proposal list even if the user did not explicitly ask for pattern docs.
 2) Prefer updating the canonical patterns/design doc for that area (`docs/*`, `android/docs/*`, README section, etc.) instead of documenting the full rule only in `AGENTS.md`.
-3) Keep `AGENTS.md` concise: add a short pointer or rule there only if it helps agent execution, and link to the canonical doc when possible.
+3) Keep `AGENTS.md` concise (~200 lines max): add a short pointer or rule there only if it helps agent execution, and link to the canonical doc when possible.
 4) If no obvious canonical doc exists, first evaluate whether an existing doc can hold the new knowledge cleanly without becoming a mixed-purpose sink.
 5) If the knowledge is durable, cross-cutting, and would be a better source of truth as its own topic (for example a repo-wide contract, protocol guide, or subsystem reference), propose a new doc instead of forcing it into an ill-fitting existing file.
 6) When proposing a new doc, also propose the minimal backlink(s) needed from existing docs so it is discoverable.
@@ -166,11 +166,15 @@ When a pattern qualifies:
 
 ## What to update (repo-wide)
 
-- AGENTS.md (root and project-level)
+- AGENTS.md (root and project-level — keep these concise, ~200 lines max; extract details to docs)
 - Skill `SKILL.md` files
 - `docs/agent-workflows.md`
 - README.md
-- docs/* and any project `docs/*` folders
+- docs/* and any project `docs/*` folders, including:
+    - `android/docs/` — patterns.md, compose-ui-rules.md, testing-patterns.md, feature-workflows.md, project-structure.md, troubleshooting.md, and other focused docs
+    - `backend/docs/` — troubleshooting.md, otel-runtime.md
+    - `web/docs/` — troubleshooting.md
+    - `infra/docs/` — troubleshooting.md
 - New docs under `docs/*` or project `docs/*` when no existing file is a good canonical fit
 - Any other documentation files referenced by the user
 

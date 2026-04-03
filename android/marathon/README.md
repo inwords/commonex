@@ -48,7 +48,7 @@ If PowerShell blocks direct script execution, run `powershell -NoProfile -Execut
 
 ```bash
 # Build APKs for Marathon
-./gradlew :app:assembleAutotest :app:assembleAutotestAndroidTest -Dcom.android.tools.r8.disableApiModeling
+./gradlew --quiet :app:assembleAutotest :app:assembleAutotestAndroidTest -Dcom.android.tools.r8.disableApiModeling
 
 # Ensure Android SDK path is set
 export ANDROID_SDK_ROOT="/path/to/Android/Sdk"

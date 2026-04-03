@@ -31,13 +31,13 @@ Write the smallest useful tests that lock observable behavior without coupling t
 
 ### Android/KMM
 
-- Read `android/AGENTS.md` first and follow Android MCP-first validation when available.
+- Read `android/AGENTS.md` first and follow Android MCP-first validation when available. See `android/docs/testing-patterns.md` for detailed test architecture and patterns.
 - Put multiplatform-safe tests in `commonTest`.
 - Use `androidHostTest` only for JVM-only APIs, platform wiring, or when the module already follows that pattern.
 - Reuse existing `runTest`, Turbine, `MockEngine`, and fixture helpers instead of building new harnesses.
 - When a bug comes from UI-derived pure logic, lock the branch matrix in `commonTest` or `androidHostTest` first, then leave only real Compose layout or semantics gaps for a targeted instrumented regression.
 - For adapter tests, keep assertions on request shape and code-owned result mapping; leave generic retry and transport coverage to the shared network utilities that already own it.
-- Prefer focused validation first, for example `.\gradlew :module:testAndroidHostTest --tests "pkg.ClassTest"`.
+- Prefer focused validation first, for example `./gradlew --quiet :module:testAndroidHostTest --tests "pkg.ClassTest"`.
 
 ### Backend
 

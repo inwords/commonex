@@ -13,6 +13,11 @@ Use this index as the Android and iOS operational doc map. Keep detailed guidanc
 - [`mobile-sync-and-sharing.md`](mobile-sync-and-sharing.md) - Canonical mobile reference for offline-first IDs, join/share links, deep links, and sync behavior.
 - [`android-runtime-operations.md`](android-runtime-operations.md) - Android startup/runtime behavior, Sentry, StrictMode, WorkManager, sync bootstrap, and AppFunctions.
 - [`patterns.md`](patterns.md) - Android/KMM coding and architecture patterns.
+- [`compose-ui-rules.md`](compose-ui-rules.md) - 40 mandatory Compose Material 3 UI/UX rules.
+- [`testing-patterns.md`](testing-patterns.md) - Testing strategy, instrumented test architecture, KMM test patterns.
+- [`feature-workflows.md`](feature-workflows.md) - Step-by-step procedures: event sharing, add participants, add currency, new module/entity, database work.
+- [`project-structure.md`](project-structure.md) - Module tree, key files, configuration, Gradle plugins, package structure.
+- [`troubleshooting.md`](troubleshooting.md) - Build warnings, common issues, runtime debugging, environment setup.
 
 ## Local Setup And Tooling
 

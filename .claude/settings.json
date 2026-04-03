@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd android && ./gradlew *)",
+      "Bash(cd android && ./gradlew:*)"
+    ]
+  }
+}

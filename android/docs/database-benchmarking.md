@@ -49,9 +49,9 @@
 ## Runbook (Physical Device)
 
 1. Install benchmark tests once:
-    - `./gradlew :benchmarks:databases:installReleaseAndroidTest`
+    - `./gradlew --quiet :benchmarks:databases:installReleaseAndroidTest`
 2. Execute full suite:
-    - `./gradlew :benchmarks:databases:connectedReleaseAndroidTest`
+    - `./gradlew --quiet :benchmarks:databases:connectedReleaseAndroidTest`
 3. Repeat process-level runs (default: 5). Fast repeat path without rebuild:
     - `adb -s <SERIAL> logcat -c`
     - `adb -s <SERIAL> shell am force-stop com.inwords.expenses.benchmarks.databases.test`

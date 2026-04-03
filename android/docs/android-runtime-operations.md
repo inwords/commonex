@@ -96,7 +96,7 @@ Operational constraints:
 
 - AppFunctions delegate into existing event/expense domain logic through `ComponentsMap`.
 - The dedicated device-test command is:
-  `./gradlew :shared:integration:base:connectedAndroidDeviceTest`
+  `./gradlew --quiet :shared:integration:base:connectedAndroidDeviceTest`
 - `shared:integration:base` uses `execution = "HOST"` for its `androidDeviceTest` source set because orchestrator-based test discovery did not report results correctly for this module.
 
 ## Deep Links
