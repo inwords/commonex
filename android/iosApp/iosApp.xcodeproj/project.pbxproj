@@ -162,7 +162,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "cd \"$SRCROOT/..\"\n./gradlew :shared:integration:base:embedAndSignAppleFrameworkForXcode --no-daemon --no-configuration-cache\n";
+			shellScript = "cd \"$SRCROOT/..\"\nexport GRADLE_OPTS=\"-Xmx8G -XX:+UseParallelGC\"\n./gradlew :shared:integration:base:embedAndSignAppleFrameworkForXcode --no-daemon --no-configuration-cache\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
