@@ -151,7 +151,7 @@ services:
       - monitoring-network
 
   victoriametrics:
-    image: victoriametrics/victoria-metrics:v1.138.0
+    image: victoriametrics/victoria-metrics:v1.139.0
     container_name: victoriametrics
     deploy:
       resources:
