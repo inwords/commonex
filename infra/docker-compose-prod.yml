@@ -151,7 +151,7 @@ services:
       - monitoring-network
 
   victoriametrics:
-    image: victoriametrics/victoria-metrics:v1.138.0
+    image: victoriametrics/victoria-metrics:v1.139.0
     container_name: victoriametrics
     deploy:
       resources:
@@ -228,7 +228,7 @@ services:
       - db-network
 
   certbot:
-    image: certbot/certbot:v5.4.0
+    image: certbot/certbot:v5.5.0
     deploy:
       resources:
         limits:
