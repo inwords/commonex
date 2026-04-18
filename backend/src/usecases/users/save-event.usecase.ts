@@ -11,7 +11,7 @@ import {CurrencyNotFoundError} from '#domain/errors/errors';
 import {IdempotencySharedUseCase} from '#usecases/shared/idempotency.usecase';
 
 type InputCore = {users: Array<Omit<IUserInfo, 'id' | 'eventId'>>; event: Pick<IEvent, 'name' | 'currencyId' | 'pinCode'>};
-type Input = InputCore & {idempotencyKey?: string; url?: string};
+type Input = InputCore & {idempotencyKey?: string; url: string};
 type Output = Result<IEvent & {users: IUserInfo[]}, CurrencyNotFoundError>;
 
 @Injectable()
@@ -24,7 +24,7 @@ export class SaveEventUseCase implements UseCase<Input, Output> {
 
   public async execute(input: Input): Promise<Output> {
     const {idempotencyKey, url, ...core} = input;
-    return this.idempotencyUseCase.execute(idempotencyKey, url ?? '', core, () => this.executeCore(core));
+    return this.idempotencyUseCase.execute(idempotencyKey, url, core, () => this.executeCore(core));
   }
 
   private async executeCore({event, users}: InputCore): Promise<Output> {
