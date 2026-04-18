@@ -13,7 +13,7 @@ import {EventNotFoundError, EventDeletedError, CurrencyNotFoundError, CurrencyRa
 import {IdempotencySharedUseCase} from '#usecases/shared/idempotency.usecase';
 
 type InputCore = Omit<IExpense, 'createdAt' | 'id' | 'updatedAt'> & Partial<Pick<IExpense, 'createdAt'>>;
-type Input = InputCore & {idempotencyKey?: string; url?: string};
+type Input = InputCore & {idempotencyKey?: string; url: string};
 type Output = Result<IExpense, EventNotFoundError | EventDeletedError | CurrencyNotFoundError | CurrencyRateNotFoundError>;
 
 @Injectable()
@@ -27,7 +27,7 @@ export class SaveEventExpenseUseCase implements UseCase<Input, Output> {
 
   public async execute(input: Input): Promise<Output> {
     const {idempotencyKey, url, ...core} = input;
-    return this.idempotencyUseCase.execute(idempotencyKey, url ?? '', core, () => this.executeCore(core));
+    return this.idempotencyUseCase.execute(idempotencyKey, url, core, () => this.executeCore(core));
   }
 
   private async executeCore(input: InputCore): Promise<Output> {

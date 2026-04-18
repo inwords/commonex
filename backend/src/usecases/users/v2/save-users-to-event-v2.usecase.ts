@@ -11,7 +11,7 @@ import {EventNotFoundError, EventDeletedError, InvalidPinCodeError} from '#domai
 import {IdempotencySharedUseCase} from '#usecases/shared/idempotency.usecase';
 
 type InputCore = {users: Array<Omit<IUserInfo, 'id' | 'eventId'>>} & {pinCode: IEvent['pinCode']; eventId: IEvent['id']};
-type Input = InputCore & {idempotencyKey?: string; url?: string};
+type Input = InputCore & {idempotencyKey?: string; url: string};
 type Output = Result<Array<IUserInfo>, EventNotFoundError | EventDeletedError | InvalidPinCodeError>;
 
 @Injectable()
@@ -24,7 +24,7 @@ export class SaveUsersToEventV2UseCase implements UseCase<Input, Output> {
 
   public async execute(input: Input): Promise<Output> {
     const {idempotencyKey, url, ...core} = input;
-    return this.idempotencyUseCase.execute(idempotencyKey, url ?? '', core, () => this.executeCore(core));
+    return this.idempotencyUseCase.execute(idempotencyKey, url, core, () => this.executeCore(core));
   }
 
   private async executeCore({eventId, users, pinCode}: InputCore): Promise<Output> {

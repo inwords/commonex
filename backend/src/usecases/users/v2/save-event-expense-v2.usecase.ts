@@ -29,7 +29,7 @@ type InputCore = Omit<IExpense, 'createdAt' | 'id' | 'updatedAt' | 'isCustomRate
 
 type Input = InputCore & {
   idempotencyKey?: string;
-  url?: string;
+  url: string;
 };
 type Output = Result<
   IExpense,
@@ -52,7 +52,7 @@ export class SaveEventExpenseV2UseCase implements UseCase<Input, Output> {
 
   public async execute(input: Input): Promise<Output> {
     const {idempotencyKey, url, ...core} = input;
-    return this.idempotencyUseCase.execute(idempotencyKey, url ?? '', core, () => this.executeCore(core));
+    return this.idempotencyUseCase.execute(idempotencyKey, url, core, () => this.executeCore(core));
   }
 
   private async executeCore(input: InputCore): Promise<Output> {

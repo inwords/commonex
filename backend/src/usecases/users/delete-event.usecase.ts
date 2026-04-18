@@ -11,7 +11,7 @@ type InputCore = {
   eventId: IEvent['id'];
   pinCode: string;
 };
-type Input = InputCore & {idempotencyKey?: string; url?: string};
+type Input = InputCore & {idempotencyKey?: string; url: string};
 
 type Output = Result<
   {
@@ -31,7 +31,7 @@ export class DeleteEventUseCase implements UseCase<Input, Output> {
 
   public async execute(input: Input): Promise<Output> {
     const {idempotencyKey, url, ...core} = input;
-    return this.idempotencyUseCase.execute(idempotencyKey, url ?? '', core, () => this.executeCore(core));
+    return this.idempotencyUseCase.execute(idempotencyKey, url, core, () => this.executeCore(core));
   }
 
   private async executeCore({eventId, pinCode}: InputCore): Promise<Output> {
