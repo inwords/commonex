@@ -72,6 +72,7 @@ describe('SaveEventUseCase', () => {
             updatedAt: new Date('2023-01-01T00:00:00Z'),
           },
         ],
+        url: 'url',
       },
       output: success({
         id: expect.any(String),
@@ -181,6 +182,7 @@ describe('SaveEventUseCase', () => {
             updatedAt: new Date('2023-01-01T00:00:00Z'),
           },
         ],
+        url: 'url',
       },
       output: error(new CurrencyNotFoundError()),
       relationalStateChanges: {},
@@ -210,6 +212,7 @@ describe('SaveEventUseCase', () => {
             updatedAt: new Date('2023-01-01T00:00:00Z'),
           },
         ],
+        url: 'url',
       },
       output: error(new CurrencyNotFoundError()),
       relationalStateChanges: {},

@@ -70,6 +70,7 @@ describe('DeleteEventUseCase', () => {
       input: {
         eventId: 'event-1',
         pinCode: '1234',
+        url: 'url',
       },
       output: success({
         id: 'event-1',
@@ -98,6 +99,7 @@ describe('DeleteEventUseCase', () => {
       input: {
         eventId: 'non-existent',
         pinCode: '1234',
+        url: 'url',
       },
       output: error(new EventNotFoundError()),
       relationalStateChanges: {},
@@ -123,6 +125,7 @@ describe('DeleteEventUseCase', () => {
       input: {
         eventId: 'event-1',
         pinCode: '1234',
+        url: 'url',
       },
       output: error(new EventDeletedError()),
       relationalStateChanges: {},
@@ -178,6 +181,7 @@ describe('DeleteEventUseCase', () => {
       input: {
         eventId: 'event-1',
         pinCode: 'wrong',
+        url: 'url',
       },
       output: error(new InvalidPinCodeError()),
       relationalStateChanges: {},
