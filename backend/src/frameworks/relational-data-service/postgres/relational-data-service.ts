@@ -7,6 +7,7 @@ import {CurrencyRepository} from '#frameworks/relational-data-service/postgres/r
 import {ExpenseRepository} from '#frameworks/relational-data-service/postgres/repositories/expense.repository';
 import {CurrencyRateRepository} from '#frameworks/relational-data-service/postgres/repositories/currency-rate.repository';
 import {EventShareTokenRepository} from '#frameworks/relational-data-service/postgres/repositories/event-share-token.repository';
+import {IdempotencyKeyRepository} from '#frameworks/relational-data-service/postgres/repositories/idempotency-key.repository';
 
 export class RelationalDataService implements RelationalDataServiceAbstract {
   readonly dbConfig: DbConfig;
@@ -20,6 +21,7 @@ export class RelationalDataService implements RelationalDataServiceAbstract {
   readonly expense: ExpenseRepository;
   readonly currencyRate: CurrencyRateRepository;
   readonly eventShareToken: EventShareTokenRepository;
+  readonly idempotencyKey: IdempotencyKeyRepository;
 
   constructor({dbConfig, showQueryDetails}: {dbConfig: DbConfig; showQueryDetails: boolean}) {
     this.dbConfig = dbConfig;
@@ -33,6 +35,7 @@ export class RelationalDataService implements RelationalDataServiceAbstract {
     this.expense = new ExpenseRepository({dataSource: this.dataSource, showQueryDetails});
     this.currencyRate = new CurrencyRateRepository({dataSource: this.dataSource, showQueryDetails});
     this.eventShareToken = new EventShareTokenRepository({dataSource: this.dataSource, showQueryDetails});
+    this.idempotencyKey = new IdempotencyKeyRepository({dataSource: this.dataSource, showQueryDetails});
   }
 
   async initialize(): Promise<void> {

@@ -6,6 +6,7 @@ import {getCurrentDateWithoutTimeUTC, getDateWithoutTimeUTC} from '#packages/dat
 import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-service/relational-data-service';
 import {EventServiceAbstract} from '#domain/abstracts/event-service/event-service';
 import {SupportedCurrencyServiceAbstract} from '#domain/abstracts/supported-currency-service/supported-currency-service';
+import {IdempotencySharedUseCase} from '#usecases/shared/idempotency.usecase';
 import {IExpense, ISplitInfo} from '#domain/entities/expense.entity';
 import {ExpenseValueObject} from '#domain/value-objects/expense.value-object';
 import {Result, success, error, isError} from '#packages/result';
@@ -20,11 +21,16 @@ import {
 
 type SplitInfoInput = Omit<ISplitInfo, 'exchangedAmount'> & Partial<Pick<ISplitInfo, 'exchangedAmount'>>;
 
-type Input = Omit<IExpense, 'createdAt' | 'id' | 'updatedAt' | 'isCustomRate' | 'splitInformation'> &
+type InputCore = Omit<IExpense, 'createdAt' | 'id' | 'updatedAt' | 'isCustomRate' | 'splitInformation'> &
   Partial<Pick<IExpense, 'createdAt'>> & {
     splitInformation: Array<SplitInfoInput>;
     pinCode: string;
   };
+
+type Input = InputCore & {
+  idempotencyKey?: string;
+  url?: string;
+};
 type Output = Result<
   IExpense,
   | EventNotFoundError
@@ -41,9 +47,15 @@ export class SaveEventExpenseV2UseCase implements UseCase<Input, Output> {
     private readonly rDataService: RelationalDataServiceAbstract,
     private readonly eventService: EventServiceAbstract,
     private readonly supportedCurrencyService: SupportedCurrencyServiceAbstract,
+    private readonly idempotencyUseCase: IdempotencySharedUseCase,
   ) {}
 
   public async execute(input: Input): Promise<Output> {
+    const {idempotencyKey, url, ...core} = input;
+    return this.idempotencyUseCase.execute(idempotencyKey, url ?? '', core, () => this.executeCore(core));
+  }
+
+  private async executeCore(input: InputCore): Promise<Output> {
     return this.rDataService.transaction(async (ctx) => {
       const {pinCode, ...restInput} = input;
 
@@ -154,3 +166,4 @@ export class SaveEventExpenseV2UseCase implements UseCase<Input, Output> {
     });
   }
 }
+

@@ -5,6 +5,7 @@ import {
   CurrencyRateNotFoundError,
   EventDeletedError,
   EventNotFoundError,
+  IdempotencyHashMismatchError,
   InconsistentExchangedAmountError,
   InvalidPinCodeError,
   InvalidTokenError,
@@ -19,7 +20,8 @@ type BusinessError =
   | TokenExpiredError
   | CurrencyNotFoundError
   | CurrencyRateNotFoundError
-  | InconsistentExchangedAmountError;
+  | InconsistentExchangedAmountError
+  | IdempotencyHashMismatchError;
 
 @Catch(
   EventNotFoundError,
@@ -30,6 +32,7 @@ type BusinessError =
   CurrencyNotFoundError,
   CurrencyRateNotFoundError,
   InconsistentExchangedAmountError,
+  IdempotencyHashMismatchError,
 )
 export class BusinessErrorFilter implements ExceptionFilter {
   constructor(private readonly httpAdapter: AbstractHttpAdapter) {}

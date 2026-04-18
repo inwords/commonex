@@ -7,17 +7,22 @@ import {error, Result, success} from '#packages/result';
 import {EventDeletedError, EventNotFoundError, InvalidPinCodeError} from '#domain/errors/errors';
 import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-service/relational-data-service';
 import {EventService} from '#frameworks/event-service/event-service';
+import {IdempotencySharedUseCase} from '#usecases/shared/idempotency.usecase';
 
 type SaveUsersToEventV2TestCase = TestCase<SaveUsersToEventV2UseCase> & {
   mockEventService: {
     isValidEvent: Result<boolean, EventNotFoundError | EventDeletedError | InvalidPinCodeError>;
   };
+  mockIdempotencyUseCase?: {execute: Awaited<ReturnType<SaveUsersToEventV2UseCase['execute']>>};
 };
+
+const SAVE_USERS_V2_URL = '/v2/user/event/event-1/users';
 
 describe('SaveUsersToEventV2UseCase', () => {
   let relationalDataService: RelationalDataServiceAbstract;
   let useCase: SaveUsersToEventV2UseCase;
   let eventService: EventServiceAbstract;
+  let idempotencySharedUseCase: IdempotencySharedUseCase;
 
   beforeAll(async () => {
     relationalDataService = new RelationalDataService({
@@ -26,7 +31,8 @@ describe('SaveUsersToEventV2UseCase', () => {
     });
 
     eventService = new EventService();
-    useCase = new SaveUsersToEventV2UseCase(relationalDataService, eventService);
+    idempotencySharedUseCase = new IdempotencySharedUseCase(relationalDataService);
+    useCase = new SaveUsersToEventV2UseCase(relationalDataService, eventService, idempotencySharedUseCase);
 
     await relationalDataService.initialize();
   });
@@ -37,7 +43,7 @@ describe('SaveUsersToEventV2UseCase', () => {
 
   beforeEach(async () => {
     await relationalDataService.flush();
-    jest.clearAllMocks();
+    jest.restoreAllMocks();
   });
 
   const testCases: SaveUsersToEventV2TestCase[] = [
@@ -110,6 +116,35 @@ describe('SaveUsersToEventV2UseCase', () => {
       },
       mockEventService: {
         isValidEvent: success(true),
+      },
+    },
+    {
+      name: 'повторный запрос с тем же idempotencyKey — возвращает кэш без добавления пользователей',
+      initRelationalState: {
+        events: [
+          {
+            id: 'event-1',
+            name: 'Test Event',
+            currencyId: 'currency-1',
+            pinCode: '1234',
+            createdAt: new Date('2023-01-01T00:00:00Z'),
+            updatedAt: new Date('2023-01-01T00:00:00Z'),
+            deletedAt: null,
+          },
+        ],
+      },
+      input: {
+        eventId: 'event-1',
+        pinCode: '1234',
+        users: [{name: 'John Doe', createdAt: new Date('2023-01-01T00:00:00Z'), updatedAt: new Date('2023-01-01T00:00:00Z')}],
+        idempotencyKey: 'idempotency-key-1',
+        url: SAVE_USERS_V2_URL,
+      },
+      output: success([{id: 'cached-user-id', eventId: 'event-1', name: 'John Doe', createdAt: new Date('2026-01-01T00:00:00.000Z'), updatedAt: new Date('2026-01-01T00:00:00.000Z')}]),
+      relationalStateChanges: {},
+      mockEventService: {isValidEvent: success(true)},
+      mockIdempotencyUseCase: {
+        execute: success([{id: 'cached-user-id', eventId: 'event-1', name: 'John Doe', createdAt: new Date('2026-01-01T00:00:00.000Z'), updatedAt: new Date('2026-01-01T00:00:00.000Z')}]),
       },
     },
     {
@@ -206,6 +241,11 @@ describe('SaveUsersToEventV2UseCase', () => {
       });
 
       jest.spyOn(eventService, 'isValidEvent').mockReturnValue(testCase.mockEventService.isValidEvent);
+
+      if (testCase.mockIdempotencyUseCase) {
+        const {execute} = testCase.mockIdempotencyUseCase;
+        jest.spyOn(idempotencySharedUseCase, 'execute').mockReturnValue(Promise.resolve(execute));
+      }
 
       const result = await useCase.execute(testCase.input);
 

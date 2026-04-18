@@ -1,4 +1,5 @@
-import {Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post, Query} from '@nestjs/common';
+import {Body, Controller, Delete, Get, Headers, HttpCode, HttpStatus, Param, Post, Query, Req} from '@nestjs/common';
+import {FastifyRequest} from 'fastify';
 import {UserRoutes} from './user.constants';
 import {ApiResponse, ApiTags} from '@nestjs/swagger';
 
@@ -36,10 +37,14 @@ export class UserController {
   @Post(UserRoutes.createEvent)
   @HttpCode(HttpStatus.CREATED)
   @ApiResponse({status: HttpStatus.CREATED, type: CreateEventResponseDto})
-  async createEvent(@Body() body: CreateEventRequestDto): Promise<CreateEventResponseDto> {
+  async createEvent(
+    @Body() body: CreateEventRequestDto,
+    @Headers('idempotency-key') idempotencyKey: string | undefined,
+    @Req() request: FastifyRequest,
+  ): Promise<CreateEventResponseDto> {
     const {users, ...event} = body;
 
-    const result = await this.saveEventUseCase.execute({users, event});
+    const result = await this.saveEventUseCase.execute({users, event, idempotencyKey, url: request.url});
 
     if (isError(result)) {
       throw result.error;
@@ -69,8 +74,10 @@ export class UserController {
   async deleteEvent(
     @Param() {eventId}: DeleteEventParamsDto,
     @Body() body: DeleteEventRequestDto,
+    @Headers('idempotency-key') idempotencyKey: string | undefined,
+    @Req() request: FastifyRequest,
   ): Promise<DeleteEventResponseDto> {
-    const result = await this.deleteEventUseCase.execute({eventId, pinCode: body.pinCode});
+    const result = await this.deleteEventUseCase.execute({eventId, pinCode: body.pinCode, idempotencyKey, url: request.url});
 
     if (isError(result)) {
       throw result.error;
@@ -85,8 +92,10 @@ export class UserController {
   async addUserToEvent(
     @Param() {eventId}: AddUsersToEventParamsDto,
     @Body() body: AddUsersToEventRequestDto,
+    @Headers('idempotency-key') idempotencyKey: string | undefined,
+    @Req() request: FastifyRequest,
   ): Promise<AddUsersToEventResponseDto[]> {
-    const result = await this.saveUsersToEventUseCase.execute({eventId, ...body});
+    const result = await this.saveUsersToEventUseCase.execute({eventId, ...body, idempotencyKey, url: request.url});
 
     if (isError(result)) {
       throw result.error;
@@ -112,12 +121,16 @@ export class UserController {
   async createExpense(
     @Body() expense: CreateExpenseRequestV1Dto,
     @Param() {eventId}: CreateExpenseParamsDto,
+    @Headers('idempotency-key') idempotencyKey: string | undefined,
+    @Req() request: FastifyRequest,
   ): Promise<CreateExpenseResponseDto> {
     const result = await this.saveEventExpenseUseCase.execute({
       ...expense,
       eventId,
       isCustomRate: false,
       splitInformation: expense.splitInformation.map(({userId, amount}) => ({userId, amount, exchangedAmount: amount})),
+      idempotencyKey,
+      url: request.url,
     });
 
     if (isError(result)) {

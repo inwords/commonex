@@ -1,5 +1,6 @@
 import {Body, Controller} from '@nestjs/common';
 import {GrpcMethod} from '@nestjs/microservices';
+import {Metadata} from '@grpc/grpc-js';
 import {CreateEventRequestDto, CreateEventResponseDto} from '#api/http/user/dto/create-event.dto';
 import {
   GetEventInfoParamsDto,
@@ -44,6 +45,11 @@ import {
 } from '#usecases/users/v2';
 import {isError} from '#packages/result';
 
+const getIdempotencyKey = (metadata: Metadata): string | undefined => {
+  const value = metadata.get('idempotency-key')[0];
+  return typeof value === 'string' ? value : undefined;
+};
+
 @Controller()
 export class UserController {
   constructor(
@@ -61,10 +67,10 @@ export class UserController {
   ) {}
 
   @GrpcMethod('UserService', 'CreateEvent')
-  async createEvent(@Body() body: CreateEventRequestDto): Promise<CreateEventResponseDto> {
+  async createEvent(@Body() body: CreateEventRequestDto, metadata: Metadata): Promise<CreateEventResponseDto> {
     const {users, ...event} = body;
 
-    const result = await this.saveEventUseCase.execute({users, event});
+    const result = await this.saveEventUseCase.execute({users, event, idempotencyKey: getIdempotencyKey(metadata), url: 'grpc:CreateEvent'});
 
     if (isError(result)) {
       throw result.error;
@@ -87,9 +93,9 @@ export class UserController {
   }
 
   @GrpcMethod('UserService', 'DeleteEvent')
-  async deleteEvent(@Body() body: DeleteEventParamsDto & DeleteEventRequestDto): Promise<DeleteEventResponseDto> {
+  async deleteEvent(@Body() body: DeleteEventParamsDto & DeleteEventRequestDto, metadata: Metadata): Promise<DeleteEventResponseDto> {
     const {eventId, pinCode} = body;
-    const result = await this.deleteEventUseCase.execute({eventId, pinCode});
+    const result = await this.deleteEventUseCase.execute({eventId, pinCode, idempotencyKey: getIdempotencyKey(metadata), url: 'grpc:DeleteEvent'});
 
     if (isError(result)) {
       throw result.error;
@@ -101,10 +107,11 @@ export class UserController {
   @GrpcMethod('UserService', 'AddUsersToEvent')
   async addUserToEvent(
     @Body() body: AddUsersToEventRequestDto & AddUsersToEventParamsDto,
+    metadata: Metadata,
   ): Promise<AddUsersToEventResponseWithUsersDto> {
     const {eventId, ...rest} = body;
 
-    const result = await this.saveUsersToEventUseCase.execute({eventId, ...rest});
+    const result = await this.saveUsersToEventUseCase.execute({eventId, ...rest, idempotencyKey: getIdempotencyKey(metadata), url: 'grpc:AddUsersToEvent'});
 
     if (isError(result)) {
       throw result.error;
@@ -129,11 +136,14 @@ export class UserController {
   @GrpcMethod('UserService', 'CreateExpense')
   async createExpense(
     @Body() expense: CreateExpenseRequestV1Dto & CreateExpenseParamsDto,
+    metadata: Metadata,
   ): Promise<CreateExpenseResponseDto> {
     const result = await this.saveEventExpenseUseCase.execute({
       ...expense,
       isCustomRate: false,
       splitInformation: expense.splitInformation.map(({userId, amount}) => ({userId, amount, exchangedAmount: amount})),
+      idempotencyKey: getIdempotencyKey(metadata),
+      url: 'grpc:CreateExpense',
     });
 
     if (isError(result)) {
@@ -159,10 +169,11 @@ export class UserController {
   @GrpcMethod('UserService', 'AddUsersToEventV2')
   async addUserToEventV2(
     @Body() body: AddUsersToEventRequestDto & AddUsersToEventParamsDto,
+    metadata: Metadata,
   ): Promise<AddUsersToEventResponseWithUsersDto> {
     const {eventId, ...rest} = body;
 
-    const result = await this.saveUsersToEventV2UseCase.execute({eventId, ...rest});
+    const result = await this.saveUsersToEventV2UseCase.execute({eventId, ...rest, idempotencyKey: getIdempotencyKey(metadata), url: 'grpc:AddUsersToEventV2'});
 
     if (isError(result)) {
       throw result.error;
@@ -187,8 +198,9 @@ export class UserController {
   @GrpcMethod('UserService', 'CreateExpenseV2')
   async createExpenseV2(
     @Body() expense: CreateExpenseRequestV2Dto & CreateExpenseParamsDto,
+    metadata: Metadata,
   ): Promise<CreateExpenseResponseDto> {
-    const result = await this.saveEventExpenseV2UseCase.execute(expense);
+    const result = await this.saveEventExpenseV2UseCase.execute({...expense, idempotencyKey: getIdempotencyKey(metadata), url: 'grpc:CreateExpenseV2'});
 
     if (isError(result)) {
       throw result.error;

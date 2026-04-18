@@ -7,12 +7,18 @@ import {CurrencyNotFoundError} from '#domain/errors/errors';
 import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-service/relational-data-service';
 import {CurrencyCode} from '#domain/entities/currency.entity';
 import {SupportedCurrencyService} from '#frameworks/supported-currency-service/supported-currency-service';
+import {IdempotencySharedUseCase} from '#usecases/shared/idempotency.usecase';
 
-type SaveEventTestCase = TestCase<SaveEventUseCase>;
+type SaveEventTestCase = TestCase<SaveEventUseCase> & {
+  mockIdempotencyUseCase?: {execute: Awaited<ReturnType<SaveEventUseCase['execute']>>};
+};
+
+const SAVE_EVENT_URL = '/v1/user/event';
 
 describe('SaveEventUseCase', () => {
   let relationalDataService: RelationalDataServiceAbstract;
   let useCase: SaveEventUseCase;
+  let idempotencySharedUseCase: IdempotencySharedUseCase;
 
   beforeAll(async () => {
     relationalDataService = new RelationalDataService({
@@ -20,7 +26,8 @@ describe('SaveEventUseCase', () => {
       showQueryDetails: false,
     });
 
-    useCase = new SaveEventUseCase(relationalDataService, new SupportedCurrencyService(relationalDataService));
+    idempotencySharedUseCase = new IdempotencySharedUseCase(relationalDataService);
+    useCase = new SaveEventUseCase(relationalDataService, new SupportedCurrencyService(relationalDataService), idempotencySharedUseCase);
 
     await relationalDataService.initialize();
   });
@@ -31,6 +38,7 @@ describe('SaveEventUseCase', () => {
 
   beforeEach(async () => {
     await relationalDataService.flush();
+    jest.restoreAllMocks();
   });
 
   const testCases: SaveEventTestCase[] = [
@@ -125,6 +133,39 @@ describe('SaveEventUseCase', () => {
       },
     },
     {
+      name: 'повторный запрос с тем же idempotencyKey — возвращает кэш без создания события',
+      initRelationalState: {},
+      input: {
+        event: {name: 'New Event', currencyId: 'currency-usd', pinCode: '1234'},
+        users: [{name: 'John Doe', createdAt: new Date('2023-01-01T00:00:00Z'), updatedAt: new Date('2023-01-01T00:00:00Z')}],
+        idempotencyKey: 'idempotency-key-1',
+        url: SAVE_EVENT_URL,
+      },
+      output: success({
+        id: 'cached-event-id',
+        name: 'New Event',
+        currencyId: 'currency-usd',
+        pinCode: '1234',
+        createdAt: new Date('2026-01-01T00:00:00.000Z'),
+        updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+        deletedAt: null,
+        users: [],
+      }),
+      relationalStateChanges: {},
+      mockIdempotencyUseCase: {
+        execute: success({
+          id: 'cached-event-id',
+          name: 'New Event',
+          currencyId: 'currency-usd',
+          pinCode: '1234',
+          createdAt: new Date('2026-01-01T00:00:00.000Z'),
+          updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+          deletedAt: null,
+          users: [],
+        }),
+      },
+    },
+    {
       name: 'должен вернуть ошибку когда валюта не найдена',
       initRelationalState: {},
       input: {
@@ -181,6 +222,11 @@ describe('SaveEventUseCase', () => {
         rDataService: relationalDataService,
         initState: testCase.initRelationalState,
       });
+
+      if (testCase.mockIdempotencyUseCase) {
+        const {execute} = testCase.mockIdempotencyUseCase;
+        jest.spyOn(idempotencySharedUseCase, 'execute').mockReturnValue(Promise.resolve(execute));
+      }
 
       const result = await useCase.execute(testCase.input);
 
