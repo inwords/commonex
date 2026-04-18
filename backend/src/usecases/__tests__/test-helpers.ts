@@ -4,6 +4,7 @@ import {IEventShareToken} from '#domain/entities/event-share-token.entity';
 import {ICurrency} from '#domain/entities/currency.entity';
 import {ICurrencyRate} from '#domain/entities/currency-rate.entity';
 import {IExpense} from '#domain/entities/expense.entity';
+import {IIdempotencyKey} from '#domain/entities/idempotency-key.entity';
 import {applyChanges, type StateChanges} from './utils-apply-changes-to-state';
 import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-service/relational-data-service';
 
@@ -14,6 +15,7 @@ interface RelationalEntities {
   currencies: ICurrency;
   currencyRates: ICurrencyRate;
   expenses: IExpense;
+  idempotencyKeys: IIdempotencyKey;
 }
 
 type FindAllFn<T> = (rDataService: RelationalDataServiceAbstract) => Promise<T[]>;
@@ -84,6 +86,17 @@ const entityOperations: {
     insert: async (rDataService, values) => {
       for (const item of values) {
         await rDataService.expense.insert(item);
+      }
+    },
+  },
+  idempotencyKeys: {
+    findAll: async (rDataService) => {
+      const [result] = await rDataService.idempotencyKey.findAll({limit: 10000});
+      return result;
+    },
+    insert: async (rDataService, values) => {
+      for (const item of values) {
+        await rDataService.idempotencyKey.insert(item);
       }
     },
   },

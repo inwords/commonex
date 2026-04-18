@@ -10,8 +10,10 @@ import {IExpense, ISplitInfo} from '#domain/entities/expense.entity';
 import {ExpenseValueObject} from '#domain/value-objects/expense.value-object';
 import {Result, success, error, isError} from '#packages/result';
 import {EventNotFoundError, EventDeletedError, CurrencyNotFoundError, CurrencyRateNotFoundError} from '#domain/errors/errors';
+import {IdempotencySharedUseCase} from '#usecases/shared/idempotency.usecase';
 
-type Input = Omit<IExpense, 'createdAt' | 'id' | 'updatedAt'> & Partial<Pick<IExpense, 'createdAt'>>;
+type InputCore = Omit<IExpense, 'createdAt' | 'id' | 'updatedAt'> & Partial<Pick<IExpense, 'createdAt'>>;
+type Input = InputCore & {idempotencyKey?: string; url?: string};
 type Output = Result<IExpense, EventNotFoundError | EventDeletedError | CurrencyNotFoundError | CurrencyRateNotFoundError>;
 
 @Injectable()
@@ -20,9 +22,15 @@ export class SaveEventExpenseUseCase implements UseCase<Input, Output> {
     private readonly rDataService: RelationalDataServiceAbstract,
     private readonly eventService: EventServiceAbstract,
     private readonly supportedCurrencyService: SupportedCurrencyServiceAbstract,
+    private readonly idempotencyUseCase: IdempotencySharedUseCase,
   ) {}
 
   public async execute(input: Input): Promise<Output> {
+    const {idempotencyKey, url, ...core} = input;
+    return this.idempotencyUseCase.execute(idempotencyKey, url ?? '', core, () => this.executeCore(core));
+  }
+
+  private async executeCore(input: InputCore): Promise<Output> {
     return this.rDataService.transaction(async (ctx) => {
       const [event] = await this.rDataService.event.findById(input.eventId, {
         ctx,

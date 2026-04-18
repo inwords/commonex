@@ -1,4 +1,5 @@
-import {Body, Controller, HttpCode, HttpStatus, Param, Post} from '@nestjs/common';
+import {Body, Controller, Headers, HttpCode, HttpStatus, Param, Post, Req} from '@nestjs/common';
+import {FastifyRequest} from 'fastify';
 import {UserV2Routes} from './user.constants';
 import {ApiResponse, ApiTags} from '@nestjs/swagger';
 
@@ -61,8 +62,10 @@ export class UserV2Controller {
   async addUserToEvent(
     @Param() {eventId}: AddUsersToEventParamsDto,
     @Body() body: AddUsersToEventRequestDto,
+    @Headers('idempotency-key') idempotencyKey: string | undefined,
+    @Req() request: FastifyRequest,
   ): Promise<AddUsersToEventResponseDto[]> {
-    const result = await this.saveUsersToEventV2UseCase.execute({eventId, ...body});
+    const result = await this.saveUsersToEventV2UseCase.execute({eventId, ...body, idempotencyKey, url: request.url});
 
     if (isError(result)) {
       throw result.error;
@@ -91,8 +94,10 @@ export class UserV2Controller {
   async createExpense(
     @Body() expense: CreateExpenseRequestV2Dto,
     @Param() {eventId}: CreateExpenseParamsDto,
+    @Headers('idempotency-key') idempotencyKey: string | undefined,
+    @Req() request: FastifyRequest,
   ): Promise<CreateExpenseResponseDto> {
-    const result = await this.saveEventExpenseV2UseCase.execute({...expense, eventId});
+    const result = await this.saveEventExpenseV2UseCase.execute({...expense, eventId, idempotencyKey, url: request.url});
 
     if (isError(result)) {
       throw result.error;

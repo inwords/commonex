@@ -8,8 +8,10 @@ import {UserInfoValueObject} from '#domain/value-objects/user-info.value-object'
 import {Injectable} from '@nestjs/common';
 import {Result, success, error} from '#packages/result';
 import {CurrencyNotFoundError} from '#domain/errors/errors';
+import {IdempotencySharedUseCase} from '#usecases/shared/idempotency.usecase';
 
-type Input = {users: Array<Omit<IUserInfo, 'id' | 'eventId'>>; event: Pick<IEvent, 'name' | 'currencyId' | 'pinCode'>};
+type InputCore = {users: Array<Omit<IUserInfo, 'id' | 'eventId'>>; event: Pick<IEvent, 'name' | 'currencyId' | 'pinCode'>};
+type Input = InputCore & {idempotencyKey?: string; url?: string};
 type Output = Result<IEvent & {users: IUserInfo[]}, CurrencyNotFoundError>;
 
 @Injectable()
@@ -17,9 +19,15 @@ export class SaveEventUseCase implements UseCase<Input, Output> {
   constructor(
     private readonly rDataService: RelationalDataServiceAbstract,
     private readonly supportedCurrencyService: SupportedCurrencyServiceAbstract,
+    private readonly idempotencyUseCase: IdempotencySharedUseCase,
   ) {}
 
-  public async execute({event, users}: Input): Promise<Output> {
+  public async execute(input: Input): Promise<Output> {
+    const {idempotencyKey, url, ...core} = input;
+    return this.idempotencyUseCase.execute(idempotencyKey, url ?? '', core, () => this.executeCore(core));
+  }
+
+  private async executeCore({event, users}: InputCore): Promise<Output> {
     return await this.rDataService.transaction(async (ctx) => {
       const currency = await this.supportedCurrencyService.findById(event.currencyId, {ctx});
 

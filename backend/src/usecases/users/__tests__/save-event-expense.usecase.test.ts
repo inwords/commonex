@@ -10,18 +10,23 @@ import {EventService} from '#frameworks/event-service/event-service';
 import {CurrencyCode} from '#domain/entities/currency.entity';
 import {ExpenseType} from '#domain/entities/expense.entity';
 import {SupportedCurrencyService} from '#frameworks/supported-currency-service/supported-currency-service';
+import {IdempotencySharedUseCase} from '#usecases/shared/idempotency.usecase';
 
 type SaveEventExpenseTestCase = TestCase<SaveEventExpenseUseCase> & {
   mockEventService?: {
     isEventExists?: boolean;
     isEventNotDeleted?: Result<boolean, EventDeletedError>;
   };
+  mockIdempotencyUseCase?: {execute: Awaited<ReturnType<SaveEventExpenseUseCase['execute']>>};
 };
+
+const SAVE_EXPENSE_URL = '/v1/user/event/event-1/expense';
 
 describe('SaveEventExpenseUseCase', () => {
   let relationalDataService: RelationalDataServiceAbstract;
   let useCase: SaveEventExpenseUseCase;
   let eventService: EventServiceAbstract;
+  let idempotencySharedUseCase: IdempotencySharedUseCase;
 
   const mockNow = new Date('2026-01-01T00:00:00.000Z');
 
@@ -32,7 +37,8 @@ describe('SaveEventExpenseUseCase', () => {
     });
 
     eventService = new EventService();
-    useCase = new SaveEventExpenseUseCase(relationalDataService, eventService, new SupportedCurrencyService(relationalDataService));
+    idempotencySharedUseCase = new IdempotencySharedUseCase(relationalDataService);
+    useCase = new SaveEventExpenseUseCase(relationalDataService, eventService, new SupportedCurrencyService(relationalDataService), idempotencySharedUseCase);
 
     await relationalDataService.initialize();
 
@@ -46,7 +52,7 @@ describe('SaveEventExpenseUseCase', () => {
 
   beforeEach(async () => {
     await relationalDataService.flush();
-    jest.clearAllMocks();
+    jest.restoreAllMocks();
   });
 
   const testCases: SaveEventExpenseTestCase[] = [
@@ -220,6 +226,48 @@ describe('SaveEventExpenseUseCase', () => {
       },
     },
     {
+      name: 'повторный запрос с тем же idempotencyKey — возвращает кэш без создания расхода',
+      initRelationalState: {},
+      input: {
+        eventId: 'event-1',
+        currencyId: 'currency-usd',
+        description: 'Lunch at restaurant',
+        userWhoPaidId: 'user-1',
+        expenseType: ExpenseType.Expense,
+        isCustomRate: false,
+        splitInformation: [{userId: 'user-1', amount: 100, exchangedAmount: 100}],
+        idempotencyKey: 'idempotency-key-1',
+        url: SAVE_EXPENSE_URL,
+      },
+      output: success({
+        id: 'cached-expense-id',
+        eventId: 'event-1',
+        currencyId: 'currency-usd',
+        description: 'Lunch at restaurant',
+        userWhoPaidId: 'user-1',
+        expenseType: ExpenseType.Expense,
+        isCustomRate: false,
+        splitInformation: [{userId: 'user-1', amount: 100, exchangedAmount: 100}],
+        createdAt: mockNow,
+        updatedAt: mockNow,
+      }),
+      relationalStateChanges: {},
+      mockIdempotencyUseCase: {
+        execute: success({
+          id: 'cached-expense-id',
+          eventId: 'event-1',
+          currencyId: 'currency-usd',
+          description: 'Lunch at restaurant',
+          userWhoPaidId: 'user-1',
+          expenseType: ExpenseType.Expense,
+          isCustomRate: false,
+          splitInformation: [{userId: 'user-1', amount: 100, exchangedAmount: 100}],
+          createdAt: mockNow,
+          updatedAt: mockNow,
+        }),
+      },
+    },
+    {
       name: 'должен вернуть ошибку когда события не существует',
       initRelationalState: {},
       input: {
@@ -368,6 +416,11 @@ describe('SaveEventExpenseUseCase', () => {
         if (testCase.mockEventService.isEventNotDeleted) {
           jest.spyOn(eventService, 'isEventNotDeleted').mockReturnValue(testCase.mockEventService.isEventNotDeleted);
         }
+      }
+
+      if (testCase.mockIdempotencyUseCase) {
+        const {execute} = testCase.mockIdempotencyUseCase;
+        jest.spyOn(idempotencySharedUseCase, 'execute').mockReturnValue(Promise.resolve(execute));
       }
 
       const result = await useCase.execute(testCase.input);

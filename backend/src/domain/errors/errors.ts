@@ -56,3 +56,10 @@ export class InconsistentExchangedAmountError {
   readonly message = 'All splitInfo must have exchangedAmount when custom rate is used';
   readonly httpCode = HttpStatus.BAD_REQUEST;
 }
+
+export class IdempotencyHashMismatchError {
+  readonly name = 'IdempotencyHashMismatchError' as const;
+  readonly code = ErrorCode.IDEMPOTENCY_HASH_MISMATCH;
+  readonly message = 'Idempotency key reused with different request body';
+  readonly httpCode = HttpStatus.UNPROCESSABLE_ENTITY;
+}

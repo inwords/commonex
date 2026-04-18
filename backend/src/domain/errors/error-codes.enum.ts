@@ -16,4 +16,7 @@ export enum ErrorCode {
   // Token errors
   INVALID_TOKEN = 'B4008',
   TOKEN_EXPIRED = 'B4009',
+
+  // Idempotency errors
+  IDEMPOTENCY_HASH_MISMATCH = 'B4011',
 }

@@ -17,17 +17,22 @@ import {EventService} from '#frameworks/event-service/event-service';
 import {CurrencyCode} from '#domain/entities/currency.entity';
 import {ExpenseType} from '#domain/entities/expense.entity';
 import {SupportedCurrencyService} from '#frameworks/supported-currency-service/supported-currency-service';
+import {IdempotencySharedUseCase} from '#usecases/shared/idempotency.usecase';
 
 type SaveEventExpenseV2TestCase = TestCase<SaveEventExpenseV2UseCase> & {
   mockEventService: {
     isValidEvent: Result<boolean, EventNotFoundError | EventDeletedError | InvalidPinCodeError>;
   };
+  mockIdempotencyUseCase?: {execute: Awaited<ReturnType<SaveEventExpenseV2UseCase['execute']>>};
 };
+
+const SAVE_EXPENSE_V2_URL = '/v2/user/event/event-1/expense';
 
 describe('SaveEventExpenseV2UseCase', () => {
   let relationalDataService: RelationalDataServiceAbstract;
   let useCase: SaveEventExpenseV2UseCase;
   let eventService: EventServiceAbstract;
+  let idempotencySharedUseCase: IdempotencySharedUseCase;
 
   const mockNow = new Date('2026-01-01T00:00:00.000Z');
 
@@ -38,7 +43,8 @@ describe('SaveEventExpenseV2UseCase', () => {
     });
 
     eventService = new EventService();
-    useCase = new SaveEventExpenseV2UseCase(relationalDataService, eventService, new SupportedCurrencyService(relationalDataService));
+    idempotencySharedUseCase = new IdempotencySharedUseCase(relationalDataService);
+    useCase = new SaveEventExpenseV2UseCase(relationalDataService, eventService, new SupportedCurrencyService(relationalDataService), idempotencySharedUseCase);
 
     await relationalDataService.initialize();
 
@@ -52,7 +58,7 @@ describe('SaveEventExpenseV2UseCase', () => {
 
   beforeEach(async () => {
     await relationalDataService.flush();
-    jest.clearAllMocks();
+    jest.restoreAllMocks();
   });
 
   const testCases: SaveEventExpenseV2TestCase[] = [
@@ -363,6 +369,49 @@ describe('SaveEventExpenseV2UseCase', () => {
       },
     },
     {
+      name: 'повторный запрос с тем же idempotencyKey — возвращает кэш без создания расхода',
+      initRelationalState: {},
+      input: {
+        eventId: 'event-1',
+        currencyId: 'currency-usd',
+        description: 'Lunch at restaurant',
+        userWhoPaidId: 'user-1',
+        expenseType: ExpenseType.Expense,
+        splitInformation: [{userId: 'user-1', amount: 100}],
+        pinCode: '1234',
+        idempotencyKey: 'idempotency-key-1',
+        url: SAVE_EXPENSE_V2_URL,
+      },
+      output: success({
+        id: 'cached-expense-id',
+        eventId: 'event-1',
+        currencyId: 'currency-usd',
+        description: 'Lunch at restaurant',
+        userWhoPaidId: 'user-1',
+        expenseType: ExpenseType.Expense,
+        isCustomRate: false,
+        splitInformation: [{userId: 'user-1', amount: 100, exchangedAmount: 100}],
+        createdAt: mockNow,
+        updatedAt: mockNow,
+      }),
+      relationalStateChanges: {},
+      mockEventService: {isValidEvent: success(true)},
+      mockIdempotencyUseCase: {
+        execute: success({
+          id: 'cached-expense-id',
+          eventId: 'event-1',
+          currencyId: 'currency-usd',
+          description: 'Lunch at restaurant',
+          userWhoPaidId: 'user-1',
+          expenseType: ExpenseType.Expense,
+          isCustomRate: false,
+          splitInformation: [{userId: 'user-1', amount: 100, exchangedAmount: 100}],
+          createdAt: mockNow,
+          updatedAt: mockNow,
+        }),
+      },
+    },
+    {
       name: 'должен вернуть ошибку когда события не существует',
       initRelationalState: {},
       input: {
@@ -532,6 +581,11 @@ describe('SaveEventExpenseV2UseCase', () => {
       });
 
       jest.spyOn(eventService, 'isValidEvent').mockReturnValue(testCase.mockEventService.isValidEvent);
+
+      if (testCase.mockIdempotencyUseCase) {
+        const {execute} = testCase.mockIdempotencyUseCase;
+        jest.spyOn(idempotencySharedUseCase, 'execute').mockReturnValue(Promise.resolve(execute));
+      }
 
       const result = await useCase.execute(testCase.input);
 
