@@ -77,6 +77,7 @@ describe('SaveUsersToEventV2UseCase', () => {
             updatedAt: new Date('2023-01-01T00:00:00Z'),
           },
         ],
+        url: 'url',
       },
       output: success([
         {
@@ -160,6 +161,7 @@ describe('SaveUsersToEventV2UseCase', () => {
             updatedAt: new Date('2023-01-01T00:00:00Z'),
           },
         ],
+        url: 'url',
       },
       output: error(new EventNotFoundError()),
       relationalStateChanges: {},
@@ -192,6 +194,7 @@ describe('SaveUsersToEventV2UseCase', () => {
             updatedAt: new Date('2023-01-01T00:00:00Z'),
           },
         ],
+        url: 'url',
       },
       output: error(new EventDeletedError()),
       relationalStateChanges: {},
@@ -224,6 +227,7 @@ describe('SaveUsersToEventV2UseCase', () => {
             updatedAt: new Date('2023-01-01T00:00:00Z'),
           },
         ],
+        url: 'url',
       },
       output: error(new InvalidPinCodeError()),
       relationalStateChanges: {},
