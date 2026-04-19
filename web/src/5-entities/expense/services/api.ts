@@ -14,13 +14,12 @@ export const getEventExpenses = async (eventId: string, pinCode: string) => {
   }
 };
 
-export const createExpense = async (expense: CreateExpense, pinCode: string) => {
+export const createExpense = async (expense: CreateExpense, pinCode: string, idempotencyKey: string) => {
   const {eventId, ...rest} = expense;
 
-  try {
-    return await httpClient.request(`/v2/user/event/${eventId}/expense`, {
-      method: 'POST',
-      body: JSON.stringify({...rest, pinCode}),
-    });
-  } catch (error) {}
+  return await httpClient.request(`/v2/user/event/${eventId}/expense`, {
+    method: 'POST',
+    body: JSON.stringify({...rest, pinCode}),
+    idempotencyKey,
+  });
 };

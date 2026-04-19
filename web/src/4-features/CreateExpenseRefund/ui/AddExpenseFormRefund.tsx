@@ -44,7 +44,7 @@ export const AddExpenseFormRefund = observer(() => {
       </Stack>
 
       <Stack justifyContent="end" marginTop={'16px'}>
-        <Button type={'submit'} variant="contained">
+        <Button type={'submit'} variant="contained" loading={expenseStore.isCreatingExpenseRefund}>
           Отправить
         </Button>
       </Stack>

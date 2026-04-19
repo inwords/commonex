@@ -1,13 +1,12 @@
 import {CreateEvent, CreateEventShareTokenResponse} from '@/5-entities/event/types/types';
 import {httpClient} from '@/6-shared/api/http-client';
 
-export const createEvent = async (event: CreateEvent) => {
-  try {
-    return await httpClient.request('/user/event', {
-      method: 'POST',
-      body: JSON.stringify(event),
-    });
-  } catch (error) {}
+export const createEvent = async (event: CreateEvent, idempotencyKey: string) => {
+  return await httpClient.request('/user/event', {
+    method: 'POST',
+    body: JSON.stringify(event),
+    idempotencyKey,
+  });
 };
 
 export const getEventInfo = async (eventId: string, params: {pinCode?: string; token?: string}) => {

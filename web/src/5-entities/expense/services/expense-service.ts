@@ -11,8 +11,14 @@ import {ExpenseType} from '@/5-entities/expense/constants';
 import {userStore} from '@/5-entities/user/stores/user-store';
 import {currencyStore} from '@/5-entities/currency/stores/currency-store';
 import {eventStore} from '@/5-entities/event/stores/event-store';
+import retry from 'async-retry';
+import {ulid} from 'ulid';
+import {ApiError} from '@/6-shared/api/errors';
 
 export class ExpenseService {
+  private createExpenseKey: string | null = null;
+  private createExpenseRefundKey: string | null = null;
+
   async createExpense(data: CreateExpenseForm, id: string, pinCode: string) {
     const {amount, splitOption, exchangeRate, ...rest} = data;
 
@@ -63,9 +69,28 @@ export class ExpenseService {
       splitInformation,
     };
 
-    const resp = await createExpenseApi({...body, expenseType: ExpenseType.Expense}, pinCode);
-
-    expenseStore.setExpenses([...expenseStore.expenses, resp]);
+    this.createExpenseKey = ulid();
+    expenseStore.setIsCreatingExpense(true);
+    try {
+      const resp = await retry(
+        async (bail) => {
+          try {
+            return await createExpenseApi({...body, expenseType: ExpenseType.Expense}, pinCode, this.createExpenseKey!);
+          } catch (err) {
+            const apiError = err as ApiError;
+            if (apiError.statusCode && apiError.statusCode < 500) {
+              bail(err as Error);
+            }
+            throw err;
+          }
+        },
+        {retries: 2, factor: 2, minTimeout: 200},
+      );
+      expenseStore.setExpenses([...expenseStore.expenses, resp]);
+    } finally {
+      this.createExpenseKey = null;
+      expenseStore.setIsCreatingExpense(false);
+    }
   }
 
   async fetchExpenses(eventId: string, pinCode: string) {
@@ -80,16 +105,34 @@ export class ExpenseService {
   async createExpenseRefund(expenseRefund: CreateExpenseRefundForm, pinCode: string) {
     const {userWhoReceiveId, amount, ...rest} = expenseRefund;
 
-    const resp = await createExpenseApi(
-      {
-        ...rest,
-        expenseType: ExpenseType.Refund,
-        splitInformation: [{userId: userWhoReceiveId, amount: Number(Number(amount).toFixed(2))}],
-      },
-      pinCode,
-    );
+    const body = {
+      ...rest,
+      expenseType: ExpenseType.Refund,
+      splitInformation: [{userId: userWhoReceiveId, amount: Number(Number(amount).toFixed(2))}],
+    };
 
-    expenseStore.setExpenseRefunds([...expenseStore.expenseRefunds, resp]);
+    this.createExpenseRefundKey = ulid();
+    expenseStore.setIsCreatingExpenseRefund(true);
+    try {
+      const resp = await retry(
+        async (bail) => {
+          try {
+            return await createExpenseApi(body, pinCode, this.createExpenseRefundKey!);
+          } catch (err) {
+            const apiError = err as ApiError;
+            if (apiError.statusCode && apiError.statusCode < 500) {
+              bail(err as Error);
+            }
+            throw err;
+          }
+        },
+        {retries: 2, factor: 2, minTimeout: 200},
+      );
+      expenseStore.setExpenseRefunds([...expenseStore.expenseRefunds, resp]);
+    } finally {
+      this.createExpenseRefundKey = null;
+      expenseStore.setIsCreatingExpenseRefund(false);
+    }
   }
 
   setSplitOption(splitOption: '1' | '2') {
