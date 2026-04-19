@@ -11,6 +11,8 @@ export class ExpenseStore {
   currentExpenseRefund: Partial<CreateExpenseRefundForm> = {};
   isExpenseDetailsModalOpen: boolean = false;
   selectedExpenseForDetails: Expense | null = null;
+  isCreatingExpense: boolean = false;
+  isCreatingExpenseRefund: boolean = false;
 
   constructor() {
     makeAutoObservable(this);
@@ -142,6 +144,14 @@ export class ExpenseStore {
 
   setSelectedExpenseForDetails(expense: Expense | null) {
     this.selectedExpenseForDetails = expense;
+  }
+
+  setIsCreatingExpense(value: boolean) {
+    this.isCreatingExpense = value;
+  }
+
+  setIsCreatingExpenseRefund(value: boolean) {
+    this.isCreatingExpenseRefund = value;
   }
 }
 

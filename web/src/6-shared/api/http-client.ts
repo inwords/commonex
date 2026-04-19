@@ -2,14 +2,17 @@ import {ApiError} from './errors';
 import {errorStore} from '@/6-shared/stores/error-store';
 
 export class HttpClient {
-  async request(input: RequestInfo | URL, init?: RequestInit) {
+  async request(input: RequestInfo | URL, init?: RequestInit & {idempotencyKey?: string}) {
     const baseUrl = window.location.origin.includes('localhost') ? 'http://localhost:3001' : '/api';
 
+    const {idempotencyKey, ...restInit} = init ?? {};
+
     const resp = await fetch(`${baseUrl}${input}`, {
-      ...init,
+      ...restInit,
       headers: {
-        ...init?.headers,
+        ...restInit.headers,
         'Content-Type': 'application/json',
+        ...(idempotencyKey ? {'idempotency-key': idempotencyKey} : {}),
       },
     });
 

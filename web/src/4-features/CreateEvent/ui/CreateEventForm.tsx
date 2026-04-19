@@ -9,9 +9,11 @@ import {useNavigate} from 'react-router';
 import {ROUTES} from '@/6-shared/routing/constants';
 import {SelectCurrency} from '@/5-entities/currency/ui/SelectCurrency';
 import {eventService} from '@/5-entities/event/services/event-service';
+import {eventStore} from '@/5-entities/event/stores/event-store';
 import type {CreateEvent} from '@/5-entities/event/types/types';
+import {observer} from 'mobx-react-lite';
 
-export const CreateEventForm = () => {
+export const CreateEventForm = observer(() => {
   const navigate = useNavigate();
 
   return (
@@ -33,10 +35,10 @@ export const CreateEventForm = () => {
       </Stack>
 
       <Stack justifyContent="end" marginTop={'16px'}>
-        <Button type={'submit'} variant="contained">
+        <Button type={'submit'} variant="contained" loading={eventStore.isCreatingEvent}>
           Создать поездку
         </Button>
       </Stack>
     </FormContainer>
   );
-};
+});

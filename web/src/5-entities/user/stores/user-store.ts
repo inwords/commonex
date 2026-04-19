@@ -4,14 +4,17 @@ import {action, computed, makeObservable, observable} from 'mobx';
 export class UserStore {
   users: Array<User> = [];
   currentUser: User | undefined = undefined;
+  isAddingUsers: boolean = false;
 
   constructor() {
     makeObservable(this, {
       users: observable,
       currentUser: observable,
+      isAddingUsers: observable,
       usersToSelect: computed,
       setUsers: action,
       setCurrentUser: action,
+      setIsAddingUsers: action,
     });
   }
 
@@ -35,6 +38,10 @@ export class UserStore {
 
   setCurrentUser(user: User | undefined) {
     this.currentUser = user;
+  }
+
+  setIsAddingUsers(value: boolean) {
+    this.isAddingUsers = value;
   }
 }
 
