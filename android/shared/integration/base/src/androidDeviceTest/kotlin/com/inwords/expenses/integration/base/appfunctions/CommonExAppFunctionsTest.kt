@@ -106,7 +106,7 @@ internal class CommonExAppFunctionsTest {
     @Test
     fun createEvent_shouldUseRequestedCurrencyAndOwnerIdentity() = runBlocking {
         val createdEventDetails = EventDetails(
-            event = Event(id = 7, serverId = null, name = "Weekend Trip", pinCode = "1234", primaryCurrencyId = 1),
+            event = Event(id = 7, serverId = null, name = "Weekend Trip", pinCode = "1234", primaryCurrencyId = 1, clientCreateId = "event-7"),
             currencies = emptyList(),
             persons = emptyList(),
             primaryCurrency = Currency(id = 1, serverId = null, code = "EUR", name = "Euro", rate = BigDecimal.ONE),
@@ -190,8 +190,8 @@ internal class CommonExAppFunctionsTest {
     @Test
     fun listEvents_shouldReturnDetailedSummaries() = runBlocking {
         val events = listOf(
-            Event(id = 1, serverId = null, name = "Trip", pinCode = "1234", primaryCurrencyId = 1),
-            Event(id = 2, serverId = null, name = "Dinner", pinCode = "5678", primaryCurrencyId = 1)
+            Event(id = 1, serverId = null, name = "Trip", pinCode = "1234", primaryCurrencyId = 1, clientCreateId = "event-1"),
+            Event(id = 2, serverId = null, name = "Dinner", pinCode = "5678", primaryCurrencyId = 1, clientCreateId = "event-2")
         )
         val currency = Currency(id = 1, serverId = null, code = "EUR", name = "Euro", rate = BigDecimal.ONE)
         every { getEventsUseCase.getEvents() } returns flowOf(events)
@@ -199,8 +199,8 @@ internal class CommonExAppFunctionsTest {
             event = events[0],
             currencies = listOf(currency),
             persons = listOf(
-                Person(id = 1, serverId = null, name = "Alice"),
-                Person(id = 2, serverId = null, name = "Bob"),
+                Person(id = 1, serverId = null, name = "Alice", clientCreateId = "person-1"),
+                Person(id = 2, serverId = null, name = "Bob", clientCreateId = "person-2"),
             ),
             primaryCurrency = currency,
         )
@@ -208,7 +208,7 @@ internal class CommonExAppFunctionsTest {
             event = events[1],
             currencies = listOf(currency),
             persons = listOf(
-                Person(id = 3, serverId = null, name = "Chris"),
+                Person(id = 3, serverId = null, name = "Chris", clientCreateId = "person-3"),
             ),
             primaryCurrency = currency,
         )
@@ -235,8 +235,8 @@ internal class CommonExAppFunctionsTest {
 
     @Test
     fun addParticipant_shouldThrowWhenEventNameIsAmbiguous() = runBlocking {
-        val trip1 = Event(id = 1, serverId = null, name = "Trip", pinCode = "1234", primaryCurrencyId = 1)
-        val trip2 = Event(id = 2, serverId = null, name = "Trip", pinCode = "5678", primaryCurrencyId = 1)
+        val trip1 = Event(id = 1, serverId = null, name = "Trip", pinCode = "1234", primaryCurrencyId = 1, clientCreateId = "event-1")
+        val trip2 = Event(id = 2, serverId = null, name = "Trip", pinCode = "5678", primaryCurrencyId = 1, clientCreateId = "event-2")
         every { eventsLocalStore.getEventsFlow() } returns flowOf(listOf(trip1, trip2))
 
         try {
@@ -262,7 +262,7 @@ internal class CommonExAppFunctionsTest {
 
     @Test
     fun addParticipant_shouldAddPersonSuccessfully() = runBlocking {
-        val event = Event(id = 1, serverId = null, name = "Trip", pinCode = "1234", primaryCurrencyId = 1)
+        val event = Event(id = 1, serverId = null, name = "Trip", pinCode = "1234", primaryCurrencyId = 1, clientCreateId = "event-1")
         val currency = Currency(id = 1, serverId = null, code = "EUR", name = "Euro", rate = BigDecimal.ONE)
         val eventDetails = EventDetails(
             event = event,
@@ -291,13 +291,13 @@ internal class CommonExAppFunctionsTest {
 
     @Test
     fun addParticipant_shouldRejectDuplicateNamesIgnoringCase() = runBlocking {
-        val event = Event(id = 1, serverId = null, name = "Trip", pinCode = "1234", primaryCurrencyId = 1)
+        val event = Event(id = 1, serverId = null, name = "Trip", pinCode = "1234", primaryCurrencyId = 1, clientCreateId = "event-1")
         val currency = Currency(id = 1, serverId = null, code = "EUR", name = "Euro", rate = BigDecimal.ONE)
         val eventDetails = EventDetails(
             event = event,
             currencies = listOf(currency),
             persons = listOf(
-                Person(id = 11, serverId = null, name = "Alice"),
+                Person(id = 11, serverId = null, name = "Alice", clientCreateId = "person-11"),
             ),
             primaryCurrency = currency,
         )
@@ -317,14 +317,14 @@ internal class CommonExAppFunctionsTest {
 
     @Test
     fun getDebts_shouldReturnEmptyListWhenNoExpensesExist() = runBlocking {
-        val event = Event(id = 1, serverId = null, name = "Trip", pinCode = "1234", primaryCurrencyId = 1)
+        val event = Event(id = 1, serverId = null, name = "Trip", pinCode = "1234", primaryCurrencyId = 1, clientCreateId = "event-1")
         val currency = Currency(id = 1, serverId = null, code = "EUR", name = "Euro", rate = BigDecimal.ONE)
         val eventDetails = EventDetails(
             event = event,
             currencies = listOf(currency),
             persons = listOf(
-                Person(id = 1, serverId = null, name = "Alice"),
-                Person(id = 2, serverId = null, name = "Bob"),
+                Person(id = 1, serverId = null, name = "Alice", clientCreateId = "person-1"),
+                Person(id = 2, serverId = null, name = "Bob", clientCreateId = "person-2"),
             ),
             primaryCurrency = currency,
         )
@@ -339,9 +339,9 @@ internal class CommonExAppFunctionsTest {
 
     @Test
     fun getDebts_shouldReturnCalculatedDebts() = runBlocking {
-        val alice = Person(id = 1, serverId = null, name = "Alice")
-        val bob = Person(id = 2, serverId = null, name = "Bob")
-        val event = Event(id = 1, serverId = null, name = "Trip", pinCode = "1234", primaryCurrencyId = 1)
+        val alice = Person(id = 1, serverId = null, name = "Alice", clientCreateId = "person-1")
+        val bob = Person(id = 2, serverId = null, name = "Bob", clientCreateId = "person-2")
+        val event = Event(id = 1, serverId = null, name = "Trip", pinCode = "1234", primaryCurrencyId = 1, clientCreateId = "event-1")
         val currency = Currency(id = 1, serverId = null, code = "EUR", name = "Euro", rate = BigDecimal.ONE)
         val eventDetails = EventDetails(
             event = event,
@@ -363,6 +363,7 @@ internal class CommonExAppFunctionsTest {
             isCustomRate = false,
             timestamp = kotlin.time.Clock.System.now(),
             description = "Lunch",
+            clientCreateId = "expense-1",
         )
         every { eventsLocalStore.getEventsFlow() } returns flowOf(listOf(event))
         coEvery { eventsLocalStore.getEventWithDetails(1) } returns eventDetails
@@ -391,9 +392,9 @@ internal class CommonExAppFunctionsTest {
 
     @Test
     fun addExpense_shouldAddExpenseSuccessfully() = runBlocking {
-        val alice = Person(id = 1, serverId = null, name = "Alice")
-        val bob = Person(id = 2, serverId = null, name = "Bob")
-        val event = Event(id = 1, serverId = null, name = "Trip", pinCode = "1234", primaryCurrencyId = 1)
+        val alice = Person(id = 1, serverId = null, name = "Alice", clientCreateId = "person-1")
+        val bob = Person(id = 2, serverId = null, name = "Bob", clientCreateId = "person-2")
+        val event = Event(id = 1, serverId = null, name = "Trip", pinCode = "1234", primaryCurrencyId = 1, clientCreateId = "event-1")
         val currency = Currency(id = 1, serverId = null, code = "EUR", name = "Euro", rate = BigDecimal.ONE)
         val eventDetails = EventDetails(
             event = event,
@@ -507,10 +508,10 @@ internal class CommonExAppFunctionsTest {
 
     @Test
     fun addExpense_shouldApplyCorrectSplitCountAndRounding() = runBlocking {
-        val alice = Person(id = 1, serverId = null, name = "Alice")
-        val bob = Person(id = 2, serverId = null, name = "Bob")
-        val chris = Person(id = 3, serverId = null, name = "Chris")
-        val event = Event(id = 1, serverId = null, name = "Trip", pinCode = "1234", primaryCurrencyId = 1)
+        val alice = Person(id = 1, serverId = null, name = "Alice", clientCreateId = "person-1")
+        val bob = Person(id = 2, serverId = null, name = "Bob", clientCreateId = "person-2")
+        val chris = Person(id = 3, serverId = null, name = "Chris", clientCreateId = "person-3")
+        val event = Event(id = 1, serverId = null, name = "Trip", pinCode = "1234", primaryCurrencyId = 1, clientCreateId = "event-1")
         val currency = Currency(id = 1, serverId = null, code = "EUR", name = "Euro", rate = BigDecimal.ONE)
         val eventDetails = EventDetails(
             event = event,
@@ -564,13 +565,13 @@ internal class CommonExAppFunctionsTest {
 
     @Test
     fun addExpense_shouldThrowWhenPayerIsMissing() = runBlocking {
-        val event = Event(id = 1, serverId = null, name = "Trip", pinCode = "1234", primaryCurrencyId = 1)
+        val event = Event(id = 1, serverId = null, name = "Trip", pinCode = "1234", primaryCurrencyId = 1, clientCreateId = "event-1")
         val currency = Currency(id = 1, serverId = null, code = "EUR", name = "Euro", rate = BigDecimal.ONE)
         val eventDetails = EventDetails(
             event = event,
             currencies = listOf(currency),
             persons = listOf(
-                Person(id = 1, serverId = null, name = "Alice"),
+                Person(id = 1, serverId = null, name = "Alice", clientCreateId = "person-1"),
             ),
             primaryCurrency = currency,
         )
@@ -596,9 +597,9 @@ internal class CommonExAppFunctionsTest {
 
     @Test
     fun addExpense_shouldThrowWhenPayerNameMatchesMultipleParticipants() = runBlocking {
-        val alice1 = Person(id = 1, serverId = null, name = "Alice")
-        val alice2 = Person(id = 2, serverId = null, name = "Alice")
-        val event = Event(id = 1, serverId = null, name = "Trip", pinCode = "1234", primaryCurrencyId = 1)
+        val alice1 = Person(id = 1, serverId = null, name = "Alice", clientCreateId = "person-1")
+        val alice2 = Person(id = 2, serverId = null, name = "Alice", clientCreateId = "person-2")
+        val event = Event(id = 1, serverId = null, name = "Trip", pinCode = "1234", primaryCurrencyId = 1, clientCreateId = "event-1")
         val currency = Currency(id = 1, serverId = null, code = "EUR", name = "Euro", rate = BigDecimal.ONE)
         val eventDetails = EventDetails(
             event = event,

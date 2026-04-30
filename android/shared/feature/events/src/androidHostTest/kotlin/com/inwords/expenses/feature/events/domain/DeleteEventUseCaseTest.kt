@@ -32,6 +32,7 @@ internal class DeleteEventUseCaseTest {
     private val localOnlyEvent = Event(
         id = 10L,
         serverId = null,
+        clientCreateId = "event-client-10",
         name = "Local trip",
         pinCode = "1234",
         primaryCurrencyId = 1L,
@@ -40,6 +41,7 @@ internal class DeleteEventUseCaseTest {
     private val syncedEvent = Event(
         id = 11L,
         serverId = "server-11",
+        clientCreateId = "event-client-11",
         name = "Synced trip",
         pinCode = "5678",
         primaryCurrencyId = 1L,

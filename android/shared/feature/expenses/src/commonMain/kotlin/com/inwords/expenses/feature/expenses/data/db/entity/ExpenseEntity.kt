@@ -51,6 +51,9 @@ data class ExpenseEntity(
     @ColumnInfo(ColumnNames.SERVER_ID)
     val serverId: String?,
 
+    @ColumnInfo(ColumnNames.CLIENT_CREATE_ID)
+    val clientCreateId: String,
+
     @ColumnInfo(ColumnNames.EVENT_ID)
     val eventId: Long,
 
@@ -82,6 +85,7 @@ data class ExpenseEntity(
 
         const val ID = "expense_id"
         const val SERVER_ID = "expense_server_id"
+        const val CLIENT_CREATE_ID = "client_create_id"
         const val EVENT_ID = "event_id"
         const val CURRENCY_ID = "currency_id"
         const val EXPENSE_TYPE = "expense_type"

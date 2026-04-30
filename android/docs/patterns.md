@@ -144,6 +144,81 @@ Use this to remove duplicated shared contract members while keeping the external
 
 Do not introduce `*CommonDeps` when the common `Deps` contract is empty. In that case, the extracted interface adds boilerplate without reducing duplication.
 
+### Shared KMM Raw File Storage
+
+For simple shared KMM raw-file state, keep file operations in common code with Okio `FileSystem`.
+
+Apply the pattern like this:
+
+- Keep stable filenames in common code.
+- Let platform code provide only the app-owned directory or path when Android/iOS APIs are needed to locate it.
+- Keep read/write behavior, caching, and value generation in the common owner.
+- Use `FakeFileSystem` in common tests instead of native file implementations.
+
+Use this when:
+
+- the state is small raw data owned by a shared module
+- the storage format is intentionally not DataStore, Room, or another structured store
+- platform code only differs in locating the app directory
+
+Do not add platform `expect`/`actual` file wrappers or file-interface inheritor trees for one-off raw-file read/write behavior that Okio can handle in common code.
+
+### Generated Key and Identity Boundaries
+
+For generated network keys or identifiers, expose an operation-level API to feature/domain modules and hide lower-level identity storage behind the owning core module.
+
+Apply the pattern like this:
+
+- Put identity lookup, creation, and key formatting in a core generator/service.
+- Inject the generator into feature tasks/use cases.
+- Have feature code pass stable mutation identity parts, not the stored client/install id.
+- Keep lower-level providers and stores `internal` unless another module genuinely needs that primitive.
+
+Use this when:
+
+- a key combines persisted client/install identity with operation-specific parts
+- the caller should not know how the identity is generated or stored
+- changing identity storage should not touch feature/domain call sites
+
+Do not expose helper functions that require feature code to fetch the stored identity first and pass it back into formatting code.
+
+### Durable Client Mutation IDs
+
+For offline-first mobile mutations, generate and persist a durable client-side create or mutation ID once, then reuse it for idempotency keys and later sync writes.
+
+Apply the pattern like this:
+
+- Generate the ID when the local entity or mutation is first created.
+- Persist it as required non-null local state and backfill it in migrations.
+- Preserve it through entity/domain conversion, `copy(...)`, upserts, and sync response reconciliation.
+- Build idempotency keys from the persisted install id, operation name, and durable mutation IDs.
+- Let the backend own request-body hashing and same-key/different-body rejection.
+
+Use this when:
+
+- local Room row IDs are not durable enough to identify a logical mutation
+- retries must map to one logical local create or mutation even if payload fields change locally
+- sync code needs a stable identity before a backend `serverId` exists
+
+Do not derive mutation identity from mutable payload data or client-side payload fingerprints.
+
+### Room Relation Ordering
+
+Do not rely on Room `@Relation` list order for behavior that must be deterministic.
+
+Apply the pattern like this:
+
+- Canonicalize relation-backed lists at the local-store boundary before mapping or returning domain models.
+- If a DAO method directly returns related rows, add `ORDER BY` to that DAO query.
+- Preserve existing DAO query shape when adding ordering unless the shape itself is the problem.
+
+Use this when:
+
+- ordering affects idempotency keys, sync payloads, generated fingerprints, or UI behavior that must be stable
+- the caller should consume a stable store contract instead of sorting in every task/use case
+
+Do not add extra DAO reads just to order a relation-backed list that was already loaded; copy the relation DTO with sorted children and then map it.
+
 ### Seeded Room Reference Data
 
 For durable seeded reference data in Room, keep one readable source-of-truth object and reuse it from all three places:
@@ -298,6 +373,24 @@ Apply the pattern like this:
 - Keep the test in `androidHostTest` only when it depends on Android/JVM-only APIs or host-test-only libraries.
 
 This keeps purely multiplatform contract tests runnable from the shared test source set instead of pinning them to Android host wiring unnecessarily.
+
+### Shared KMP Test Helpers Across Modules
+
+When multiple KMP modules need the same Kotlin test helper types, prefer a dedicated shared test-support module consumed via test dependencies.
+
+Apply the pattern like this:
+
+- Create a small shared module (for example under `shared/core`) with helper classes in `commonMain` or use existing module.
+- Add it only to test dependency scopes in consuming modules (for example `androidHostTestImplementation`, `commonTestImplementation` when needed).
+- Keep production code depending on production modules only; avoid wiring test-helper modules into `commonMain` production dependencies.
+
+Use this when:
+
+- the helper is reused by multiple modules
+- the helper is platform-agnostic KMP test code
+- local file-level test fakes are being duplicated across modules
+
+Do not default to `testFixtures` for this in KMP Android modules without verifying current AGP/Kotlin behavior for the repo versions in use, because support details and plugin interactions are version-sensitive.
 
 ### State Change Detection in Combine
 

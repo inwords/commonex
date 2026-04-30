@@ -13,7 +13,7 @@ internal class ExpensesRefreshRequestsHolderTest {
     @Test
     fun `enqueueAsyncSync emits requested event`() = runTest {
         val holder = ExpensesRefreshRequestsHolder()
-        val event = Event(10L, null, "Trip", "1234", 1L)
+        val event = Event(10L, null, "Trip", "1234", 1L, "event-client-10")
 
         holder.refreshExpensesRequests.test {
             holder.enqueueAsyncSync(event)
@@ -26,8 +26,8 @@ internal class ExpensesRefreshRequestsHolderTest {
     @Test
     fun `enqueueAsyncSync preserves request order`() = runTest {
         val holder = ExpensesRefreshRequestsHolder()
-        val firstEvent = Event(10L, null, "Trip", "1234", 1L)
-        val secondEvent = Event(11L, "server-11", "Party", "5678", 1L)
+        val firstEvent = Event(10L, null, "Trip", "1234", 1L, "event-client-10")
+        val secondEvent = Event(11L, "server-11", "Party", "5678", 1L, "event-client-11")
 
         holder.refreshExpensesRequests.test {
             holder.enqueueAsyncSync(firstEvent)

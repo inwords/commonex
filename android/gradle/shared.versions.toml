@@ -12,6 +12,7 @@ coroutines = "1.10.2" # https://github.com/Kotlin/kotlinx.coroutines/releases
 
 kotlinx-serialization = "1.10.0" # https://github.com/Kotlin/kotlinx.serialization/releases
 kotlinx-atomicfu = "0.31.0" # https://github.com/Kotlin/kotlinx-atomicfu/releases
+okio = "3.17.0" # https://square.github.io/okio/changelog/
 
 # Match version with BOM https://developer.android.com/develop/ui/compose/bom/bom-mapping
 compose-bom = "2026.03.00" # https://developer.android.com/jetpack/androidx/releases/compose
@@ -32,6 +33,8 @@ room-testing = { group = "androidx.room", name = "room-testing", version.ref = "
 sqlite-bundled = { group = "androidx.sqlite", name = "sqlite-bundled", version = "2.6.2" } # https://developer.android.com/jetpack/androidx/releases/sqlite
 datastore-core-okio = { group = "androidx.datastore", name = "datastore-core-okio", version.ref = "datastore" }
 datastore-android = { group = "androidx.datastore", name = "datastore", version.ref = "datastore" }
+okio = { group = "com.squareup.okio", name = "okio", version.ref = "okio" }
+okio-fakefilesystem = { group = "com.squareup.okio", name = "okio-fakefilesystem", version.ref = "okio" }
 
 ktor-client-core = { group = "io.ktor", name = "ktor-client-core", version.ref = "ktor" }
 ktor-client-darwin = { group = "io.ktor", name = "ktor-client-darwin", version.ref = "ktor" }

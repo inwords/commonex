@@ -41,9 +41,9 @@ internal class ChoosePersonViewModelTest {
     private val settingsRepository = mockk<SettingsRepository>(relaxed = true)
     private val expensesScreenDestination = mockk<Destination>(relaxed = true)
 
-    private val event = Event(1L, null, "Trip", "1234", 1L)
-    private val person1 = Person(1L, null, "Alice")
-    private val person2 = Person(2L, null, "Bob")
+    private val event = Event(id = 1L, serverId = null, clientCreateId = "event-client-1", name = "Trip", pinCode = "1234", primaryCurrencyId = 1L)
+    private val person1 = Person(id = 1L, serverId = null, clientCreateId = "person-client-1", name = "Alice")
+    private val person2 = Person(id = 2L, serverId = null, clientCreateId = "person-client-2", name = "Bob")
     private val eventDetails = EventDetails(
         event = event,
         currencies = emptyList(),

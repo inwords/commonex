@@ -23,6 +23,8 @@ internal data class RegistrationContext(
 ) {
     val networkClientLazy get() = SuspendLazy { networkComponent.value.getHttpClient() }
 
+    val idempotencyKeyGeneratorLazy get() = lazy { networkComponent.value.idempotencyKeyGenerator }
+
     val settingsRepositoryLazy get() = settingsComponent.value.settingsRepositoryLazy
 }
 
@@ -114,6 +116,7 @@ private fun buildEventsComponent(
 
             override val client get() = context.networkClientLazy
             override val hostConfig get() = context.networkComponent.value.hostConfig
+            override val idempotencyKeyGeneratorLazy get() = context.idempotencyKeyGeneratorLazy
 
             override val settingsRepositoryLazy get() = context.settingsRepositoryLazy
 
@@ -137,6 +140,7 @@ private fun buildExpensesComponent(
 
             override val client get() = context.networkClientLazy
             override val hostConfig get() = context.networkComponent.value.hostConfig
+            override val idempotencyKeyGeneratorLazy get() = context.idempotencyKeyGeneratorLazy
 
             override val transactionHelper get() = context.dbComponent.value.transactionHelper
 

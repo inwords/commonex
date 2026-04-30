@@ -1,5 +1,6 @@
 package com.inwords.expenses.feature.events.domain.task
 
+import com.inwords.expenses.core.network.IdempotencyKeyGenerator
 import com.inwords.expenses.core.observability.captureMessageIfNull
 import com.inwords.expenses.core.storage.utils.TransactionHelper
 import com.inwords.expenses.core.utils.IO
@@ -14,12 +15,14 @@ class EventPushTask internal constructor(
     eventsLocalStoreLazy: Lazy<EventsLocalStore>,
     eventsRemoteStoreLazy: Lazy<EventsRemoteStore>,
     personsLocalStoreLazy: Lazy<PersonsLocalStore>,
+    idempotencyKeyGeneratorLazy: Lazy<IdempotencyKeyGenerator>,
 ) {
 
     private val transactionHelper by transactionHelperLazy
     private val eventsLocalStore by eventsLocalStoreLazy
     private val eventsRemoteStore by eventsRemoteStoreLazy
     private val personsLocalStore by personsLocalStoreLazy
+    private val idempotencyKeyGenerator by idempotencyKeyGeneratorLazy
 
     /**
      * Prerequisites:
@@ -35,11 +38,16 @@ class EventPushTask internal constructor(
             }
             ?: return@withContext IoResult.Error.Failure
 
+        val localPersons = localEventDetails.persons
         val remoteEventDetailsResult = eventsRemoteStore.createEvent(
             event = localEventDetails.event,
             currencies = localEventDetails.currencies,
             primaryCurrencyServerId = primaryCurrencyServerId,
-            localPersons = localEventDetails.persons
+            localPersons = localPersons,
+            idempotencyKey = idempotencyKeyGenerator.mobileIdempotencyKey(
+                "event.create",
+                localEventDetails.event.clientCreateId,
+            ),
         )
         val networkEventDetails = when (remoteEventDetailsResult) {
             is IoResult.Success -> remoteEventDetailsResult.data
@@ -49,7 +57,6 @@ class EventPushTask internal constructor(
             .captureMessageIfNull("EventPushTask received a created event without a server id")
             ?: return@withContext IoResult.Error.Failure
 
-        val localPersons = localEventDetails.persons
         val updatedPersons = networkEventDetails.persons.mapIndexed { i, networkPerson ->
             localPersons[i].copy(serverId = networkPerson.serverId)
         }

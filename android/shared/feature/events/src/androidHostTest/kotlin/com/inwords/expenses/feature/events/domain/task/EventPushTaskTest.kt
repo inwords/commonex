@@ -1,5 +1,6 @@
 package com.inwords.expenses.feature.events.domain.task
 
+import com.inwords.expenses.core.network.IdempotencyKeyGenerator
 import com.inwords.expenses.core.storage.utils.TransactionHelper
 import com.inwords.expenses.core.utils.IoResult
 import com.inwords.expenses.feature.events.domain.model.Currency
@@ -32,12 +33,14 @@ internal class EventPushTaskTest {
     private val eventsLocalStore = mockk<EventsLocalStore>(relaxed = true)
     private val eventsRemoteStore = mockk<EventsRemoteStore>()
     private val personsLocalStore = mockk<PersonsLocalStore>(relaxed = true)
+    private val idempotencyKeyGenerator = mockk<IdempotencyKeyGenerator>()
 
     private val task = EventPushTask(
         transactionHelperLazy = lazy { transactionHelper },
         eventsLocalStoreLazy = lazy { eventsLocalStore },
         eventsRemoteStoreLazy = lazy { eventsRemoteStore },
         personsLocalStoreLazy = lazy { personsLocalStore },
+        idempotencyKeyGeneratorLazy = lazy { idempotencyKeyGenerator },
     )
 
     @BeforeTest
@@ -52,24 +55,30 @@ internal class EventPushTaskTest {
 
     @Test
     fun `pushEvent writes event and person server ids in one transaction`() = runTest {
+        val firstPerson = person(id = 1L)
+        val secondPerson = person(id = 2L)
         val localDetails = eventDetails(
             event = event(serverId = null),
-            persons = listOf(person(id = 1L), person(id = 2L)),
+            persons = listOf(firstPerson, secondPerson),
         )
         val remoteDetails = localDetails.copy(
             event = localDetails.event.copy(serverId = "srv-event"),
             persons = listOf(
-                localDetails.persons[0].copy(serverId = "srv-p1"),
-                localDetails.persons[1].copy(serverId = "srv-p2"),
+                firstPerson.copy(serverId = "srv-p1"),
+                secondPerson.copy(serverId = "srv-p2"),
             ),
         )
         coEvery { eventsLocalStore.getEventWithDetails(localDetails.event.id) } returns localDetails
+        coEvery {
+            idempotencyKeyGenerator.mobileIdempotencyKey("event.create", "event-1")
+        } returns EVENT_CREATE_KEY
         coEvery {
             eventsRemoteStore.createEvent(
                 event = localDetails.event,
                 currencies = localDetails.currencies,
                 primaryCurrencyServerId = localDetails.primaryCurrency.serverId!!,
                 localPersons = localDetails.persons,
+                idempotencyKey = EVENT_CREATE_KEY,
             )
         } returns IoResult.Success(remoteDetails)
         coEvery { transactionHelper.immediateWriteTransaction<Boolean>(any()) } coAnswers {
@@ -85,8 +94,8 @@ internal class EventPushTaskTest {
         coVerify(exactly = 1) {
             personsLocalStore.insertWithoutCrossRefs(
                 listOf(
-                    localDetails.persons[0].copy(serverId = "srv-p1"),
-                    localDetails.persons[1].copy(serverId = "srv-p2"),
+                    firstPerson.copy(serverId = "srv-p1"),
+                    secondPerson.copy(serverId = "srv-p2"),
                 )
             )
         }
@@ -100,7 +109,7 @@ internal class EventPushTaskTest {
         val result = task.pushEvent(1L)
 
         assertEquals(IoResult.Error.Failure, result)
-        coVerify(exactly = 0) { eventsRemoteStore.createEvent(any(), any(), any(), any()) }
+        coVerify(exactly = 0) { eventsRemoteStore.createEvent(any(), any(), any(), any(), any()) }
     }
 
     @Test
@@ -111,7 +120,7 @@ internal class EventPushTaskTest {
         val result = task.pushEvent(localDetails.event.id)
 
         assertEquals(IoResult.Success(Unit), result)
-        coVerify(exactly = 0) { eventsRemoteStore.createEvent(any(), any(), any(), any()) }
+        coVerify(exactly = 0) { eventsRemoteStore.createEvent(any(), any(), any(), any(), any()) }
     }
 
     @Test
@@ -122,14 +131,17 @@ internal class EventPushTaskTest {
         val result = task.pushEvent(localDetails.event.id)
 
         assertEquals(IoResult.Error.Failure, result)
-        coVerify(exactly = 0) { eventsRemoteStore.createEvent(any(), any(), any(), any()) }
+        coVerify(exactly = 0) { eventsRemoteStore.createEvent(any(), any(), any(), any(), any()) }
     }
 
     @Test
     fun `pushEvent propagates retry without writes`() = runTest {
         val localDetails = eventDetails()
         coEvery { eventsLocalStore.getEventWithDetails(localDetails.event.id) } returns localDetails
-        coEvery { eventsRemoteStore.createEvent(any(), any(), any(), any()) } returns IoResult.Error.Retry
+        coEvery {
+            idempotencyKeyGenerator.mobileIdempotencyKey("event.create", "event-1")
+        } returns EVENT_CREATE_KEY
+        coEvery { eventsRemoteStore.createEvent(any(), any(), any(), any(), any()) } returns IoResult.Error.Retry
 
         val result = task.pushEvent(localDetails.event.id)
 
@@ -142,7 +154,10 @@ internal class EventPushTaskTest {
     fun `pushEvent propagates failure without writes`() = runTest {
         val localDetails = eventDetails()
         coEvery { eventsLocalStore.getEventWithDetails(localDetails.event.id) } returns localDetails
-        coEvery { eventsRemoteStore.createEvent(any(), any(), any(), any()) } returns IoResult.Error.Failure
+        coEvery {
+            idempotencyKeyGenerator.mobileIdempotencyKey("event.create", "event-1")
+        } returns EVENT_CREATE_KEY
+        coEvery { eventsRemoteStore.createEvent(any(), any(), any(), any(), any()) } returns IoResult.Error.Failure
 
         val result = task.pushEvent(localDetails.event.id)
 
@@ -152,11 +167,11 @@ internal class EventPushTaskTest {
     }
 
     private fun event(serverId: String? = null): Event {
-        return Event(id = 1L, serverId = serverId, name = "Trip", pinCode = "1234", primaryCurrencyId = 1L)
+        return Event(id = 1L, serverId = serverId, clientCreateId = "event-1", name = "Trip", pinCode = "1234", primaryCurrencyId = 1L)
     }
 
     private fun person(id: Long): Person {
-        return Person(id = id, serverId = null, name = "Person$id")
+        return Person(id = id, serverId = null, clientCreateId = "person-$id", name = "Person$id")
     }
 
     private fun currency(serverId: String? = "srv-eur"): Currency {
@@ -174,5 +189,11 @@ internal class EventPushTaskTest {
             persons = persons,
             primaryCurrency = primaryCurrency,
         )
+    }
+
+    private companion object {
+
+        private const val CLIENT_ID = "00000000-0000-0000-0000-000000000001"
+        private const val EVENT_CREATE_KEY = "mobile:$CLIENT_ID:event.create:event-1"
     }
 }

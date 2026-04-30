@@ -1,6 +1,7 @@
 package com.inwords.expenses.core.network
 
 import android.content.Context
+import okio.Path.Companion.toPath
 
 actual class NetworkComponentFactory actual constructor(
     private val deps: Deps
@@ -21,7 +22,12 @@ actual class NetworkComponentFactory actual constructor(
                     production = deps.production,
                 ),
                 enableLogging = !deps.production
-            )
+            ),
+            idempotencyKeyGenerator = IdempotencyKeyGenerator(
+                idempotencyClientIdProvider = IdempotencyClientIdStore(
+                    directory = deps.context.filesDir.absolutePath.toPath(),
+                )
+            ),
         )
     }
 }

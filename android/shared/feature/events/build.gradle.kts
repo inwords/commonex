@@ -89,6 +89,7 @@ compose.resources {
 }
 
 dependencies {
+    add("androidHostTestImplementation", project(":shared:core:test-utils"))
     add("androidHostTestImplementation", shared.kotlin.test)
     add("androidHostTestImplementation", shared.coroutines.test)
     add("androidHostTestImplementation", shared.junit.jupiter.api)

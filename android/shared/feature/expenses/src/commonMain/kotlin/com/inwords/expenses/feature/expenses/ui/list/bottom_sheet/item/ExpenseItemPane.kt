@@ -321,11 +321,13 @@ private fun mockExpense(): Expense {
     val person = Person(
         id = 1,
         serverId = "1",
+        clientCreateId = "person-1",
         name = "Василий",
     )
     return Expense(
         expenseId = 1,
         serverId = "1",
+        clientCreateId = "expense-1",
         currency = Currency(
             id = 1,
             serverId = "1",

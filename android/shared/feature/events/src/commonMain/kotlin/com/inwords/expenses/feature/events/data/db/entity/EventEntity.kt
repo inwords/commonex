@@ -28,6 +28,9 @@ data class EventEntity(
     @ColumnInfo(ColumnNames.SERVER_ID)
     val eventServerId: String?,
 
+    @ColumnInfo(ColumnNames.CLIENT_CREATE_ID)
+    val clientCreateId: String,
+
     @ColumnInfo(ColumnNames.NAME)
     val name: String,
 
@@ -46,6 +49,7 @@ data class EventEntity(
 
         const val ID = "event_id"
         const val SERVER_ID = "event_server_id"
+        const val CLIENT_CREATE_ID = "client_create_id"
         const val NAME = "name"
         const val PIN_CODE = "pin_code"
         const val PRIMARY_CURRENCY = "primary_currency_id"

@@ -3,7 +3,7 @@ package com.inwords.expenses.feature.settings.data
 import androidx.datastore.core.CorruptionException
 import androidx.datastore.core.DataStore
 import androidx.datastore.core.okio.OkioSerializer
-import com.inwords.expenses.core.storage.utils.type_converter.DataStoreSingleton
+import com.inwords.expenses.core.storage.utils.DataStoreSingleton
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map

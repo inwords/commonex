@@ -17,8 +17,8 @@ internal class ExpenseToUiModelTest {
 
     @Test
     fun `toUiModel should include current person part from exchanged amount`() {
-        val currentPerson = Person(id = 1, serverId = "p1", name = "Alex")
-        val anotherPerson = Person(id = 2, serverId = "p2", name = "Ben")
+        val currentPerson = Person(id = 1, serverId = "p1", name = "Alex", clientCreateId = "person-1")
+        val anotherPerson = Person(id = 2, serverId = "p2", name = "Ben", clientCreateId = "person-2")
 
         val expense = Expense(
             expenseId = 10L,
@@ -45,6 +45,7 @@ internal class ExpenseToUiModelTest {
             isCustomRate = false,
             timestamp = Clock.System.now(),
             description = "Lunch",
+            clientCreateId = "expense-10",
         )
 
         val uiModel = expense.toUiModel(primaryCurrencyName = "Euro", currentPersonId = currentPerson.id)
@@ -55,8 +56,8 @@ internal class ExpenseToUiModelTest {
 
     @Test
     fun `toUiModel should hide current person part when current person is not in split`() {
-        val expenseOwner = Person(id = 1, serverId = "p1", name = "Alex")
-        val splitPerson = Person(id = 2, serverId = "p2", name = "Ben")
+        val expenseOwner = Person(id = 1, serverId = "p1", name = "Alex", clientCreateId = "person-1")
+        val splitPerson = Person(id = 2, serverId = "p2", name = "Ben", clientCreateId = "person-2")
 
         val expense = Expense(
             expenseId = 11L,
@@ -76,6 +77,7 @@ internal class ExpenseToUiModelTest {
             isCustomRate = false,
             timestamp = Clock.System.now(),
             description = "Taxi",
+            clientCreateId = "expense-11",
         )
 
         val uiModel = expense.toUiModel(primaryCurrencyName = "Euro", currentPersonId = 999L)

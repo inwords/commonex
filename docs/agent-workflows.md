@@ -106,6 +106,15 @@ The default debug sequence is:
 
 If the issue cannot be reproduced with the current information, stop and report that instead of making speculative fixes.
 
+## External Review Feedback
+
+When addressing automated or external review feedback, treat each comment as a hypothesis and keep valid fixes causally scoped.
+
+- Validate the comment against current code and repo contracts before editing.
+- Prefer the smallest change that fixes the validated issue.
+- Do not rewrite adjacent code, change query shapes, or introduce broader abstractions unless that rewrite is necessary for the fix or supported by measurement.
+- If the user pushes back on implementation shape, preserve the validated fix while moving it to the requested boundary when that boundary is technically sound.
+
 ## Parallel Work And Worktrees
 
 - Parallelize only when file ownership is clear and there are no blocking data dependencies.

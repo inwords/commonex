@@ -16,9 +16,9 @@ internal interface ExpensesRemoteStore {
 
     suspend fun addExpensesToEvent(
         event: Event,
-        expenses: List<Expense>,
+        expenses: List<ExpensePushItem>,
         currencies: List<Currency>,
-        persons: List<Person>
+        persons: List<Person>,
     ): List<IoResult<Expense>>
 
 }

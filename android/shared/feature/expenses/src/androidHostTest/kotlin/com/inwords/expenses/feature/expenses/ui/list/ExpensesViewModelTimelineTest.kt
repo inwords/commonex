@@ -65,11 +65,13 @@ internal class ExpensesViewModelTimelineTest {
             id = 1L,
             serverId = "person-1",
             name = "Alex",
+            clientCreateId = "person-1",
         )
         val otherPerson = Person(
             id = 2L,
             serverId = "person-2",
             name = "Ben",
+            clientCreateId = "person-2",
         )
         val event = Event(
             id = 10L,
@@ -77,6 +79,7 @@ internal class ExpensesViewModelTimelineTest {
             name = "Trip",
             pinCode = "1234",
             primaryCurrencyId = primaryCurrency.id,
+            clientCreateId = "event-10",
         )
         val eventDetails = EventDetails(
             event = event,
@@ -137,6 +140,7 @@ internal class ExpensesViewModelTimelineTest {
                 isCustomRate = false,
                 timestamp = Instant.parse(timestamp),
                 description = description,
+                clientCreateId = "expense-$expenseId",
             )
         }
     }

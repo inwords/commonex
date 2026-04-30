@@ -6,6 +6,7 @@ import com.inwords.expenses.feature.events.data.db.converter.toEntity
 import com.inwords.expenses.feature.events.data.db.dao.EventsDao
 import com.inwords.expenses.feature.events.data.db.entity.EventCurrencyCrossRef
 import com.inwords.expenses.feature.events.data.db.entity.EventPersonCrossRef
+import com.inwords.expenses.feature.events.data.db.entity.EventWithDetailsQuery
 import com.inwords.expenses.feature.events.domain.model.Currency
 import com.inwords.expenses.feature.events.domain.model.Event
 import com.inwords.expenses.feature.events.domain.model.EventDetails
@@ -38,7 +39,7 @@ internal class EventsLocalStoreImpl(
 
     override fun getEventWithDetailsFlow(eventId: Long): Flow<EventDetails?> {
         return eventsDao.queryEventWithDetailsByIdFlow(eventId).map { entity ->
-            entity?.toDomain()
+            entity?.withSortedPersons()?.toDomain()
         }.distinctUntilChanged()
     }
 
@@ -47,7 +48,7 @@ internal class EventsLocalStoreImpl(
     }
 
     override suspend fun getEventWithDetails(eventId: Long): EventDetails? {
-        return eventsDao.queryEventWithDetailsById(eventId)?.toDomain()
+        return eventsDao.queryEventWithDetailsById(eventId)?.withSortedPersons()?.toDomain()
     }
 
     override suspend fun getEventByServerId(eventServerId: String): Event? {
@@ -55,7 +56,7 @@ internal class EventsLocalStoreImpl(
     }
 
     override suspend fun getEventWithDetailsByServerId(eventServerId: String): EventDetails? {
-        return eventsDao.queryEventWithDetailsByServerId(eventServerId)?.toDomain()
+        return eventsDao.queryEventWithDetailsByServerId(eventServerId)?.withSortedPersons()?.toDomain()
     }
 
     override suspend fun getEventPersons(eventId: Long): List<Person> {
@@ -145,6 +146,10 @@ internal class EventsLocalStoreImpl(
         eventsDao.insertPersonCrossRef(personCrossRefs)
 
         return insertedPersons
+    }
+
+    private fun EventWithDetailsQuery.withSortedPersons(): EventWithDetailsQuery {
+        return copy(persons = persons.sortedBy { it.personId })
     }
 
 }

@@ -2,6 +2,7 @@ package com.inwords.expenses.feature.events.data.network.store
 
 import com.inwords.expenses.core.network.DomainErrorCodes
 import com.inwords.expenses.core.network.HostConfig
+import com.inwords.expenses.core.network.IDEMPOTENCY_KEY_HEADER
 import com.inwords.expenses.core.utils.IoResult
 import com.inwords.expenses.feature.events.domain.CreateShareTokenUseCase.CreateShareTokenResult
 import com.inwords.expenses.feature.events.domain.model.Currency
@@ -59,14 +60,15 @@ internal class EventsRemoteStoreImplTest {
                 pinCode = "1234",
                 currencies = currencies(),
                 localPersons = listOf(
-                    Person(id = 101L, serverId = null, name = "Alice"),
-                    Person(id = 202L, serverId = null, name = "Charlie"),
+                    Person(id = 101L, serverId = null, clientCreateId = "person-client-101", name = "Alice"),
+                    Person(id = 202L, serverId = null, clientCreateId = "person-client-202", name = "Charlie"),
                 ),
             )
 
             val event = assertIs<EventsRemoteStore.GetEventResult.Event<EventNetworkError.ByAccessCode>>(result)
             assertEquals(77L, event.event.event.id)
             assertEquals("srv-event", event.event.event.serverId)
+            assertEquals("server:srv-event", event.event.event.clientCreateId)
             assertEquals("9999", event.event.event.pinCode)
             assertEquals(currencies().first().id, event.event.event.primaryCurrencyId)
             assertEquals("srv-eur", event.event.primaryCurrency.serverId)
@@ -74,6 +76,8 @@ internal class EventsRemoteStoreImplTest {
             assertEquals(0L, event.event.persons[1].id)
             assertEquals("srv-user-1", event.event.persons[0].serverId)
             assertEquals("srv-user-2", event.event.persons[1].serverId)
+            assertEquals("person-client-101", event.event.persons[0].clientCreateId)
+            assertEquals("server:srv-user-2", event.event.persons[1].clientCreateId)
             assertEquals("Alice", event.event.persons[0].name)
             assertEquals("Bob", event.event.persons[1].name)
         }
@@ -213,17 +217,19 @@ internal class EventsRemoteStoreImplTest {
         val localEvent = Event(
             id = 90L,
             serverId = null,
+            clientCreateId = "event-client-90",
             name = "Trip",
             pinCode = "5555",
             primaryCurrencyId = currencies().first().id,
         )
         val localPersons = listOf(
-            Person(id = 11L, serverId = null, name = "Alice"),
-            Person(id = 12L, serverId = null, name = "Bob"),
+            Person(id = 11L, serverId = null, clientCreateId = "person-client-11", name = "Alice"),
+            Person(id = 12L, serverId = null, clientCreateId = "person-client-12", name = "Bob"),
         )
         val client = createClient { request ->
             assertEquals(HttpMethod.Post, request.method)
             assertEquals("/api/user/event", request.url.encodedPath)
+            assertEquals("event-create-key", request.headers[IDEMPOTENCY_KEY_HEADER])
 
             val bodyJson = parseRequestBody(request.body)
             assertEquals("Trip", bodyJson.getValue("name").jsonPrimitive.content)
@@ -240,16 +246,20 @@ internal class EventsRemoteStoreImplTest {
                 currencies = currencies(),
                 primaryCurrencyServerId = "srv-eur",
                 localPersons = localPersons,
+                idempotencyKey = "event-create-key",
             )
 
             val success = assertIs<IoResult.Success<com.inwords.expenses.feature.events.domain.model.EventDetails>>(result)
             assertEquals(90L, success.data.event.id)
             assertEquals("srv-event", success.data.event.serverId)
+            assertEquals("event-client-90", success.data.event.clientCreateId)
             assertEquals("9999", success.data.event.pinCode)
             assertEquals(11L, success.data.persons[0].id)
             assertEquals(12L, success.data.persons[1].id)
             assertEquals("srv-user-1", success.data.persons[0].serverId)
             assertEquals("srv-user-2", success.data.persons[1].serverId)
+            assertEquals("person-client-11", success.data.persons[0].clientCreateId)
+            assertEquals("person-client-12", success.data.persons[1].clientCreateId)
             assertEquals("srv-eur", success.data.primaryCurrency.serverId)
         }
     }
@@ -259,6 +269,7 @@ internal class EventsRemoteStoreImplTest {
         val client = createClient { request ->
             assertEquals(HttpMethod.Delete, request.method)
             assertEquals("/api/user/event/srv-event", request.url.encodedPath)
+            assertEquals(null, request.headers[IDEMPOTENCY_KEY_HEADER])
 
             val bodyJson = parseRequestBody(request.body)
             assertEquals("1234", bodyJson.getValue("pinCode").jsonPrimitive.content)
@@ -306,12 +317,13 @@ internal class EventsRemoteStoreImplTest {
     @Test
     fun `addPersonsToEvent posts users and maps returned ids by index`() = runTest {
         val localPersons = listOf(
-            Person(id = 31L, serverId = null, name = "Alice"),
-            Person(id = 32L, serverId = null, name = "Bob"),
+            Person(id = 31L, serverId = null, clientCreateId = "person-client-31", name = "Alice"),
+            Person(id = 32L, serverId = null, clientCreateId = "person-client-32", name = "Bob"),
         )
         val client = createClient { request ->
             assertEquals(HttpMethod.Post, request.method)
             assertEquals("/api/v2/user/event/srv-event/users", request.url.encodedPath)
+            assertEquals("persons-add-key", request.headers[IDEMPOTENCY_KEY_HEADER])
 
             val bodyJson = parseRequestBody(request.body)
             assertEquals("1234", bodyJson.getValue("pinCode").jsonPrimitive.content)
@@ -332,6 +344,7 @@ internal class EventsRemoteStoreImplTest {
                 eventServerId = "srv-event",
                 pinCode = "1234",
                 localPersons = localPersons,
+                idempotencyKey = "persons-add-key",
             )
 
             val success = assertIs<IoResult.Success<List<Person>>>(result)
@@ -339,6 +352,8 @@ internal class EventsRemoteStoreImplTest {
             assertEquals(32L, success.data[1].id)
             assertEquals("srv-user-1", success.data[0].serverId)
             assertEquals("srv-user-2", success.data[1].serverId)
+            assertEquals("person-client-31", success.data[0].clientCreateId)
+            assertEquals("person-client-32", success.data[1].clientCreateId)
             assertEquals("Server Alice", success.data[0].name)
             assertEquals("Server Bob", success.data[1].name)
         }

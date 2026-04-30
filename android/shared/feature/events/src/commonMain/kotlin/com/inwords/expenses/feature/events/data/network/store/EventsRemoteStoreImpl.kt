@@ -4,9 +4,11 @@ import com.inwords.expenses.core.network.DomainErrorCodes
 import com.inwords.expenses.core.network.HostConfig
 import com.inwords.expenses.core.network.NetworkResult
 import com.inwords.expenses.core.network.getErrorCode
+import com.inwords.expenses.core.network.idempotencyKey
 import com.inwords.expenses.core.network.requestWithExceptionHandling
 import com.inwords.expenses.core.network.toIoResult
 import com.inwords.expenses.core.network.url
+import com.inwords.expenses.core.utils.ClientCreateId
 import com.inwords.expenses.core.utils.IoResult
 import com.inwords.expenses.core.utils.SuspendLazy
 import com.inwords.expenses.feature.events.data.network.dto.AddPersonsToEventRequest
@@ -115,6 +117,7 @@ internal class EventsRemoteStoreImpl(
                     )
                 )
             }.body<EventDto>().toEventDetails(
+                localEvent = null,
                 localEventId = localId,
                 localPersons = localPersons,
                 currencies = currencies
@@ -127,10 +130,12 @@ internal class EventsRemoteStoreImpl(
         currencies: List<Currency>,
         primaryCurrencyServerId: String,
         localPersons: List<Person>,
+        idempotencyKey: String,
     ): IoResult<EventDetails> {
         return client.requestWithExceptionHandling {
             post {
                 url(hostConfig) { pathSegments = listOf("api", "user", "event") }
+                idempotencyKey(idempotencyKey)
                 contentType(ContentType.Application.Json)
                 setBody(
                     CreateEventRequest(
@@ -140,7 +145,12 @@ internal class EventsRemoteStoreImpl(
                         pinCode = event.pinCode,
                     )
                 )
-            }.body<EventDto>().toEventDetails(event.id, localPersons, currencies)
+            }.body<EventDto>().toEventDetails(
+                localEvent = event,
+                localEventId = event.id,
+                localPersons = localPersons,
+                currencies = currencies,
+            )
         }.toIoResult()
     }
 
@@ -165,13 +175,15 @@ internal class EventsRemoteStoreImpl(
     override suspend fun addPersonsToEvent(
         eventServerId: String,
         pinCode: String,
-        localPersons: List<Person>
+        localPersons: List<Person>,
+        idempotencyKey: String,
     ): IoResult<List<Person>> {
         return client.requestWithExceptionHandling {
             post {
                 url(hostConfig) {
                     pathSegments = listOf("api", "v2", "user", "event", eventServerId, "users")
                 }
+                idempotencyKey(idempotencyKey)
                 contentType(ContentType.Application.Json)
                 setBody(
                     AddPersonsToEventRequest(
@@ -180,7 +192,7 @@ internal class EventsRemoteStoreImpl(
                     )
                 )
             }.body<List<UserDto>>().mapIndexed { i, dto ->
-                dto.toPerson(localPersonId = localPersons[i].id)
+                dto.toPerson(localPerson = localPersons[i])
             }
         }.toIoResult()
     }
@@ -210,13 +222,25 @@ internal class EventsRemoteStoreImpl(
         }
     }
 
-    private fun EventDto.toEventDetails(localEventId: Long, localPersons: List<Person>?, currencies: List<Currency>): EventDetails {
+    private fun EventDto.toEventDetails(
+        localEvent: Event?,
+        localEventId: Long,
+        localPersons: List<Person>?,
+        currencies: List<Currency>,
+    ): EventDetails {
         val primaryCurrency = currencies.first { it.serverId == currencyId }
         return EventDetails(
-            event = Event(id = localEventId, serverId = id, name = name, pinCode = pinCode, primaryCurrencyId = primaryCurrency.id),
+            event = Event(
+                id = localEventId,
+                serverId = id,
+                clientCreateId = localEvent?.clientCreateId ?: ClientCreateId.fromServerId(id),
+                name = name,
+                pinCode = pinCode,
+                primaryCurrencyId = primaryCurrency.id,
+            ),
             currencies = currencies,
             persons = users.mapIndexed { i, dto ->
-                dto.toPerson(localPersonId = localPersons?.getOrNull(i)?.takeIf { it.name == dto.name }?.id)
+                dto.toPerson(localPerson = localPersons?.getOrNull(i)?.takeIf { it.name == dto.name })
             },
             primaryCurrency = primaryCurrency,
         )
@@ -226,8 +250,13 @@ internal class EventsRemoteStoreImpl(
         return CreateUserDto(name = name)
     }
 
-    private fun UserDto.toPerson(localPersonId: Long?): Person {
-        return Person(id = localPersonId ?: 0L, serverId = id, name = name)
+    private fun UserDto.toPerson(localPerson: Person?): Person {
+        return Person(
+            id = localPerson?.id ?: 0L,
+            serverId = id,
+            clientCreateId = localPerson?.clientCreateId ?: ClientCreateId.fromServerId(id),
+            name = name,
+        )
     }
 
     private fun NetworkResult.Error.Http.Client.toEventNetworkErrorByAccessCode(): EventNetworkError.ByAccessCode {

@@ -52,14 +52,19 @@ internal interface EventsRemoteStore {
         currencies: List<Currency>,
         primaryCurrencyServerId: String,
         localPersons: List<Person>,
+        idempotencyKey: String,
     ): IoResult<EventDetails>
 
-    suspend fun deleteEvent(serverId: String, pinCode: String): DeleteEventResult
+    suspend fun deleteEvent(
+        serverId: String,
+        pinCode: String,
+    ): DeleteEventResult
 
     suspend fun addPersonsToEvent(
         eventServerId: String,
         pinCode: String,
-        localPersons: List<Person>
+        localPersons: List<Person>,
+        idempotencyKey: String,
     ): IoResult<List<Person>>
 
     suspend fun createEventShareToken(

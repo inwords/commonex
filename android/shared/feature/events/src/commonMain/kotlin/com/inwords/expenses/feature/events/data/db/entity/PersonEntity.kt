@@ -13,6 +13,9 @@ data class PersonEntity(
     @ColumnInfo(ColumnNames.SERVER_ID)
     val personServerId: String?,
 
+    @ColumnInfo(ColumnNames.CLIENT_CREATE_ID)
+    val clientCreateId: String,
+
     @ColumnInfo(ColumnNames.NAME)
     val name: String,
 ) {
@@ -25,6 +28,7 @@ data class PersonEntity(
 
         const val ID = "person_id"
         const val SERVER_ID = "person_server_id"
+        const val CLIENT_CREATE_ID = "client_create_id"
         const val NAME = "name"
     }
 }

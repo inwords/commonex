@@ -45,19 +45,22 @@ internal class EventsSyncObserverTest {
             serverId = "event-10",
             name = "Trip",
             pinCode = "1234",
-            primaryCurrencyId = currency.id
+            primaryCurrencyId = currency.id,
+            clientCreateId = "event-10",
         )
 
         val alex = Person(
             id = 1L,
             serverId = "person-1",
-            name = "Alex"
+            name = "Alex",
+            clientCreateId = "person-1",
         )
 
         val sam = Person(
             id = 2L,
             serverId = null,
-            name = "Sam"
+            name = "Sam",
+            clientCreateId = "person-2",
         )
 
         fun eventDetails(persons: List<Person>) = EventDetails(
@@ -76,7 +79,8 @@ internal class EventsSyncObserverTest {
             subjectExpenseSplitWithPersons = emptyList(),
             isCustomRate = false,
             timestamp = kotlin.time.Instant.fromEpochMilliseconds(0),
-            description = "Dinner"
+            description = "Dinner",
+            clientCreateId = "expense-50",
         )
     }
 

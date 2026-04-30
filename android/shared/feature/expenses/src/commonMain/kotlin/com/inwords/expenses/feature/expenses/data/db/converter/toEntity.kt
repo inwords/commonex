@@ -10,6 +10,7 @@ internal fun Expense.toEntity(event: Event): ExpenseEntity {
     return ExpenseEntity(
         eventId = event.id,
         serverId = this.serverId,
+        clientCreateId = this.clientCreateId,
         currencyId = this.currency.id,
         expenseType = this.expenseType,
         personId = this.person.id,

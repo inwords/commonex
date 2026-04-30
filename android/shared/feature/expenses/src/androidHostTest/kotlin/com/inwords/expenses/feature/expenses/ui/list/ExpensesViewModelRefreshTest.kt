@@ -65,7 +65,8 @@ internal class ExpensesViewModelRefreshTest {
         val person = Person(
             id = 1L,
             serverId = "p1",
-            name = "Alex"
+            name = "Alex",
+            clientCreateId = "person-1",
         )
 
         val event = Event(
@@ -73,7 +74,8 @@ internal class ExpensesViewModelRefreshTest {
             serverId = "e2",
             name = "Trip",
             pinCode = "1234",
-            primaryCurrencyId = primaryCurrency.id
+            primaryCurrencyId = primaryCurrency.id,
+            clientCreateId = "event-2",
         )
 
         val eventDetails = EventDetails(

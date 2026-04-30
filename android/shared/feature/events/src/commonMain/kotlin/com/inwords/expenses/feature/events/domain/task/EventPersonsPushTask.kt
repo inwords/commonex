@@ -1,5 +1,6 @@
 package com.inwords.expenses.feature.events.domain.task
 
+import com.inwords.expenses.core.network.IdempotencyKeyGenerator
 import com.inwords.expenses.core.observability.captureMessageIfNull
 import com.inwords.expenses.core.utils.IO
 import com.inwords.expenses.core.utils.IoResult
@@ -11,10 +12,12 @@ import kotlinx.coroutines.withContext
 class EventPersonsPushTask internal constructor(
     eventsLocalStoreLazy: Lazy<EventsLocalStore>,
     eventsRemoteStoreLazy: Lazy<EventsRemoteStore>,
+    idempotencyKeyGeneratorLazy: Lazy<IdempotencyKeyGenerator>,
 ) {
 
     private val eventsLocalStore by eventsLocalStoreLazy
     private val eventsRemoteStore by eventsRemoteStoreLazy
+    private val idempotencyKeyGenerator by idempotencyKeyGeneratorLazy
 
     /**
      * Prerequisites:
@@ -33,7 +36,12 @@ class EventPersonsPushTask internal constructor(
         val networkResult = eventsRemoteStore.addPersonsToEvent(
             eventServerId = eventServerId,
             pinCode = localEvent.event.pinCode,
-            localPersons = personsToAdd
+            localPersons = personsToAdd,
+            idempotencyKey = idempotencyKeyGenerator.mobileIdempotencyKey(
+                operation = "event.persons.add",
+                eventServerId,
+                *personsToAdd.map { it.clientCreateId }.toTypedArray(),
+            ),
         )
 
         val networkPersons = when (networkResult) {

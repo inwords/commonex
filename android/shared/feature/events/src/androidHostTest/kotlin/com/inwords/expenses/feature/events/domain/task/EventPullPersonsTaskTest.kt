@@ -184,11 +184,11 @@ internal class EventPullPersonsTaskTest {
     }
 
     private fun event(serverId: String? = "srv-event"): Event {
-        return Event(id = 1L, serverId = serverId, name = "Trip", pinCode = "1234", primaryCurrencyId = 1L)
+        return Event(id = 1L, serverId = serverId, clientCreateId = "event-1", name = "Trip", pinCode = "1234", primaryCurrencyId = 1L)
     }
 
     private fun person(id: Long, serverId: String?): Person {
-        return Person(id = id, serverId = serverId, name = "Person$id")
+        return Person(id = id, serverId = serverId, clientCreateId = "person-$id", name = "Person$id")
     }
 
     private fun currency(serverId: String? = "srv-eur"): Currency {

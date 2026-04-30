@@ -1,5 +1,6 @@
 package com.inwords.expenses.feature.expenses.domain
 
+import com.inwords.expenses.core.testutils.TestClientCreateIdGenerator
 import com.inwords.expenses.feature.events.domain.model.Currency
 import com.inwords.expenses.feature.events.domain.model.Event
 import com.inwords.expenses.feature.events.domain.model.Person
@@ -22,12 +23,13 @@ internal class AddCustomSplitExpenseUseCaseTest {
     fun `addExpense preserves custom split amounts and applies exchanger`() = runTest {
         val primaryCurrency = Currency(1L, null, "EUR", "Euro", BigDecimal.ONE)
         val originalCurrency = Currency(2L, null, "USD", "US Dollar", BigDecimal.ONE)
-        val event = Event(10L, null, "Trip", "1234", primaryCurrency.id)
-        val alice = Person(1L, null, "Alice")
-        val bob = Person(2L, null, "Bob")
+        val event = Event(10L, null, "Trip", "1234", primaryCurrency.id, "event-client-10")
+        val alice = Person(1L, null, "Alice", "person-client-1")
+        val bob = Person(2L, null, "Bob", "person-client-2")
         val capturedExpense = slot<Expense>()
         val expensesLocalStore = mockk<ExpensesLocalStore>()
         val expenseExchangeResolver = mockk<ExpenseExchangeResolver>()
+        val clientCreateIdGenerator = TestClientCreateIdGenerator("expense-client-1")
 
         coEvery { expenseExchangeResolver.resolve(event, originalCurrency) } returns { amount ->
             amount * BigDecimal.parseString("2")
@@ -37,6 +39,7 @@ internal class AddCustomSplitExpenseUseCaseTest {
         AddCustomSplitExpenseUseCase(
             expensesLocalStoreLazy = lazyOf(expensesLocalStore),
             expenseExchangeResolverLazy = lazyOf(expenseExchangeResolver),
+            clientCreateIdGeneratorLazy = lazyOf(clientCreateIdGenerator),
         ).addExpense(
             event = event,
             expenseType = ExpenseType.Spending,
@@ -51,6 +54,7 @@ internal class AddCustomSplitExpenseUseCaseTest {
         )
 
         assertEquals(false, capturedExpense.captured.isCustomRate)
+        assertEquals("expense-client-1", capturedExpense.captured.clientCreateId)
         assertEquals(2, capturedExpense.captured.subjectExpenseSplitWithPersons.size)
         assertEquals(2.toBigDecimal(), capturedExpense.captured.subjectExpenseSplitWithPersons[0].originalAmount)
         assertEquals(4.toBigDecimal(), capturedExpense.captured.subjectExpenseSplitWithPersons[0].exchangedAmount)
@@ -62,18 +66,20 @@ internal class AddCustomSplitExpenseUseCaseTest {
     fun `addExpense stores rounded exchanged amounts when custom rate override is provided`() = runTest {
         val primaryCurrency = Currency(1L, null, "EUR", "Euro", BigDecimal.ONE)
         val originalCurrency = Currency(2L, null, "USD", "US Dollar", BigDecimal.ONE)
-        val event = Event(10L, null, "Trip", "1234", primaryCurrency.id)
-        val alice = Person(1L, null, "Alice")
-        val bob = Person(2L, null, "Bob")
+        val event = Event(10L, null, "Trip", "1234", primaryCurrency.id, "event-client-10")
+        val alice = Person(1L, null, "Alice", "person-client-1")
+        val bob = Person(2L, null, "Bob", "person-client-2")
         val capturedExpense = slot<Expense>()
         val expensesLocalStore = mockk<ExpensesLocalStore>()
         val expenseExchangeResolver = mockk<ExpenseExchangeResolver>(relaxed = true)
+        val clientCreateIdGenerator = TestClientCreateIdGenerator("expense-client-2")
 
         coEvery { expensesLocalStore.upsert(event, capture(capturedExpense)) } answers { capturedExpense.captured }
 
         AddCustomSplitExpenseUseCase(
             expensesLocalStoreLazy = lazyOf(expensesLocalStore),
             expenseExchangeResolverLazy = lazyOf(expenseExchangeResolver),
+            clientCreateIdGeneratorLazy = lazyOf(clientCreateIdGenerator),
         ).addExpense(
             event = event,
             expenseType = ExpenseType.Spending,
@@ -88,6 +94,7 @@ internal class AddCustomSplitExpenseUseCaseTest {
         )
 
         assertEquals(true, capturedExpense.captured.isCustomRate)
+        assertEquals("expense-client-2", capturedExpense.captured.clientCreateId)
         assertEquals(BigDecimal.parseString("2.78"), capturedExpense.captured.subjectExpenseSplitWithPersons[0].exchangedAmount)
         assertEquals(BigDecimal.parseString("4.16"), capturedExpense.captured.subjectExpenseSplitWithPersons[1].exchangedAmount)
     }

@@ -38,9 +38,12 @@ internal class AddPersonsViewModelTest {
     private val expensesScreenDestination = mockk<Destination>(relaxed = true)
 
     private val eventDetails = EventDetails(
-        event = Event(1L, null, "Trip", "1234", 1L),
+        event = Event(id = 1L, serverId = null, clientCreateId = "event-client-1", name = "Trip", pinCode = "1234", primaryCurrencyId = 1L),
         currencies = emptyList(),
-        persons = listOf(Person(1L, null, "Alice"), Person(2L, null, "Bob")),
+        persons = listOf(
+            Person(id = 1L, serverId = null, clientCreateId = "person-client-1", name = "Alice"),
+            Person(id = 2L, serverId = null, clientCreateId = "person-client-2", name = "Bob"),
+        ),
         primaryCurrency = Currency(1L, null, "EUR", "Euro", BigDecimal.ONE),
     )
 

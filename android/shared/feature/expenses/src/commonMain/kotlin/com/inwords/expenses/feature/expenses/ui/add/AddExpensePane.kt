@@ -482,21 +482,25 @@ internal fun mockAddExpenseScreenUiModel(): AddExpensePaneUiModel {
     val person1 = Person(
         id = 1,
         serverId = "11",
+        clientCreateId = "person-1",
         name = "Василий"
     )
     val person2 = Person(
         id = 2,
         serverId = "12",
+        clientCreateId = "person-2",
         name = "Максим"
     )
     val person3 = Person(
         id = 3,
         serverId = "13",
+        clientCreateId = "person-3",
         name = "Анжела"
     )
     val person4 = Person(
         id = 4,
         serverId = "14",
+        clientCreateId = "person-4",
         name = "Саша"
     )
     return AddExpensePaneUiModel(

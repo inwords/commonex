@@ -1,5 +1,7 @@
 package com.inwords.expenses.core.network
 
+import com.inwords.expenses.core.storage.utils.iosDocumentsDirectoryPath
+
 actual class NetworkComponentFactory actual constructor(private val deps: Deps) {
 
     actual interface Deps : NetworkComponentFactoryCommonDeps
@@ -12,7 +14,12 @@ actual class NetworkComponentFactory actual constructor(private val deps: Deps) 
                     platform = "iOS",
                     production = true // FIXME: ios is not always production
                 )
-            )
+            ),
+            idempotencyKeyGenerator = IdempotencyKeyGenerator(
+                idempotencyClientIdProvider = IdempotencyClientIdStore(
+                    directory = iosDocumentsDirectoryPath(),
+                )
+            ),
         )
     }
 }
