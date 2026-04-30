@@ -16,6 +16,7 @@ data class Expense(
     val isCustomRate: Boolean,
     val timestamp: Instant,
     val description: String,
+    val clientCreateId: String,
 ) {
 
     val totalAmount: BigDecimal = subjectExpenseSplitWithPersons.sumOf { it.exchangedAmount }

@@ -14,7 +14,7 @@ internal class RequestExpensesRefreshUseCaseTest {
     @OptIn(ExperimentalCoroutinesApi::class)
     @Test
     fun `requestRefresh emits requested event`() = runTest {
-        val event = Event(10L, null, "Trip", "1234", 1L)
+        val event = Event(10L, null, "Trip", "1234", 1L, "event-client-10")
         val holder = ExpensesRefreshRequestsHolder()
         val useCase = RequestExpensesRefreshUseCase(
             expensesRefreshRequestsHolderLazy = lazyOf(holder),

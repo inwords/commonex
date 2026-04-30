@@ -116,10 +116,10 @@ internal class JoinEventViewModelTest {
 
     @Test
     fun onConfirmClicked_success_navigatesToChoosePerson() = runTest {
-        val event = Event(1L, "ev-1", "Trip", "1234", 1L)
+        val event = Event(id = 1L, serverId = "ev-1", clientCreateId = "event-client-1", name = "Trip", pinCode = "1234", primaryCurrencyId = 1L)
         val eventDetails = EventDetails(
             event = event,
-            persons = listOf(Person(1L, "p1", "Alice")),
+            persons = listOf(Person(id = 1L, serverId = "p1", clientCreateId = "person-client-1", name = "Alice")),
             currencies = listOf(Currency(1L, null, "EUR", "Euro", BigDecimal.ONE)),
             primaryCurrency = Currency(1L, null, "EUR", "Euro", BigDecimal.ONE)
         )

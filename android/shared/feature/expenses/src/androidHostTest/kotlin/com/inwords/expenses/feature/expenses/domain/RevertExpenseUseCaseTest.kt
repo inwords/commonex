@@ -1,5 +1,6 @@
 package com.inwords.expenses.feature.expenses.domain
 
+import com.inwords.expenses.core.testutils.TestClientCreateIdGenerator
 import com.inwords.expenses.feature.events.domain.model.Currency
 import com.inwords.expenses.feature.events.domain.model.Event
 import com.inwords.expenses.feature.events.domain.model.Person
@@ -27,12 +28,14 @@ internal class RevertExpenseUseCaseTest {
     fun `revertExpense returns false when event is missing`() = runTest {
         val eventsLocalStore = mockk<EventsLocalStore>()
         val expensesLocalStore = mockk<ExpensesLocalStore>(relaxed = true)
+        val clientCreateIdGenerator = TestClientCreateIdGenerator("reverted-expense-client-1")
 
         coEvery { eventsLocalStore.getEvent(10L) } returns null
 
         val result = RevertExpenseUseCase(
             eventsLocalStoreLazy = lazyOf(eventsLocalStore),
             expensesLocalStoreLazy = lazyOf(expensesLocalStore),
+            clientCreateIdGeneratorLazy = lazyOf(clientCreateIdGenerator),
         ).revertExpense(
             eventId = 10L,
             expenseId = 20L,
@@ -46,9 +49,9 @@ internal class RevertExpenseUseCaseTest {
     @Test
     fun `revertExpense stores mirrored expense when source exists`() = runTest {
         val currency = Currency(1L, null, "EUR", "Euro", BigDecimal.ONE)
-        val event = Event(10L, null, "Trip", "1234", currency.id)
-        val alice = Person(1L, null, "Alice")
-        val bob = Person(2L, null, "Bob")
+        val event = Event(10L, null, "Trip", "1234", currency.id, "event-client-10")
+        val alice = Person(1L, null, "Alice", "person-client-1")
+        val bob = Person(2L, null, "Bob", "person-client-2")
         val originalExpense = Expense(
             expenseId = 20L,
             serverId = null,
@@ -61,10 +64,12 @@ internal class RevertExpenseUseCaseTest {
             isCustomRate = true,
             timestamp = Instant.fromEpochMilliseconds(0),
             description = "Dinner",
+            clientCreateId = "original-expense-client-id",
         )
         val capturedExpense = slot<Expense>()
         val eventsLocalStore = mockk<EventsLocalStore>()
         val expensesLocalStore = mockk<ExpensesLocalStore>()
+        val clientCreateIdGenerator = TestClientCreateIdGenerator("reverted-expense-client-1")
 
         coEvery { eventsLocalStore.getEvent(event.id) } returns event
         coEvery { expensesLocalStore.getExpense(originalExpense.expenseId) } returns originalExpense
@@ -73,6 +78,7 @@ internal class RevertExpenseUseCaseTest {
         val result = RevertExpenseUseCase(
             eventsLocalStoreLazy = lazyOf(eventsLocalStore),
             expensesLocalStoreLazy = lazyOf(expensesLocalStore),
+            clientCreateIdGeneratorLazy = lazyOf(clientCreateIdGenerator),
         ).revertExpense(
             eventId = event.id,
             expenseId = originalExpense.expenseId,
@@ -81,6 +87,7 @@ internal class RevertExpenseUseCaseTest {
 
         assertTrue(result)
         assertEquals(ExpenseType.Replenishment, capturedExpense.captured.expenseType)
+        assertEquals("reverted-expense-client-1", capturedExpense.captured.clientCreateId)
         assertTrue(capturedExpense.captured.isCustomRate)
         assertEquals(BigDecimal.parseString("-5"), capturedExpense.captured.subjectExpenseSplitWithPersons.single().originalAmount)
         assertEquals(BigDecimal.parseString("-5"), capturedExpense.captured.subjectExpenseSplitWithPersons.single().exchangedAmount)

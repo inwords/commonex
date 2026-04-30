@@ -49,7 +49,8 @@ interface EventsDao {
 
     @Query(
         "SELECT * FROM ${PersonEntity.TABLE_NAME} WHERE ${PersonEntity.ColumnNames.ID} IN " +
-            "(SELECT ${PersonEntity.ColumnNames.ID} FROM ${EventPersonCrossRef.TABLE_NAME} WHERE ${EventEntity.ColumnNames.ID} = :eventId)"
+            "(SELECT ${PersonEntity.ColumnNames.ID} FROM ${EventPersonCrossRef.TABLE_NAME} WHERE ${EventEntity.ColumnNames.ID} = :eventId) " +
+            "ORDER BY ${PersonEntity.ColumnNames.ID}"
     )
     suspend fun queryEventPersonsById(eventId: Long): List<PersonEntity>
 

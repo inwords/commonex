@@ -3,9 +3,12 @@ package com.inwords.expenses.feature.expenses.api
 import com.inwords.expenses.core.navigation.NavModule
 import com.inwords.expenses.core.navigation.NavigationController
 import com.inwords.expenses.core.network.HostConfig
+import com.inwords.expenses.core.network.IdempotencyKeyGenerator
 import com.inwords.expenses.core.storage.utils.TransactionHelper
+import com.inwords.expenses.core.utils.ClientCreateIdGenerator
 import com.inwords.expenses.core.utils.Component
 import com.inwords.expenses.core.utils.SuspendLazy
+import com.inwords.expenses.core.utils.UuidClientCreateIdGenerator
 import com.inwords.expenses.feature.events.api.EventDeletionStateManager
 import com.inwords.expenses.feature.events.domain.DeleteEventUseCase
 import com.inwords.expenses.feature.events.domain.EventsSyncStateHolder
@@ -39,12 +42,15 @@ import io.ktor.client.HttpClient
 
 class ExpensesComponent(private val deps: Deps) : Component {
 
+    private val clientCreateIdGeneratorLazy: Lazy<ClientCreateIdGenerator> = lazy { UuidClientCreateIdGenerator() }
+
     interface Deps {
 
         val expensesDao: ExpensesDao
 
         val client: SuspendLazy<HttpClient>
         val hostConfig: HostConfig
+        val idempotencyKeyGeneratorLazy: Lazy<IdempotencyKeyGenerator>
 
         val transactionHelper: TransactionHelper
 
@@ -102,7 +108,8 @@ class ExpensesComponent(private val deps: Deps) : Component {
             eventsLocalStoreLazy = lazy { deps.eventsLocalStore },
             expensesLocalStoreLazy = expensesLocalStore,
             expensesRemoteStoreLazy = expensesRemoteStore,
-            transactionHelperLazy = lazy { deps.transactionHelper }
+            transactionHelperLazy = lazy { deps.transactionHelper },
+            idempotencyKeyGeneratorLazy = deps.idempotencyKeyGeneratorLazy,
         )
     }
 
@@ -130,6 +137,7 @@ class ExpensesComponent(private val deps: Deps) : Component {
         AddEqualSplitExpenseUseCase(
             expensesLocalStoreLazy = expensesLocalStore,
             expenseExchangeResolverLazy = expenseExchangeResolver,
+            clientCreateIdGeneratorLazy = clientCreateIdGeneratorLazy,
         )
     }
 
@@ -137,6 +145,7 @@ class ExpensesComponent(private val deps: Deps) : Component {
         AddCustomSplitExpenseUseCase(
             expensesLocalStoreLazy = expensesLocalStore,
             expenseExchangeResolverLazy = expenseExchangeResolver,
+            clientCreateIdGeneratorLazy = clientCreateIdGeneratorLazy,
         )
     }
 
@@ -144,6 +153,7 @@ class ExpensesComponent(private val deps: Deps) : Component {
         RevertExpenseUseCase(
             eventsLocalStoreLazy = lazy { deps.eventsLocalStore },
             expensesLocalStoreLazy = expensesLocalStore,
+            clientCreateIdGeneratorLazy = clientCreateIdGeneratorLazy,
         )
     }
 

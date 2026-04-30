@@ -6,4 +6,5 @@ data class Event(
     val name: String,
     val pinCode: String,
     val primaryCurrencyId: Long,
+    val clientCreateId: String,
 )

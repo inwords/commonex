@@ -63,6 +63,7 @@ internal class ExpensesDaoOrderingTest {
                 EventEntity(
                     eventId = 0L,
                     eventServerId = null,
+                    clientCreateId = "event-client-1",
                     name = "Timeline order test",
                     pinCode = "1234",
                     primaryCurrencyId = currencyId,
@@ -72,6 +73,7 @@ internal class ExpensesDaoOrderingTest {
                 EventEntity(
                     eventId = 0L,
                     eventServerId = null,
+                    clientCreateId = "event-client-2",
                     name = "Other event",
                     pinCode = "5678",
                     primaryCurrencyId = currencyId,
@@ -83,6 +85,7 @@ internal class ExpensesDaoOrderingTest {
                         PersonEntity(
                             personId = 0L,
                             personServerId = null,
+                            clientCreateId = "person-client-1",
                             name = "Alex",
                         )
                     )
@@ -155,6 +158,7 @@ internal class ExpensesDaoOrderingTest {
             expenseEntity = ExpenseEntity(
                 expenseId = 0L,
                 serverId = null,
+                clientCreateId = "expense-$description",
                 eventId = eventId,
                 currencyId = currencyId,
                 expenseType = ExpenseType.Spending,

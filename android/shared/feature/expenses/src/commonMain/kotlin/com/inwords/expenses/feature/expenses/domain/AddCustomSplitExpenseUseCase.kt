@@ -1,5 +1,6 @@
 package com.inwords.expenses.feature.expenses.domain
 
+import com.inwords.expenses.core.utils.ClientCreateIdGenerator
 import com.inwords.expenses.core.utils.normalizeAmount
 import com.inwords.expenses.feature.events.domain.model.Currency
 import com.inwords.expenses.feature.events.domain.model.Event
@@ -14,10 +15,12 @@ import com.ionspin.kotlin.bignum.decimal.BigDecimal
 internal class AddCustomSplitExpenseUseCase internal constructor(
     expensesLocalStoreLazy: Lazy<ExpensesLocalStore>,
     expenseExchangeResolverLazy: Lazy<ExpenseExchangeResolver>,
+    clientCreateIdGeneratorLazy: Lazy<ClientCreateIdGenerator>,
 ) {
 
     private val expensesLocalStore by expensesLocalStoreLazy
     private val expenseExchangeResolver by expenseExchangeResolverLazy
+    private val clientCreateIdGenerator by clientCreateIdGeneratorLazy
 
     suspend fun addExpense(
         event: Event,
@@ -46,6 +49,7 @@ internal class AddCustomSplitExpenseUseCase internal constructor(
             expense = Expense(
                 expenseId = 0,
                 serverId = null,
+                clientCreateId = clientCreateIdGenerator.generate(),
                 currency = selectedCurrency,
                 expenseType = expenseType,
                 person = selectedPerson,

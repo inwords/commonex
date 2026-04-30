@@ -1,6 +1,7 @@
 package com.inwords.expenses.feature.expenses.data.network
 
 import com.inwords.expenses.core.network.HostConfig
+import com.inwords.expenses.core.network.IDEMPOTENCY_KEY_HEADER
 import com.inwords.expenses.core.utils.IoResult
 import com.inwords.expenses.feature.events.domain.model.Currency
 import com.inwords.expenses.feature.events.domain.model.Event
@@ -8,6 +9,7 @@ import com.inwords.expenses.feature.events.domain.model.Person
 import com.inwords.expenses.feature.expenses.domain.model.Expense
 import com.inwords.expenses.feature.expenses.domain.model.ExpenseSplitWithPerson
 import com.inwords.expenses.feature.expenses.domain.model.ExpenseType
+import com.inwords.expenses.feature.expenses.domain.store.ExpensePushItem
 import com.ionspin.kotlin.bignum.decimal.BigDecimal
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
@@ -15,6 +17,7 @@ import io.ktor.client.engine.mock.respond
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.URLProtocol
 import io.ktor.http.content.OutgoingContent
@@ -43,6 +46,10 @@ internal class ExpensesRemoteStoreImplTest {
             }
             engine {
                 addHandler { request ->
+                    assertEquals(HttpMethod.Post, request.method)
+                    assertEquals("/api/v2/user/event/srv-event/expense", request.url.encodedPath)
+                    assertEquals("expense-add-key-1", request.headers[IDEMPOTENCY_KEY_HEADER])
+
                     val bodyText = extractRequestBody(request.body)
                     val bodyJson = Json.parseToJsonElement(bodyText).jsonObject
                     val splitJson = bodyJson.getValue("splitInformation").jsonArray.single().jsonObject
@@ -66,7 +73,12 @@ internal class ExpensesRemoteStoreImplTest {
                 hostConfig = HostConfig(URLProtocol.HTTPS, "commonex.test"),
             ).addExpensesToEvent(
                 event = event(),
-                expenses = listOf(expense(isCustomRate = false)),
+                expenses = listOf(
+                    ExpensePushItem(
+                        expense = expense(isCustomRate = false),
+                        idempotencyKey = "expense-add-key-1",
+                    )
+                ),
                 currencies = listOf(currency()),
                 persons = listOf(person()),
             )
@@ -83,6 +95,8 @@ internal class ExpensesRemoteStoreImplTest {
             }
             engine {
                 addHandler { request ->
+                    assertEquals("expense-add-key-1", request.headers[IDEMPOTENCY_KEY_HEADER])
+
                     val bodyText = extractRequestBody(request.body)
                     val bodyJson = Json.parseToJsonElement(bodyText).jsonObject
                     val splitJson = bodyJson.getValue("splitInformation").jsonArray.single().jsonObject
@@ -107,7 +121,12 @@ internal class ExpensesRemoteStoreImplTest {
                 hostConfig = HostConfig(URLProtocol.HTTPS, "commonex.test"),
             ).addExpensesToEvent(
                 event = event(),
-                expenses = listOf(expense(isCustomRate = true)),
+                expenses = listOf(
+                    ExpensePushItem(
+                        expense = expense(isCustomRate = true),
+                        idempotencyKey = "expense-add-key-1",
+                    )
+                ),
                 currencies = listOf(currency()),
                 persons = listOf(person()),
             )
@@ -162,6 +181,7 @@ internal class ExpensesRemoteStoreImplTest {
             name = "Trip",
             pinCode = "1234",
             primaryCurrencyId = 1L,
+            clientCreateId = "event-client-1",
         )
     }
 
@@ -180,6 +200,7 @@ internal class ExpensesRemoteStoreImplTest {
             id = 1L,
             serverId = "srv-person",
             name = "Alice",
+            clientCreateId = "person-client-1",
         )
     }
 
@@ -204,6 +225,7 @@ internal class ExpensesRemoteStoreImplTest {
             isCustomRate = isCustomRate,
             timestamp = Instant.parse("2026-01-01T00:00:00Z"),
             description = "Dinner",
+            clientCreateId = "expense-client-1",
         )
     }
 

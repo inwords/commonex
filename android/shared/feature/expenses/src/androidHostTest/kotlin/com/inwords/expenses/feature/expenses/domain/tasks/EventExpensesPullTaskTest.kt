@@ -133,11 +133,18 @@ internal class EventExpensesPullTaskTest {
     }
 
     private fun event(serverId: String? = "srv-event"): Event {
-        return Event(id = 1L, serverId = serverId, name = "Trip", pinCode = "1234", primaryCurrencyId = 1L)
+        return Event(
+            id = 1L,
+            serverId = serverId,
+            name = "Trip",
+            pinCode = "1234",
+            primaryCurrencyId = 1L,
+            clientCreateId = "event-1",
+        )
     }
 
     private fun person(serverId: String?): Person {
-        return Person(id = 1L, serverId = serverId, name = "Person$1")
+        return Person(id = 1L, serverId = serverId, name = "Person$1", clientCreateId = "person-1")
     }
 
     private fun currency(serverId: String? = "srv-eur"): Currency {
@@ -182,6 +189,7 @@ internal class EventExpensesPullTaskTest {
             isCustomRate = false,
             timestamp = Clock.System.now(),
             description = description,
+            clientCreateId = "expense-$expenseId",
         )
     }
 }

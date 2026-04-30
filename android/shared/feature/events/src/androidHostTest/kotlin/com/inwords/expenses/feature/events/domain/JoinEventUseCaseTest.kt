@@ -32,8 +32,8 @@ internal class JoinEventUseCaseTest {
     private val currenciesLocalStore = mockk<CurrenciesLocalStore>(relaxed = true)
     private val currenciesPullTask = mockk<CurrenciesPullTask>(relaxed = true)
 
-    private val event = Event(1L, "ev-1", "Trip", "1234", 1L)
-    private val person = Person(1L, null, "Alice")
+    private val event = Event(id = 1L, serverId = "ev-1", clientCreateId = "event-client-1", name = "Trip", pinCode = "1234", primaryCurrencyId = 1L)
+    private val person = Person(id = 1L, serverId = null, clientCreateId = "person-client-1", name = "Alice")
     private val currency = Currency(1L, "cur-1", "EUR", "Euro", BigDecimal.ONE)
     private val eventDetails = EventDetails(
         event = event,

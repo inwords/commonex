@@ -19,10 +19,10 @@ internal class DebtCalculatorTest {
     private object Fixtures {
         val USD = Currency(id = 100, serverId = null, code = "USD", name = "US Dollar", rate = BigDecimal.ONE)
 
-        val alice = Person(id = 1, serverId = "p1", name = "Alice")
-        val bob = Person(id = 2, serverId = "p2", name = "Bob")
-        val charlie = Person(id = 3, serverId = "p3", name = "Charlie")
-        val diana = Person(id = 4, serverId = "p4", name = "Diana")
+        val alice = Person(id = 1, serverId = "p1", name = "Alice", clientCreateId = "person-1")
+        val bob = Person(id = 2, serverId = "p2", name = "Bob", clientCreateId = "person-2")
+        val charlie = Person(id = 3, serverId = "p3", name = "Charlie", clientCreateId = "person-3")
+        val diana = Person(id = 4, serverId = "p4", name = "Diana", clientCreateId = "person-4")
 
         val timestamp = Instant.fromEpochSeconds(1640995200) // 2022-01-01T00:00:00Z
 
@@ -53,7 +53,8 @@ internal class DebtCalculatorTest {
                 subjectExpenseSplitWithPersons = splitWithPersons,
                 isCustomRate = false,
                 timestamp = timestamp,
-                description = description
+                description = description,
+                clientCreateId = "expense-$id",
             )
         }
     }

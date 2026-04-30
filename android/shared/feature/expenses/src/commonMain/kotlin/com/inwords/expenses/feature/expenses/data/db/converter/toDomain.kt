@@ -15,6 +15,7 @@ internal fun ExpenseWithDetailsQuery.toDomain(): Expense {
     return Expense(
         expenseId = this.expense.expenseId,
         serverId = this.expense.serverId,
+        clientCreateId = this.expense.clientCreateId,
         currency = this.currency.toDomain(),
         expenseType = this.expense.expenseType,
         person = this.person.toDomain(),
@@ -42,6 +43,7 @@ internal fun PersonEntity.toDomain(): Person {
     return Person(
         id = this.personId,
         serverId = this.personServerId,
+        clientCreateId = this.clientCreateId,
         name = this.name,
     )
 }

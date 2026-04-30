@@ -1,5 +1,6 @@
 package com.inwords.expenses.feature.events.domain
 
+import com.inwords.expenses.core.testutils.TestClientCreateIdGenerator
 import com.inwords.expenses.feature.events.domain.model.Person
 import com.inwords.expenses.feature.events.domain.store.local.EventsLocalStore
 import com.inwords.expenses.feature.settings.api.SettingsRepository
@@ -14,10 +15,12 @@ internal class AddParticipantsToCurrentEventUseCaseTest {
 
     private val eventsLocalStore = mockk<EventsLocalStore>(relaxed = true)
     private val settingsRepository = mockk<SettingsRepository>(relaxed = true)
+    private val clientCreateIdGenerator = TestClientCreateIdGenerator("alice-client-id", "bob-client-id")
 
     private val useCase = AddParticipantsToCurrentEventUseCase(
         eventsLocalStoreLazy = lazy { eventsLocalStore },
         settingsRepositoryLazy = lazy { settingsRepository },
+        clientCreateIdGeneratorLazy = lazy { clientCreateIdGenerator },
     )
 
     @Test
@@ -39,8 +42,8 @@ internal class AddParticipantsToCurrentEventUseCaseTest {
             eventsLocalStore.insertPersonsWithCrossRefs(
                 eventId = 42L,
                 persons = listOf(
-                    Person(id = 0L, serverId = null, name = "Alice"),
-                    Person(id = 0L, serverId = null, name = "Bob"),
+                    Person(id = 0L, serverId = null, clientCreateId = "alice-client-id", name = "Alice"),
+                    Person(id = 0L, serverId = null, clientCreateId = "bob-client-id", name = "Bob"),
                 ),
                 inTransaction = true,
             )

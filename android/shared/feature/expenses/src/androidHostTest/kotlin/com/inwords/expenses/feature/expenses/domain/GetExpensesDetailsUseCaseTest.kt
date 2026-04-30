@@ -24,9 +24,9 @@ internal class GetExpensesDetailsUseCaseTest {
     @Test
     fun `getExpensesDetails maps store expenses into ExpensesDetails`() = runTest {
         val currency = Currency(1L, null, "EUR", "Euro", BigDecimal.ONE)
-        val event = Event(10L, null, "Trip", "1234", currency.id)
-        val alice = Person(1L, null, "Alice")
-        val bob = Person(2L, null, "Bob")
+        val event = Event(10L, null, "Trip", "1234", currency.id, "event-client-10")
+        val alice = Person(1L, null, "Alice", "person-client-1")
+        val bob = Person(2L, null, "Bob", "person-client-2")
         val eventDetails = EventDetails(
             event = event,
             currencies = listOf(currency),
@@ -46,6 +46,7 @@ internal class GetExpensesDetailsUseCaseTest {
             isCustomRate = false,
             timestamp = Instant.fromEpochMilliseconds(0),
             description = "Lunch",
+            clientCreateId = "expense-client-77",
         )
         val expensesLocalStore = mockk<ExpensesLocalStore> {
             every { getExpensesFlow(event.id) } returns flowOf(listOf(expense))

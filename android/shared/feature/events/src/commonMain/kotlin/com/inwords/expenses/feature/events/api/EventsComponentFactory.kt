@@ -1,6 +1,7 @@
 package com.inwords.expenses.feature.events.api
 
 import com.inwords.expenses.core.network.HostConfig
+import com.inwords.expenses.core.network.IdempotencyKeyGenerator
 import com.inwords.expenses.core.storage.utils.TransactionHelper
 import com.inwords.expenses.core.utils.SuspendLazy
 import com.inwords.expenses.feature.events.data.db.dao.CurrenciesDao
@@ -28,6 +29,7 @@ interface EventsComponentFactoryCommonDeps {
 
     val client: SuspendLazy<HttpClient>
     val hostConfig: HostConfig
+    val idempotencyKeyGeneratorLazy: Lazy<IdempotencyKeyGenerator>
 
     val settingsRepositoryLazy: Lazy<SettingsRepository>
 

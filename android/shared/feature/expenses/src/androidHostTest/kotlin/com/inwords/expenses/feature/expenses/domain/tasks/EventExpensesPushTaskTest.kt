@@ -1,5 +1,6 @@
 package com.inwords.expenses.feature.expenses.domain.tasks
 
+import com.inwords.expenses.core.network.IdempotencyKeyGenerator
 import com.inwords.expenses.core.storage.utils.TransactionHelper
 import com.inwords.expenses.core.utils.IoResult
 import com.inwords.expenses.feature.events.domain.model.Currency
@@ -10,6 +11,7 @@ import com.inwords.expenses.feature.events.domain.store.local.EventsLocalStore
 import com.inwords.expenses.feature.expenses.domain.model.Expense
 import com.inwords.expenses.feature.expenses.domain.model.ExpenseSplitWithPerson
 import com.inwords.expenses.feature.expenses.domain.model.ExpenseType
+import com.inwords.expenses.feature.expenses.domain.store.ExpensePushItem
 import com.inwords.expenses.feature.expenses.domain.store.ExpensesLocalStore
 import com.inwords.expenses.feature.expenses.domain.store.ExpensesRemoteStore
 import com.ionspin.kotlin.bignum.decimal.BigDecimal
@@ -36,17 +38,25 @@ internal class EventExpensesPushTaskTest {
     private val expensesLocalStore = mockk<ExpensesLocalStore>(relaxed = true)
     private val expensesRemoteStore = mockk<ExpensesRemoteStore>()
     private val transactionHelper = mockk<TransactionHelper>()
+    private val idempotencyKeyGenerator = mockk<IdempotencyKeyGenerator>()
 
     private val task = EventExpensesPushTask(
         eventsLocalStoreLazy = lazy { eventsLocalStore },
         expensesLocalStoreLazy = lazy { expensesLocalStore },
         expensesRemoteStoreLazy = lazy { expensesRemoteStore },
         transactionHelperLazy = lazy { transactionHelper },
+        idempotencyKeyGeneratorLazy = lazy { idempotencyKeyGenerator },
     )
 
     @BeforeTest
     fun setUp() {
         Dispatchers.setMain(mainDispatcher)
+        coEvery {
+            idempotencyKeyGenerator.mobileIdempotencyKey("event.expense.add", "srv-event", "expense-1")
+        } returns "mobile:$CLIENT_ID:event.expense.add:srv-event:expense-1"
+        coEvery {
+            idempotencyKeyGenerator.mobileIdempotencyKey("event.expense.add", "srv-event", "expense-2")
+        } returns "mobile:$CLIENT_ID:event.expense.add:srv-event:expense-2"
     }
 
     @AfterTest
@@ -128,7 +138,12 @@ internal class EventExpensesPushTaskTest {
         coEvery {
             expensesRemoteStore.addExpensesToEvent(
                 event = localDetails.event,
-                expenses = listOf(localExpense),
+                expenses = listOf(
+                    ExpensePushItem(
+                        expense = localExpense,
+                        idempotencyKey = "mobile:$CLIENT_ID:event.expense.add:srv-event:expense-1",
+                    )
+                ),
                 currencies = localDetails.currencies,
                 persons = localDetails.persons,
             )
@@ -179,7 +194,16 @@ internal class EventExpensesPushTaskTest {
         coEvery {
             expensesRemoteStore.addExpensesToEvent(
                 event = localDetails.event,
-                expenses = listOf(firstExpense, secondExpense),
+                expenses = listOf(
+                    ExpensePushItem(
+                        expense = firstExpense,
+                        idempotencyKey = "mobile:$CLIENT_ID:event.expense.add:srv-event:expense-1",
+                    ),
+                    ExpensePushItem(
+                        expense = secondExpense,
+                        idempotencyKey = "mobile:$CLIENT_ID:event.expense.add:srv-event:expense-2",
+                    ),
+                ),
                 currencies = localDetails.currencies,
                 persons = localDetails.persons,
             )
@@ -223,7 +247,16 @@ internal class EventExpensesPushTaskTest {
         coEvery {
             expensesRemoteStore.addExpensesToEvent(
                 event = localDetails.event,
-                expenses = listOf(firstExpense, secondExpense),
+                expenses = listOf(
+                    ExpensePushItem(
+                        expense = firstExpense,
+                        idempotencyKey = "mobile:$CLIENT_ID:event.expense.add:srv-event:expense-1",
+                    ),
+                    ExpensePushItem(
+                        expense = secondExpense,
+                        idempotencyKey = "mobile:$CLIENT_ID:event.expense.add:srv-event:expense-2",
+                    ),
+                ),
                 currencies = localDetails.currencies,
                 persons = localDetails.persons,
             )
@@ -273,7 +306,12 @@ internal class EventExpensesPushTaskTest {
         coEvery {
             expensesRemoteStore.addExpensesToEvent(
                 event = localDetails.event,
-                expenses = listOf(localExpense),
+                expenses = listOf(
+                    ExpensePushItem(
+                        expense = localExpense,
+                        idempotencyKey = "mobile:$CLIENT_ID:event.expense.add:srv-event:expense-1",
+                    )
+                ),
                 currencies = localDetails.currencies,
                 persons = localDetails.persons,
             )
@@ -287,11 +325,11 @@ internal class EventExpensesPushTaskTest {
     }
 
     private fun event(serverId: String? = "srv-event"): Event {
-        return Event(id = 1L, serverId = serverId, name = "Trip", pinCode = "1234", primaryCurrencyId = 1L)
+        return Event(id = 1L, serverId = serverId, name = "Trip", pinCode = "1234", primaryCurrencyId = 1L, clientCreateId = "event-1")
     }
 
     private fun person(serverId: String?): Person {
-        return Person(id = 1L, serverId = serverId, name = "Person$1")
+        return Person(id = 1L, serverId = serverId, name = "Person$1", clientCreateId = "person-1")
     }
 
     private fun currency(serverId: String? = "srv-eur"): Currency {
@@ -336,6 +374,11 @@ internal class EventExpensesPushTaskTest {
             isCustomRate = false,
             timestamp = Clock.System.now(),
             description = "Expense$expenseId",
+            clientCreateId = "expense-$expenseId",
         )
+    }
+
+    private companion object {
+        const val CLIENT_ID = "00000000-0000-0000-0000-000000000001"
     }
 }

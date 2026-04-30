@@ -1,4 +1,4 @@
-package com.inwords.expenses.core.storage.utils.type_converter
+package com.inwords.expenses.core.storage.utils
 
 import androidx.annotation.GuardedBy
 import androidx.datastore.core.DataMigration
@@ -13,7 +13,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.SupervisorJob
-import okio.FileSystem
 import okio.Path
 import kotlin.concurrent.Volatile
 
@@ -44,5 +43,3 @@ class DataStoreSingleton<T>(
         }
     }
 }
-
-internal expect val fileSystemSystem: FileSystem

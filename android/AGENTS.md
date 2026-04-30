@@ -10,7 +10,7 @@ Android/KMM operational docs are indexed in [docs/README.md](docs/README.md).
 
 **Non-standard technologies:** Ktor + Cronet (Android) / Darwin (iOS) networking, Room KMP database, custom DI locator (`shared:core:locator`), Navigation 3, Wire protobuf for settings serialization, WorkManager for background sync.
 
-**Freshness note:** Navigation 3, Room KMP, and Compose APIs evolve rapidly and may be newer than training data. Always verify API usage against current upstream docs when implementing.
+**Freshness note:** Navigation 3, Room KMP, and Compose APIs evolve rapidly and may be newer than training data. Always verify API usage against current upstream docs when implementing. For KMP/Android test-helper sharing recommendations (especially `testFixtures`), verify current AGP and Kotlin plugin docs for the repo versions in use before proposing a pattern.
 
 ## Standard Operating Procedures and Skills (Workflow)
 

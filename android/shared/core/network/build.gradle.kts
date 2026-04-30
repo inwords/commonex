@@ -23,10 +23,12 @@ kotlin {
         commonMain {
             dependencies {
                 implementation(project(":shared:core:utils"))
+                implementation(project(":shared:core:storage-utils"))
 
                 implementation(shared.ktor.client.content.negotiation)
                 implementation(shared.ktor.client.logging)
                 implementation(shared.ktor.serialization.kotlinx.json)
+                implementation(shared.okio)
             }
         }
         androidMain {
@@ -46,6 +48,7 @@ kotlin {
                 implementation(shared.coroutines.test)
                 implementation(shared.ktor.client.mock)
                 implementation(shared.kotlinx.serialization.json)
+                implementation(shared.okio.fakefilesystem)
             }
         }
     }

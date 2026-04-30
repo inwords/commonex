@@ -50,7 +50,8 @@ internal class ExpensesViewModelDeletionTest {
             serverId = "server-1",
             name = "Synced Event",
             pinCode = "1234",
-            primaryCurrencyId = 100L
+            primaryCurrencyId = 100L,
+            clientCreateId = "event-client-1",
         )
 
         val localOnlyEvent = Event(
@@ -58,7 +59,8 @@ internal class ExpensesViewModelDeletionTest {
             serverId = null,
             name = "Local Event",
             pinCode = "5678",
-            primaryCurrencyId = 100L
+            primaryCurrencyId = 100L,
+            clientCreateId = "event-client-2",
         )
 
         val syncedEventUiModel = LocalEventUiModel(

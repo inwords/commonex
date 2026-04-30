@@ -154,6 +154,7 @@ internal class CommonExAppFunctions {
         val person = Person(
             id = 0L,
             serverId = null,
+            clientCreateId = eventsComponent.generateClientCreateId(),
             name = normalizedParticipantName,
         )
         eventsComponent.eventsLocalStore.value.insertPersonsWithCrossRefs(

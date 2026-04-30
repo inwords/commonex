@@ -9,6 +9,7 @@ import kotlin.concurrent.Volatile
 
 class NetworkComponent internal constructor(
     private val httpClientFactory: HttpClientFactory,
+    val idempotencyKeyGenerator: IdempotencyKeyGenerator,
 ) : Component {
 
     private val mutex = Mutex()

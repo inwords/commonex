@@ -34,11 +34,13 @@ internal class ExpensesTimelineUiModelFactoryTest {
         id = 1L,
         serverId = "person-1",
         name = "Alex",
+        clientCreateId = "person-1",
     )
     private val otherPerson = Person(
         id = 2L,
         serverId = "person-2",
         name = "Ben",
+        clientCreateId = "person-2",
     )
     private val eventDetails = EventDetails(
         event = Event(
@@ -47,6 +49,7 @@ internal class ExpensesTimelineUiModelFactoryTest {
             name = "Trip",
             pinCode = "1234",
             primaryCurrencyId = primaryCurrency.id,
+            clientCreateId = "event-10",
         ),
         currencies = listOf(primaryCurrency),
         persons = listOf(currentPerson, otherPerson),
@@ -286,6 +289,7 @@ internal class ExpensesTimelineUiModelFactoryTest {
             isCustomRate = false,
             timestamp = Instant.parse(timestamp),
             description = description,
+            clientCreateId = "expense-$expenseId",
         )
     }
 }

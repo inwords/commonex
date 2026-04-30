@@ -139,6 +139,46 @@ Current client usage:
 - Because `currency_rate.updatedAt` comes from the shared daily rate row, hidden unsupported rate-key changes in that row can still invalidate the public `/api/v3/user/currencies/all` validator even when the supported response payload is otherwise unchanged.
 - `currency.updatedAt` is part of the cache contract for `/api/v3/user/currencies/all`: any change to returned currency fields must also update `currency.updatedAt`.
 
+## Idempotency
+
+Mutating backend routes may accept an optional `Idempotency-Key` header. Header names are case-insensitive on HTTP, but shared mobile code uses the canonical spelling from the HTTP reference.
+
+Current backend behavior:
+
+- Missing header keeps legacy behavior and executes the mutation normally.
+- A new key stores the successful response by key, route URL, and request body hash.
+- Reusing the same key with the same URL and request body returns the cached response.
+- Reusing the same key with a different URL or request body is rejected as an idempotency hash mismatch.
+- Stored idempotency records expire after 24 hours and are removed by backend cleanup.
+
+Current shared mobile KMM behavior:
+
+- Mobile stores a generated per-install UUID in a raw app file owned by the shared network layer.
+- Sync mutations build keys from that UUID plus the operation name and durable client-side mutation identity.
+- Backend owns request-body hashing and same-key/different-body rejection. Mobile does not add client-side payload fingerprints to idempotency keys.
+- Covered mobile mutation routes:
+    - `POST /api/user/event`
+    - `POST /api/v2/user/event/:eventId/users`
+    - `POST /api/v2/user/event/:eventId/expense`
+- Current mobile key shapes:
+    - event create: `mobile:<install-id>:event.create:<event.clientCreateId>`
+    - add persons: `mobile:<install-id>:event.persons.add:<event.serverId>:<person.clientCreateId>...`
+    - add expense: `mobile:<install-id>:event.expense.add:<event.serverId>:<expense.clientCreateId>`
+- Mobile key-length behavior:
+    - the shared generator first projects raw key length without concatenating all parts
+    - if projected length is within the current budget (`255`), mobile sends the raw key
+    - if projected length exceeds the budget, mobile keeps `mobile:<install-id>:<operation>:` and appends a deterministic `h:<sha256>` digest of the full logical key parts
+- Remote event deletion, read-style `POST` requests, and share-token creation do not currently send idempotency keys from mobile.
+
+Do not derive mobile idempotency keys from local numeric Room IDs. They can collide across installs and can be reused after local deletion; use persisted durable client-side create or mutation IDs instead.
+For historical unsynced rows migrated from schema `4->5`, mobile backfills `client_create_id` as non-numeric `legacy:<32-hex>` values; this legacy prefix is an acceptable durable migration identity and is not derived from local row IDs.
+
+Current conformance notes:
+
+- The repository contract is optional idempotency. Do not treat missing keys as `400 Bad Request` unless the backend contract changes a route to require idempotency.
+- Backend fingerprint mismatch behavior aligns with the HTTP `Idempotency-Key` guidance for reused keys with different payloads: it returns `422 Unprocessable Entity`.
+- Backend does not currently reserve an idempotency key before executing the first request. Concurrent same-key requests can therefore run before the first result is stored, instead of returning `409 Conflict` while the first request is still processing.
+
 ## Response And Error Envelope
 
 Backend business and validation errors are intentionally normalized into a compact JSON envelope.
@@ -199,7 +239,7 @@ Shared mobile failure mapping:
 
 Implications for future changes:
 
-- Do not assume `POST` mutations are automatically retried; design idempotency and sync behavior explicitly.
+- Do not assume `POST` mutations are automatically retried; shared mobile sync mutations send idempotency keys, but retry scheduling remains owned by sync/work orchestration.
 - If you change retry-worthy statuses or method rules, update the shared Ktor config and the contract doc together.
 - If a backend route starts depending on redirect semantics, mobile clients will currently treat redirects as retry/failure conditions rather than following them.
 

@@ -52,16 +52,17 @@ internal class AddExpenseViewModelTest {
         val EUR_SMALL = Currency(id = 102, serverId = null, code = "EUR", name = "Euro", rate = BigDecimal.parseString("0.8677"))
         val JPY = Currency(id = 103, serverId = null, code = "JPY", name = "Japanese Yen", rate = BigDecimal.parseString("158.4072"))
 
-        val person1 = Person(id = 1, serverId = "s1", name = "Vasilii")
-        val person2 = Person(id = 2, serverId = "s2", name = "Dania")
-        val person3 = Person(id = 3, serverId = "s3", name = "Angela")
+        val person1 = Person(id = 1, serverId = "s1", name = "Vasilii", clientCreateId = "person-client-1")
+        val person2 = Person(id = 2, serverId = "s2", name = "Dania", clientCreateId = "person-client-2")
+        val person3 = Person(id = 3, serverId = "s3", name = "Angela", clientCreateId = "person-client-3")
 
         val event = Event(
             id = 10L,
             serverId = "ev-10",
             name = "Trip",
             pinCode = "1234",
-            primaryCurrencyId = USD.id
+            primaryCurrencyId = USD.id,
+            clientCreateId = "event-client-10",
         )
 
         val eventDetails = EventDetails(
@@ -1371,7 +1372,7 @@ internal class AddExpenseViewModelTest {
             assertEquals(2, initial.currencies.size)
 
             // When - update event with different details
-            val newPerson = Person(id = 4, serverId = "s4", name = "Bob")
+            val newPerson = Person(id = 4, serverId = "s4", name = "Bob", clientCreateId = "person-client-4")
             val newCurrency = Currency(id = 102, serverId = null, code = "GBP", name = "British Pound", rate = BigDecimal.ONE)
             val updatedEventDetails = TestFixtures.eventDetails.copy(
                 persons = TestFixtures.eventDetails.persons + newPerson,

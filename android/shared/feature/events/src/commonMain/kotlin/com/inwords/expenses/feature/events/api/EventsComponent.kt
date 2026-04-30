@@ -4,7 +4,9 @@ import com.inwords.expenses.core.navigation.Destination
 import com.inwords.expenses.core.navigation.NavModule
 import com.inwords.expenses.core.navigation.NavigationController
 import com.inwords.expenses.core.storage.utils.TransactionHelper
+import com.inwords.expenses.core.utils.ClientCreateIdGenerator
 import com.inwords.expenses.core.utils.Component
+import com.inwords.expenses.core.utils.UuidClientCreateIdGenerator
 import com.inwords.expenses.feature.events.data.db.store.CurrenciesLocalStoreImpl
 import com.inwords.expenses.feature.events.data.db.store.EventsLocalStoreImpl
 import com.inwords.expenses.feature.events.data.db.store.PersonsLocalStoreImpl
@@ -45,6 +47,7 @@ class EventsComponent internal constructor(
 ) : Component {
 
     private val transactionHelper: Lazy<TransactionHelper> = lazy { deps.transactionHelper }
+    private val clientCreateIdGeneratorLazy: Lazy<ClientCreateIdGenerator> = lazy { UuidClientCreateIdGenerator() }
 
     internal val settingsRepositoryLazy: Lazy<SettingsRepository> get() = deps.settingsRepositoryLazy
 
@@ -96,6 +99,7 @@ class EventsComponent internal constructor(
             eventsLocalStoreLazy = eventsLocalStore,
             eventsRemoteStoreLazy = eventsRemoteStore,
             personsLocalStoreLazy = personsLocalStore,
+            idempotencyKeyGeneratorLazy = deps.idempotencyKeyGeneratorLazy,
         )
     }
 
@@ -103,6 +107,7 @@ class EventsComponent internal constructor(
         EventPersonsPushTask(
             eventsLocalStoreLazy = eventsLocalStore,
             eventsRemoteStoreLazy = eventsRemoteStore,
+            idempotencyKeyGeneratorLazy = deps.idempotencyKeyGeneratorLazy,
         )
     }
 
@@ -157,6 +162,7 @@ class EventsComponent internal constructor(
         CreateEventFromParametersUseCase(
             eventsLocalStoreLazy = eventsLocalStore,
             settingsRepositoryLazy = deps.settingsRepositoryLazy,
+            clientCreateIdGeneratorLazy = clientCreateIdGeneratorLazy,
         )
     }
 
@@ -182,6 +188,7 @@ class EventsComponent internal constructor(
         AddParticipantsToCurrentEventUseCase(
             eventsLocalStoreLazy = eventsLocalStore,
             settingsRepositoryLazy = deps.settingsRepositoryLazy,
+            clientCreateIdGeneratorLazy = clientCreateIdGeneratorLazy,
         )
     }
 
@@ -192,6 +199,8 @@ class EventsComponent internal constructor(
     val eventsSyncStateHolderLazy: Lazy<EventsSyncStateHolder> = lazy {
         EventsSyncStateHolder()
     }
+
+    fun generateClientCreateId(): String = clientCreateIdGeneratorLazy.value.generate()
 
     val createShareTokenUseCaseLazy: Lazy<CreateShareTokenUseCase> = lazy {
         CreateShareTokenUseCase(

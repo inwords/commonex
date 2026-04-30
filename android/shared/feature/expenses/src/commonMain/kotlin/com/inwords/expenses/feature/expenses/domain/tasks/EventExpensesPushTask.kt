@@ -1,11 +1,13 @@
 package com.inwords.expenses.feature.expenses.domain.tasks
 
+import com.inwords.expenses.core.network.IdempotencyKeyGenerator
 import com.inwords.expenses.core.observability.Observability
 import com.inwords.expenses.core.observability.captureMessageIfNull
 import com.inwords.expenses.core.storage.utils.TransactionHelper
 import com.inwords.expenses.core.utils.IO
 import com.inwords.expenses.core.utils.IoResult
 import com.inwords.expenses.feature.events.domain.store.local.EventsLocalStore
+import com.inwords.expenses.feature.expenses.domain.store.ExpensePushItem
 import com.inwords.expenses.feature.expenses.domain.store.ExpensesLocalStore
 import com.inwords.expenses.feature.expenses.domain.store.ExpensesRemoteStore
 import kotlinx.coroutines.NonCancellable
@@ -16,12 +18,14 @@ class EventExpensesPushTask internal constructor(
     expensesLocalStoreLazy: Lazy<ExpensesLocalStore>,
     expensesRemoteStoreLazy: Lazy<ExpensesRemoteStore>,
     transactionHelperLazy: Lazy<TransactionHelper>,
+    idempotencyKeyGeneratorLazy: Lazy<IdempotencyKeyGenerator>,
 ) {
 
     private val eventsLocalStore by eventsLocalStoreLazy
     private val expensesLocalStore by expensesLocalStoreLazy
     private val expensesRemoteStore by expensesRemoteStoreLazy
     private val transactionHelper by transactionHelperLazy
+    private val idempotencyKeyGenerator by idempotencyKeyGeneratorLazy
 
     /**
      * Prerequisites:
@@ -53,11 +57,22 @@ class EventExpensesPushTask internal constructor(
             return@withContext IoResult.Success(Unit)
         }
 
+        val expensePushItems = expensesToAddFiltered.map { expense ->
+            ExpensePushItem(
+                expense = expense,
+                idempotencyKey = idempotencyKeyGenerator.mobileIdempotencyKey(
+                    operation = "event.expense.add",
+                    eventServerId,
+                    expense.clientCreateId,
+                ),
+            )
+        }
+
         val networkResults = expensesRemoteStore.addExpensesToEvent(
             event = localEvent.event,
-            expenses = expensesToAddFiltered,
+            expenses = expensePushItems,
             currencies = localEvent.currencies,
-            persons = localEvent.persons
+            persons = localEvent.persons,
         )
 
         withContext(NonCancellable) {
@@ -75,7 +90,7 @@ class EventExpensesPushTask internal constructor(
                     expensesLocalStore.updateExpenseServerId(networkExpense.expenseId, networkExpenseServerId)
                     networkExpense.subjectExpenseSplitWithPersons.forEachIndexed { splitIndex, networkSplit ->
                         expensesLocalStore.updateExpenseSplitExchangedAmount(
-                            expenseSplitId = expensesToAddFiltered[expenseIndex].subjectExpenseSplitWithPersons[splitIndex].expenseSplitId,
+                            expenseSplitId = expensePushItems[expenseIndex].expense.subjectExpenseSplitWithPersons[splitIndex].expenseSplitId,
                             exchangedAmount = networkSplit.exchangedAmount
                         )
                     }

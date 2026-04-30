@@ -14,6 +14,7 @@ internal fun EventEntity.toDomain(): Event {
     return Event(
         id = eventId,
         serverId = eventServerId,
+        clientCreateId = clientCreateId,
         name = name,
         pinCode = pinCode,
         primaryCurrencyId = primaryCurrencyId,
@@ -32,6 +33,7 @@ internal fun EventWithDetailsQuery.toDomain(): EventDetails {
 internal fun PersonEntity.toDomain() = Person(
     id = personId,
     serverId = personServerId,
+    clientCreateId = clientCreateId,
     name = name,
 )
 

@@ -17,6 +17,7 @@ This document is the canonical mobile reference for the KMM offline-first model,
 
 - Events, persons, currencies, and expenses use a local numeric ID plus an optional `serverId`.
 - `serverId == null` means the record exists only locally and still needs sync.
+- Event, person, and expense domain models require explicit persisted `clientCreateId` values at construction time; local-create flows must generate them up front instead of relying on empty defaults.
 - Joining an already-known remote event is idempotent at the mobile domain layer:
   `JoinEventUseCase` first looks up the event by `serverId` locally and, if found, only switches the current event.
 
@@ -80,12 +81,23 @@ Replace `<TEAM_ID>` and `<BUNDLE_ID>` with the actual Apple Developer Team ID an
 - `EventPersonsPushTask` only runs for events that already have a `serverId`.
 - It pushes persons whose `serverId` is still null.
 - On success it writes back remote person IDs through the local store in a transaction.
+- Event creation and participant push send backend `Idempotency-Key` headers.
+  Keys use a per-install UUID from a raw app file plus the operation name and durable client-side mutation identity so retries of the same logical local mutation can safely receive the backend-cached response without colliding with other installs.
+  Backend already hashes `{url, body}` and rejects same-key/different-body reuse, so mobile intentionally does not add its own payload fingerprint.
+  `EventsLocalStore` canonicalizes hydrated event persons by local person ID. Event creation uses `event.clientCreateId`, and participant push uses the synced event `serverId` plus the pending persons' persisted `clientCreateId` values in store order.
+  The shared network layer owns client-id storage and key formatting; sync tasks request operation keys from the network idempotency generator instead of reading the client id directly.
+  For large key-part lists, the shared generator projects key length first and switches to a deterministic hashed suffix (`h:<sha256>`) instead of building oversized raw keys.
+- Remote event deletion does not send an idempotency key; the HTTP `DELETE` flow is treated as idempotent by outcome, and `Gone`/`NotFound` responses still delete the local copy.
 
 ## Expense Sync
 
 - `EventExpensesPushTask` requires all three prerequisites before it can push:
   synced event, synced persons, and synced currencies.
 - It pushes only local expenses whose `serverId` is null.
+- Each expense creation request sends a backend `Idempotency-Key` derived from the per-install UUID, remote event ID, and the expense's durable `clientCreateId`.
+  The key is produced through the shared network idempotency generator, keeping per-install identity details out of expense sync logic.
+- Local numeric Room IDs are not valid idempotency identities for event, person, or expense creation. Durable client-side create IDs are generated once at local creation time, persisted in Room, and preserved across local updates and sync writes.
+- Legacy rows upgraded by DB migration `4->5` backfill unsynced IDs as non-numeric `legacy:<32-hex>` tokens (not `local:<row-id>`), so migrated unsynced entities keep durable non-ID-derived identities.
 - Partial network responses (success for some expenses, error for others) are supported: iterate over the full results list with index so alignment with local expenses is preserved; persist only successful results.
 - After a successful push it writes back the remote expense `serverId` and the backend-confirmed `exchangedAmount` values for each split.
 - Mobile sends `amount` for every split and includes client-supplied `exchangedAmount` only when the local expense uses a custom rate (`isCustomRate == true`).

@@ -44,8 +44,8 @@ internal class ExpenseItemPaneViewModelTest {
     private val getCurrentEventStateUseCase = mockk<GetCurrentEventStateUseCase>(relaxed = true)
     private val expensesLocalStore = mockk<ExpensesLocalStore>(relaxed = true)
 
-    private val event = Event(1L, null, "Trip", "1234", 1L)
-    private val person = Person(1L, null, "Alice")
+    private val event = Event(1L, null, "Trip", "1234", 1L, "event-client-1")
+    private val person = Person(1L, null, "Alice", "person-client-1")
     private val currency = Currency(1L, null, "EUR", "Euro", rate = BigDecimal.ONE)
     private val eventDetails = EventDetails(
         event = event,
@@ -65,6 +65,7 @@ internal class ExpenseItemPaneViewModelTest {
         isCustomRate = false,
         timestamp = Instant.fromEpochMilliseconds(0),
         description = "Lunch",
+        clientCreateId = "expense-client-10",
     )
 
     @BeforeTest

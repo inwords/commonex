@@ -89,10 +89,10 @@ internal class MenuViewModelTest {
 
     @Test
     fun state_whenEventEmitted_hasEventNameAndIdleWithServerId() = runTest {
-        val event = Event(1L, "ev-1", "Trip", "1234", 1L)
+        val event = Event(1L, "ev-1", "Trip", "1234", 1L, "event-client-1")
         val details = EventDetails(
             event = event,
-            persons = listOf(Person(1L, "p1", "Alice")),
+            persons = listOf(Person(1L, "p1", "Alice", "person-client-1")),
             currencies = listOf(Currency(1L, null, "EUR", "Euro", SeededCurrencies.usdToOtherRates.getValue("EUR"))),
             primaryCurrency = Currency(1L, null, "EUR", "Euro", SeededCurrencies.usdToOtherRates.getValue("EUR")),
         )
@@ -158,10 +158,10 @@ internal class MenuViewModelTest {
 
     @Test
     fun onShareClicked_whenTokenCreated_endsInReadyState() = runTest {
-        val event = Event(1L, "ev-1", "Trip", "1234", 1L)
+        val event = Event(1L, "ev-1", "Trip", "1234", 1L, "event-client-1")
         val details = EventDetails(
             event = event,
-            persons = listOf(Person(1L, "p1", "Alice")),
+            persons = listOf(Person(1L, "p1", "Alice", "person-client-1")),
             currencies = listOf(Currency(1L, null, "EUR", "Euro", SeededCurrencies.usdToOtherRates.getValue("EUR"))),
             primaryCurrency = Currency(1L, null, "EUR", "Euro", SeededCurrencies.usdToOtherRates.getValue("EUR")),
         )
@@ -198,10 +198,10 @@ internal class MenuViewModelTest {
 
     @Test
     fun onCopyClicked_whenTokenCreationFails_emitsFallbackPendingClipboardCopy() = runTest {
-        val event = Event(1L, "ev-1", "Trip", "1234", 1L)
+        val event = Event(1L, "ev-1", "Trip", "1234", 1L, "event-client-1")
         val details = EventDetails(
             event = event,
-            persons = listOf(Person(1L, "p1", "Alice")),
+            persons = listOf(Person(1L, "p1", "Alice", "person-client-1")),
             currencies = listOf(Currency(1L, null, "EUR", "Euro", SeededCurrencies.usdToOtherRates.getValue("EUR"))),
             primaryCurrency = Currency(1L, null, "EUR", "Euro", SeededCurrencies.usdToOtherRates.getValue("EUR")),
         )
@@ -238,17 +238,17 @@ internal class MenuViewModelTest {
 
     @Test
     fun state_whenEventChanges_resetsPreviouslyGeneratedShareState() = runTest {
-        val firstEvent = Event(1L, "ev-1", "Trip", "1234", 1L)
-        val secondEvent = Event(2L, "ev-2", "Party", "5678", 1L)
+        val firstEvent = Event(1L, "ev-1", "Trip", "1234", 1L, "event-client-1")
+        val secondEvent = Event(2L, "ev-2", "Party", "5678", 1L, "event-client-2")
         val firstDetails = EventDetails(
             event = firstEvent,
-            persons = listOf(Person(1L, "p1", "Alice")),
+            persons = listOf(Person(1L, "p1", "Alice", "person-client-1")),
             currencies = listOf(Currency(1L, null, "EUR", "Euro", SeededCurrencies.usdToOtherRates.getValue("EUR"))),
             primaryCurrency = Currency(1L, null, "EUR", "Euro", SeededCurrencies.usdToOtherRates.getValue("EUR")),
         )
         val secondDetails = EventDetails(
             event = secondEvent,
-            persons = listOf(Person(2L, "p2", "Bob")),
+            persons = listOf(Person(2L, "p2", "Bob", "person-client-2")),
             currencies = listOf(Currency(1L, null, "EUR", "Euro", SeededCurrencies.usdToOtherRates.getValue("EUR"))),
             primaryCurrency = Currency(1L, null, "EUR", "Euro", SeededCurrencies.usdToOtherRates.getValue("EUR")),
         )

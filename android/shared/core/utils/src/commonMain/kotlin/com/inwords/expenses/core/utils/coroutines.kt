@@ -1,10 +1,12 @@
 package com.inwords.expenses.core.utils
 
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.IO
+import kotlinx.coroutines.MainCoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.SharingStarted
@@ -20,10 +22,10 @@ import kotlinx.coroutines.launch
 import kotlin.experimental.ExperimentalTypeInference
 import kotlin.time.Duration
 
-val UI = Dispatchers.Main.immediate
-val DF = Dispatchers.Default
-val IO = Dispatchers.IO
-val UNCONFINED = Dispatchers.Unconfined
+val UI: MainCoroutineDispatcher get() = Dispatchers.Main.immediate
+val DF: CoroutineDispatcher get() = Dispatchers.Default
+val IO: CoroutineDispatcher get() = Dispatchers.IO
+val UNCONFINED: CoroutineDispatcher get() = Dispatchers.Unconfined
 
 fun <T> Flow<T>.collectIn(
     scope: CoroutineScope,

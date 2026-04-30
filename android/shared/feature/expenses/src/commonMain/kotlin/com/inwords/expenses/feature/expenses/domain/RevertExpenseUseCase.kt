@@ -1,5 +1,6 @@
 package com.inwords.expenses.feature.expenses.domain
 
+import com.inwords.expenses.core.utils.ClientCreateIdGenerator
 import com.inwords.expenses.feature.events.domain.store.local.EventsLocalStore
 import com.inwords.expenses.feature.expenses.domain.model.Expense
 import com.inwords.expenses.feature.expenses.domain.model.ExpenseSplitWithPerson
@@ -10,10 +11,12 @@ import kotlin.time.Clock
 internal class RevertExpenseUseCase internal constructor(
     eventsLocalStoreLazy: Lazy<EventsLocalStore>,
     expensesLocalStoreLazy: Lazy<ExpensesLocalStore>,
+    clientCreateIdGeneratorLazy: Lazy<ClientCreateIdGenerator>,
 ) {
 
     private val eventsLocalStore by eventsLocalStoreLazy
     private val expensesLocalStore by expensesLocalStoreLazy
+    private val clientCreateIdGenerator by clientCreateIdGeneratorLazy
 
     suspend fun revertExpense(eventId: Long, expenseId: Long, description: String): Boolean {
         val event = eventsLocalStore.getEvent(eventId) ?: return false
@@ -21,6 +24,7 @@ internal class RevertExpenseUseCase internal constructor(
         val revertedExpense = Expense(
             expenseId = 0,
             serverId = null,
+            clientCreateId = clientCreateIdGenerator.generate(),
             currency = originalExpense.currency,
             expenseType = when (originalExpense.expenseType) {
                 ExpenseType.Spending -> ExpenseType.Replenishment

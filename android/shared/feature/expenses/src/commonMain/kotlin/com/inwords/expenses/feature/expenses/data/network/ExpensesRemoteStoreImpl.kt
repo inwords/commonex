@@ -1,10 +1,12 @@
 package com.inwords.expenses.feature.expenses.data.network
 
 import com.inwords.expenses.core.network.HostConfig
+import com.inwords.expenses.core.network.idempotencyKey
 import com.inwords.expenses.core.network.requestWithExceptionHandling
 import com.inwords.expenses.core.network.toIoResult
 import com.inwords.expenses.core.network.url
 import com.inwords.expenses.core.observability.captureMessageIfNull
+import com.inwords.expenses.core.utils.ClientCreateId
 import com.inwords.expenses.core.utils.IoResult
 import com.inwords.expenses.core.utils.SuspendLazy
 import com.inwords.expenses.feature.events.domain.model.Currency
@@ -18,6 +20,7 @@ import com.inwords.expenses.feature.expenses.data.network.dto.SplitInformationRe
 import com.inwords.expenses.feature.expenses.domain.model.Expense
 import com.inwords.expenses.feature.expenses.domain.model.ExpenseSplitWithPerson
 import com.inwords.expenses.feature.expenses.domain.model.ExpenseType
+import com.inwords.expenses.feature.expenses.domain.store.ExpensePushItem
 import com.inwords.expenses.feature.expenses.domain.store.ExpensesRemoteStore
 import com.ionspin.kotlin.bignum.decimal.BigDecimal
 import io.ktor.client.HttpClient
@@ -54,12 +57,20 @@ internal class ExpensesRemoteStoreImpl(
 
     override suspend fun addExpensesToEvent(
         event: Event,
-        expenses: List<Expense>,
+        expenses: List<ExpensePushItem>,
         currencies: List<Currency>,
-        persons: List<Person>
+        persons: List<Person>,
     ): List<IoResult<Expense>> = coroutineScope {
-        expenses.map { expense ->
-            async { addExpenseToEvent(event, expense, currencies, persons) }
+        expenses.map { expensePushItem ->
+            async {
+                addExpenseToEvent(
+                    event = event,
+                    expense = expensePushItem.expense,
+                    currencies = currencies,
+                    persons = persons,
+                    idempotencyKey = expensePushItem.idempotencyKey,
+                )
+            }
         }.awaitAll()
     }
 
@@ -67,7 +78,8 @@ internal class ExpensesRemoteStoreImpl(
         event: Event,
         expense: Expense,
         currencies: List<Currency>,
-        persons: List<Person>
+        persons: List<Person>,
+        idempotencyKey: String,
     ): IoResult<Expense> {
         val serverId = event.serverId
             .captureMessageIfNull("ExpensesRemoteStore.addExpenseToEvent called for an unsynced event")
@@ -86,6 +98,7 @@ internal class ExpensesRemoteStoreImpl(
         return client.requestWithExceptionHandling {
             post {
                 url(hostConfig) { pathSegments = listOf("api", "v2", "user", "event", serverId, "expense") }
+                idempotencyKey(idempotencyKey)
                 contentType(ContentType.Application.Json)
                 setBody(
                     CreateExpenseRequest(
@@ -131,6 +144,7 @@ internal class ExpensesRemoteStoreImpl(
         return Expense(
             expenseId = localExpense?.expenseId ?: 0L,
             serverId = id,
+            clientCreateId = localExpense?.clientCreateId ?: ClientCreateId.fromServerId(id),
             currency = currency,
             expenseType = when (expenseType) {
                 "expense" -> ExpenseType.Spending
@@ -155,6 +169,7 @@ internal class ExpensesRemoteStoreImpl(
             person = Person(
                 id = person.id,
                 serverId = userId,
+                clientCreateId = person.clientCreateId,
                 name = person.name,
             ),
             originalAmount = originalAmount,

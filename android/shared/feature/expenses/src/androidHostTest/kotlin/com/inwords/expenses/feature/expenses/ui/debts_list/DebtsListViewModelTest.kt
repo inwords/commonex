@@ -43,8 +43,8 @@ internal class DebtsListViewModelTest {
     private val getCurrentEventStateUseCase = mockk<GetCurrentEventStateUseCase>(relaxed = true)
     private val getExpensesDetailsUseCase = mockk<GetExpensesDetailsUseCase>(relaxed = true)
 
-    private val event = Event(1L, null, "Trip", "1234", 1L)
-    private val person = Person(1L, null, "Alice")
+    private val event = Event(1L, null, "Trip", "1234", 1L, "event-client-1")
+    private val person = Person(1L, null, "Alice", "person-client-1")
     private val currency = Currency(1L, null, "EUR", "Euro", rate = BigDecimal.ONE)
     private val eventDetails = EventDetails(
         event = event,
