@@ -14,7 +14,7 @@ kotlin {
     sourceSets {
         androidMain {
             dependencies {
-                implementation(shared.posthog.android)
+                implementation(shared.appmetrica.analytics)
             }
         }
     }

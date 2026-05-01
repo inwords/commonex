@@ -5,9 +5,9 @@ This document is the canonical operational reference for Android app startup beh
 ## Source Of Truth
 
 - Android application entry point: `android/app/src/main/kotlin/ru/commonex/App.kt`
-- Shared PostHog analytics bootstrap: `android/shared/core/analytics/src/commonMain/kotlin/com/inwords/expenses/core/analytics/`
+- Shared analytics bootstrap: `android/shared/core/analytics/src/commonMain/kotlin/com/inwords/expenses/core/analytics/`
 - Shared observability bootstrap and reporting: `android/shared/core/observability/src/commonMain/kotlin/com/inwords/expenses/core/observability/`
-- iOS PostHog bridge implementation: `android/iosApp/iosApp/IOSPostHogBridge.swift`
+- iOS AppMetrica bridge implementation: `android/iosApp/iosApp/IOSAppMetricaBridge.swift`
 - Android manifest and startup providers: `android/app/src/main/AndroidManifest.xml`
 - Shared runtime bootstrap: `android/shared/integration/base/src/commonMain/kotlin/com/inwords/expenses/integration/base/`
 - Android AppFunctions entry points: `android/shared/integration/base/src/androidMain/kotlin/com/inwords/expenses/integration/base/appfunctions/`
@@ -17,7 +17,7 @@ This document is the canonical operational reference for Android app startup beh
 - The Android app uses `ru.commonex.App` as the `Application` class.
 - Startup order in `App.onCreate()` is:
     1. initialize Sentry
-    2. initialize PostHog product analytics
+    2. initialize AppMetrica product analytics
     3. enable Android `StrictMode` in non-production builds
     4. register shared/platform components
     5. start sync observation
@@ -39,16 +39,19 @@ Current production classification:
     - `tracesSampleRate = 1.0` in non-production builds
 - Android and iOS both use the same shared initialization function, so changes here affect both platforms unless platform-specific branching is added.
 
-## PostHog
+## AppMetrica
 
-- PostHog is initialized from shared KMM code through `initializePostHog(production, postHogBridge)` in `shared:core:analytics`.
-- Runtime configuration is source-defined in `shared/core/analytics/src/commonMain/`, matching the repo's Sentry-style client-token pattern. The current production configuration uses PostHog's EU ingest host.
-- The current first-pass analytics setup is intentionally limited:
-    - `captureApplicationLifecycleEvents = true` for install, open, update, and background lifecycle events
-    - `captureScreenViews = false`
-    - `optOut = true` for non-production builds so debug/autotest traffic does not pollute analytics
-- Android actuals initialize the SDK directly from Kotlin. iOS uses Kotlin's reverse-import bridge pattern: shared code computes the config, and `iosApp.swift` supplies a Swift `PostHogBridge` implementation because the repo currently links `posthog-ios`
-  through Swift Package Manager instead of a Kotlin/Native native-library import.
+- AppMetrica is initialized from shared KMM code through `initializeAppMetrica(production, analyticsBridge)` in `shared:core:analytics`.
+- Runtime configuration is source-defined in `shared/core/analytics/src/commonMain/`, matching the repo's Sentry-style client-token pattern. The shared bootstrap currently holds the shared AppMetrica mobile API key directly in code.
+- The current analytics scope is intentionally limited:
+    - lifecycle/session analytics only for installs and active usage
+    - `appOpenTrackingEnabled = false`, so AppMetrica does not automatically report deeplink or universal-link app opens; this avoids sending share-link query credentials such as `token` or `pinCode`
+    - deeplinks handled while the app is already running are also not automatically tracked by the current integration
+    - `locationTracking = false`
+    - crash reporting, native crash reporting, and ANR monitoring are hard-disabled in the platform bridges, so AppMetrica does not collect Java crashes, native crashes, or ANR reports
+    - `dataSendingEnabled = false` for non-production builds so debug/autotest traffic does not pollute analytics
+- Android actuals initialize AppMetrica directly from Kotlin and call `AppMetrica.enableActivityAutoTracking(this)` only while session auto-tracking is enabled, so user sessions follow activity lifecycle while crash/ANR collection remains explicitly off.
+- iOS uses Kotlin's reverse-import bridge pattern: shared code computes the config, and `iosApp.swift` supplies a Swift `AnalyticsBridge` implementation because the repo links `AppMetricaCore` through Swift Package Manager instead of a Kotlin/Native native-library import.
   TODO Migrate to https://kotlinlang.org/docs/multiplatform/multiplatform-spm-import.html when stable.
 - This integration is currently meant to cover installs and active-usage analytics first; shared custom user events are not wired yet.
 
@@ -108,5 +111,5 @@ Operational constraints:
 ## Related Docs
 
 - `mobile-sync-and-sharing.md` - share links, universal links, and sync-task behavior
-- `ios-app-privacy.md` - privacy consequences of Sentry and PostHog on iOS
+- `ios-app-privacy.md` - privacy consequences of Sentry and AppMetrica on iOS
 - `ios-validation-checklist.md` - iOS device validation for startup, links, and sync recovery

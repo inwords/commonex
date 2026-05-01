@@ -11,12 +11,12 @@
       }
     },
     {
-      "identity" : "posthog-ios",
+      "identity" : "appmetrica-sdk-ios",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/PostHog/posthog-ios.git",
+      "location" : "https://github.com/appmetrica/appmetrica-sdk-ios",
       "state" : {
-        "revision" : "573b68562fb03438b1f535d3326b00a731233f4f",
-        "version" : "3.48.0"
+        "revision" : "08d452379e23870d3c1dcd461c463b4f28301dfa",
+        "version" : "6.2.0"
       }
     },
     {

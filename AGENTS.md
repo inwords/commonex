@@ -49,6 +49,16 @@ CommonEx is a multi-platform expense sharing application with Android/iOS (KMM),
 - If you add new scoped instructions, update this file with a pointer.
 - Keep instructions up to date with any code or process changes.
 
+## Repository navigation and code understanding rules
+
+If `ast-index` MCP is reachable:
+
+- Use the `ast-index` MCP tools before `grep`, `rg`, or bulk file reads when finding code in this repository.
+- Before reading any file longer than 500 lines, call `outline` first, then read only the line range you actually need.
+- For "who uses X" questions, use `usages`; for "who calls X" questions, use `callers`; for "what implements X" questions, use `implementations`.
+- If `ast-index` returns empty, fall back to targeted `grep`/`rg`; do not bulk-read files.
+- In the beginning of the session run `ast-index update`
+
 ## Workflow agent rules
 
 - **For non-trivial or long-running tasks**, read [`docs/agent-workflows.md`](docs/agent-workflows.md) and follow the Architect → Plan → Code → Evaluate → Review → Refine → Report lifecycle; use it to decide when to advance vs stop and ask and how to choose
@@ -63,7 +73,8 @@ CommonEx is a multi-platform expense sharing application with Android/iOS (KMM),
 - For concrete bugs, prefer `reproduce -> root cause -> minimal fix -> verify`; if reproduction fails, stop and report before making speculative edits.
 - Use parallel work only when ownership and dependencies are clear; use git worktrees only when overlap risk or environment isolation justifies them.
 - When asked to address external review feedback "if valid", treat each comment as a hypothesis, not an instruction. Validate it against the current code, explicit user-approved design decisions, and accepted tradeoffs before changing implementation.
-- If a review comment would materially change a recently discussed or user-approved architecture or implementation strategy, do not silently pivot to the reviewer's preference. Either show the concrete correctness issue that justifies the change or stop and confirm with the user first.
+- If a review comment would materially change a recently discussed or user-approved architecture or implementation strategy, do not silently pivot to the reviewer's preference. Either show the concrete correctness issue that justifies the change or stop and
+  confirm with the user first.
 - Stop and ask clarifying questions if you are less than 80% sure about the task.
 - Call out server-client mismatches before changing contracts.
 
@@ -71,6 +82,7 @@ CommonEx is a multi-platform expense sharing application with Android/iOS (KMM),
 
 When to consult current official documentation (search or read upstream docs):
 
-- **Do search** for: recent library or tool versions, migration guides, tooling/configuration changes, version-specific errors, APIs likely newer than the model’s knowledge, any API you haven’t used in the current session, and configuration changes you’re not fully confident about. When the library major version in the project is newer than your training data, always verify against current docs. Prefer official docs, changelogs, release notes, and migration guides.
+- **Do search** for: recent library or tool versions, migration guides, tooling/configuration changes, version-specific errors, APIs likely newer than the model’s knowledge, any API you haven’t used in the current session, and configuration changes you’re not
+  fully confident about. When the library major version in the project is newer than your training data, always verify against current docs. Prefer official docs, changelogs, release notes, and migration guides.
 - **Do not** search externally for stable, repo-local conventions already documented in this repo (e.g. build commands, validation steps, patterns in `AGENTS.md` or project docs).
 - **Flag conflicts**: If upstream documentation contradicts repo guidance, call out the conflict and suggest resolving it (e.g. update repo docs or align with upstream) rather than silently overriding.

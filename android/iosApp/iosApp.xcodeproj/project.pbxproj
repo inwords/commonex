@@ -10,8 +10,8 @@
 		058557BB273AAA24004C7B11 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 058557BA273AAA24004C7B11 /* Assets.xcassets */; };
 		2152FB042600AC8F00CF470E /* iOSApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2152FB032600AC8F00CF470E /* iOSApp.swift */; };
 		36E35D932E75EE6F00A23C4E /* Sentry in Frameworks */ = {isa = PBXBuildFile; productRef = 36E35D922E75EE6F00A23C4E /* Sentry */; };
-		36F2B0A1030C4A9800A0B1C2 /* IOSPostHogBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36F2B0A0030C4A9800A0B1C2 /* IOSPostHogBridge.swift */; };
-		36F83F312F06914700B2B1C1 /* PostHog in Frameworks */ = {isa = PBXBuildFile; productRef = 36F83F302F06914700B2B1C1 /* PostHog */; };
+		36F2B0A1030C4A9800A0B1C2 /* IOSAppMetricaBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36F2B0A0030C4A9800A0B1C2 /* IOSAppMetricaBridge.swift */; };
+		36F83F312F06914700B2B1C1 /* AppMetricaCore in Frameworks */ = {isa = PBXBuildFile; productRef = 36F83F302F06914700B2B1C1 /* AppMetricaCore */; };
 		7555FF83242A565900829871 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7555FF82242A565900829871 /* ContentView.swift */; };
 /* End PBXBuildFile section */
 
@@ -19,7 +19,7 @@
 		058557BA273AAA24004C7B11 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		2152FB032600AC8F00CF470E /* iOSApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = iOSApp.swift; sourceTree = "<group>"; };
 		36A8AC642E0082BC005E21B0 /* iosApp.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = iosApp.entitlements; sourceTree = "<group>"; };
-		36F2B0A0030C4A9800A0B1C2 /* IOSPostHogBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IOSPostHogBridge.swift; sourceTree = "<group>"; };
+		36F2B0A0030C4A9800A0B1C2 /* IOSAppMetricaBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IOSAppMetricaBridge.swift; sourceTree = "<group>"; };
 		7555FF7B242A565900829871 /* iosApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = iosApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		7555FF82242A565900829871 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		7555FF8C242A565B00829871 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -30,7 +30,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				36F83F312F06914700B2B1C1 /* PostHog in Frameworks */,
+				36F83F312F06914700B2B1C1 /* AppMetricaCore in Frameworks */,
 				36E35D932E75EE6F00A23C4E /* Sentry in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -68,7 +68,7 @@
 				058557BA273AAA24004C7B11 /* Assets.xcassets */,
 				7555FF82242A565900829871 /* ContentView.swift */,
 				7555FF8C242A565B00829871 /* Info.plist */,
-				36F2B0A0030C4A9800A0B1C2 /* IOSPostHogBridge.swift */,
+				36F2B0A0030C4A9800A0B1C2 /* IOSAppMetricaBridge.swift */,
 				2152FB032600AC8F00CF470E /* iOSApp.swift */,
 				36A8AC642E0082BC005E21B0 /* iosApp.entitlements */,
 			);
@@ -122,7 +122,7 @@
 			);
 			mainGroup = 7555FF72242A565900829871;
 			packageReferences = (
-				36F83F2F2F06914700B2B1C1 /* XCRemoteSwiftPackageReference "posthog-ios" */,
+				36F83F2F2F06914700B2B1C1 /* XCRemoteSwiftPackageReference "appmetrica-sdk-ios" */,
 				36E35D912E75EE6F00A23C4E /* XCRemoteSwiftPackageReference "sentry-cocoa" */,
 			);
 			productRefGroup = 7555FF7C242A565900829871 /* Products */;
@@ -171,7 +171,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				36F2B0A1030C4A9800A0B1C2 /* IOSPostHogBridge.swift in Sources */,
+				36F2B0A1030C4A9800A0B1C2 /* IOSAppMetricaBridge.swift in Sources */,
 				2152FB042600AC8F00CF470E /* iOSApp.swift in Sources */,
 				7555FF83242A565900829871 /* ContentView.swift in Sources */,
 			);
@@ -323,6 +323,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 12.4;
 				MARKETING_VERSION = 2026.04.1;
+				OTHER_LDFLAGS = "$(inherited) -ObjC";
 				PRODUCT_BUNDLE_IDENTIFIER = ru.commonex;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -369,6 +370,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 12.4;
 				MARKETING_VERSION = 2026.04.1;
+				OTHER_LDFLAGS = "$(inherited) -ObjC";
 				PRODUCT_BUNDLE_IDENTIFIER = ru.commonex;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -416,12 +418,12 @@
 				version = 8.57.3;
 			};
 		};
-		36F83F2F2F06914700B2B1C1 /* XCRemoteSwiftPackageReference "posthog-ios" */ = {
+		36F83F2F2F06914700B2B1C1 /* XCRemoteSwiftPackageReference "appmetrica-sdk-ios" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/PostHog/posthog-ios.git";
+			repositoryURL = "https://github.com/appmetrica/appmetrica-sdk-ios";
 			requirement = {
 				kind = exactVersion;
-				version = 3.48.0;
+				version = 6.2.0;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
@@ -432,10 +434,10 @@
 			package = 36E35D912E75EE6F00A23C4E /* XCRemoteSwiftPackageReference "sentry-cocoa" */;
 			productName = Sentry;
 		};
-		36F83F302F06914700B2B1C1 /* PostHog */ = {
+		36F83F302F06914700B2B1C1 /* AppMetricaCore */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 36F83F2F2F06914700B2B1C1 /* XCRemoteSwiftPackageReference "posthog-ios" */;
-			productName = PostHog;
+			package = 36F83F2F2F06914700B2B1C1 /* XCRemoteSwiftPackageReference "appmetrica-sdk-ios" */;
+			productName = AppMetricaCore;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

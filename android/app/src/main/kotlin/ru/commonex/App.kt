@@ -5,8 +5,8 @@ import android.os.StrictMode
 import android.util.Log
 import androidx.appfunctions.service.AppFunctionConfiguration
 import androidx.work.Configuration
-import com.inwords.expenses.core.analytics.PostHogAndroidBridge
-import com.inwords.expenses.core.analytics.initializePostHog
+import com.inwords.expenses.core.analytics.AppMetricaAndroidBridge
+import com.inwords.expenses.core.analytics.initializeAppMetrica
 import com.inwords.expenses.core.utils.IO
 import com.inwords.expenses.integration.base.appfunctions.createAppFunctionConfiguration
 import com.inwords.expenses.integration.base.enableSync
@@ -25,7 +25,7 @@ class App : Application(), Configuration.Provider, AppFunctionConfiguration.Prov
         super.onCreate()
 
         initializeSentry(production = production)
-        initializePostHog(production = production, postHogBridge = PostHogAndroidBridge(appContext = this))
+        initializeAppMetrica(production = production, analyticsBridge = AppMetricaAndroidBridge(application = this))
 
         if (!production) {
             StrictMode.setThreadPolicy(
