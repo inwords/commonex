@@ -12,9 +12,9 @@ struct iOSApp: App {
         #endif
 
         InitializeSentryKt.initializeSentry(production: production)
-        InitializePostHogKt.initializePostHog(
+        InitializeAppMetricaKt.initializeAppMetrica(
             production: production,
-            postHogBridge: IOSPostHogBridge()
+            analyticsBridge: IOSAppMetricaBridge()
         )
         RegisterComponentsKt.registerComponents()
         EnableSyncKt.enableSync()

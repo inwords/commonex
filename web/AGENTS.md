@@ -73,6 +73,7 @@ No automated test runner is currently wired through `package.json`.
 - Integrate forms with react-hook-form
 - Strictly follow feature-sliced design folder structure
 - Use absolute imports from `src/`
+- For public/legal pages under `web/public/` such as `privacy.html` and `terms.html`, keep wording at the policy or user-facing behavior level. Do not leak implementation flags, transport/protocol details, query-parameter examples, or UI mechanics into those documents; keep such detail in internal docs instead.
 
 ## Common Tasks
 
