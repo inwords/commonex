@@ -7,7 +7,6 @@ import com.inwords.expenses.core.utils.IO
 import com.inwords.expenses.core.utils.UI
 import com.inwords.expenses.core.utils.asImmutableListAdapter
 import com.inwords.expenses.core.utils.stateInWhileSubscribed
-import com.inwords.expenses.feature.events.domain.EventCreationStateHolder
 import com.inwords.expenses.feature.events.domain.GetCurrenciesUseCase
 import com.inwords.expenses.feature.events.domain.model.Currency
 import com.inwords.expenses.feature.events.ui.add_persons.AddPersonsPaneDestination
@@ -25,7 +24,6 @@ import kotlinx.coroutines.plus
 
 internal class CreateEventViewModel(
     private val navigationController: NavigationController,
-    private val eventCreationStateHolder: EventCreationStateHolder,
     getCurrenciesUseCase: GetCurrenciesUseCase,
     viewModelScope: CoroutineScope = CoroutineScope(SupervisorJob() + IO),
 ) : ViewModel(viewModelScope = viewModelScope) {
@@ -51,7 +49,10 @@ internal class CreateEventViewModel(
         inputEventName,
         selectedCurrencyCode
     ) { currencies, inputEventName, selectedCurrencyCode ->
-        val currencyCodeToSelect = selectedCurrencyCode ?: "RUB"
+        val currencyCodeToSelect = selectedCurrencyCode
+            ?.takeIf { selectedCode -> currencies.any { currency -> currency.code == selectedCode } }
+            ?: currencies.firstOrNull { currency -> currency.code == "RUB" }?.code
+            ?: currencies.firstOrNull()?.code
         CreateEventPaneModel(
             eventName = inputEventName,
             currencies = currencies.map { currency ->
@@ -87,14 +88,13 @@ internal class CreateEventViewModel(
         confirmJob?.cancel()
         confirmJob = viewModelScope.launch {
             val state = _state.value
-            eventCreationStateHolder.draftEventName(
-                eventName = state.eventName.takeIf { it.isNotBlank() } ?: return@launch
-            )
-            eventCreationStateHolder.draftEventPrimaryCurrency(
-                currency = state.currencies.first { it.selected }.currency
-            )
+            val eventName = state.eventName.takeIf { it.isNotBlank() } ?: return@launch
+            val selectedCurrency = state.currencies.firstOrNull { it.selected }?.currency ?: return@launch
             navigationController.navigateTo(
-                destination = AddPersonsPaneDestination,
+                destination = AddPersonsPaneDestination(
+                    eventName = eventName,
+                    primaryCurrencyId = selectedCurrency.id,
+                ),
             )
         }
     }

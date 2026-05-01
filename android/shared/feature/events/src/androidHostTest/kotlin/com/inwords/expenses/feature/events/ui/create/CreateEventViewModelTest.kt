@@ -2,9 +2,9 @@ package com.inwords.expenses.feature.events.ui.create
 
 import app.cash.turbine.test
 import com.inwords.expenses.core.navigation.NavigationController
-import com.inwords.expenses.feature.events.domain.EventCreationStateHolder
 import com.inwords.expenses.feature.events.domain.GetCurrenciesUseCase
 import com.inwords.expenses.feature.events.domain.model.Currency
+import com.inwords.expenses.feature.events.ui.add_persons.AddPersonsPaneDestination
 import com.ionspin.kotlin.bignum.decimal.BigDecimal
 import io.mockk.every
 import io.mockk.justRun
@@ -54,10 +54,8 @@ internal class CreateEventViewModelTest {
 
     @Test
     fun initialState_hasEmptyEventNameAndCurrenciesFromUseCase() = testScope.runTest {
-        val stateHolder = EventCreationStateHolder()
         val viewModel = CreateEventViewModel(
             navigationController = navigationController,
-            eventCreationStateHolder = stateHolder,
             getCurrenciesUseCase = getCurrenciesUseCase,
             viewModelScope = backgroundScope,
         )
@@ -78,7 +76,6 @@ internal class CreateEventViewModelTest {
     fun onEventNameChanged_updatesState() = testScope.runTest {
         val viewModel = CreateEventViewModel(
             navigationController = navigationController,
-            eventCreationStateHolder = EventCreationStateHolder(),
             getCurrenciesUseCase = getCurrenciesUseCase,
             viewModelScope = backgroundScope,
         )
@@ -100,7 +97,6 @@ internal class CreateEventViewModelTest {
     fun onCurrencyClicked_updatesSelectedCurrency() = testScope.runTest {
         val viewModel = CreateEventViewModel(
             navigationController = navigationController,
-            eventCreationStateHolder = EventCreationStateHolder(),
             getCurrenciesUseCase = getCurrenciesUseCase,
             viewModelScope = backgroundScope,
         )
@@ -127,7 +123,6 @@ internal class CreateEventViewModelTest {
     fun onConfirmClicked_withBlankEventName_doesNotNavigate() = testScope.runTest {
         val viewModel = CreateEventViewModel(
             navigationController = navigationController,
-            eventCreationStateHolder = EventCreationStateHolder(),
             getCurrenciesUseCase = getCurrenciesUseCase,
             viewModelScope = backgroundScope,
         )
@@ -147,11 +142,9 @@ internal class CreateEventViewModelTest {
     }
 
     @Test
-    fun onConfirmClicked_withNonBlankEventName_navigatesToAddPersons() = testScope.runTest {
-        val stateHolder = EventCreationStateHolder()
+    fun onConfirmClicked_withNonBlankEventName_navigatesToAddPersonsWithPersistedDraft() = testScope.runTest {
         val viewModel = CreateEventViewModel(
             navigationController = navigationController,
-            eventCreationStateHolder = stateHolder,
             getCurrenciesUseCase = getCurrenciesUseCase,
             viewModelScope = backgroundScope,
         )
@@ -170,20 +163,45 @@ internal class CreateEventViewModelTest {
             advanceUntilIdle()
             cancelAndIgnoreRemainingEvents()
         }
-        verify(exactly = 1) { navigationController.navigateTo(any()) }
-        assertEquals("Trip", stateHolder.getDraftEventName())
-        assertEquals(1L, stateHolder.getDraftPrimaryCurrencyId())
+        verify(exactly = 1) {
+            navigationController.navigateTo(
+                AddPersonsPaneDestination(
+                    eventName = "Trip",
+                    primaryCurrencyId = 1L,
+                )
+            )
+        }
     }
 
     @Test
     fun onNavIconClicked_popsBackStack() = testScope.runTest {
         val viewModel = CreateEventViewModel(
             navigationController = navigationController,
-            eventCreationStateHolder = EventCreationStateHolder(),
             getCurrenciesUseCase = getCurrenciesUseCase,
             viewModelScope = backgroundScope,
         )
         viewModel.onNavIconClicked()
         verify(exactly = 1) { navigationController.popBackStack() }
+    }
+
+    @Test
+    fun initialState_withoutRub_selectsFirstAvailableCurrency() = testScope.runTest {
+        val noRubUseCase = mockk<GetCurrenciesUseCase> {
+            every { getCurrencies() } returns flowOf(listOf(currencyEur))
+        }
+        val viewModel = CreateEventViewModel(
+            navigationController = navigationController,
+            getCurrenciesUseCase = noRubUseCase,
+            viewModelScope = backgroundScope,
+        )
+        runCurrent()
+        advanceUntilIdle()
+
+        viewModel.state.test {
+            skipItems(1)
+            val initial = awaitItem()
+            assertTrue(initial.currencies.any { it.currencyCode == "EUR" && it.selected })
+            cancelAndIgnoreRemainingEvents()
+        }
     }
 }

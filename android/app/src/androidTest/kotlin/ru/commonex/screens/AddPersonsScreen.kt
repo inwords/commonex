@@ -13,6 +13,14 @@ import expenses.shared.feature.events.generated.resources.events_person_name_pla
 import org.jetbrains.compose.resources.getString
 
 internal class AddPersonsScreen : BaseScreen() {
+
+    context(rule: ComposeTestRule)
+    suspend fun waitUntilLoaded(): AddPersonsScreen {
+        val continueLabel = getString(Res.string.events_continue_button)
+        waitForElementWithText(continueLabel)
+        return this
+    }
+
     context(rule: ComposeTestRule)
     suspend fun enterOwnerName(name: String): AddPersonsScreen {
         val nameLabel = getString(Res.string.events_person_name_placeholder)

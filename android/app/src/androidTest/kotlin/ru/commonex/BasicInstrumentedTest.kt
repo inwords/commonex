@@ -17,6 +17,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.RuleChain
 import org.junit.runner.RunWith
+import ru.commonex.screens.AddPersonsScreen
 import ru.commonex.screens.ChoosePersonScreen
 import ru.commonex.screens.ExpensesScreen
 import ru.commonex.screens.LocalEventsScreen
@@ -463,6 +464,46 @@ class BasicInstrumentedTest {
     }
 
     /**
+     * Tests create-event state restoration as one coherent flow:
+     * - Open create event
+     * - Enter event name and choose a non-default primary currency
+     * - Continue to add participants
+     * - Recreate the activity while on the add-participants screen
+     * - Finish creating the event
+     * - Add an expense and verify it inherits the originally selected event currency
+     */
+    @Test
+    fun testCreateEventSurvivesActivityRecreationBetweenSteps() = composeRule.runTest {
+        val eventName = "Recreated Event"
+        val expenseDescription = "Restored currency expense"
+
+        LocalEventsScreen()
+            .clickCreateEvent()
+            .enterEventName(eventName)
+            .selectCurrency("Japanese Yen")
+            .clickContinueButton()
+            .waitUntilLoaded()
+
+        recreateActivity()
+
+        AddPersonsScreen()
+            .waitUntilLoaded()
+            .enterOwnerName("Test User 1")
+            .clickContinueButton()
+            .waitUntilLoadedEmpty()
+            .verifyCurrentPerson(eventName, "Test User 1")
+            .clickAddExpense()
+            .enterDescription(expenseDescription)
+            .enterAmount("10")
+            .clickConfirm()
+            .clickOnExpense(expenseDescription)
+            .waitUntilLoaded()
+            .verifyDescription(expenseDescription)
+            .verifyOriginalCurrency("JPY (Japanese Yen)")
+            .verifyExchangeRateHidden()
+    }
+
+    /**
      * Tests timeline day chips as one coherent flow:
      * - Create event
      * - Add operations across multiple calendar days so the day chips row overflows horizontally
@@ -652,6 +693,11 @@ class BasicInstrumentedTest {
         composeRule.activityRule.scenario.onActivity {
             it.onNewIntent(intent)
         }
+    }
+
+    private fun recreateActivity() {
+        composeRule.activityRule.scenario.recreate()
+        composeRule.waitForIdle()
     }
 
     private companion object {
