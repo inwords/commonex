@@ -11,20 +11,24 @@ import com.inwords.expenses.feature.events.api.EventsComponent
 import kotlinx.serialization.Serializable
 
 @Serializable
-object AddPersonsPaneDestination : Destination
+data class AddPersonsPaneDestination(
+    val eventName: String,
+    val primaryCurrencyId: Long,
+) : Destination
 
 internal fun EventsComponent.getAddPersonsPaneNavModule(
     navigationController: NavigationController,
     expensesPaneDestination: Destination,
 ): NavModule {
     return NavModule(AddPersonsPaneDestination.serializer()) {
-        entry<AddPersonsPaneDestination> {
+        entry<AddPersonsPaneDestination> { key ->
             val viewModel = viewModel<AddPersonsViewModel>(factory = viewModelFactory {
                 initializer {
                     AddPersonsViewModel(
                         navigationController = navigationController,
-                        eventCreationStateHolder = eventCreationStateHolder.value,
-                        createEventUseCase = createEventUseCaseLazy.value,
+                        createEventFromParametersUseCase = createEventFromParametersUseCaseLazy.value,
+                        eventName = key.eventName,
+                        primaryCurrencyId = key.primaryCurrencyId,
                         expensesScreenDestination = expensesPaneDestination
                     )
                 }

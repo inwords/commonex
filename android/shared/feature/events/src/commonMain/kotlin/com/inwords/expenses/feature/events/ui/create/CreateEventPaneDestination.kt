@@ -22,7 +22,6 @@ internal fun EventsComponent.getCreateEventPaneNavModule(
                 initializer {
                     CreateEventViewModel(
                         navigationController = navigationController,
-                        eventCreationStateHolder = eventCreationStateHolder.value,
                         getCurrenciesUseCase = getCurrenciesUseCaseLazy.value,
                     )
                 }

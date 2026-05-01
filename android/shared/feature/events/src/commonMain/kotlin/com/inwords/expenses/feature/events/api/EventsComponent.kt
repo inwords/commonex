@@ -14,10 +14,8 @@ import com.inwords.expenses.feature.events.data.network.store.CurrenciesRemoteSt
 import com.inwords.expenses.feature.events.data.network.store.EventsRemoteStoreImpl
 import com.inwords.expenses.feature.events.domain.AddParticipantsToCurrentEventUseCase
 import com.inwords.expenses.feature.events.domain.CreateEventFromParametersUseCase
-import com.inwords.expenses.feature.events.domain.CreateEventUseCase
 import com.inwords.expenses.feature.events.domain.CreateShareTokenUseCase
 import com.inwords.expenses.feature.events.domain.DeleteEventUseCase
-import com.inwords.expenses.feature.events.domain.EventCreationStateHolder
 import com.inwords.expenses.feature.events.domain.EventDeletionStateManagerImpl
 import com.inwords.expenses.feature.events.domain.EventsSyncStateHolder
 import com.inwords.expenses.feature.events.domain.GetCurrenciesUseCase
@@ -140,21 +138,10 @@ class EventsComponent internal constructor(
         )
     }
 
-    val eventCreationStateHolder: Lazy<EventCreationStateHolder> = lazy {
-        EventCreationStateHolder()
-    }
-
     val getCurrentEventStateUseCaseLazy: Lazy<GetCurrentEventStateUseCase> = lazy {
         GetCurrentEventStateUseCase(
             eventsLocalStoreLazy = eventsLocalStore,
             settingsRepositoryLazy = deps.settingsRepositoryLazy,
-        )
-    }
-
-    val createEventUseCaseLazy: Lazy<CreateEventUseCase> = lazy {
-        CreateEventUseCase(
-            createEventFromParametersUseCaseLazy = createEventFromParametersUseCaseLazy,
-            eventCreationStateHolderLazy = eventCreationStateHolder,
         )
     }
 

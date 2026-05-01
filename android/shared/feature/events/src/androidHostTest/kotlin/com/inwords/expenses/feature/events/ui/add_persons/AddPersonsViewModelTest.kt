@@ -3,8 +3,7 @@ package com.inwords.expenses.feature.events.ui.add_persons
 import app.cash.turbine.test
 import com.inwords.expenses.core.navigation.Destination
 import com.inwords.expenses.core.navigation.NavigationController
-import com.inwords.expenses.feature.events.domain.CreateEventUseCase
-import com.inwords.expenses.feature.events.domain.EventCreationStateHolder
+import com.inwords.expenses.feature.events.domain.CreateEventFromParametersUseCase
 import com.inwords.expenses.feature.events.domain.model.Currency
 import com.inwords.expenses.feature.events.domain.model.Event
 import com.inwords.expenses.feature.events.domain.model.EventDetails
@@ -33,8 +32,7 @@ internal class AddPersonsViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
     private val navigationController = mockk<NavigationController>(relaxed = true)
-    private val eventCreationStateHolder = EventCreationStateHolder()
-    private val createEventUseCase = mockk<CreateEventUseCase>(relaxed = true)
+    private val createEventFromParametersUseCase = mockk<CreateEventFromParametersUseCase>(relaxed = true)
     private val expensesScreenDestination = mockk<Destination>(relaxed = true)
 
     private val eventDetails = EventDetails(
@@ -59,12 +57,13 @@ internal class AddPersonsViewModelTest {
 
     @Test
     fun initialState_hasEmptyOwnerNameAndEmptyPersons() = runTest {
-        coEvery { createEventUseCase.createEvent() } returns eventDetails
+        coEvery { createEventFromParametersUseCase.createEvent(any(), any(), any(), any()) } returns eventDetails
 
         val viewModel = AddPersonsViewModel(
             navigationController = navigationController,
-            eventCreationStateHolder = eventCreationStateHolder,
-            createEventUseCase = createEventUseCase,
+            createEventFromParametersUseCase = createEventFromParametersUseCase,
+            eventName = "Trip",
+            primaryCurrencyId = 1L,
             expensesScreenDestination = expensesScreenDestination,
             viewModelScope = backgroundScope,
         )
@@ -83,8 +82,9 @@ internal class AddPersonsViewModelTest {
     fun onOwnerNameChanged_updatesState() = runTest {
         val viewModel = AddPersonsViewModel(
             navigationController = navigationController,
-            eventCreationStateHolder = eventCreationStateHolder,
-            createEventUseCase = createEventUseCase,
+            createEventFromParametersUseCase = createEventFromParametersUseCase,
+            eventName = "Trip",
+            primaryCurrencyId = 1L,
             expensesScreenDestination = expensesScreenDestination,
             viewModelScope = backgroundScope,
         )
@@ -103,8 +103,9 @@ internal class AddPersonsViewModelTest {
     fun onAddParticipantClicked_addsEmptyParticipantRow() = runTest {
         val viewModel = AddPersonsViewModel(
             navigationController = navigationController,
-            eventCreationStateHolder = eventCreationStateHolder,
-            createEventUseCase = createEventUseCase,
+            createEventFromParametersUseCase = createEventFromParametersUseCase,
+            eventName = "Trip",
+            primaryCurrencyId = 1L,
             expensesScreenDestination = expensesScreenDestination,
             viewModelScope = backgroundScope,
         )
@@ -122,12 +123,13 @@ internal class AddPersonsViewModelTest {
     }
 
     @Test
-    fun onConfirmClicked_updatesStateHolderCallsCreateEventAndPops() = runTest {
-        coEvery { createEventUseCase.createEvent() } returns eventDetails
+    fun onConfirmClicked_callsCreateEventWithPersistedDraftAndPops() = runTest {
+        coEvery { createEventFromParametersUseCase.createEvent(any(), any(), any(), any()) } returns eventDetails
         val viewModel = AddPersonsViewModel(
             navigationController = navigationController,
-            eventCreationStateHolder = eventCreationStateHolder,
-            createEventUseCase = createEventUseCase,
+            createEventFromParametersUseCase = createEventFromParametersUseCase,
+            eventName = "Trip",
+            primaryCurrencyId = 1L,
             expensesScreenDestination = expensesScreenDestination,
             viewModelScope = backgroundScope,
         )
@@ -139,9 +141,14 @@ internal class AddPersonsViewModelTest {
         runCurrent()
         advanceUntilIdle()
 
-        assertEquals("Alice", eventCreationStateHolder.getDraftOwner())
-        assertEquals(listOf("Bob"), eventCreationStateHolder.getDraftOtherPersons())
-        coVerify(exactly = 1) { createEventUseCase.createEvent() }
+        coVerify(exactly = 1) {
+            createEventFromParametersUseCase.createEvent(
+                name = "Trip",
+                owner = "Alice",
+                primaryCurrencyId = 1L,
+                otherPersons = listOf("Bob"),
+            )
+        }
         verify(exactly = 1) {
             navigationController.popBackStack(
                 toDestination = expensesScreenDestination,
@@ -154,8 +161,9 @@ internal class AddPersonsViewModelTest {
     fun onNavIconClicked_popsBackStack() = runTest {
         val viewModel = AddPersonsViewModel(
             navigationController = navigationController,
-            eventCreationStateHolder = eventCreationStateHolder,
-            createEventUseCase = createEventUseCase,
+            createEventFromParametersUseCase = createEventFromParametersUseCase,
+            eventName = "Trip",
+            primaryCurrencyId = 1L,
             expensesScreenDestination = expensesScreenDestination,
             viewModelScope = backgroundScope,
         )
