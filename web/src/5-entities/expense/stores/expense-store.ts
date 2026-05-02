@@ -5,7 +5,7 @@ import {userStore} from '@/5-entities/user/stores/user-store';
 export class ExpenseStore {
   expenses: Array<Expense> = [];
   expenseRefunds: Array<ExpenseRefund> = [];
-  splitOption: '1' | '2' = '1';
+  splitOption: '1' | '2' | '3' = '1';
   currentTab: Tabs = 0;
   isExpenseRefundModalOpen: boolean = false;
   currentExpenseRefund: Partial<CreateExpenseRefundForm> = {};
@@ -122,7 +122,7 @@ export class ExpenseStore {
     this.expenseRefunds = expenseRefunds;
   }
 
-  setSplitOption(splitOption: '1' | '2') {
+  setSplitOption(splitOption: '1' | '2' | '3') {
     this.splitOption = splitOption;
   }
 

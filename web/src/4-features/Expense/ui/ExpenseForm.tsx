@@ -5,6 +5,7 @@ import {ExpenseAmountInput} from '@/4-features/AddExpense/ui/ExpenseAmountInput'
 import {SelectExpenseOwner} from '@/4-features/AddExpense/ui/SelectExpenseOwner';
 import React, {useEffect} from 'react';
 import {SplitOptions} from '@/4-features/AddExpense/ui/SplitOption';
+import {SplitByPercentageFields} from '@/4-features/AddExpense/ui/SplitByPercentageFields';
 import {useParams} from 'react-router';
 import {observer} from 'mobx-react-lite';
 import {userStore} from '@/5-entities/user/stores/user-store';
@@ -40,8 +41,15 @@ const normalizeExpenseFormValues = ({splitInformation, ...rest}: ExpenseFormValu
     return acc;
   }, []);
 
-  if (rest.splitOption === '2' && normalizedSplitInformation.length !== splitInformation.length) {
+  if ((rest.splitOption === '2' || rest.splitOption === '3') && normalizedSplitInformation.length !== splitInformation.length) {
     return null;
+  }
+
+  if (rest.splitOption === '3') {
+    const totalPercentage = normalizedSplitInformation.reduce((sum, s) => sum + s.amount, 0);
+    if (totalPercentage !== 100) {
+      return null;
+    }
   }
 
   return {
@@ -104,7 +112,7 @@ const ExpenseFormContent = observer(({readOnly = false}: Omit<Props, 'expenseDat
 
           <SplitOptions disabled={readOnly} />
 
-          {!isSplitEqually && (
+          {expenseStore.splitOption === '2' && (
             <>
               {fields.map((field, index) => (
                 <React.Fragment key={field.id}>
@@ -118,6 +126,10 @@ const ExpenseFormContent = observer(({readOnly = false}: Omit<Props, 'expenseDat
                 Добавить персону
               </Button>
             </>
+          )}
+
+          {expenseStore.splitOption === '3' && (
+            <SplitByPercentageFields fields={fields} append={append} remove={remove} disabled={readOnly} />
           )}
         </Stack>
       </fieldset>
