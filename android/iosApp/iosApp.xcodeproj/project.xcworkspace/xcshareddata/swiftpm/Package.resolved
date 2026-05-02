@@ -1,22 +1,22 @@
 {
-  "originHash" : "cc865521b5b25520b71c68844a3360e92df6ca485e96acce9a7b932f797fa05f",
+  "originHash" : "9cef8f3a46825d84dcca73fb3c69de5cfa58b733d631bdad317082db0e569554",
   "pins" : [
-    {
-      "identity" : "plcrashreporter",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/microsoft/plcrashreporter.git",
-      "state" : {
-        "revision" : "0254f941c646b1ed17b243654723d0f071e990d0",
-        "version" : "1.12.2"
-      }
-    },
     {
       "identity" : "appmetrica-sdk-ios",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/appmetrica/appmetrica-sdk-ios",
       "state" : {
-        "revision" : "08d452379e23870d3c1dcd461c463b4f28301dfa",
+        "revision" : "8d55b06f3fa81434a91a85b8561f4531462b1f80",
         "version" : "6.2.0"
+      }
+    },
+    {
+      "identity" : "kscrash",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/kstenerud/KSCrash",
+      "state" : {
+        "revision" : "95a8895d75f3c22aa9ad9f2a15d2fbd97b0a55e2",
+        "version" : "2.5.1"
       }
     },
     {
