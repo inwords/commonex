@@ -79,20 +79,22 @@ fun MainNavHost(
         navDeepLinks = remember { modules.flatMapTo(HashSet()) { it.deepLinks } }
     )
 
-    val strategy = remember {
-        BottomSheetSceneStrategy<Destination>() then
-            DialogSceneStrategy() then
+    val sceneStrategies = remember {
+        listOf(
+            BottomSheetSceneStrategy<Destination>(),
+            DialogSceneStrategy(),
             SinglePaneSceneStrategy()
+        )
     }
     NavDisplay(
         modifier = modifier,
+        backStack = backStack,
         entryDecorators = listOf(
             rememberSaveableStateHolderNavEntryDecorator(),
             rememberViewModelStoreNavEntryDecorator()
         ),
-        backStack = backStack,
         onBack = backStack::removeLastOrNull,
-        sceneStrategy = strategy,
+        sceneStrategies = sceneStrategies,
         entryProvider = remember(modules) {
             entryProvider {
                 modules.forEach { it.entrySupplier(this) }
