@@ -119,6 +119,12 @@ const ExpenseFormContent = observer(({readOnly = false}: Omit<Props, 'expenseDat
                   <TextFieldElement name={`splitInformation.${index}.amount`} label={'Сумма к возврату'} required disabled={readOnly} type="number" />
 
                   <SelectUser label="Кто должен" name={`splitInformation.${index}.userId`} disabled={readOnly} required />
+
+                  {fields.length > 1 && (
+                    <Button onClick={() => remove(index)} variant="text" color="error" size="small" disabled={readOnly}>
+                      Убрать
+                    </Button>
+                  )}
                 </React.Fragment>
               ))}
 
