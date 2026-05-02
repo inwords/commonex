@@ -12,6 +12,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.inwords.expenses.core.ui.design.theme.CommonExTheme
 import com.inwords.expenses.core.ui.utils.openUriSafe
+import com.inwords.expenses.core.ui.utils.privacyPolicyUrl
+import com.inwords.expenses.core.ui.utils.termsOfUseUrl
 import expenses.shared.core.ui_design.generated.resources.Res
 import expenses.shared.core.ui_design.generated.resources.privacy_policy
 import expenses.shared.core.ui_design.generated.resources.terms_of_use
@@ -31,7 +33,7 @@ fun LegalBlock(
         val uriHandler = LocalUriHandler.current
         Text(
             modifier = Modifier.clickable {
-                uriHandler.openUriSafe("https://commonex.ru/privacy.html")
+                uriHandler.openUriSafe(privacyPolicyUrl())
                 onPrivacyPolicyClicked()
             },
             text = stringResource(Res.string.privacy_policy),
@@ -46,7 +48,7 @@ fun LegalBlock(
 
         Text(
             modifier = Modifier.clickable {
-                uriHandler.openUriSafe("https://commonex.ru/terms.html")
+                uriHandler.openUriSafe(termsOfUseUrl())
                 onTermsOfUseClicked()
             },
             text = stringResource(Res.string.terms_of_use),
