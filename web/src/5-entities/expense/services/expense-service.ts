@@ -42,6 +42,12 @@ export class ExpenseService {
           amount: amountPerPerson,
           exchangedAmount: Number((amountPerPerson * exchangeRate).toFixed(2)),
         }));
+      } else if (expenseStore.splitOption === '3') {
+        splitInformation = this.splitByPercentages(Number(amount), data.splitInformation).map((i) => ({
+          userId: i.userId,
+          amount: i.amount,
+          exchangedAmount: Number((i.amount * exchangeRate).toFixed(2)),
+        }));
       } else {
         splitInformation = data.splitInformation.map((i) => ({
           userId: i.userId,
@@ -55,6 +61,8 @@ export class ExpenseService {
           userId: u.id,
           amount: Number((Number(data.amount) / userStore.users.length).toFixed(2)),
         }));
+      } else if (expenseStore.splitOption === '3') {
+        splitInformation = this.splitByPercentages(Number(amount), data.splitInformation);
       } else {
         splitInformation = data.splitInformation.map((i) => ({
           userId: i.userId,
@@ -135,12 +143,31 @@ export class ExpenseService {
     }
   }
 
-  setSplitOption(splitOption: '1' | '2') {
+  setSplitOption(splitOption: '1' | '2' | '3') {
     expenseStore.setSplitOption(splitOption);
   }
 
   setCurrentTab(currentTab: Tabs) {
     expenseStore.setCurrentTab(currentTab);
+  }
+
+  private splitByPercentages(
+    total: number,
+    entries: Array<{userId: string; amount: number}>,
+  ): Array<{userId: string; amount: number}> {
+    const totalCents = Math.round(total * 100);
+    const rawCents = entries.map((e) => (totalCents * e.amount) / 100);
+    const flooredCents = rawCents.map(Math.floor);
+    const remainders = rawCents.map((r, i) => r - flooredCents[i]);
+    const shortfall = totalCents - flooredCents.reduce((s, c) => s + c, 0);
+    const indices = entries.map((_, i) => i).sort((a, b) => remainders[b] - remainders[a]);
+    const amounts = [...flooredCents];
+
+    for (let i = 0; i < shortfall; i++) {
+      amounts[indices[i]] += 1;
+    }
+
+    return entries.map((e, i) => ({userId: e.userId, amount: amounts[i] / 100}));
   }
 }
 

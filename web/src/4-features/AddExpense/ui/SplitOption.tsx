@@ -12,7 +12,7 @@ export const SplitOptions = ({disabled}: Props) => {
       name="splitOption"
       row
       onChange={(v) => {
-        expenseService.setSplitOption(v as '1' | '2');
+        expenseService.setSplitOption(v as '1' | '2' | '3');
       }}
       options={[
         {
@@ -22,6 +22,10 @@ export const SplitOptions = ({disabled}: Props) => {
         {
           id: '2',
           label: 'Внести вручную',
+        },
+        {
+          id: '3',
+          label: 'По процентам',
         },
       ]}
       disabled={disabled}
