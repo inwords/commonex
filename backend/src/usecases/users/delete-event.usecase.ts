@@ -5,13 +5,11 @@ import {EventServiceAbstract} from '#domain/abstracts/event-service/event-servic
 import {IEvent} from '#domain/entities/event.entity';
 import {isError, Result, success} from '#packages/result';
 import {EventDeletedError, EventNotFoundError, InvalidPinCodeError} from '#domain/errors';
-import {IdempotencySharedUseCase} from '#usecases/shared/idempotency.usecase';
 
-type InputCore = {
+type Input = {
   eventId: IEvent['id'];
   pinCode: string;
 };
-type Input = InputCore & {idempotencyKey?: string; url: string};
 
 type Output = Result<
   {
@@ -26,15 +24,9 @@ export class DeleteEventUseCase implements UseCase<Input, Output> {
   constructor(
     private readonly rDataService: RelationalDataServiceAbstract,
     private readonly eventService: EventServiceAbstract,
-    private readonly idempotencyUseCase: IdempotencySharedUseCase,
   ) {}
 
-  public async execute(input: Input): Promise<Output> {
-    const {idempotencyKey, url, ...core} = input;
-    return this.idempotencyUseCase.execute(idempotencyKey, url, core, () => this.executeCore(core));
-  }
-
-  private async executeCore({eventId, pinCode}: InputCore): Promise<Output> {
+  public async execute({eventId, pinCode}: Input): Promise<Output> {
     return this.rDataService.transaction(async (ctx) => {
       const [event] = await this.rDataService.event.findById(eventId, {
         ctx,

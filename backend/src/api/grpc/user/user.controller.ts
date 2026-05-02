@@ -93,9 +93,9 @@ export class UserController {
   }
 
   @GrpcMethod('UserService', 'DeleteEvent')
-  async deleteEvent(@Body() body: DeleteEventParamsDto & DeleteEventRequestDto, metadata: Metadata): Promise<DeleteEventResponseDto> {
+  async deleteEvent(@Body() body: DeleteEventParamsDto & DeleteEventRequestDto): Promise<DeleteEventResponseDto> {
     const {eventId, pinCode} = body;
-    const result = await this.deleteEventUseCase.execute({eventId, pinCode, idempotencyKey: getIdempotencyKey(metadata), url: 'grpc:DeleteEvent'});
+    const result = await this.deleteEventUseCase.execute({eventId, pinCode});
 
     if (isError(result)) {
       throw result.error;

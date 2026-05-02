@@ -74,10 +74,8 @@ export class UserController {
   async deleteEvent(
     @Param() {eventId}: DeleteEventParamsDto,
     @Body() body: DeleteEventRequestDto,
-    @Headers('idempotency-key') idempotencyKey: string | undefined,
-    @Req() request: FastifyRequest,
   ): Promise<DeleteEventResponseDto> {
-    const result = await this.deleteEventUseCase.execute({eventId, pinCode: body.pinCode, idempotencyKey, url: request.url});
+    const result = await this.deleteEventUseCase.execute({eventId, pinCode: body.pinCode});
 
     if (isError(result)) {
       throw result.error;
