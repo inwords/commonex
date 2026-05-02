@@ -5,7 +5,7 @@
 GitHub: [Gradle Versions Plugin](https://github.com/ben-manes/gradle-versions-plugin)
 
 To check for dependency updates run:
-`./gradlew --quiet dependencyUpdates --refresh-dependencies -Drevision=release`
+`./gradlew --quiet dependencyUpdates --refresh-dependencies -Drevision=release --no-parallel`
 
 Report location:
 `./build/dependencyUpdates/report.txt`
