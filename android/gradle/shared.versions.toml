@@ -84,7 +84,7 @@ compose-ui-tooling-preview-multiplatform = { group = "org.jetbrains.compose.ui",
 compose-material3-multiplatform = { group = "org.jetbrains.compose.material3", name = "material3", version = "1.10.0-alpha05" } # https://mvnrepository.com/artifact/org.jetbrains.compose.material3/material3
 compose-components-resources-multiplatform = { group = "org.jetbrains.compose.components", name = "components-resources", version.ref = "compose-multiplatform" }
 activity-compose = { group = "androidx.activity", name = "activity-compose", version = "1.13.0" } # https://developer.android.com/jetpack/androidx/releases/activity
-navigation3-ui-multiplatform = { group = "org.jetbrains.androidx.navigation3", name = "navigation3-ui", version = "1.0.0-alpha06" } # https://mvnrepository.com/artifact/org.jetbrains.androidx.navigation3/navigation3-ui
+navigation3-ui-multiplatform = { group = "org.jetbrains.androidx.navigation3", name = "navigation3-ui", version = "1.1.0" } # https://mvnrepository.com/artifact/org.jetbrains.androidx.navigation3/navigation3-ui
 compose-material-icons-core = { group = "org.jetbrains.compose.material", name = "material-icons-core", version = "1.7.3" }
 
 ionspin-kotlin-bignum = { group = "com.ionspin.kotlin", name = "bignum", version = "0.3.10" }
