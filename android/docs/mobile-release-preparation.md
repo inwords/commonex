@@ -75,4 +75,5 @@ Pushing a release tag fans out into independent workflows:
 - The mobile release workflows intentionally do not modify `.github/workflows/android.yml`.
 - Duplicate protection runs before any release branch push and before any release tag creation.
 - The prepare flow depends on the Android SDK, baseline profile generation prerequisites, and GitHub CLI availability on the runner.
-- The prepare and tag workflows require the GitHub App credentials `RELEASE_BOT_APP_CLIENT_ID` and `RELEASE_BOT_APP_PRIVATE_KEY`.
+- The prepare and tag workflows require the GitHub App credentials `RELEASE_BOT_APP_CLIENT_ID` and `RELEASE_BOT_APP_PRIVATE_KEY` as repository or organization secrets.
+- `RELEASE_BOT_APP_CLIENT_ID` must be the GitHub App Client ID string from the app settings page, not the numeric App ID.
