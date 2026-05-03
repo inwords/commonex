@@ -2,6 +2,7 @@ import {SelectUserList} from '@/3-widgets/SelectUserList/SelectUserList';
 import {EventTabs} from '@/3-widgets/EventTabs/EventTabs';
 import {EventHeader} from '@/3-widgets/EventHeader';
 import {OnboardingTour} from '@/3-widgets/OnboardingTour';
+import {Box} from '@mui/material';
 import {useEffect} from 'react';
 import {Navigate, useLocation, useParams} from 'react-router';
 import {expenseService} from '@/5-entities/expense/services/expense-service';
@@ -64,7 +65,7 @@ export const EventPage = observer(() => {
   }
 
   return (
-    <>
+    <Box sx={{pt: 7}}>
       <EventHeader />
 
       <SelectUserList />
@@ -75,6 +76,6 @@ export const EventPage = observer(() => {
           <OnboardingTour steps={onboardingSteps} />
         </>
       )}
-    </>
+    </Box>
   );
 });
