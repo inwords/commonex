@@ -4,15 +4,17 @@ import {expenseStore} from '@/5-entities/expense/stores/expense-store';
 import {userStore} from '@/5-entities/user/stores/user-store';
 import {currencyStore} from '@/5-entities/currency/stores/currency-store';
 import {eventStore} from '@/5-entities/event/stores/event-store';
+import {useContent} from '@/6-shared/i18n/useContent';
 
 export const DebtsList = observer(() => {
+  const content = useContent();
   const debts = Object.entries(expenseStore.currentUserDebts);
 
   if (debts.length === 0) {
     return (
       <Box display="flex" justifyContent={'center'} padding={'20px'}>
         <Typography variant="body1" color="text.secondary">
-          У вас нет задолженностей
+          {content.DebtsList.noDebts}
         </Typography>
       </Box>
     );
@@ -24,7 +26,9 @@ export const DebtsList = observer(() => {
         {debts.map(([userId, debtAmount]) => {
           const creditorUser = userStore.users.find((u) => u.id === userId);
 
-          if (!creditorUser) return null;
+          if (!creditorUser) {
+            return null;
+          }
 
           return (
             <Card key={userId}>
@@ -35,7 +39,7 @@ export const DebtsList = observer(() => {
                   <Box flex={1}>
                     <Typography variant="h6">{creditorUser.name}</Typography>
                     <Typography variant="body2" color="text.secondary">
-                      Ваша задолженность
+                      {content.DebtsList.yourDebt}
                     </Typography>
                   </Box>
 
@@ -50,7 +54,7 @@ export const DebtsList = observer(() => {
                   variant="contained"
                   onClick={() => {
                     expenseStore.setCurrentExpenseRefund({
-                      description: `Возврат долга для ${creditorUser.name}`,
+                      description: `${content.AddExpenseRefund.refundDebtPrefix} ${creditorUser.name}`,
                       amount: Number(debtAmount.toFixed(2)),
                       userWhoPaidId: userStore.currentUser?.id,
                       currencyId: eventStore.currentEvent?.currencyId,
@@ -59,7 +63,7 @@ export const DebtsList = observer(() => {
                     expenseStore.setIsExpenseRefundModalOpen(true);
                   }}
                 >
-                  Вернуть
+                  {content.DebtsList.refund}
                 </Button>
               </CardActions>
             </Card>

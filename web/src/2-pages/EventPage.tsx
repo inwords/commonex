@@ -11,8 +11,9 @@ import {ROUTES} from '@/6-shared/routing/constants';
 import {useSearchParams} from 'react-router-dom';
 import {eventService} from '@/5-entities/event/services/event-service';
 import {currencyService} from '@/5-entities/currency/services/currency-service';
-import {EVENT_PAGE_ONBOARDING_STEPS} from '@/6-shared/constants/onboarding-steps';
+import {EVENT_PAGE_ONBOARDING_STEP_KEYS} from '@/6-shared/constants/onboarding-steps';
 import {eventStore} from '@/5-entities/event/stores/event-store';
+import {useContent} from '@/6-shared/i18n/useContent';
 
 export const EventPage = observer(() => {
   const {id} = useParams();
@@ -21,6 +22,12 @@ export const EventPage = observer(() => {
   const token = searchParams.get('token');
   const navigatedFromMainForm = location.state === 'navigateFromMainForm';
   const canOpenPage = id && (token || navigatedFromMainForm);
+  const content = useContent();
+
+  const onboardingSteps = content.Onboarding.event.map((item, i) => ({
+    ...item,
+    step: EVENT_PAGE_ONBOARDING_STEP_KEYS[i],
+  }));
 
   useEffect(() => {
     if (!canOpenPage || !id) {
@@ -42,7 +49,7 @@ export const EventPage = observer(() => {
         if (eventStore.currentEvent?.pinCode) {
           void expenseService.fetchExpenses(id, eventStore.currentEvent.pinCode);
         }
-      }
+      };
 
       void fn();
     } else {
@@ -65,7 +72,7 @@ export const EventPage = observer(() => {
       {userStore.currentUser && (
         <>
           <EventTabs />
-          <OnboardingTour steps={EVENT_PAGE_ONBOARDING_STEPS} />
+          <OnboardingTour steps={onboardingSteps} />
         </>
       )}
     </>

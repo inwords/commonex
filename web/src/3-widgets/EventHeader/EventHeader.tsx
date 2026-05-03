@@ -9,10 +9,12 @@ import {CurrentUserBadge} from '@/6-shared/ui/CurrentUserBadge';
 import {PinCodeDisplay} from '@/6-shared/ui/PinCodeDisplay';
 import {expenseStore} from '@/5-entities/expense/stores/expense-store';
 import {currencyStore} from '@/5-entities/currency/stores/currency-store';
+import {useContent} from '@/6-shared/i18n/useContent';
 import copy from 'copy-to-clipboard';
 
 export const EventHeader = observer(() => {
   const [shouldHidePinCode, setShouldHidePinCode] = useState(true);
+  const content = useContent();
 
   if (!userStore.currentUser || !eventStore.currentEvent) {
     return null;
@@ -24,7 +26,9 @@ export const EventHeader = observer(() => {
 
   const handleShareLink = async () => {
     try {
-      if (!eventStore.currentEvent) return;
+      if (!eventStore.currentEvent) {
+        return;
+      }
 
       const {token} = await eventService.createEventShareToken(
         eventStore.currentEvent.id,
@@ -36,10 +40,7 @@ export const EventHeader = observer(() => {
 
       copy(shareUrl);
 
-      notificationStore.setNotification(
-        'Ссылка скопирована! Не делитесь ссылкой с посторонними людьми. Ссылка будет активна 14 дней.',
-        'success',
-      );
+      notificationStore.setNotification(content.EventHeader.linkCopied, 'success');
     } catch (error) {
       console.error('Failed to create share token:', error);
     }
@@ -61,16 +62,16 @@ export const EventHeader = observer(() => {
 
       <Box marginBottom={'16px'}>
         <Typography variant="h6" align="center" color="text.secondary">
-          Всего потрачено: {expenseStore.totalExpensesAmount.toFixed(2)} {currencyStore.getCurrencyCode(eventStore.currentEvent.currencyId)}
+          {content.EventHeader.totalSpent} {expenseStore.totalExpensesAmount.toFixed(2)} {currencyStore.getCurrencyCode(eventStore.currentEvent.currencyId)}
         </Typography>
         <Typography variant="body1" align="center" color="text.secondary">
-          Вы потратили: {expenseStore.currentUserSpentAmount.toFixed(2)} {currencyStore.getCurrencyCode(eventStore.currentEvent.currencyId)}
+          {content.EventHeader.youSpent} {expenseStore.currentUserSpentAmount.toFixed(2)} {currencyStore.getCurrencyCode(eventStore.currentEvent.currencyId)}
         </Typography>
       </Box>
 
       <Stack direction={'row'} justifyContent={'center'} marginBottom={'16px'}>
         <Button variant="outlined" onClick={handleShareLink}>
-          Скопировать ссылку на поездку
+          {content.EventHeader.copyLink}
         </Button>
       </Stack>
     </>

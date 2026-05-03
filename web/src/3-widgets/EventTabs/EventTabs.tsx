@@ -9,9 +9,11 @@ import {useState} from 'react';
 import {AddExpenseRefundModal} from '@/3-widgets/AddExpenseRefundModal/AddExpenseRefundModal';
 import {ExpenseRefundsList} from '@/3-widgets/ExpenseRefundsList/ExpenseRefundsList';
 import {DebtsList} from '@/3-widgets/DebtsList';
+import {useContent} from '@/6-shared/i18n/useContent';
 
 export const EventTabs = observer(() => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const content = useContent();
 
   return (
     <>
@@ -24,13 +26,13 @@ export const EventTabs = observer(() => {
           variant="scrollable"
           scrollButtons="auto"
         >
-          <Tab label="Мои траты" value={0} />
+          <Tab label={content.EventTabs.myExpenses} value={0} />
 
-          <Tab label="Общие траты" value={1} />
+          <Tab label={content.EventTabs.allExpenses} value={1} />
 
-          <Tab label="Мои задолжности" value={2} />
+          <Tab label={content.EventTabs.myDebts} value={2} />
 
-          <Tab label="Мои поступления" value={3} />
+          <Tab label={content.EventTabs.myIncome} value={3} />
         </Tabs>
       </Box>
 

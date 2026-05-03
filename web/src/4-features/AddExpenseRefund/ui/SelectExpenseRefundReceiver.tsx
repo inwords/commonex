@@ -1,5 +1,7 @@
 import {SelectUser} from '@/5-entities/user/ui/SelectUser';
+import {useContent} from '@/6-shared/i18n/useContent';
 
 export const SelectExpenseRefundReceiver = () => {
-  return <SelectUser label="Кто получает" name="userWhoReceiveId" />;
+  const content = useContent();
+  return <SelectUser label={content.AddExpenseRefund.receiverLabel} name="userWhoReceiveId" />;
 };

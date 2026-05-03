@@ -1,6 +1,6 @@
-import content from './content';
-import {AllContent, ContentLanguages} from '@/6-shared/types';
+import {languageStore} from './languageStore';
+import type {Locale} from './locales/ru';
 
-export const useContent = (): AllContent[ContentLanguages] => {
-  return content['ru'];
+export const useContent = (): Locale => {
+  return languageStore.content;
 };

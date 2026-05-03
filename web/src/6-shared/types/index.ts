@@ -1,4 +1,7 @@
-import content from '../i18n/content';
+import type {Locale, Language} from '../i18n/locales/ru';
 
-export type AllContent = typeof content;
-export type ContentLanguages = keyof AllContent;
+export type {Locale, Language};
+
+// legacy aliases, kept for backwards compat
+export type AllContent = {ru: Locale; en: Locale};
+export type ContentLanguages = Language;

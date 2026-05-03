@@ -1,4 +1,5 @@
 import {Stack, Typography} from '@mui/material';
+import {useContent} from '@/6-shared/i18n/useContent';
 
 interface Props {
   pinCode: string;
@@ -7,6 +8,8 @@ interface Props {
 }
 
 export const PinCodeDisplay = ({pinCode, hidden, onToggle}: Props) => {
+  const content = useContent();
+
   return (
     <Stack
       justifyContent={'center'}
@@ -22,7 +25,7 @@ export const PinCodeDisplay = ({pinCode, hidden, onToggle}: Props) => {
         variant="subtitle1"
         marginBottom={'20px'}
       >
-        Пин-код поездки:
+        {content.PinCode.label}
       </Typography>
 
       <Typography

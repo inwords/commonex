@@ -12,9 +12,11 @@ import {eventService} from '@/5-entities/event/services/event-service';
 import {eventStore} from '@/5-entities/event/stores/event-store';
 import type {CreateEvent} from '@/5-entities/event/types/types';
 import {observer} from 'mobx-react-lite';
+import {useContent} from '@/6-shared/i18n/useContent';
 
 export const CreateEventForm = observer(() => {
   const navigate = useNavigate();
+  const content = useContent();
 
   return (
     <FormContainer<CreateEvent>
@@ -36,7 +38,7 @@ export const CreateEventForm = observer(() => {
 
       <Stack justifyContent="end" marginTop={'16px'}>
         <Button type={'submit'} variant="contained" loading={eventStore.isCreatingEvent}>
-          Создать поездку
+          {content.CreateEvent.form.submit}
         </Button>
       </Stack>
     </FormContainer>

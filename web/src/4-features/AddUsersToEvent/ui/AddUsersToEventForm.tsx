@@ -5,6 +5,7 @@ import {Button, Stack} from '@mui/material';
 import {UserDraft} from '@/5-entities/user/types/types';
 import {observer} from 'mobx-react-lite';
 import {userStore} from '@/5-entities/user/stores/user-store';
+import {useContent} from '@/6-shared/i18n/useContent';
 
 type AddUsersToEventFormValues = {
   users: Array<UserDraft>;
@@ -15,6 +16,8 @@ interface Props {
 }
 
 export const AddUsersToEventForm = observer(({onSuccess}: Props) => {
+  const content = useContent();
+
   return (
     <FormContainer<AddUsersToEventFormValues>
       onSuccess={(data) => {
@@ -25,7 +28,7 @@ export const AddUsersToEventForm = observer(({onSuccess}: Props) => {
         <EventUsers />
 
         <Button type={'submit'} variant="contained" loading={userStore.isAddingUsers}>
-          Отправить
+          {content.AddUsers.submit}
         </Button>
       </Stack>
     </FormContainer>

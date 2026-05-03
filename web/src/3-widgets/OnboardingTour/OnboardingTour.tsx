@@ -12,6 +12,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import MinimizeIcon from '@mui/icons-material/Minimize';
 import {useState} from 'react';
 import {onboardingService, OnboardingStep} from '@/6-shared/services/onboarding-service';
+import {useContent} from '@/6-shared/i18n/useContent';
 
 interface Step {
   title: string;
@@ -27,6 +28,7 @@ export const OnboardingTour = ({steps}: Props) => {
   const [isDismissed, setIsDismissed] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
+  const content = useContent();
 
   const stepKeys = steps.map((s) => s.step);
   const completedSteps = onboardingService.getCompletedSteps();
@@ -112,7 +114,7 @@ export const OnboardingTour = ({steps}: Props) => {
           <Box marginBottom={2}>
             <LinearProgress variant="determinate" value={progress} />
             <Typography variant="caption" color="text.secondary" marginTop={0.5}>
-              Шаг {currentStepIndex + 1} из {steps.length}
+              {content.Onboarding.step} {currentStepIndex + 1} {content.Onboarding.of} {steps.length}
             </Typography>
           </Box>
 
@@ -123,12 +125,12 @@ export const OnboardingTour = ({steps}: Props) => {
           <Stack direction="row" spacing={1} justifyContent="flex-end">
             {currentStepIndex > 0 && (
               <Button size="small" onClick={handleBack}>
-                Назад
+                {content.Onboarding.back}
               </Button>
             )}
 
             <Button size="small" variant="contained" onClick={handleNext}>
-              {currentStepIndex < steps.length - 1 ? 'Далее' : 'Понятно'}
+              {currentStepIndex < steps.length - 1 ? content.Onboarding.next : content.Onboarding.done}
             </Button>
           </Stack>
         </Box>

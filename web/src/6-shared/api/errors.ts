@@ -1,3 +1,5 @@
+import {languageStore} from '@/6-shared/i18n/languageStore';
+
 export interface ApiError {
   statusCode: number;
   code: string;
@@ -23,18 +25,20 @@ export enum ApiErrorCode {
   TOKEN_EXPIRED = 'B4009',
 }
 
-export const ERROR_MESSAGES: Record<string, string> = {
-  [ApiErrorCode.EVENT_NOT_FOUND]: 'Событие не найдено. Проверьте ID события.',
-  [ApiErrorCode.EVENT_ALREADY_DELETED]: 'Событие уже удалено.',
-  [ApiErrorCode.EVENT_INVALID_PIN]: 'Неверный пин-код. Проверьте введённые данные.',
-  [ApiErrorCode.CURRENCY_NOT_FOUND]: 'Валюта не найдена.',
-  [ApiErrorCode.CURRENCY_RATE_NOT_FOUND]: 'Курс валюты не найден. Попробуйте выбрать другую валюту.',
-  [ApiErrorCode.VALIDATION_ERROR]: 'Ошибка валидации данных. Проверьте введённые данные.',
-  [ApiErrorCode.INTERNAL_ERROR]: 'Произошла ошибка сервера. Попробуйте позже.',
-  [ApiErrorCode.INVALID_TOKEN]: 'Недействительный токен. Попробуйте перезайти.',
-  [ApiErrorCode.TOKEN_EXPIRED]: 'Токен истёк. Попробуйте перезайти.',
-};
-
 export function getUserFriendlyMessage(error: ApiError): string {
-  return ERROR_MESSAGES[error.code] || error.message || 'Произошла непредвиденная ошибка.';
+  const e = languageStore.content.Errors;
+
+  const messages: Record<string, string> = {
+    [ApiErrorCode.EVENT_NOT_FOUND]: e.eventNotFound,
+    [ApiErrorCode.EVENT_ALREADY_DELETED]: e.eventDeleted,
+    [ApiErrorCode.EVENT_INVALID_PIN]: e.invalidPin,
+    [ApiErrorCode.CURRENCY_NOT_FOUND]: e.currencyNotFound,
+    [ApiErrorCode.CURRENCY_RATE_NOT_FOUND]: e.exchangeRateNotFound,
+    [ApiErrorCode.VALIDATION_ERROR]: e.validationError,
+    [ApiErrorCode.INTERNAL_ERROR]: e.serverError,
+    [ApiErrorCode.INVALID_TOKEN]: e.invalidToken,
+    [ApiErrorCode.TOKEN_EXPIRED]: e.tokenExpired,
+  };
+
+  return messages[error.code] || error.message || e.unexpected;
 }
