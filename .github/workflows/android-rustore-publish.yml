@@ -142,6 +142,44 @@ jobs:
           name: rustore-release-bundle
           path: ${{ runner.temp }}/rustore-release-bundle
 
+      - name: Debug RuStore key format
+        env:
+          RUSTORE_PRIVATE_KEY: ${{ secrets.RUSTORE_PRIVATE_KEY }}
+        run: |
+          python - <<'PY'
+          import os
+          import pathlib
+          import subprocess
+          import tempfile
+
+          private_key = os.environ.get("RUSTORE_PRIVATE_KEY", "")
+          lines = private_key.splitlines()
+          first_line = lines[0] if lines else "<empty>"
+          last_line = lines[-1] if lines else "<empty>"
+
+          print(f"rustore_key_chars={len(private_key)}")
+          print(f"rustore_key_lines={len(lines)}")
+          print(f"contains_literal_backslash_n={'\\n' in private_key}")
+          print(f"contains_cr={'\\r' in private_key}")
+          print(f"starts_with_begin={first_line.startswith('-----BEGIN ')}")
+          print(f"ends_with_end={last_line.startswith('-----END ')}")
+          print(f"first_line={first_line!r}")
+          print(f"last_line={last_line!r}")
+
+          with tempfile.TemporaryDirectory(prefix="rustore-key-debug-") as temp_dir:
+              key_path = pathlib.Path(temp_dir) / "key.pem"
+              key_path.write_text(private_key, encoding="utf-8", newline="\n")
+              check = subprocess.run(
+                  ["openssl", "pkey", "-in", str(key_path), "-noout"],
+                  capture_output=True,
+                  text=True,
+              )
+              print(f"openssl_pkey_exit={check.returncode}")
+              if check.returncode != 0:
+                  stderr = (check.stderr or "").strip()
+                  print(f"openssl_pkey_stderr={stderr!r}")
+          PY
+
       - name: Publish to RuStore
         id: publish
         env:
