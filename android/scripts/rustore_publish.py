@@ -240,20 +240,6 @@ def upload_aab(token: str, package_name: str, version_id: int, aab_path: Path) -
     unwrap_api_response("upload-aab", decoded)
 
 
-def set_publish_settings(token: str, package_name: str, version_id: int) -> None:
-    url = (
-        f"{API_BASE}/public/v1/application/{urllib.parse.quote(package_name, safe='')}"
-        f"/version/{version_id}/publish-settings"
-    )
-    request_json(
-        stage="publish-settings",
-        method="POST",
-        url=url,
-        token=token,
-        body={"publishType": PUBLISH_TYPE},
-    )
-
-
 def submit_for_moderation(token: str, package_name: str, version_id: int) -> None:
     url = (
         f"{API_BASE}/public/v1/application/{urllib.parse.quote(package_name, safe='')}"
@@ -298,7 +284,6 @@ def main() -> int:
         token = authenticate(args.key_id, private_key)
         version_id, draft_action = ensure_draft(token, args.package_name, whats_new)
         upload_aab(token, args.package_name, version_id, aab_path)
-        set_publish_settings(token, args.package_name, version_id)
         submit_for_moderation(token, args.package_name, version_id)
     except StageError as exc:
         print(f"{exc.stage}: {exc.message}", file=sys.stderr)
