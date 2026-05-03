@@ -30,10 +30,6 @@ class StageError(RuntimeError):
         self.message = message
 
 
-def normalize_private_key(value: str) -> str:
-    return value.replace("\\n", "\n").strip()
-
-
 def unwrap_api_response(stage: str, payload: dict[str, Any]) -> Any:
     code = payload.get("code")
     if code != "OK":
@@ -275,7 +271,6 @@ def main() -> int:
     if not private_key:
         print("RUSTORE_PRIVATE_KEY environment variable is required.", file=sys.stderr)
         return 1
-    private_key = normalize_private_key(private_key)
     aab_path = Path(args.aab_path)
     whats_new = args.whats_new
     if args.whats_new_file is not None:
