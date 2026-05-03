@@ -2,6 +2,7 @@ import type {Metadata, Viewport} from 'next';
 import './globals.css';
 import {Roboto} from 'next/font/google';
 import {ClientProviders} from './ClientProviders';
+import InitColorSchemeScript from '@mui/material/InitColorSchemeScript';
 
 // If loading a variable font, you don't need to specify the font weight
 const roboto = Roboto({
@@ -67,7 +68,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ru" className={roboto.className}>
+    <html lang="ru" className={roboto.className} suppressHydrationWarning>
+      <head>
+        <InitColorSchemeScript defaultMode="system" />
+      </head>
       <body>
         {children}
         <ClientProviders />

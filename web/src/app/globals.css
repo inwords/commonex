@@ -11,17 +11,7 @@ body {
   overflow-x: hidden;
 }
 
-body {
-  background-color: rgba(246, 247, 248, 0.5);
-}
-
 a {
   color: inherit;
   text-decoration: none;
-}
-
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
-  }
 }
