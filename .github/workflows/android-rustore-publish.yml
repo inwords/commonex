@@ -124,6 +124,13 @@ jobs:
           ref: ${{ needs.build.outputs.release_tag }}
           fetch-depth: 1
 
+      - name: Checkout main tooling
+        uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: 1
+          path: tooling-main
+
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
@@ -132,7 +139,7 @@ jobs:
       - name: Resolve Android package name
         id: package
         run: >
-          python android/scripts/release_version.py package-name
+          python tooling-main/android/scripts/release_version.py package-name
           --android-build-file android/app/build.gradle.kts
           --github-output "$GITHUB_OUTPUT"
 
@@ -237,7 +244,7 @@ jobs:
             exit 1
           fi
           set -o pipefail
-          python android/scripts/rustore_publish.py \
+          python tooling-main/android/scripts/rustore_publish.py \
             --key-id "$RUSTORE_KEY_ID" \
             --package-name "${{ steps.package.outputs.package_name }}" \
             --aab-path "$AAB_PATH" \
