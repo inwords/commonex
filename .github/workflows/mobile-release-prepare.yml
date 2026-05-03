@@ -109,6 +109,8 @@ jobs:
           git commit -m "Bump version to ${{ steps.metadata.outputs.version_name }}"
 
       - name: Generate baseline and startup profiles
+        env:
+          FORCE_DEBUG_SIGNATURE: "true"
         run: ./android/gradlew -p android --quiet :app:generateBaselineProfile
 
       - name: Commit generated profiles
