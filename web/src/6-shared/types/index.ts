@@ -1,4 +1,5 @@
-import type {Locale, Language} from '../i18n/locales/ru';
+import type {Locale} from '../i18n/locales/ru';
+import type {Language} from '../i18n/languageStore';
 
 export type {Locale, Language};
 
