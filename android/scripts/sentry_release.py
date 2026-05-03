@@ -103,13 +103,16 @@ def run_sentry_cli(
 ) -> None:
     if not os.environ.get("SENTRY_AUTH_TOKEN"):
         raise SystemExit("SENTRY_AUTH_TOKEN must be set for Sentry release automation.")
+    if not arguments:
+        raise SystemExit("sentry-cli arguments must not be empty.")
     command = [
         "sentry-cli",
+        arguments[0],
         "--org",
         org,
         "--project",
         project,
-        *arguments,
+        *arguments[1:],
     ]
     try:
         subprocess.run(
