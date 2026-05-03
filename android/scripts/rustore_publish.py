@@ -143,13 +143,34 @@ def authenticate(key_id: str, private_key: str) -> str:
             body=body,
         )
     except StageError as exc:
-        if "Signature encode error" in exc.message:
+        if "Signature encode error" in exc.message and normalized_key_id.isdigit():
+            fallback_body = {
+                "companyId": normalized_key_id,
+                "timestamp": timestamp,
+                "signature": signature,
+            }
+            try:
+                result = request_json(
+                    stage="authenticate",
+                    method="POST",
+                    url=f"{API_BASE}/public/auth",
+                    body=fallback_body,
+                )
+            except StageError as fallback_exc:
+                raise StageError(
+                    "authenticate",
+                    f"{exc.message} (fallback companyId failed: {fallback_exc.message}) "
+                    f"(debug: key_id={normalized_key_id!r}, key_id_len={len(normalized_key_id)}, "
+                    f"timestamp={timestamp!r}, signature_len={len(signature)})",
+                ) from fallback_exc
+        elif "Signature encode error" in exc.message:
             raise StageError(
                 "authenticate",
                 f"{exc.message} (debug: key_id={normalized_key_id!r}, key_id_len={len(normalized_key_id)}, "
                 f"timestamp={timestamp!r}, signature_len={len(signature)})",
             ) from exc
-        raise
+        else:
+            raise
     if not isinstance(result, dict) or not isinstance(result.get("jwe"), str):
         raise StageError("authenticate", "RuStore auth response did not include a token.")
     return result["jwe"]
