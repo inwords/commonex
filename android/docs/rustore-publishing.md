@@ -16,7 +16,6 @@ Workflow: `.github/workflows/android-rustore-publish.yml`
 Triggers:
 
 - tag push matching `release/**`
-- manual run (`workflow_dispatch`) with input `tag=release/YYYY-MM-N/P`
 
 Behavior:
 
@@ -26,7 +25,7 @@ Behavior:
 4. Validates `android/release-notes/ru-RU.txt`.
 5. Extracts the Russian notes and stages them together with the AAB under one artifact root.
 6. Waits at the protected `rustore-production` environment gate.
-7. Checks out `main` tooling scripts for publish automation and derives package name from tagged `android/app/build.gradle.kts`.
+7. Derives package name from tagged `android/app/build.gradle.kts`.
 8. Authenticates with the RuStore API.
 9. Fails if a RuStore draft already exists for the app.
 10. Creates a new draft with `publishType=MANUAL`.
@@ -97,7 +96,6 @@ Important behavior:
 - if any existing draft is present, the script fails and leaves that draft untouched
 - after moderation, publication remains manual in RuStore
 - failures exit non-zero with explicit stage names such as `authenticate`, `create-draft`, `upload-aab`, or `submit`
-- publish job executes tooling scripts from `main` while using the AAB artifact built from the selected release tag
 
 ## Manual fallback
 
