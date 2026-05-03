@@ -73,30 +73,23 @@ def request_json(
     return unwrap_api_response(stage, payload)
 
 
-def private_key_debug_info(private_key: str, key_path: Path) -> str:
-    lines = private_key.splitlines()
-    first_line = lines[0] if lines else "<empty>"
-    last_line = lines[-1] if lines else "<empty>"
-    return (
-        f"path={key_path}; "
-        f"chars={len(private_key)}; "
-        f"lines={len(lines)}; "
-        f"contains_literal_backslash_n={'\\\\n' in private_key}; "
-        f"contains_cr={'\\r' in private_key}; "
-        f"starts_with_begin={first_line.startswith('-----BEGIN ')}; "
-        f"ends_with_end={last_line.startswith('-----END ')}; "
-        f"first_line={first_line!r}; "
-        f"last_line={last_line!r}"
-    )
+def decode_private_key_der(private_key: str) -> bytes:
+    try:
+        return base64.b64decode(private_key, validate=True)
+    except ValueError as exc:
+        raise StageError(
+            "authenticate",
+            "RUSTORE_PRIVATE_KEY must be a base64-encoded RSA private key.",
+        ) from exc
 
 
 def sign_with_openssl(key_id: str, private_key: str, timestamp: str) -> str:
     message = f"{key_id}{timestamp}".encode("utf-8")
     with tempfile.TemporaryDirectory(prefix="rustore-auth-") as temp_dir:
         temp_path = Path(temp_dir)
-        key_path = temp_path / "key.pem"
+        key_path = temp_path / "key.der"
         message_path = temp_path / "message.txt"
-        key_path.write_text(private_key, encoding="utf-8", newline="\n")
+        key_path.write_bytes(decode_private_key_der(private_key))
         message_path.write_bytes(message)
 
         try:
@@ -105,6 +98,8 @@ def sign_with_openssl(key_id: str, private_key: str, timestamp: str) -> str:
                     "openssl",
                     "dgst",
                     "-sha512",
+                    "-keyform",
+                    "DER",
                     "-sign",
                     str(key_path),
                     "-binary",
@@ -117,11 +112,7 @@ def sign_with_openssl(key_id: str, private_key: str, timestamp: str) -> str:
             raise StageError("authenticate", "OpenSSL is required to sign the RuStore auth payload.") from exc
         except subprocess.CalledProcessError as exc:
             stderr = exc.stderr.decode("utf-8", errors="replace")
-            diagnostics = private_key_debug_info(private_key, key_path)
-            raise StageError(
-                "authenticate",
-                f"OpenSSL signing failed: {stderr} | key_debug: {diagnostics}",
-            ) from exc
+            raise StageError("authenticate", f"OpenSSL signing failed: {stderr}") from exc
 
     return base64.b64encode(result.stdout).decode("ascii")
 
@@ -135,42 +126,12 @@ def authenticate(key_id: str, private_key: str) -> str:
         "timestamp": timestamp,
         "signature": signature,
     }
-    try:
-        result = request_json(
-            stage="authenticate",
-            method="POST",
-            url=f"{API_BASE}/public/auth",
-            body=body,
-        )
-    except StageError as exc:
-        if "Signature encode error" in exc.message and normalized_key_id.isdigit():
-            fallback_body = {
-                "companyId": normalized_key_id,
-                "timestamp": timestamp,
-                "signature": signature,
-            }
-            try:
-                result = request_json(
-                    stage="authenticate",
-                    method="POST",
-                    url=f"{API_BASE}/public/auth",
-                    body=fallback_body,
-                )
-            except StageError as fallback_exc:
-                raise StageError(
-                    "authenticate",
-                    f"{exc.message} (fallback companyId failed: {fallback_exc.message}) "
-                    f"(debug: key_id={normalized_key_id!r}, key_id_len={len(normalized_key_id)}, "
-                    f"timestamp={timestamp!r}, signature_len={len(signature)})",
-                ) from fallback_exc
-        elif "Signature encode error" in exc.message:
-            raise StageError(
-                "authenticate",
-                f"{exc.message} (debug: key_id={normalized_key_id!r}, key_id_len={len(normalized_key_id)}, "
-                f"timestamp={timestamp!r}, signature_len={len(signature)})",
-            ) from exc
-        else:
-            raise
+    result = request_json(
+        stage="authenticate",
+        method="POST",
+        url=f"{API_BASE}/public/auth",
+        body=body,
+    )
     if not isinstance(result, dict) or not isinstance(result.get("jwe"), str):
         raise StageError("authenticate", "RuStore auth response did not include a token.")
     return result["jwe"]

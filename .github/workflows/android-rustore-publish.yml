@@ -155,6 +155,7 @@ jobs:
           RUSTORE_PRIVATE_KEY: ${{ secrets.RUSTORE_PRIVATE_KEY }}
         run: |
           python - <<'PY'
+          import base64
           import datetime as dt
           import os
           import pathlib
@@ -182,10 +183,31 @@ jobs:
           print(f"last_line={last_line!r}")
 
           with tempfile.TemporaryDirectory(prefix="rustore-key-debug-") as temp_dir:
-              key_path = pathlib.Path(temp_dir) / "key.pem"
-              key_path.write_text(private_key, encoding="utf-8", newline="\n")
+              key_form = "PEM"
+              key_source = "pem-text"
+              key_value = private_key.strip()
+              if "-----BEGIN" in key_value:
+                  key_path = pathlib.Path(temp_dir) / "key.pem"
+                  key_path.write_text(key_value, encoding="utf-8", newline="\n")
+              else:
+                  try:
+                      key_decoded = base64.b64decode(key_value, validate=True)
+                  except ValueError:
+                      key_decoded = None
+                  if key_decoded:
+                      key_form = "DER"
+                      key_source = "base64-der"
+                      key_path = pathlib.Path(temp_dir) / "key.der"
+                      key_path.write_bytes(key_decoded)
+                  else:
+                      key_source = "raw-text"
+                      key_path = pathlib.Path(temp_dir) / "key.raw"
+                      key_path.write_text(private_key, encoding="utf-8", newline="\n")
+              print(f"detected_key_source={key_source}")
+              print(f"detected_key_form={key_form}")
+
               check = subprocess.run(
-                  ["openssl", "pkey", "-in", str(key_path), "-noout"],
+                  ["openssl", "pkey", "-inform", key_form, "-in", str(key_path), "-noout"],
                   capture_output=True,
                   text=True,
               )
@@ -204,6 +226,8 @@ jobs:
                       "openssl",
                       "dgst",
                       "-sha512",
+                      "-keyform",
+                      key_form,
                       "-sign",
                       str(key_path),
                       "-binary",
