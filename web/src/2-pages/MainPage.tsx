@@ -5,10 +5,18 @@ import {CreateEventModal} from '@/3-widgets/CreateEventModal/CreateEventModal';
 import {FindEventForm} from '@/4-features/FindEvent/ui/FindEventForm';
 import {currencyService} from '@/5-entities/currency/services/currency-service';
 import {OnboardingTour} from '@/3-widgets/OnboardingTour';
-import {MAIN_PAGE_ONBOARDING_STEPS} from '@/6-shared/constants/onboarding-steps';
+import {useContent} from '@/6-shared/i18n/useContent';
+import {MAIN_PAGE_ONBOARDING_STEP_KEYS} from '@/6-shared/constants/onboarding-steps';
+import {observer} from 'mobx-react-lite';
 
-export const MainPage = () => {
+export const MainPage = observer(() => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const content = useContent();
+
+  const onboardingSteps = content.Onboarding.main.map((item, i) => ({
+    ...item,
+    step: MAIN_PAGE_ONBOARDING_STEP_KEYS[i],
+  }));
 
   useEffect(() => {
     void currencyService.fetchCurrencies();
@@ -22,8 +30,7 @@ export const MainPage = () => {
         </Typography>
 
         <Typography variant="subtitle1" color="text.secondary" align="center" marginBottom={4}>
-          Удобный сервис для учёта общих расходов в поездках и мероприятиях.
-          Создавайте события, добавляйте участников и отслеживайте, кто кому должен.
+          {content.MainPage.subtitle}
         </Typography>
 
         <FindEventForm />
@@ -37,7 +44,7 @@ export const MainPage = () => {
         <CreateEventModal isOpen={isDialogOpen} setIsOpen={setIsDialogOpen} />
       </Box>
 
-      <OnboardingTour steps={MAIN_PAGE_ONBOARDING_STEPS} />
+      <OnboardingTour steps={onboardingSteps} />
     </Container>
   );
-};
+});

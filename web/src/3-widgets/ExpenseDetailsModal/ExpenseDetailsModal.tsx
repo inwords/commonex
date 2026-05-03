@@ -4,8 +4,10 @@ import {expenseStore} from '@/5-entities/expense/stores/expense-store';
 import {observer} from 'mobx-react-lite';
 import {useEffect} from 'react';
 import {eventStore} from '@/5-entities/event/stores/event-store';
+import {useContent} from '@/6-shared/i18n/useContent';
 
 export const ExpenseDetailsModal = observer(() => {
+  const content = useContent();
   const isOpen = expenseStore.isExpenseDetailsModalOpen;
   const expense = expenseStore.selectedExpenseForDetails;
 
@@ -58,7 +60,7 @@ export const ExpenseDetailsModal = observer(() => {
 
   return (
     <Dialog open={isOpen} fullWidth={true} onClose={handleClose}>
-      <DialogTitle id="expense-details-dialog-title">Детали траты</DialogTitle>
+      <DialogTitle id="expense-details-dialog-title">{content.ExpenseDetails.modalTitle}</DialogTitle>
 
       <DialogContent>
         <ExpenseForm readOnly={true} expenseData={expenseFormData} />

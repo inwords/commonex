@@ -1,10 +1,2 @@
-export default {
-  ru: {
-    FindEventButton: {
-      btn: 'Найти поездку',
-    },
-    CreateEventButton: {
-      btn: 'Создать поездку',
-    },
-  },
-} as const;
+// Re-exported for backwards compatibility. Use locales/ru.ts and locales/en.ts directly.
+export {default} from './locales/ru';

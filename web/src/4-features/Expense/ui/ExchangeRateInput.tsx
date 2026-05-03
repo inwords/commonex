@@ -2,6 +2,7 @@ import React from 'react';
 import {observer} from 'mobx-react-lite';
 import {eventStore} from '@/5-entities/event/stores/event-store';
 import {TextFieldElement, useFormContext} from 'react-hook-form-mui';
+import {useContent} from '@/6-shared/i18n/useContent';
 
 interface Props {
   disabled?: boolean;
@@ -9,6 +10,7 @@ interface Props {
 
 export const ExchangeRateInput = observer(({disabled = false}: Props) => {
   const {watch} = useFormContext();
+  const content = useContent();
   const currencyId = watch('currencyId');
   const eventCurrencyId = eventStore.currentEvent?.currencyId;
 
@@ -20,7 +22,7 @@ export const ExchangeRateInput = observer(({disabled = false}: Props) => {
   return (
     <TextFieldElement
       name="exchangeRate"
-      label="Курс обмена"
+      label={content.ExchangeRate.label}
       type="number"
       disabled={disabled}
       inputProps={{

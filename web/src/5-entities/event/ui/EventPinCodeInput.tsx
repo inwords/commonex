@@ -1,5 +1,7 @@
 import {TextFieldElement} from 'react-hook-form-mui';
+import {useContent} from '@/6-shared/i18n/useContent';
 
 export const EventPinCodeInput = () => {
-  return <TextFieldElement name={'pinCode'} label={'Pin Code поездки. Понадобится для доступа к поездке'} required />;
+  const content = useContent();
+  return <TextFieldElement name={'pinCode'} label={content.CreateEvent.form.pinCodeInput} required />;
 };

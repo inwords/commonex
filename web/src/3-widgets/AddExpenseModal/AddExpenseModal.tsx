@@ -3,6 +3,7 @@ import {ExpenseForm} from '@/4-features/Expense/ui/ExpenseForm';
 import {expenseService} from '@/5-entities/expense/services/expense-service';
 import {eventStore} from '@/5-entities/event/stores/event-store';
 import {useEffect} from 'react';
+import {useContent} from '@/6-shared/i18n/useContent';
 
 interface Props {
   isOpen: boolean;
@@ -10,6 +11,8 @@ interface Props {
 }
 
 export const AddExpenseModal = ({isOpen, setIsOpen}: Props) => {
+  const content = useContent();
+
   // Сбрасываем splitOption при открытии модалки
   useEffect(() => {
     if (isOpen) {
@@ -19,7 +22,7 @@ export const AddExpenseModal = ({isOpen, setIsOpen}: Props) => {
 
   return (
     <Dialog open={isOpen} fullWidth={true} onClose={() => setIsOpen(false)}>
-      <DialogTitle id="alert-dialog-title">Добавление траты</DialogTitle>
+      <DialogTitle id="alert-dialog-title">{content.AddExpense.modalTitle}</DialogTitle>
 
       <DialogContent>
         <ExpenseForm

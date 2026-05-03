@@ -1,6 +1,7 @@
 import {TextFieldElement, useFormContext} from 'react-hook-form-mui';
 import {Button, Stack, Typography} from '@mui/material';
 import {SelectUser} from '@/5-entities/user/ui/SelectUser';
+import {useContent} from '@/6-shared/i18n/useContent';
 import React from 'react';
 
 interface PercentageSplitDraft {
@@ -17,6 +18,8 @@ interface Props {
 
 export const SplitByPercentageFields = ({fields, append, remove, disabled = false}: Props) => {
   const {watch} = useFormContext<{splitInformation: Array<PercentageSplitDraft>}>();
+  const content = useContent();
+  const c = content.AddExpense.splitByPercentage;
   const values = watch('splitInformation') ?? [];
   const total = values.reduce((sum, v) => sum + (Number(v?.amount) || 0), 0);
   const isValid = total === 100;
@@ -27,19 +30,19 @@ export const SplitByPercentageFields = ({fields, append, remove, disabled = fals
         <React.Fragment key={field.id}>
           <TextFieldElement
             name={`splitInformation.${index}.amount`}
-            label="Процент"
+            label={c.percentLabel}
             required
             disabled={disabled}
             type="number"
             slotProps={{htmlInput: {min: 1, max: 100, step: 1}}}
             rules={{
-              validate: (v: string) => Number.isInteger(Number(v)) || 'Только целые числа',
+              validate: (v: string) => Number.isInteger(Number(v)) || c.onlyIntegers,
             }}
           />
-          <SelectUser label="Участник" name={`splitInformation.${index}.userId`} disabled={disabled} required />
+          <SelectUser label={c.participantLabel} name={`splitInformation.${index}.userId`} disabled={disabled} required />
           {fields.length > 1 && (
             <Button onClick={() => remove(index)} variant="text" color="error" size="small" disabled={disabled}>
-              Убрать
+              {c.remove}
             </Button>
           )}
         </React.Fragment>
@@ -50,7 +53,7 @@ export const SplitByPercentageFields = ({fields, append, remove, disabled = fals
           {total}% / 100%
         </Typography>
         <Button onClick={() => append({})} variant="outlined" disabled={disabled}>
-          Добавить участника
+          {c.addParticipant}
         </Button>
       </Stack>
     </>

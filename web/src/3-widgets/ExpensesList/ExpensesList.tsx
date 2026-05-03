@@ -6,8 +6,11 @@ import {userStore} from '@/5-entities/user/stores/user-store';
 import {currencyStore} from '@/5-entities/currency/stores/currency-store';
 import {eventStore} from '@/5-entities/event/stores/event-store';
 import {ExpenseDetailsModal} from '@/3-widgets/ExpenseDetailsModal/ExpenseDetailsModal';
+import {useContent} from '@/6-shared/i18n/useContent';
 
 export const ExpensesList = observer(() => {
+  const content = useContent();
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     const day = String(date.getDate()).padStart(2, '0');
@@ -58,7 +61,6 @@ export const ExpensesList = observer(() => {
           }
 
           const handleIconClick = () => {
-            // Найдем оригинальный Expense объект
             const originalExpense = expenseStore.expenses.find((exp) => exp.id === e.id);
             if (originalExpense) {
               expenseStore.setSelectedExpenseForDetails(originalExpense);
@@ -86,13 +88,13 @@ export const ExpensesList = observer(() => {
                 </Typography>
 
                 <Typography variant="body2" sx={{mt: 1}}>
-                  Оплатил: {userStore.usersDictIdToName[e.userWhoPaidId] || 'Неизвестно'}
+                  {content.ExpensesList.paidBy} {userStore.usersDictIdToName[e.userWhoPaidId] || content.ExpensesList.unknown}
                 </Typography>
 
                 {isMultiCurrency && (
                   <Typography variant="body2" sx={{mt: 0.5, color: 'text.secondary'}}>
-                    Валюта траты: {expenseCurrencyCode} (курс: {exchangeRate.toFixed(2)}
-                    {e.isCustomRate && ' (ручной)'})
+                    {content.ExpensesList.currency} {expenseCurrencyCode} (курс: {exchangeRate.toFixed(2)}
+                    {e.isCustomRate && ` ${content.ExpensesList.manual}`})
                   </Typography>
                 )}
 
@@ -114,7 +116,7 @@ export const ExpensesList = observer(() => {
                     variant="contained"
                     onClick={() => {
                       expenseStore.setCurrentExpenseRefund({
-                        description: `Возврат за ${e.description}`,
+                        description: `${content.AddExpenseRefund.refundPrefix} ${e.description}`,
                         amount: Number(currentUserDebt.toFixed(2)),
                         userWhoPaidId: userStore.currentUser?.id,
                         currencyId: eventStore.currentEvent?.currencyId,
@@ -123,7 +125,7 @@ export const ExpensesList = observer(() => {
                       expenseStore.setIsExpenseRefundModalOpen(true);
                     }}
                   >
-                    Вернуть
+                    {content.ExpensesList.refund}
                   </Button>
                 )}
               </CardActions>

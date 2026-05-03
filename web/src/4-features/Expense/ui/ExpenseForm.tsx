@@ -16,6 +16,7 @@ import {SelectCurrency} from '@/5-entities/currency/ui/SelectCurrency';
 import {ExchangeRateInput} from '@/4-features/Expense/ui/ExchangeRateInput';
 import {currencyStore} from '@/5-entities/currency/stores/currency-store';
 import {eventStore} from '@/5-entities/event/stores/event-store';
+import {useContent} from '@/6-shared/i18n/useContent';
 
 interface Props {
   onSuccess?: (isModalOpen: boolean, data: CreateExpenseForm, id: string) => void;
@@ -64,6 +65,8 @@ const ExpenseFormContent = observer(({readOnly = false}: Omit<Props, 'expenseDat
     control,
     name: 'splitInformation',
   });
+  const content = useContent();
+  const c = content.AddExpense.manualSplit;
 
   const isSplitEqually = expenseStore.splitOption === '1';
   const currencyId = watch('currencyId');
@@ -83,7 +86,9 @@ const ExpenseFormContent = observer(({readOnly = false}: Omit<Props, 'expenseDat
 
   // Устанавливаем автоматический курс при смене валюты (только если не readOnly)
   useEffect(() => {
-    if (readOnly) return;
+    if (readOnly) {
+      return;
+    }
 
     if (!currencyId || !eventCurrencyId || currencyId === eventCurrencyId) {
       setValue('exchangeRate', undefined);
@@ -116,20 +121,20 @@ const ExpenseFormContent = observer(({readOnly = false}: Omit<Props, 'expenseDat
             <>
               {fields.map((field, index) => (
                 <React.Fragment key={field.id}>
-                  <TextFieldElement name={`splitInformation.${index}.amount`} label={'Сумма к возврату'} required disabled={readOnly} type="number" />
+                  <TextFieldElement name={`splitInformation.${index}.amount`} label={c.amountLabel} required disabled={readOnly} type="number" />
 
-                  <SelectUser label="Кто должен" name={`splitInformation.${index}.userId`} disabled={readOnly} required />
+                  <SelectUser label={c.whoOwesLabel} name={`splitInformation.${index}.userId`} disabled={readOnly} required />
 
                   {fields.length > 1 && (
                     <Button onClick={() => remove(index)} variant="text" color="error" size="small" disabled={readOnly}>
-                      Убрать
+                      {c.remove}
                     </Button>
                   )}
                 </React.Fragment>
               ))}
 
               <Button onClick={() => append({})} variant={'outlined'} disabled={readOnly}>
-                Добавить персону
+                {c.addPerson}
               </Button>
             </>
           )}
@@ -143,7 +148,7 @@ const ExpenseFormContent = observer(({readOnly = false}: Omit<Props, 'expenseDat
       {!readOnly && (
         <Stack justifyContent="end" marginTop={'16px'}>
           <Button type={'submit'} variant="contained" loading={expenseStore.isCreatingExpense}>
-            Добавить трату
+            {content.AddExpense.submit}
           </Button>
         </Stack>
       )}
