@@ -1,6 +1,6 @@
 ---
 name: prepare-mobile-release
-description: "Prepare a CommonEx mobile release (Android + iOS): bump version on both platforms, generate Android baseline profiles, and create/push a release tag. Use when the user asks to prepare a mobile release or run the release SOP. Requires DATE, RELEASE_N, PATCH, RUN_FROM (repo-root or android/), and SHELL."
+description: "Prepare a CommonEx mobile release (Android + iOS): bump version on both platforms, generate Android baseline profiles, and create/push a release tag. Use when the user asks to prepare a mobile release or run the release SOP. Requires RELEASE_VERSION, PATCH, RUN_FROM (repo-root or android/), and SHELL."
 ---
 
 # Prepare Mobile Release
@@ -11,15 +11,14 @@ Follow the mobile release SOP: bump version on **Android and iOS** in lockstep, 
 
 ## Required inputs (ask only for missing values)
 
-- DATE: YYYY-MM-DD (use local system date at execution time; confirm with the user if unsure)
-- RELEASE_N: integer release number for the month (1, 2, 3, ...)
+- RELEASE_VERSION: YYYY-MM-N
 - PATCH: integer patch number for the tag (1 for normal release; increment only for hotfixes)
 - RUN_FROM: repo-root or android/
 - SHELL: PowerShell or bash
 
 ## Derived values
 
-- VERSION_NAME = YYYY.MM.N (from DATE + RELEASE_N)
+- VERSION_NAME = YYYY.MM.N (from RELEASE_VERSION)
 - VERSION_CODE = CURRENT_VERSION_CODE + 1
 - TAG = release/YYYY-MM-N/P (VERSION_NAME with dots replaced by hyphens + PATCH)
 - PATH_PREFIX = "" if RUN_FROM = android/, otherwise "android/"
@@ -83,4 +82,4 @@ Follow the mobile release SOP: bump version on **Android and iOS** in lockstep, 
 ## Troubleshooting (short)
 
 - Profile generation fails: verify RUN_FROM and GRADLEW_CMD, ensure the emulator is available, then re-run.
-- Tag conflict: list existing tags with git tag -l "release/*" and bump PATCH or RELEASE_N as needed.
+- Tag conflict: list existing tags with git tag -l "release/*" and bump PATCH or RELEASE_VERSION as needed.

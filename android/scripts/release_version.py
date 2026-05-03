@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-import datetime as dt
 import re
 import sys
 from pathlib import Path
@@ -13,17 +12,27 @@ ANDROID_APPLICATION_ID_RE = re.compile(r'^(\s*applicationId\s*=\s*")([^"]+)(".*)
 IOS_MARKETING_VERSION_RE = re.compile(r"(\bMARKETING_VERSION\s*=\s*)([^;]+)(;)")
 IOS_PROJECT_VERSION_RE = re.compile(r"(\bCURRENT_PROJECT_VERSION\s*=\s*)(\d+)(;)")
 PREP_BRANCH_RE = re.compile(r"^release/prep/(\d{4})-(\d{2})-(\d+)/(\d+)$")
+RELEASE_VERSION_RE = re.compile(r"^(\d{4})-(\d{2})-(\d+)$")
 
 
 def fail(message: str) -> None:
     raise SystemExit(message)
 
 
-def parse_release_date(value: str) -> dt.date:
-    try:
-        return dt.datetime.strptime(value, "%Y-%m-%d").date()
-    except ValueError as exc:
-        raise SystemExit(f"Invalid date '{value}'. Expected YYYY-MM-DD.") from exc
+def parse_release_version(value: str) -> tuple[str, str, int]:
+    match = RELEASE_VERSION_RE.fullmatch(value)
+    if match is None:
+        raise SystemExit(
+            f"Invalid release version '{value}'. Expected YYYY-MM-N."
+        )
+    year, month, release_n_text = match.groups()
+    month_number = int(month)
+    if month_number < 1 or month_number > 12:
+        raise SystemExit(
+            f"Invalid release version '{value}'. Month must be between 01 and 12."
+        )
+    release_n = parse_positive_int("release version number", release_n_text)
+    return year, month, release_n
 
 
 def parse_positive_int(name: str, value: str) -> int:
@@ -63,11 +72,11 @@ def parse_application_id(android_build_file: Path) -> str:
     return match.group(2)
 
 
-def compute_metadata(release_date: dt.date, release_n: int, patch: int, current_version_code: int) -> dict[str, str]:
-    version_name = f"{release_date.year:04d}.{release_date.month:02d}.{release_n}"
+def compute_metadata(year: str, month: str, release_n: int, patch: int, current_version_code: int) -> dict[str, str]:
+    version_name = f"{year}.{month}.{release_n}"
     version_code = str(current_version_code + 1)
-    branch_name = f"release/prep/{release_date.year:04d}-{release_date.month:02d}-{release_n}/{patch}"
-    tag_name = f"release/{release_date.year:04d}-{release_date.month:02d}-{release_n}/{patch}"
+    branch_name = f"release/prep/{year}-{month}-{release_n}/{patch}"
+    tag_name = f"release/{year}-{month}-{release_n}/{patch}"
     pr_title = f"Release {version_name}/{patch}"
     return {
         "version_name": version_name,
@@ -85,12 +94,11 @@ def write_github_output(path: Path, values: dict[str, str]) -> None:
 
 
 def metadata_command(args: argparse.Namespace) -> int:
-    release_date = parse_release_date(args.date)
-    release_n = parse_positive_int("release_n", args.release_n)
+    year, month, release_n = parse_release_version(args.release_version)
     patch = parse_positive_int("patch", args.patch)
     android_build_file = Path(args.android_build_file)
     current_version_code = parse_current_version_code(android_build_file)
-    metadata = compute_metadata(release_date, release_n, patch, current_version_code)
+    metadata = compute_metadata(year, month, release_n, patch, current_version_code)
     if args.github_output:
         write_github_output(Path(args.github_output), metadata)
     else:
@@ -176,8 +184,7 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     metadata_parser = subparsers.add_parser("metadata", help="Compute release metadata.")
-    metadata_parser.add_argument("--date", required=True)
-    metadata_parser.add_argument("--release-n", required=True)
+    metadata_parser.add_argument("--release-version", required=True)
     metadata_parser.add_argument("--patch", required=True)
     metadata_parser.add_argument("--android-build-file", required=True)
     metadata_parser.add_argument("--github-output")

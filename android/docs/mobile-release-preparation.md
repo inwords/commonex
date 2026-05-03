@@ -19,8 +19,7 @@ This flow prepares a CommonEx mobile release branch and PR while preserving the 
 
 Workflow-dispatch inputs:
 
-- `date`: `YYYY-MM-DD`
-- `release_n`: positive integer
+- `release_version`: `YYYY-MM-N`
 - `patch`: positive integer, default `1`
 
 Derived values:

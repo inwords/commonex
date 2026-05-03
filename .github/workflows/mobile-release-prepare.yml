@@ -3,14 +3,10 @@ name: Mobile Release Prepare
 on:
   workflow_dispatch:
     inputs:
-      date:
-        description: Release date in YYYY-MM-DD format
+      release_version:
+        description: Release version in YYYY-MM-N format
         required: true
         type: string
-      release_n:
-        description: Monthly release number
-        required: true
-        type: number
       patch:
         description: Patch number
         required: true
@@ -75,8 +71,7 @@ jobs:
         id: metadata
         run: >
           python android/scripts/release_version.py metadata
-          --date "${{ inputs.date }}"
-          --release-n "${{ inputs.release_n }}"
+          --release-version "${{ inputs.release_version }}"
           --patch "${{ inputs.patch }}"
           --android-build-file android/app/build.gradle.kts
           --github-output "$GITHUB_OUTPUT"
