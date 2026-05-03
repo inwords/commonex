@@ -127,19 +127,29 @@ def sign_with_openssl(key_id: str, private_key: str, timestamp: str) -> str:
 
 
 def authenticate(key_id: str, private_key: str) -> str:
+    normalized_key_id = key_id.strip()
     timestamp = dt.datetime.now(dt.timezone.utc).astimezone().isoformat(timespec="milliseconds")
-    signature = sign_with_openssl(key_id, private_key, timestamp)
+    signature = sign_with_openssl(normalized_key_id, private_key, timestamp)
     body = {
-        "keyId": key_id,
+        "keyId": normalized_key_id,
         "timestamp": timestamp,
         "signature": signature,
     }
-    result = request_json(
-        stage="authenticate",
-        method="POST",
-        url=f"{API_BASE}/public/auth",
-        body=body,
-    )
+    try:
+        result = request_json(
+            stage="authenticate",
+            method="POST",
+            url=f"{API_BASE}/public/auth",
+            body=body,
+        )
+    except StageError as exc:
+        if "Signature encode error" in exc.message:
+            raise StageError(
+                "authenticate",
+                f"{exc.message} (debug: key_id={normalized_key_id!r}, key_id_len={len(normalized_key_id)}, "
+                f"timestamp={timestamp!r}, signature_len={len(signature)})",
+            ) from exc
+        raise
     if not isinstance(result, dict) or not isinstance(result.get("jwe"), str):
         raise StageError("authenticate", "RuStore auth response did not include a token.")
     return result["jwe"]

@@ -144,19 +144,27 @@ jobs:
 
       - name: Debug RuStore key format
         env:
+          RUSTORE_KEY_ID: ${{ secrets.RUSTORE_KEY_ID }}
           RUSTORE_PRIVATE_KEY: ${{ secrets.RUSTORE_PRIVATE_KEY }}
         run: |
           python - <<'PY'
+          import datetime as dt
           import os
           import pathlib
           import subprocess
           import tempfile
 
+          key_id = os.environ.get("RUSTORE_KEY_ID", "")
           private_key = os.environ.get("RUSTORE_PRIVATE_KEY", "")
           lines = private_key.splitlines()
           first_line = lines[0] if lines else "<empty>"
           last_line = lines[-1] if lines else "<empty>"
 
+          print(f"rustore_key_id_len={len(key_id)}")
+          print(f"rustore_key_id_stripped_len={len(key_id.strip())}")
+          print(f"rustore_key_id_has_outer_whitespace={key_id != key_id.strip()}")
+          print(f"rustore_key_id_has_spaces={' ' in key_id}")
+          print(f"rustore_key_id_has_tabs={'\t' in key_id}")
           print(f"rustore_key_chars={len(private_key)}")
           print(f"rustore_key_lines={len(lines)}")
           print(f"contains_literal_backslash_n={'\\n' in private_key}")
@@ -178,6 +186,42 @@ jobs:
               if check.returncode != 0:
                   stderr = (check.stderr or "").strip()
                   print(f"openssl_pkey_stderr={stderr!r}")
+
+              message = f"{key_id.strip()}{dt.datetime.now(dt.timezone.utc).astimezone().isoformat(timespec='milliseconds')}"
+              message_path = pathlib.Path(temp_dir) / "message.txt"
+              signature_path = pathlib.Path(temp_dir) / "signature.bin"
+              message_path.write_text(message, encoding="utf-8", newline="\n")
+
+              sign = subprocess.run(
+                  [
+                      "openssl",
+                      "dgst",
+                      "-sha512",
+                      "-sign",
+                      str(key_path),
+                      "-binary",
+                      str(message_path),
+                  ],
+                  capture_output=True,
+              )
+              print(f"openssl_dgst_exit={sign.returncode}")
+              if sign.returncode != 0:
+                  stderr = sign.stderr.decode("utf-8", errors="replace").strip()
+                  print(f"openssl_dgst_stderr={stderr!r}")
+              else:
+                  signature_path.write_bytes(sign.stdout)
+                  b64 = subprocess.run(
+                      ["openssl", "base64", "-A", "-in", str(signature_path)],
+                      capture_output=True,
+                      text=True,
+                  )
+                  print(f"openssl_base64_exit={b64.returncode}")
+                  if b64.returncode != 0:
+                      stderr = (b64.stderr or "").strip()
+                      print(f"openssl_base64_stderr={stderr!r}")
+                  else:
+                      signature = (b64.stdout or "").strip()
+                      print(f"local_signature_len={len(signature)}")
           PY
 
       - name: Publish to RuStore
