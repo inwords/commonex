@@ -73,6 +73,23 @@ def request_json(
     return unwrap_api_response(stage, payload)
 
 
+def private_key_debug_info(private_key: str, key_path: Path) -> str:
+    lines = private_key.splitlines()
+    first_line = lines[0] if lines else "<empty>"
+    last_line = lines[-1] if lines else "<empty>"
+    return (
+        f"path={key_path}; "
+        f"chars={len(private_key)}; "
+        f"lines={len(lines)}; "
+        f"contains_literal_backslash_n={'\\\\n' in private_key}; "
+        f"contains_cr={'\\r' in private_key}; "
+        f"starts_with_begin={first_line.startswith('-----BEGIN ')}; "
+        f"ends_with_end={last_line.startswith('-----END ')}; "
+        f"first_line={first_line!r}; "
+        f"last_line={last_line!r}"
+    )
+
+
 def sign_with_openssl(key_id: str, private_key: str, timestamp: str) -> str:
     message = f"{key_id}{timestamp}".encode("utf-8")
     with tempfile.TemporaryDirectory(prefix="rustore-auth-") as temp_dir:
@@ -100,7 +117,11 @@ def sign_with_openssl(key_id: str, private_key: str, timestamp: str) -> str:
             raise StageError("authenticate", "OpenSSL is required to sign the RuStore auth payload.") from exc
         except subprocess.CalledProcessError as exc:
             stderr = exc.stderr.decode("utf-8", errors="replace")
-            raise StageError("authenticate", f"OpenSSL signing failed: {stderr}") from exc
+            diagnostics = private_key_debug_info(private_key, key_path)
+            raise StageError(
+                "authenticate",
+                f"OpenSSL signing failed: {stderr} | key_debug: {diagnostics}",
+            ) from exc
 
     return base64.b64encode(result.stdout).decode("ascii")
 
