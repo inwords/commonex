@@ -1,0 +1,60 @@
+name: Mobile Sentry Release
+
+on:
+  push:
+    tags:
+      - "release/**"
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  sentry_release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout tag
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install sentry-cli
+        run: python -m pip install sentry-cli
+
+      - name: Create Sentry release and deploy
+        id: sentry
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+        run: >
+          python android/scripts/sentry_release.py
+          --android-build-file android/app/build.gradle.kts
+          --tag "${GITHUB_REF_NAME}"
+          --current-sha "${GITHUB_SHA}"
+          --sentry-org inwords
+          --sentry-project commonex
+          --sentry-repo "${{ github.repository }}"
+          --sentry-environment production
+          --github-output "$GITHUB_OUTPUT"
+
+      - name: Write job summary
+        run: |
+          {
+            echo "## Mobile Sentry release"
+            echo "- Tag: \`${GITHUB_REF_NAME}\`"
+            echo "- Sentry release: \`${{ steps.sentry.outputs.sentry_version }}\`"
+            echo "- Commit mapping: \`${{ steps.sentry.outputs.commit_range }}\`"
+            if [ -n "${{ steps.sentry.outputs.previous_release_tag }}" ]; then
+              echo "- Previous release tag: \`${{ steps.sentry.outputs.previous_release_tag }}\`"
+            else
+              echo "- Previous release tag: none"
+            fi
+            echo "- Deploy environment: \`production\`"
+          } >> "$GITHUB_STEP_SUMMARY"

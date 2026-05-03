@@ -30,7 +30,15 @@ Use this index as the Android and iOS operational doc map. Keep detailed guidanc
 
 - [`ios-background-sync.md`](ios-background-sync.md) - Planned approach for reliable iOS background sync (beginBackgroundTask + BGTaskScheduler).
 
-## iOS Release And Validation
+## Release And Validation
+
+### General
+
+- [`mobile-release-preparation.md`](mobile-release-preparation.md) - Automated mobile release branch, version bump, baseline profiles, and tagging flow.
+- [`sentry-release-automation.md`](sentry-release-automation.md) - Tag-driven Sentry release, commit association, and production deploy flow.
+- [`rustore-publishing.md`](rustore-publishing.md) - Automated RuStore publishing flow, secrets, approval gate, and fallback.
+
+### iOS
 
 - [`ios-validation-checklist.md`](ios-validation-checklist.md) - Pre-submission simulator, archive, device, and privacy-report validation.
 - [`ios-app-privacy.md`](ios-app-privacy.md) - Privacy-manifest and App Store Connect questionnaire guidance.
