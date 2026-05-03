@@ -82,7 +82,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 7555FF8F242A565B00829871 /* Build configuration list for PBXNativeTarget "iosApp" */;
 			buildPhases = (
-				36D762362E0051340037BBC0 /* ShellScript */,
+				36D762362E0051340037BBC0 /* Run Script */,
 				7555FF77242A565900829871 /* Sources */,
 				7555FF78242A565900829871 /* Frameworks */,
 				7555FF79242A565900829871 /* Resources */,
@@ -146,8 +146,9 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		36D762362E0051340037BBC0 /* ShellScript */ = {
+		36D762362E0051340037BBC0 /* Run Script */ = {
 			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
 			files = (
 			);
@@ -155,6 +156,7 @@
 			);
 			inputPaths = (
 			);
+			name = "Run Script";
 			outputFileListPaths = (
 			);
 			outputPaths = (
@@ -162,7 +164,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "cd \"$SRCROOT/..\"\nexport GRADLE_OPTS=\"-Xmx8G -XX:+UseParallelGC\"\n./gradlew :shared:integration:base:embedAndSignAppleFrameworkForXcode --no-daemon --no-configuration-cache\n";
+			shellScript = "cd \"$SRCROOT/..\"\nexport GRADLE_OPTS=\"-Xmx8G\"\n./gradlew :shared:integration:base:embedAndSignAppleFrameworkForXcode --no-daemon --no-configuration-cache\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
