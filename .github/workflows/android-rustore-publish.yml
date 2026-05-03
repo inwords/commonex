@@ -1,0 +1,146 @@
+name: Android RuStore Publish
+
+on:
+  push:
+    tags:
+      - "release/**"
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout tag
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 22
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v5
+
+      - name: Decode release keystore
+        env:
+          KEYSTORE_JKS_BASE64: ${{ secrets.KEYSTORE_JKS_BASE64 }}
+        run: printf '%s' "$KEYSTORE_JKS_BASE64" | base64 --decode > android/app/keystore.jks
+
+      - name: Build signed release bundle
+        env:
+          CI: "true"
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+        run: ./android/gradlew -p android --quiet :app:bundleRelease --no-daemon --no-configuration-cache
+
+      - name: Remove release keystore
+        if: always()
+        run: rm -f android/app/keystore.jks
+
+      - name: Validate RuStore Russian release notes
+        run: >
+          mkdir -p "$RUNNER_TEMP/rustore-release-bundle" &&
+          cp android/app/build/outputs/bundle/release/app-release.aab "$RUNNER_TEMP/rustore-release-bundle/app-release.aab" &&
+          python android/scripts/parse_release_notes.py
+          --file android/release-notes/ru-RU.txt
+          --max-length 5000
+          > "$RUNNER_TEMP/rustore-release-bundle/whats-new.txt"
+
+      - name: Upload RuStore bundle artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: rustore-release-bundle
+          path: ${{ runner.temp }}/rustore-release-bundle
+          retention-days: 90
+
+      - name: Write build summary
+        run: |
+          {
+            echo "## RuStore build"
+            echo "- Tag: \`${GITHUB_REF_NAME}\`"
+            echo "- Bundle artifact: \`rustore-release-bundle\`"
+            echo "- Release notes file: \`android/release-notes/ru-RU.txt\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: rustore-production
+    steps:
+      - name: Checkout tag
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Resolve Android package name
+        id: package
+        run: >
+          python android/scripts/release_version.py package-name
+          --android-build-file android/app/build.gradle.kts
+          --github-output "$GITHUB_OUTPUT"
+
+      - name: Download RuStore bundle artifact
+        uses: actions/download-artifact@v5
+        with:
+          name: rustore-release-bundle
+          path: ${{ runner.temp }}/rustore-release-bundle
+
+      - name: Publish to RuStore
+        id: publish
+        env:
+          RUSTORE_KEY_ID: ${{ secrets.RUSTORE_KEY_ID }}
+          RUSTORE_PRIVATE_KEY: ${{ secrets.RUSTORE_PRIVATE_KEY }}
+        run: |
+          AAB_PATH="$RUNNER_TEMP/rustore-release-bundle/app-release.aab"
+          WHATS_NEW_PATH="$RUNNER_TEMP/rustore-release-bundle/whats-new.txt"
+          if [ ! -f "$AAB_PATH" ] || [ ! -f "$WHATS_NEW_PATH" ]; then
+            echo "RuStore publish inputs are missing after artifact download." >&2
+            exit 1
+          fi
+          set -o pipefail
+          python android/scripts/rustore_publish.py \
+            --key-id "$RUSTORE_KEY_ID" \
+            --package-name "${{ steps.package.outputs.package_name }}" \
+            --aab-path "$AAB_PATH" \
+            --whats-new-file "$WHATS_NEW_PATH" \
+            2>&1 | tee "$RUNNER_TEMP/rustore-publish.log"
+
+      - name: Upload RuStore publish logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: rustore-publish-logs
+          path: ${{ runner.temp }}/rustore-publish.log
+          retention-days: 90
+
+      - name: Write publish summary
+        if: always()
+        run: |
+          {
+            echo "## RuStore publish"
+            echo "- Tag: \`${GITHUB_REF_NAME}\`"
+            echo "- Environment: \`rustore-production\`"
+            echo "- Result: \`${{ steps.publish.outcome }}\`"
+            echo "- Manual fallback: RuStore Console publish flow if API submission fails."
+          } >> "$GITHUB_STEP_SUMMARY"

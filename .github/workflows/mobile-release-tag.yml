@@ -1,0 +1,73 @@
+name: Mobile Release Tag
+
+on:
+  pull_request:
+    types:
+      - closed
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  tag:
+    if: github.event.pull_request.merged == true && startsWith(github.event.pull_request.head.ref, 'release/prep/')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create release bot token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ vars.RELEASE_BOT_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_BOT_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
+          permission-contents: write
+
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          token: ${{ steps.app-token.outputs.token }}
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Compute release tag
+        id: metadata
+        run: >
+          python android/scripts/release_version.py tag-from-branch
+          --branch "${{ github.event.pull_request.head.ref }}"
+          --github-output "$GITHUB_OUTPUT"
+
+      - name: Fail on tag conflict
+        run: |
+          if git ls-remote --exit-code --tags origin "${{ steps.metadata.outputs.tag_name }}" >/dev/null; then
+            echo "Release tag already exists: ${{ steps.metadata.outputs.tag_name }}" >&2
+            exit 1
+          fi
+
+      - name: Create release tag
+        run: git tag "${{ steps.metadata.outputs.tag_name }}" "${{ github.event.pull_request.merge_commit_sha }}"
+
+      - name: Push release tag
+        run: |
+          git remote set-url origin "https://x-access-token:${{ steps.app-token.outputs.token }}@github.com/${GITHUB_REPOSITORY}.git"
+          git push origin "refs/tags/${{ steps.metadata.outputs.tag_name }}"
+
+      - name: Write job summary
+        run: |
+          {
+            echo "## Mobile release tag"
+            echo "- Source branch: \`${{ github.event.pull_request.head.ref }}\`"
+            echo "- Merge commit: \`${{ github.event.pull_request.merge_commit_sha }}\`"
+            echo "- Tag: \`${{ steps.metadata.outputs.tag_name }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"

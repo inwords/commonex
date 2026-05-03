@@ -1,0 +1,150 @@
+name: Mobile Release Prepare
+
+on:
+  workflow_dispatch:
+    inputs:
+      date:
+        description: Release date in YYYY-MM-DD format
+        required: true
+        type: string
+      release_n:
+        description: Monthly release number
+        required: true
+        type: number
+      patch:
+        description: Patch number
+        required: true
+        default: 1
+        type: number
+
+permissions:
+  contents: write
+  pull-requests: write
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create release bot token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ vars.RELEASE_BOT_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_BOT_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
+          permission-contents: write
+          permission-pull-requests: write
+
+      - name: Checkout main
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          ref: main
+          persist-credentials: false
+          token: ${{ steps.app-token.outputs.token }}
+
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 22
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v5
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Accept Android SDK licenses
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses || true
+
+      - name: Compute release metadata
+        id: metadata
+        run: >
+          python android/scripts/release_version.py metadata
+          --date "${{ inputs.date }}"
+          --release-n "${{ inputs.release_n }}"
+          --patch "${{ inputs.patch }}"
+          --android-build-file android/app/build.gradle.kts
+          --github-output "$GITHUB_OUTPUT"
+
+      - name: Fail on duplicate branch or tag
+        run: |
+          if git ls-remote --exit-code --heads origin "${{ steps.metadata.outputs.branch_name }}" >/dev/null; then
+            echo "Release branch already exists: ${{ steps.metadata.outputs.branch_name }}" >&2
+            exit 1
+          fi
+          if git ls-remote --exit-code --tags origin "${{ steps.metadata.outputs.tag_name }}" >/dev/null; then
+            echo "Release tag already exists: ${{ steps.metadata.outputs.tag_name }}" >&2
+            exit 1
+          fi
+
+      - name: Configure git user
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Create release branch
+        run: git checkout -b "${{ steps.metadata.outputs.branch_name }}"
+
+      - name: Apply Android and iOS version bump
+        run: >
+          python android/scripts/release_version.py bump
+          --android-build-file android/app/build.gradle.kts
+          --ios-project-file android/iosApp/iosApp.xcodeproj/project.pbxproj
+          --version-name "${{ steps.metadata.outputs.version_name }}"
+          --version-code "${{ steps.metadata.outputs.version_code }}"
+
+      - name: Commit version bump
+        run: |
+          git add android/app/build.gradle.kts android/iosApp/iosApp.xcodeproj/project.pbxproj
+          git commit -m "Bump version to ${{ steps.metadata.outputs.version_name }}"
+
+      - name: Generate baseline and startup profiles
+        run: ./android/gradlew -p android --quiet :app:generateBaselineProfile
+
+      - name: Commit generated profiles
+        run: |
+          git add android/app/src/release/generated/baselineProfiles android/app/src/autotest/generated/baselineProfiles
+          git commit --allow-empty -m "Update baseline and startup profiles for version ${{ steps.metadata.outputs.version_name }}"
+
+      - name: Push release branch
+        run: |
+          git remote set-url origin "https://x-access-token:${{ steps.app-token.outputs.token }}@github.com/${GITHUB_REPOSITORY}.git"
+          git push --set-upstream origin "${{ steps.metadata.outputs.branch_name }}"
+
+      - name: Open release PR
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: >
+          gh pr create
+          --base main
+          --head "${{ steps.metadata.outputs.branch_name }}"
+          --title "${{ steps.metadata.outputs.pr_title }}"
+          --body "Automated mobile release preparation for ${{ steps.metadata.outputs.version_name }}."
+
+      - name: Write job summary
+        run: |
+          {
+            echo "## Mobile release prepare"
+            echo "- Version name: \`${{ steps.metadata.outputs.version_name }}\`"
+            echo "- Version code: \`${{ steps.metadata.outputs.version_code }}\`"
+            echo "- Android version updated: \`android/app/build.gradle.kts\`"
+            echo "- iOS version updated: \`android/iosApp/iosApp.xcodeproj/project.pbxproj\`"
+            echo "- Branch: \`${{ steps.metadata.outputs.branch_name }}\`"
+            echo "- Tag on merge: \`${{ steps.metadata.outputs.tag_name }}\`"
+            echo "- PR title: \`${{ steps.metadata.outputs.pr_title }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
