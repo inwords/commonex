@@ -1,0 +1,4 @@
+interface:
+  display_name: "Update Backend Dependencies"
+  short_description: "Update CommonEx backend npm and container dependency bundles"
+  default_prompt: "Use $update-backend-dependencies to discover backend dependency updates, collect release notes, and prepare numbered bundles."

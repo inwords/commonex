@@ -1,0 +1,4 @@
+interface:
+  display_name: "Update Web Dependencies"
+  short_description: "Update CommonEx web npm and runtime image dependency bundles"
+  default_prompt: "Use $update-web-dependencies to discover web dependency updates, collect release notes, and prepare numbered bundles."

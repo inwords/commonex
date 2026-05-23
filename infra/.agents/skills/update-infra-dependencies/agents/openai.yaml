@@ -1,0 +1,4 @@
+interface:
+  display_name: "Update Infra Dependencies"
+  short_description: "Update CommonEx infra image and custom build dependency bundles"
+  default_prompt: "Use $update-infra-dependencies to discover infra image updates, collect release notes, and prepare numbered bundles."

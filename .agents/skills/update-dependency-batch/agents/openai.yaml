@@ -1,0 +1,4 @@
+interface:
+  display_name: "Update Dependency Batch"
+  short_description: "Discover, propose, and apply CommonEx dependency update bundles"
+  default_prompt: "Use $update-dependency-batch to discover dependency updates, gather release notes, stop for my selection, and then apply the chosen bundles."
