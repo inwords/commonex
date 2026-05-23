@@ -44,28 +44,13 @@ This document is the canonical mobile reference for the KMM offline-first model,
 - `HandleDeeplinks` matches incoming URLs against Navigation deep-link definitions and navigates to the matching destination.
 - `JoinEventViewModel` auto-triggers join when the incoming deep link already contains a token or pin code.
 
-### iOS Universal Links — AASA file missing (as of 2026-03-21)
+### iOS Universal Links — AASA on production
 
-iOS Universal Links require the server to host an Apple App Site Association file at `https://commonex.ru/.well-known/apple-app-site-association`. Currently the server returns an HTML page (Next.js fallback) instead of the required JSON. Without a valid AASA file, iOS will never open Universal Links in the app — they will always open in Safari.
+iOS Universal Links require `https://commonex.ru/.well-known/apple-app-site-association` to return **200** with `Content-Type: application/json`.
 
-**To fix**, the server must serve the following at `/.well-known/apple-app-site-association` with `Content-Type: application/json`:
+Production nginx serves the file from the host path mounted in `infra/docker-compose-prod.yml` (same layout as `assetlinks.json`).
 
-```json
-{
-  "applinks": {
-    "details": [
-      {
-        "appIDs": ["<TEAM_ID>.<BUNDLE_ID>"],
-        "components": [
-          { "/": "/event/*" }
-        ]
-      }
-    ]
-  }
-}
-```
-
-Replace `<TEAM_ID>` and `<BUNDLE_ID>` with the actual Apple Developer Team ID and the app's bundle identifier. This is a server/Next.js configuration fix — the iOS app code (`onContinueUserActivity` handler) is already correctly implemented.
+The iOS app (`applinks:commonex.ru` in `iosApp.entitlements`, `onOpenURL` / `onContinueUserActivity` in `iOSApp.swift`) is already wired; failures are usually missing or stale AASA on the server, or iOS association cache (reinstall the app after AASA changes).
 
 ## Share Links
 

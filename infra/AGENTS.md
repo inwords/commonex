@@ -78,7 +78,7 @@ docker compose -f infra/docker-compose-prod.yml ps
 
 - **Wildcard certificate** for `*.commonex.ru` (Certbot, DNS-01 challenge)
 - **Main domain** (`commonex.ru`, `www.commonex.ru`): HTTP 80 and HTTPS 443
-- **API and gRPC subdomains** (`dev-api.commonex.ru`, `grpc.commonex.ru`): HTTPS-only
+- **API, Grafana, and gRPC subdomains** (`dev-api.commonex.ru`, `gf.commonex.ru`, `grpc.commonex.ru`): HTTPS-only
 - **HTTP/3 bootstrap**: production uses DNS HTTPS/SVCB record to advertise HTTP/3 before first `Alt-Svc` response
 - **Alt-Svc fallback**: nginx advertises `Alt-Svc: h3=":443"; ma=86400` on HTTPS responses
 - **QUIC requirements**: nginx listens on `443` TCP+UDP; Compose publishes both. Removing UDP breaks HTTP/3.
@@ -86,7 +86,9 @@ docker compose -f infra/docker-compose-prod.yml ps
 - **TLS**: 1.3-only (`ssl_protocols TLSv1.3`), `ssl_early_data on`
 - **TLS certificate compression**: requires OpenSSL with `enable-brotli` and `enable-zstd`
 - **h2c to upstream**: `proxy_http_version 2`; backend uses Fastify `http2: true`; web container uses embedded nginx `http2 on`
+- **Grafana** (`gf.commonex.ru`): dedicated HTTPS `server` block; `GF_SERVER_ROOT_URL=https://gf.commonex.ru/`; nginx proxies to `grafana:3000` over HTTP
 - **gRPC transport**: `grpc.commonex.ru` terminated by dedicated server block with `grpc_pass`; not an `/api` route
+- **Mobile app links**: `/.well-known/apple-app-site-association` and `/.well-known/assetlinks.json` are served from `/etc/commonex/www/` on the host (see `infra/www/`). Copy `infra/www/apple-app-site-association` to the server before deploy
 - **ECH**: not yet enabled; requires OpenSSL 4.0
 
 ### OpenTelemetry

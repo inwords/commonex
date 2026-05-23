@@ -201,7 +201,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 500M
+          memory: 650M
           cpus: '0.80'
         reservations:
           memory: 250M
@@ -214,7 +214,7 @@ services:
     environment:
       - GF_SECURITY_ADMIN_USER=${GF_SECURITY_ADMIN_USER}
       - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD}
-      - GF_SERVER_ROOT_URL=https://commonex.ru/grafana/
+      - GF_SERVER_ROOT_URL=https://gf.commonex.ru/
       - GF_SERVER_PROTOCOL=http
       - POSTGRES_DATABASE=${POSTGRES_DATABASE}
       - POSTGRES_USER_NAME=${POSTGRES_USER_NAME}
