@@ -122,6 +122,7 @@ services:
       - /etc/commonex/ssl/certbot/archive/commonex.ru:/etc/nginx/ssl/archive/commonex.ru:ro
       - /etc/commonex/www/certbot/:/var/www/certbot/:ro
       - /etc/commonex/www/assetlinks.json:/var/www/assetlinks.json:ro
+      - /etc/commonex/www/apple-app-site-association:/var/www/apple-app-site-association:ro
     depends_on:
       nest-backend-green:
         condition: service_healthy
