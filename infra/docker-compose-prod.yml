@@ -196,12 +196,12 @@ services:
       - monitoring-network
 
   grafana:
-    image: grafana/grafana:13.0.1
+    image: grafana/grafana:13.0.1-security-01
     container_name: grafana
     deploy:
       resources:
         limits:
-          memory: 350M
+          memory: 500M
           cpus: '0.80'
         reservations:
           memory: 250M
