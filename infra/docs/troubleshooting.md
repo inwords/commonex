@@ -26,6 +26,7 @@
 - **No traces appearing**: Check collector configuration and service connectivity
 - **Collector not receiving data**: Verify service instrumentation and collector endpoints
 - **Review collector logs**: `docker compose -f infra/docker-compose-prod.yml logs otel-collector`
+- **OTel metrics export 503 / VictoriaMetrics `storage is in read-only mode`**: VictoriaMetrics stopped accepting writes because free disk on the volume for `victoriametrics_data` fell below `-storage.minFreeDiskSpaceBytes` (default 10MB). Free host/volume space (`df -h`, `docker system df`), then restart `victoriametrics`. Collector retries are expected until writes succeed again.
 - **Delta metrics with VictoriaMetrics**: If a source emits delta temporality, add `deltatocumulativeprocessor` in the
   collector metrics pipeline before `otlphttp/victoriametrics`.
 - **Metrics appear in Grafana after ~1 minute**:
