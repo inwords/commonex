@@ -24,7 +24,7 @@ kotlin {
 
 android {
     namespace = "ru.commonex"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "ru.commonex"
