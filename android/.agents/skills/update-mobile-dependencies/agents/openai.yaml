@@ -1,0 +1,4 @@
+interface:
+  display_name: "Update Mobile Dependencies"
+  short_description: "Discover mobile/KMM updates; summary + full release notes per bundle; stop; then apply"
+  default_prompt: "Use $update-mobile-dependencies to discover mobile/KMM updates, write each bundle with a summary then full numbered release notes (mark mobile-relevant changelog lines with 📱 at the end), stop for my selection, then apply chosen bundles."

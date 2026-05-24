@@ -5,6 +5,8 @@ description: Use when updating npm dependencies, UI library versions, framework 
 
 # Update Web Dependencies
 
+Follow `.agents/skills/update-dependency-batch` for the mandatory four-phase workflow.
+
 ## Version Sources In Repo
 
 Read versions from:
@@ -37,20 +39,13 @@ Default bundle boundaries:
 
 Other packages may be proposed individually when there is no coupling.
 
-## Proposal Rules
+## Proposal
 
-Before editing, present numbered bundles with:
-- current and target versions
-- affected manifest entries or image tags
-- bundle reason
-- concise impact summary
-- source links
+Follow `.agents/skills/update-dependency-batch` (one `## N — …` section per bundle: **Summary**, then full numbered release notes). **Stop** after the proposal; do not edit manifests until the user selects bundles.
 
-If an upstream note only says another dependency was bumped, follow the chain recursively until the impact is understandable.
+## Apply (after user selection)
 
-## Apply Rules
-
-When the user selects bundles:
+When the user selects bundles in a follow-up message:
 - update `package.json` and regenerate `package-lock.json`
 - keep the existing architecture and feature-sliced layout intact
 - apply migration or deprecation-driven refactors in touched code
@@ -58,11 +53,6 @@ When the user selects bundles:
 
 ## Validation
 
-Run from `web/`:
-
-```bash
-npm run lint
-npm run build
-```
+Follow project's validation instructions.
 
 If a selected update changes App Router, export behavior, or route serving assumptions, mention the operational impact explicitly.

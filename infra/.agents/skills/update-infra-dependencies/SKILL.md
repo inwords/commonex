@@ -5,6 +5,8 @@ description: Use when updating Docker image tags, custom infrastructure build in
 
 # Update Infra Dependencies
 
+Follow `.agents/skills/update-dependency-batch` for the mandatory four-phase workflow.
+
 ## Version Sources In Repo
 
 Read versions from:
@@ -39,20 +41,13 @@ Default bundle boundaries:
 
 Independent image bumps are acceptable when upstream compatibility does not couple them.
 
-## Proposal Rules
+## Proposal
 
-Before editing, present numbered bundles with:
-- current and target versions
-- affected compose services or Dockerfile args
-- bundle reason
-- concise impact summary
-- source links
+Follow `.agents/skills/update-dependency-batch` (one `## N — …` section per bundle: **Summary**, then full numbered release notes). **Stop** after the proposal; do not edit manifests until the user selects bundles.
 
-If a release note only points to another upgraded dependency, follow that chain recursively and roll the result into the proposal.
+## Apply (after user selection)
 
-## Apply Rules
-
-When the user selects bundles:
+When the user selects bundles in a follow-up message:
 - update the exact image tags or Dockerfile args
 - adjust configs when upstream defaults or directives changed
 - call out any operational migration steps instead of hiding them in code changes
@@ -60,18 +55,6 @@ When the user selects bundles:
 
 ## Validation
 
-Run from repo root:
-
-```bash
-docker compose -f infra/docker-compose-prod.yml config
-docker compose -f infra/docker-compose-prod.yml ps
-```
-
-When custom images changed, also build the affected service images:
-
-```bash
-docker compose -f infra/docker-compose-prod.yml build nginx
-docker compose -f infra/docker-compose-prod.yml build otel-collector
-```
+Follow project's validation instructions.
 
 If an image tag update was selected for a service without a custom Dockerfile, config validation is the minimum gate unless the user asks for a live pull or deploy check.

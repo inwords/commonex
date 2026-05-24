@@ -1,89 +1,83 @@
 ---
 name: update-dependency-batch
-description: Use when updating dependency or container versions across CommonEx projects and the work should start with internet verification, release-note gathering, a user selection gate, and then implementation.
+description: Use when updating dependency or container versions across CommonEx projects and the work should start with internet verification, a per-bundle summary plus full release-note output, a user selection gate, and then implementation.
 ---
 
 # Update Dependency Batch
 
-## Overview
+## Workflow
 
-Use this skill to run the CommonEx dependency-update workflow without skipping discovery. The job is split into four mandatory stages: discover versions, gather release notes, stop and ask the user which bundles to update, then apply only the selected updates.
+1. Discover current and target versions (official sources; record one source URL per bundle).
+2. Write the proposal (short summary per bundle, then full release notes for that bundle).
+3. **Stop.** Do not edit version files until the user names bundle numbers in a follow-up message.
+4. Apply only the selected bundles, then run project validation commands.
 
-## Required Workflow
+## Proposal output format
 
-1. **Check current available versions on the internet**
-   - Use official or primary sources first: vendor release pages, changelogs, package registries, Docker image tags, and official compatibility matrices.
-   - Record the exact source URL for every proposed update bundle.
-   - If the current repo version is pre-release, another pre-release is acceptable only when it is not a lower stability tier.
+Use **one section per bundle**. Do not split into separate “menu” and “release notes” parts.
 
-2. **Gather release notes**
-   - Collect notes for every candidate version jump.
-   - Prefer official release notes or changelogs over third-party summaries.
-   - Extract the changes that matter for this repo: deprecations, breaking changes, new runtime requirements, config changes, build-tool changes, and useful features.
+For each bundle `N`:
 
-3. **Stop and prompt the user**
-   - Present a numbered list of candidate updates or the smallest valid update bundles.
-   - One number per independently selectable bundle.
-   - For each numbered item, include:
-     - current version and proposed version
-     - why it is bundled
-     - concise release-note summary
-     - source links
-   - Do not edit version files before the user selects bundles.
+```markdown
+## N — <bundle name>
 
-4. **Apply selected updates**
-   - Update only the bundles chosen by the user.
-   - Use new APIs and useful changes when they clearly improve the touched code.
-   - Refactor deprecated usages introduced or exposed by the upgrade.
-   - If a warning cannot be resolved confidently, stop and ask instead of suppressing it.
-   - Keep the worktree no dirtier than it was before the update work started.
+**Current → target:** …
+**Keys / files:** …
+**Why together:** … (omit if standalone)
+**Source:** one URL
 
-## Stability Policy
+**Summary:** …
 
-Treat stability tiers as:
-- stable
-- rc
-- beta
-- alpha
-- preview, eap, snapshot, dev
+1. <full changelog line or paragraph>
+2. …
+```
 
-Rules:
-- never suggest moving from a higher tier to a lower tier
-- stable must not be moved to pre-release unless the user explicitly asks
-- pre-release may move sideways or upward in stability, for example beta to newer beta, rc, or stable
-- if an update is omitted, provide a concrete reason; do not silently filter it out
+**Summary** (required, before the numbered list):
 
-## Recursive Release Notes
+- A concise digest of what matters for this repo: breaking changes, deprecations, migrations, new runtime/toolchain requirements, and notable fixes or features.
+- Paraphrase and roll up here; this is the only place summarization is allowed.
 
-Some upstream notes are only a pointer, for example:
-- "updated sentry-java from X to Y"
-- "bumped OpenTelemetry SDK"
-- "updated embedded nginx dependency"
+**Numbered changelog** (required, after the summary):
 
-When that happens:
-- follow the referenced dependency release notes recursively
-- continue until you reach meaningful notes, a clear compatibility matrix, or a cycle/noise boundary
-- keep a short chain record such as `sentry-android -> sentry-java`
-- surface the rolled-up impact in the numbered proposal, not just the shallow note
+- Include **all** official changelog content for `current → target`.
+- **Do not summarize or paraphrase** inside the numbered list — copy upstream wording (minus allowed metadata stripping).
+- Restart numbering at `1` for each bundle.
+- When stripping metadata from copied text, you **may remove**:
+  - URLs and “full changelog” / diff link lines
+  - commit hashes and compare links
+  - contributor / thanks / reaction sections
+  - download counts, asset tables, publish timestamps
+  - PR numbers, issue/ticket IDs, and review references (e.g. `(#1234)`, `b/123`, `[KTOR-8421]`, `(I70ad8, b/462092640)`)
+- **Keep** section headings, breaking-change / deprecation / migration wording, and version or compatibility requirements.
 
-Stop recursion when:
-- you hit a cycle
-- the remaining notes are clearly repetitive
-- the dependency is purely internal and has no separate public notes
-- the chain no longer changes upgrade risk for this repo
+If a changelog only points at another dependency, mention the bump in **Summary**, then follow it recursively and continue the numbered list under a short `Nested: <name> <version>` subheading in the same bundle. Include full nested changelog text in the numbered list; do not replace nested notes with summary-only text. Stop on cycles, repetition, or missing public notes (say so in Summary and in the numbered list).
 
-## Output Rules
+After all bundles, add short lists if needed:
 
-- Be concise and precise.
-- Do not duplicate the same release-note detail in multiple sections.
-- Do not guess when the upstream source is unclear; mark it and ask.
-- If multiple projects are involved, keep one combined numbered menu grouped by project.
+- **Already on latest** — dependencies with nothing to propose.
+- **Excluded** — candidates omitted with a concrete reason (never silent skips).
 
-## Project Routing
+End with: ask the user which bundle numbers to apply (e.g. `2,3,4`, `all`, `all-safe`). Do not edit manifests until they reply.
 
-- Use `update-android-dependencies` for `android/`
-- Use `update-backend-dependencies` for `backend/`
-- Use `update-web-dependencies` for `web/`
-- Use `update-infra-dependencies` for `infra/`
+## Stability policy
 
-The shared skill owns the workflow. Project skills own the manifests, bundle rules, and validation commands.
+Tiers: stable → rc → beta → alpha → preview / eap / snapshot / dev.
+
+- Never move to a lower tier.
+- Do not move stable to pre-release unless the user asks.
+- Pre-release may move sideways or up within the same line.
+- If omitting a candidate, state why.
+
+## Apply rules (after user selection)
+
+- Update only chosen bundles.
+- Refactor deprecations in touched code when reasonable.
+- Ask instead of guessing or suppressing warnings.
+- Run project-skill validation after edits.
+
+## Project routing
+
+- `update-mobile-dependencies` → `android/`
+- `update-backend-dependencies` → `backend/`
+- `update-web-dependencies` → `web/`
+- `update-infra-dependencies` → `infra/`

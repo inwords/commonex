@@ -5,6 +5,8 @@ description: Use when updating npm dependencies, toolchain versions, or containe
 
 # Update Backend Dependencies
 
+Follow `.agents/skills/update-dependency-batch` for the mandatory four-phase workflow.
+
 ## Version Sources In Repo
 
 Read versions from:
@@ -36,20 +38,13 @@ Default bundle boundaries:
 
 Single-package updates are fine when there is no peer or framework coupling.
 
-## Proposal Rules
+## Proposal
 
-Before editing, present numbered bundles with:
-- current and target versions
-- affected manifest entries or Docker image tags
-- bundle reason
-- concise impact summary
-- source links
+Follow `.agents/skills/update-dependency-batch` (one `## N — …` section per bundle: **Summary**, then full numbered release notes). **Stop** after the proposal; do not edit manifests until the user selects bundles.
 
-If a top-level changelog only says it bumped another package, follow that chain recursively and summarize the net impact.
+## Apply (after user selection)
 
-## Apply Rules
-
-When the user selects bundles:
+When the user selects bundles in a follow-up message:
 - update `package.json`, regenerate `package-lock.json`, and keep pinned exact versions
 - refactor deprecated APIs exposed by the chosen upgrades
 - update Docker base images when selected and reconcile runtime assumptions if Node or Alpine changed
@@ -57,12 +52,6 @@ When the user selects bundles:
 
 ## Validation
 
-Run from `backend/`:
-
-```bash
-npm run lint
-npm run test
-npm run build
-```
+Follow project's validation instructions.
 
 If a selected bundle changes migrations, transport behavior, or runtime bootstrap, call that out explicitly in the report.

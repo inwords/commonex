@@ -1,4 +1,0 @@
-interface:
-  display_name: "Update Android Dependencies"
-  short_description: "Update CommonEx Android and KMM dependency bundles with release-note review"
-  default_prompt: "Use $update-android-dependencies to discover Android/KMM dependency updates, gather release notes, and prepare numbered update bundles."
