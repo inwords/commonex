@@ -27,7 +27,6 @@
 - **Build fails after dependency changes:** Run `./gradlew --quiet clean` first
 - **KSP errors:** Usually resolved by clean build
 - **Version conflicts:** Check `gradle/shared.versions.toml` for centralized versions
-- **iOS build issues:** Ensure Xcode is properly configured for the `iosApp` module
 
 ## Build Issues
 

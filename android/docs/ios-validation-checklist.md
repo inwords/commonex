@@ -4,10 +4,10 @@ Use this checklist to validate the iOS app before TestFlight or App Store submis
 
 ## Prerequisites
 
-- macOS with Xcode 16+
-- Open `android/iosApp/iosApp.xcodeproj` when using Xcode UI flows such as Archive, Organizer, and Privacy Report generation.
-- Gradle wrapper (run from `android/` directory)
-- For device tests: physical iPhone connected
+- Toolchain: [`local-agent-prerequisites.md`](local-agent-prerequisites.md#ios-local-prerequisites)
+- Open `android/iosApp/iosApp.xcodeproj` for Archive, Organizer, and Privacy Report flows
+- Gradle wrapper (run from `android/`)
+- Physical iPhone for device tests
 - `DEVELOPMENT_TEAM` is hardcoded in the `.pbxproj` file. This is intentional — the project has a single developer, so signing-config indirection (`.xcconfig`, CI build settings) is unnecessary.
 
 ## 1. Simulator Build
@@ -16,16 +16,7 @@ From repository root:
 
 ```bash
 cd android/iosApp
-xcodebuild -scheme iosApp -destination 'platform=iOS Simulator,name=iPhone 16 Pro Max,OS=18.5' build
-```
-
-The exact simulator destination above matches the current CI workflow on March 9, 2026. If your local Xcode installation does not provide that runtime, use another available iOS Simulator destination on Xcode 16+ for local validation and keep the CI command
-unchanged unless you also update `.github/workflows/android.yml`.
-
-Or via Gradle from `android/`:
-
-```bash
-./gradlew --quiet :shared:integration:base:linkDebugFrameworkIosSimulatorArm64
+xcodebuild -scheme iosApp -destination 'platform=iOS Simulator,name=iPhone 17 Pro Max,OS=26.4.1' build
 ```
 
 ## 2. Release Archive Build
@@ -75,16 +66,6 @@ On a physical device, verify:
 - [ ] Generate Privacy Report: Xcode Organizer → Control-click archive → Generate Privacy Report
 - [ ] Confirm App Store Connect privacy questionnaire answers (see `ios-app-privacy.md`)
 - [ ] Verify version/build aligned with Android (see `ios-versioning.md`)
-
-## CI Reference
-
-The GitHub workflow `android.yml` runs `build_ios` on `macos-latest` with:
-
-```yaml
-xcodebuild -scheme iosApp -destination 'platform=iOS Simulator,name=iPhone 16 Pro Max,OS=18.5' build
-```
-
-This validates simulator build only. Archive and device checks must be done manually before submission.
 
 ## Related Docs
 
