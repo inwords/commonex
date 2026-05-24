@@ -17,7 +17,7 @@ class SharedLibraryPlugin : Plugin<Project> {
         val kotlin = project.extensions.getByType<KotlinAndroidProjectExtension>()
 
         android.apply {
-            compileSdk = 36
+            compileSdk = 37
             defaultConfig {
                 minSdk = 26
                 testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

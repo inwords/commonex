@@ -27,7 +27,7 @@ class SharedKmmLibraryPlugin : Plugin<Project> {
         }
 
         kotlinAndroid.apply {
-            compileSdk = 36
+            compileSdk = 37
             minSdk = 26
 
             compilations.configureEach {

@@ -20,7 +20,7 @@ kotlin {
 
 android {
     namespace = "ru.commonex.baselineprofile"
-    compileSdk = 36
+    compileSdk = 37
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
