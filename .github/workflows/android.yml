@@ -177,7 +177,7 @@ jobs:
             ${{ github.workspace }}/android/shared/integration/base/build/outputs/androidTest-results/
 
   build_ios:
-    runs-on: macos-latest
+    runs-on: macos-26
     steps:
       - name: Checkout sources
         uses: actions/checkout@v6
@@ -196,8 +196,8 @@ jobs:
       - name: Setup Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: '16'
+          xcode-version: '26'
 
       - name: Build iosApp using Xcode
-        run: xcodebuild -scheme iosApp -destination 'platform=iOS Simulator,name=iPhone 16 Pro Max,OS=18.5' build
+        run: xcodebuild -scheme iosApp -destination 'platform=iOS Simulator,name=iPhone 17 Pro Max,OS=26.4.1' build
         working-directory: ./android/iosApp
