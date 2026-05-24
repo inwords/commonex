@@ -43,6 +43,7 @@ Use this index as the Android and iOS operational doc map. Keep detailed guidanc
 - [`ios-validation-checklist.md`](ios-validation-checklist.md) - Pre-submission simulator, archive, device, and privacy-report validation.
 - [`ios-app-privacy.md`](ios-app-privacy.md) - Privacy-manifest and App Store Connect questionnaire guidance.
 - [`ios-versioning.md`](ios-versioning.md) - iOS version/build policy and Android alignment.
+- [`ios-native-text-input.md`](ios-native-text-input.md) - Future opt-in: native UIKit text input for iOS fields (CMP 1.11 `usingNativeTextInput`).
 
 ## Benchmarking And Research
 

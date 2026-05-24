@@ -57,6 +57,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.plus
 import kotlin.time.Duration.Companion.milliseconds
 
+@OptIn(ExperimentalStdlibApi::class)
 internal class ExpensesViewModel(
     private val navigationController: NavigationController,
     private val getCurrentEventStateUseCase: GetCurrentEventStateUseCase,
@@ -321,7 +322,7 @@ internal class ExpensesViewModel(
 
                     recentlyRemovedEventJob = viewModelScope.launch {
                         recentlyRemovedEventName.value = removedEvent.name
-                        delay(3000)
+                        delay(3000.milliseconds)
                         recentlyRemovedEventName.value = null
                     }
                     break
