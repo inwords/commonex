@@ -51,12 +51,12 @@ jobs:
           java-version: 22
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.13"
 
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v5
+        uses: gradle/actions/setup-gradle@v6
 
       - name: Decode release keystore
         env:
@@ -113,7 +113,7 @@ jobs:
           fetch-depth: 1
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.13"
 
@@ -125,7 +125,7 @@ jobs:
           --github-output "$GITHUB_OUTPUT"
 
       - name: Download RuStore bundle artifact
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v8
         with:
           name: rustore-release-bundle
           path: ${{ runner.temp }}/rustore-release-bundle
