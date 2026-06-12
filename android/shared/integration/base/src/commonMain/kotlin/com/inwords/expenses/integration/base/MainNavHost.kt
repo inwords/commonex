@@ -93,7 +93,7 @@ fun MainNavHost(
             rememberSaveableStateHolderNavEntryDecorator(),
             rememberViewModelStoreNavEntryDecorator()
         ),
-        onBack = backStack::removeLastOrNull,
+        onBack = navigationController::popBackStack,
         sceneStrategies = sceneStrategies,
         entryProvider = remember(modules) {
             entryProvider {

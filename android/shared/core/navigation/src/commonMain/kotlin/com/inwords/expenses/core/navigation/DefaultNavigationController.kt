@@ -31,7 +31,11 @@ internal class DefaultNavigationController() : AttachableNavigationController {
     }
 
     override fun popBackStack() {
-        getBackStack().removeLastOrNull()
+        getBackStack().apply {
+            if (size > 1) {
+                removeAt(lastIndex)
+            }
+        }
     }
 
     override fun popBackStack(toDestination: Destination, inclusive: Boolean) {
