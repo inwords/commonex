@@ -11,6 +11,7 @@ import com.inwords.expenses.feature.events.domain.model.EventDetails
 import com.inwords.expenses.feature.events.domain.model.Person
 import com.ionspin.kotlin.bignum.decimal.BigDecimal
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.justRun
 import io.mockk.mockk
 import io.mockk.verify
@@ -163,6 +164,36 @@ internal class JoinEventViewModelTest {
         val state = viewModel.state.value
         val joining = assertIs<JoinEventPaneUiModel.EventJoiningState.Error>(state.joining)
         assertEquals("error_message", joining.message)
+    }
+
+    @Test
+    fun onConfirmClicked_withoutAccessCodeOrToken_doesNotJoin() = runTest {
+        val viewModel = createViewModel(viewModelScope = backgroundScope)
+        runCurrent()
+        advanceUntilIdle()
+
+        viewModel.onEventIdChanged("01EV")
+        viewModel.onConfirmClicked()
+        runCurrent()
+        advanceUntilIdle()
+
+        coVerify(exactly = 0) { joinEventUseCase.joinEvent(any(), any(), any()) }
+        assertIs<JoinEventPaneUiModel.EventJoiningState.None>(viewModel.state.value.joining)
+    }
+
+    @Test
+    fun onConfirmClicked_withoutEventId_doesNotJoin() = runTest {
+        val viewModel = createViewModel(viewModelScope = backgroundScope)
+        runCurrent()
+        advanceUntilIdle()
+
+        viewModel.onEventAccessCodeChanged("1234")
+        viewModel.onConfirmClicked()
+        runCurrent()
+        advanceUntilIdle()
+
+        coVerify(exactly = 0) { joinEventUseCase.joinEvent(any(), any(), any()) }
+        assertIs<JoinEventPaneUiModel.EventJoiningState.None>(viewModel.state.value.joining)
     }
 
     @Test

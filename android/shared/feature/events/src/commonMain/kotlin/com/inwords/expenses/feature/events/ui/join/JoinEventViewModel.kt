@@ -70,6 +70,12 @@ internal class JoinEventViewModel(
     }
 
     fun onConfirmClicked(eventToken: String? = null) {
+        val currentState = state.value
+        val accessCode = currentState.eventAccessCode.ifBlank { null }.takeIf { eventToken == null }
+        if (currentState.eventId.isBlank() || (accessCode == null && eventToken == null)) {
+            return
+        }
+
         confirmJob?.cancel()
 
         val state = state.updateAndGet { currentState ->
@@ -78,7 +84,7 @@ internal class JoinEventViewModel(
         confirmJob = viewModelScope.launch {
             val result = joinEventUseCase.joinEvent(
                 eventServerId = state.eventId,
-                accessCode = state.eventAccessCode.ifBlank { null }.takeIf { eventToken == null },
+                accessCode = accessCode,
                 token = eventToken,
             )
 
