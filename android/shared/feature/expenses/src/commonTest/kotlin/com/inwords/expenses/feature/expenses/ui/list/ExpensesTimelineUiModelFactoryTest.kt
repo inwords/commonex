@@ -13,6 +13,13 @@ import com.inwords.expenses.feature.expenses.domain.model.ExpenseType
 import com.inwords.expenses.feature.expenses.domain.model.ExpensesDetails
 import com.ionspin.kotlin.bignum.decimal.BigDecimal
 import com.ionspin.kotlin.bignum.decimal.toBigDecimal
+import expenses.shared.feature.expenses.generated.resources.Res
+import expenses.shared.feature.expenses.generated.resources.expenses_status_edited
+import expenses.shared.feature.expenses.generated.resources.expenses_status_edited_on
+import expenses.shared.feature.expenses.generated.resources.expenses_status_reverted
+import expenses.shared.feature.expenses.generated.resources.expenses_status_reverted_on
+import expenses.shared.feature.expenses.generated.resources.expenses_today
+import expenses.shared.feature.expenses.generated.resources.expenses_yesterday
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.TimeZone
 import org.jetbrains.compose.resources.StringResource
@@ -231,25 +238,85 @@ internal class ExpensesTimelineUiModelFactoryTest {
         assertEquals(listOf("2026-03-28", "2026-03-27"), state.daySections.map { it.dayKey })
     }
 
+    @Test
+    fun `create marks replaced and reverted original operations with correction dates`() = runTest {
+        val original = expense(
+            expenseId = 1L,
+            expenseType = ExpenseType.Spending,
+            totalAmount = 25,
+            timestamp = "2026-03-28T10:00:00Z",
+            description = "Original",
+        )
+        val replacement = expense(
+            expenseId = 2L,
+            expenseType = ExpenseType.Spending,
+            totalAmount = 30,
+            timestamp = "2026-06-12T11:00:00Z",
+            description = "Replacement",
+            replacesExpenseId = original.expenseId,
+        )
+        val reverted = expense(
+            expenseId = 3L,
+            expenseType = ExpenseType.Spending,
+            totalAmount = 10,
+            timestamp = "2026-03-28T12:00:00Z",
+            description = "Reverted",
+        )
+        val reversal = expense(
+            expenseId = 4L,
+            expenseType = ExpenseType.Replenishment,
+            totalAmount = -10,
+            timestamp = "2026-06-13T13:00:00Z",
+            description = "Reversal",
+            revertsExpenseId = reverted.expenseId,
+        )
+
+        val state = createFactory(
+            timeZone = TimeZone.UTC,
+            now = "2026-03-28T12:00:00Z",
+        ).create(
+            expensesDetails = expensesDetails(listOf(original, replacement, reverted, reversal)),
+            currentPersonId = currentPerson.id,
+            debts = emptyList(),
+        )
+
+        val uiExpenses = state.daySections.flatMap { it.expenses }
+        assertEquals("Edited on 12 June 2026", uiExpenses.first { it.expenseId == original.expenseId }.statusText)
+        assertEquals("Reverted on 13 June 2026", uiExpenses.first { it.expenseId == reverted.expenseId }.statusText)
+        assertEquals(listOf(original.expenseId, reverted.expenseId), uiExpenses.map { it.expenseId })
+        assertEquals("40 EUR", state.totalSpending)
+    }
+
     private fun createFactory(
         timeZone: TimeZone,
         now: String,
     ): ExpensesTimelineUiModelFactory {
-        var stringRequestCount = 0
-        return ExpensesTimelineUiModelFactory(
-            stringProvider = object : StringProvider {
-                override suspend fun getString(stringResource: StringResource): String {
-                    return when (stringRequestCount++) {
-                        0 -> "Today"
-                        1 -> "Yesterday"
-                        else -> error("Unexpected string resource request: $stringRequestCount")
-                    }
+        val stringProvider = object : StringProvider {
+            override suspend fun getString(stringResource: StringResource): String {
+                return when (stringResource) {
+                    Res.string.expenses_today -> "Today"
+                    Res.string.expenses_yesterday -> "Yesterday"
+                    Res.string.expenses_status_edited -> "Edited"
+                    Res.string.expenses_status_reverted -> "Reverted"
+                    else -> error("Unexpected string resource request: ${stringResource.key}")
                 }
+            }
 
-                override suspend fun getString(stringResource: StringResource, vararg formatArgs: Any): String {
-                    return getString(stringResource)
+            override suspend fun getString(stringResource: StringResource, vararg formatArgs: Any): String {
+                return when (stringResource) {
+                    Res.string.expenses_status_edited_on -> "Edited on ${formatArgs.single()}"
+                    Res.string.expenses_status_reverted_on -> "Reverted on ${formatArgs.single()}"
+                    else -> getString(stringResource)
                 }
-            },
+            }
+        }
+        return ExpensesTimelineUiModelFactory(
+            correctionStatusFactory = ExpenseCorrectionStatusTextFactory(
+                stringProvider = stringProvider,
+                timeZoneProvider = { timeZone },
+                localeProvider = { Locale("en") },
+            ),
+            stringProvider = stringProvider,
             timeZoneProvider = { timeZone },
             localeProvider = { Locale("en") },
             nowProvider = { Instant.parse(now) },
@@ -270,6 +337,8 @@ internal class ExpensesTimelineUiModelFactoryTest {
         totalAmount: Int,
         timestamp: String,
         description: String,
+        revertsExpenseId: Long? = null,
+        replacesExpenseId: Long? = null,
     ): Expense {
         return Expense(
             expenseId = expenseId,
@@ -290,6 +359,8 @@ internal class ExpensesTimelineUiModelFactoryTest {
             timestamp = Instant.parse(timestamp),
             description = description,
             clientCreateId = "expense-$expenseId",
+            revertsExpenseId = revertsExpenseId,
+            replacesExpenseId = replacesExpenseId,
         )
     }
 }

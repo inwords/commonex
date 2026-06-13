@@ -26,6 +26,11 @@ import com.inwords.expenses.feature.expenses.ui.list.ExpensesPaneUiModel.Expense
 import com.inwords.expenses.feature.settings.api.SettingsRepository
 import com.ionspin.kotlin.bignum.decimal.BigDecimal
 import com.ionspin.kotlin.bignum.decimal.toBigDecimal
+import expenses.shared.feature.expenses.generated.resources.Res
+import expenses.shared.feature.expenses.generated.resources.expenses_status_edited
+import expenses.shared.feature.expenses.generated.resources.expenses_status_reverted
+import expenses.shared.feature.expenses.generated.resources.expenses_today
+import expenses.shared.feature.expenses.generated.resources.expenses_yesterday
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.justRun
@@ -141,6 +146,8 @@ internal class ExpensesViewModelTimelineTest {
                 timestamp = Instant.parse(timestamp),
                 description = description,
                 clientCreateId = "expense-$expenseId",
+                revertsExpenseId = null,
+                replacesExpenseId = null,
             )
         }
     }
@@ -233,26 +240,34 @@ internal class ExpensesViewModelTimelineTest {
             requestExpensesRefreshUseCase = requestExpensesRefreshUseCase,
             eventsSyncStateHolder = eventsSyncStateHolder,
             settingsRepository = settingsRepository,
-            timelineUiModelFactory = ExpensesTimelineUiModelFactory(
-                stringProvider = object : StringProvider {
-                    private var stringRequestCount = 0
-
+            timelineUiModelFactory = run {
+                val stringProvider = object : StringProvider {
                     override suspend fun getString(stringResource: StringResource): String {
-                        return when (stringRequestCount++) {
-                            0 -> "Today"
-                            1 -> "Yesterday"
-                            else -> error("Unexpected string resource request: $stringRequestCount")
+                        return when (stringResource) {
+                            Res.string.expenses_today -> "Today"
+                            Res.string.expenses_yesterday -> "Yesterday"
+                            Res.string.expenses_status_edited -> "Edited"
+                            Res.string.expenses_status_reverted -> "Reverted"
+                            else -> error("Unexpected string resource request: ${stringResource.key}")
                         }
                     }
 
                     override suspend fun getString(stringResource: StringResource, vararg formatArgs: Any): String {
                         return getString(stringResource)
                     }
-                },
-                timeZoneProvider = { TimeZone.UTC },
-                localeProvider = { Locale("en") },
-                nowProvider = { Instant.parse("2026-03-28T12:00:00Z") },
-            ),
+                }
+                ExpensesTimelineUiModelFactory(
+                    correctionStatusFactory = ExpenseCorrectionStatusTextFactory(
+                        stringProvider = stringProvider,
+                        timeZoneProvider = { TimeZone.UTC },
+                        localeProvider = { Locale("en") },
+                    ),
+                    stringProvider = stringProvider,
+                    timeZoneProvider = { TimeZone.UTC },
+                    localeProvider = { Locale("en") },
+                    nowProvider = { Instant.parse("2026-03-28T12:00:00Z") },
+                )
+            },
             unconfinedDispatcher = testDispatcher,
             viewModelScope = this.testScope.backgroundScope,
         )

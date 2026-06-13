@@ -32,7 +32,9 @@ internal class DebtCalculatorTest {
             splits: List<Pair<Person, String>>, // Person to amount mapping
             description: String = "Test expense",
             currency: Currency = USD,
-            expenseType: ExpenseType = ExpenseType.Spending
+            expenseType: ExpenseType = ExpenseType.Spending,
+            revertsExpenseId: Long? = null,
+            replacesExpenseId: Long? = null,
         ): Expense {
             val splitWithPersons = splits.mapIndexed { index, (person, amount) ->
                 ExpenseSplitWithPerson(
@@ -55,6 +57,8 @@ internal class DebtCalculatorTest {
                 timestamp = timestamp,
                 description = description,
                 clientCreateId = "expense-$id",
+                revertsExpenseId = revertsExpenseId,
+                replacesExpenseId = replacesExpenseId,
             )
         }
     }
@@ -536,5 +540,95 @@ internal class DebtCalculatorTest {
         assertEquals(1, accumulatedDebts.size)
         assertTrue(accumulatedDebts.containsKey(Fixtures.charlie))
         assertEquals(BigDecimal.parseString("10.00"), accumulatedDebts[Fixtures.charlie]!![Fixtures.alice]!!.amount)
+    }
+
+    @Test
+    fun `expense plus reversal produces zero net debt`() {
+        val original = Fixtures.createExpense(
+            id = 1,
+            payer = Fixtures.alice,
+            splits = listOf(Fixtures.bob to "10.00"),
+        )
+        val reversal = Fixtures.createExpense(
+            id = 2,
+            payer = Fixtures.alice,
+            splits = listOf(Fixtures.bob to "-10.00"),
+            expenseType = ExpenseType.Replenishment,
+            revertsExpenseId = original.expenseId,
+        )
+
+        val calculator = DebtCalculator(listOf(original, reversal), Fixtures.USD)
+
+        assertEquals(BigDecimal.ZERO, calculator.accumulatedDebts.getValue(Fixtures.bob).getValue(Fixtures.alice).amount)
+    }
+
+    @Test
+    fun `expense plus reversal plus revert of reversal restores original debt`() {
+        val original = Fixtures.createExpense(
+            id = 1,
+            payer = Fixtures.alice,
+            splits = listOf(Fixtures.bob to "10.00"),
+        )
+        val reversal = Fixtures.createExpense(
+            id = 2,
+            payer = Fixtures.alice,
+            splits = listOf(Fixtures.bob to "-10.00"),
+            expenseType = ExpenseType.Replenishment,
+            revertsExpenseId = original.expenseId,
+        )
+        val revertOfReversal = Fixtures.createExpense(
+            id = 3,
+            payer = Fixtures.alice,
+            splits = listOf(Fixtures.bob to "10.00"),
+            revertsExpenseId = reversal.expenseId,
+        )
+
+        val calculator = DebtCalculator(listOf(original, reversal, revertOfReversal), Fixtures.USD)
+
+        assertEquals(BigDecimal.parseString("10.00"), calculator.accumulatedDebts.getValue(Fixtures.bob).getValue(Fixtures.alice).amount)
+    }
+
+    @Test
+    fun `expense plus replacement counts only replacement`() {
+        val original = Fixtures.createExpense(
+            id = 1,
+            payer = Fixtures.alice,
+            splits = listOf(Fixtures.bob to "10.00"),
+        )
+        val replacement = Fixtures.createExpense(
+            id = 2,
+            payer = Fixtures.alice,
+            splits = listOf(Fixtures.bob to "25.00"),
+            replacesExpenseId = original.expenseId,
+        )
+
+        val calculator = DebtCalculator(listOf(original, replacement), Fixtures.USD)
+
+        assertEquals(BigDecimal.parseString("25.00"), calculator.accumulatedDebts.getValue(Fixtures.bob).getValue(Fixtures.alice).amount)
+    }
+
+    @Test
+    fun `second replacement supersedes prior replacement`() {
+        val original = Fixtures.createExpense(
+            id = 1,
+            payer = Fixtures.alice,
+            splits = listOf(Fixtures.bob to "10.00"),
+        )
+        val firstReplacement = Fixtures.createExpense(
+            id = 2,
+            payer = Fixtures.alice,
+            splits = listOf(Fixtures.bob to "25.00"),
+            replacesExpenseId = original.expenseId,
+        )
+        val secondReplacement = Fixtures.createExpense(
+            id = 3,
+            payer = Fixtures.alice,
+            splits = listOf(Fixtures.bob to "40.00"),
+            replacesExpenseId = firstReplacement.expenseId,
+        )
+
+        val calculator = DebtCalculator(listOf(original, firstReplacement, secondReplacement), Fixtures.USD)
+
+        assertEquals(BigDecimal.parseString("40.00"), calculator.accumulatedDebts.getValue(Fixtures.bob).getValue(Fixtures.alice).amount)
     }
 }

@@ -17,6 +17,8 @@ internal fun Expense.toEntity(event: Event): ExpenseEntity {
         isCustomRate = this.isCustomRate,
         timestamp = this.timestamp,
         description = this.description,
+        revertsExpenseId = this.revertsExpenseId,
+        replacesExpenseId = this.replacesExpenseId,
     )
 }
 

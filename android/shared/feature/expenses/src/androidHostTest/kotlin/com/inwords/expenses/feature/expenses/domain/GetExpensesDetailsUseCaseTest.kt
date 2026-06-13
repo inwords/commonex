@@ -47,6 +47,8 @@ internal class GetExpensesDetailsUseCaseTest {
             timestamp = Instant.fromEpochMilliseconds(0),
             description = "Lunch",
             clientCreateId = "expense-client-77",
+            revertsExpenseId = null,
+            replacesExpenseId = null,
         )
         val expensesLocalStore = mockk<ExpensesLocalStore> {
             every { getExpensesFlow(event.id) } returns flowOf(listOf(expense))

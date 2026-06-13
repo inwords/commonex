@@ -1,25 +1,19 @@
 package com.inwords.expenses.feature.expenses.domain
 
-import com.inwords.expenses.core.utils.ClientCreateIdGenerator
-import com.inwords.expenses.core.utils.normalizeAmount
 import com.inwords.expenses.feature.events.domain.model.Currency
 import com.inwords.expenses.feature.events.domain.model.Event
 import com.inwords.expenses.feature.events.domain.model.Person
-import com.inwords.expenses.feature.expenses.domain.model.Expense
-import com.inwords.expenses.feature.expenses.domain.model.ExpenseSplitWithPerson
 import com.inwords.expenses.feature.expenses.domain.model.ExpenseType
 import com.inwords.expenses.feature.expenses.domain.store.ExpensesLocalStore
 import com.ionspin.kotlin.bignum.decimal.BigDecimal
 
 class AddEqualSplitExpenseUseCase internal constructor(
     expensesLocalStoreLazy: Lazy<ExpensesLocalStore>,
-    expenseExchangeResolverLazy: Lazy<ExpenseExchangeResolver>,
-    clientCreateIdGeneratorLazy: Lazy<ClientCreateIdGenerator>,
+    expenseDraftFactoryLazy: Lazy<ExpenseDraftFactory>,
 ) {
 
     private val expensesLocalStore by expensesLocalStoreLazy
-    private val expenseExchangeResolver by expenseExchangeResolverLazy
-    private val clientCreateIdGenerator by clientCreateIdGeneratorLazy
+    private val expenseDraftFactory by expenseDraftFactoryLazy
 
     suspend fun addExpense(
         event: Event,
@@ -30,38 +24,26 @@ class AddEqualSplitExpenseUseCase internal constructor(
         selectedCurrency: Currency,
         selectedPerson: Person,
         overrideRate: BigDecimal?,
-    ) {
-        val exchanger = overrideRate?.let { rate ->
-            { amount: BigDecimal -> (amount * rate).normalizeAmount() }
-        } ?: expenseExchangeResolver.resolve(event, selectedCurrency) ?: return
-        val originalAmount = EqualSplitCalculator.calculateStoredAmount(
-            amount = wholeAmount,
-            selectedSubjectPersonsSize = selectedSubjectPersons.size,
+    ): Boolean {
+        val exchanger = expenseDraftFactory.resolveExchanger(event, selectedCurrency, overrideRate) ?: return false
+        val subjectExpenseSplitWithPersons = expenseDraftFactory.buildEqualSplit(
+            wholeAmount = wholeAmount,
+            selectedSubjectPersons = selectedSubjectPersons,
+            exchanger = exchanger,
         )
-        val subjectExpenseSplitWithPersons = selectedSubjectPersons.map { person ->
-            ExpenseSplitWithPerson(
-                expenseSplitId = 0,
-                expenseId = 0,
-                person = person,
-                originalAmount = originalAmount,
-                exchangedAmount = exchanger.invoke(originalAmount),
-            )
-        }
 
         expensesLocalStore.upsert(
             event = event,
-            expense = Expense(
-                expenseId = 0,
-                serverId = null,
-                clientCreateId = clientCreateIdGenerator.generate(),
+            expense = expenseDraftFactory.createExpense(
                 currency = selectedCurrency,
                 expenseType = expenseType,
                 person = selectedPerson,
                 subjectExpenseSplitWithPersons = subjectExpenseSplitWithPersons,
                 isCustomRate = overrideRate != null,
-                timestamp = ExpenseTimeBackdoor.now(),
                 description = description,
             ),
         )
+
+        return true
     }
 }

@@ -193,8 +193,8 @@ internal class ExpensesViewModelRefreshTest {
             requestExpensesRefreshUseCase = requestExpensesRefreshUseCase,
             eventsSyncStateHolder = eventsSyncStateHolder,
             settingsRepository = settingsRepository,
-            timelineUiModelFactory = ExpensesTimelineUiModelFactory(
-                stringProvider = object : StringProvider {
+            timelineUiModelFactory = run {
+                val stringProvider = object : StringProvider {
                     override suspend fun getString(stringResource: StringResource): String {
                         return when (stringRequestCount++) {
                             0 -> "Today"
@@ -206,11 +206,19 @@ internal class ExpensesViewModelRefreshTest {
                     override suspend fun getString(stringResource: StringResource, vararg formatArgs: Any): String {
                         return getString(stringResource)
                     }
-                },
-                timeZoneProvider = { TimeZone.UTC },
-                localeProvider = { Locale("en") },
-                nowProvider = { Instant.parse("2026-03-28T12:00:00Z") },
-            ),
+                }
+                ExpensesTimelineUiModelFactory(
+                    correctionStatusFactory = ExpenseCorrectionStatusTextFactory(
+                        stringProvider = stringProvider,
+                        timeZoneProvider = { TimeZone.UTC },
+                        localeProvider = { Locale("en") },
+                    ),
+                    stringProvider = stringProvider,
+                    timeZoneProvider = { TimeZone.UTC },
+                    localeProvider = { Locale("en") },
+                    nowProvider = { Instant.parse("2026-03-28T12:00:00Z") },
+                )
+            },
             unconfinedDispatcher = testDispatcher,
             viewModelScope = this.testScope.backgroundScope,
         )

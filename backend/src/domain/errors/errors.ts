@@ -57,6 +57,27 @@ export class InconsistentExchangedAmountError {
   readonly httpCode = HttpStatus.BAD_REQUEST;
 }
 
+export class ExpenseReferenceNotFoundError {
+  readonly name = 'ExpenseReferenceNotFoundError' as const;
+  readonly code = ErrorCode.EXPENSE_REFERENCE_NOT_FOUND;
+  readonly message = 'Referenced expense not found in event';
+  readonly httpCode = HttpStatus.BAD_REQUEST;
+}
+
+export class ExpenseAlreadyRevertedError {
+  readonly name = 'ExpenseAlreadyRevertedError' as const;
+  readonly code = ErrorCode.EXPENSE_ALREADY_REVERTED;
+  readonly message = 'Expense is already reverted';
+  readonly httpCode = HttpStatus.CONFLICT;
+}
+
+export class ExpenseCorrectionConflictError {
+  readonly name = 'ExpenseCorrectionConflictError' as const;
+  readonly code = ErrorCode.EXPENSE_CORRECTION_CONFLICT;
+  readonly message = 'Expense cannot revert and replace another expense at the same time';
+  readonly httpCode = HttpStatus.BAD_REQUEST;
+}
+
 export class IdempotencyHashMismatchError {
   readonly name = 'IdempotencyHashMismatchError' as const;
   readonly code = ErrorCode.IDEMPOTENCY_HASH_MISMATCH;

@@ -31,6 +31,10 @@
     <string name="expenses_revert_confirm_body">Будет создана операция отмены</string>
     <string name="expenses_revert_cancel">Отмена</string>
     <string name="expenses_revert_operation">Отменить операцию</string>
+    <string name="expenses_status_edited">Изменено</string>
+    <string name="expenses_status_edited_on">Изменено %1$s</string>
+    <string name="expenses_status_reverted">Отменено</string>
+    <string name="expenses_status_reverted_on">Отменено %1$s</string>
     <string name="expenses_save">Сохранить</string>
     <string name="expenses_split">Разделить</string>
     <string name="expenses_total_amount">Общая сумма</string>

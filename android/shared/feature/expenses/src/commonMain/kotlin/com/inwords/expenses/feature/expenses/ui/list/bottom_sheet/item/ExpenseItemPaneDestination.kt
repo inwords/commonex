@@ -30,6 +30,7 @@ internal fun ExpensesComponent.getExpenseItemPaneNavModule(
                         navigationController = navigationController,
                         getCurrentEventStateUseCase = getCurrentEventStateUseCaseLazy.value,
                         expensesLocalStore = expensesLocalStore.value,
+                        correctionStatusTextFactory = expenseCorrectionStatusTextFactoryLazy.value,
                         expenseId = key.expenseId,
                         eventId = key.eventId,
                     )
@@ -38,6 +39,7 @@ internal fun ExpensesComponent.getExpenseItemPaneNavModule(
             ExpenseItemPane(
                 state = viewModel.state.collectAsStateWithLifecycle().value,
                 onRevertExpenseClick = viewModel::onRevertExpenseClick,
+                onEditExpenseClick = viewModel::onEditExpenseClick,
             )
         }
     }

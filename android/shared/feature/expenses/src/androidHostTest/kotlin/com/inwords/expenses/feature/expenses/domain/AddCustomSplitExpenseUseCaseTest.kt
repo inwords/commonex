@@ -38,8 +38,12 @@ internal class AddCustomSplitExpenseUseCaseTest {
 
         AddCustomSplitExpenseUseCase(
             expensesLocalStoreLazy = lazyOf(expensesLocalStore),
-            expenseExchangeResolverLazy = lazyOf(expenseExchangeResolver),
-            clientCreateIdGeneratorLazy = lazyOf(clientCreateIdGenerator),
+            expenseDraftFactoryLazy = lazyOf(
+                ExpenseDraftFactory(
+                    expenseExchangeResolverLazy = lazyOf(expenseExchangeResolver),
+                    clientCreateIdGeneratorLazy = lazyOf(clientCreateIdGenerator),
+                )
+            ),
         ).addExpense(
             event = event,
             expenseType = ExpenseType.Spending,
@@ -78,8 +82,12 @@ internal class AddCustomSplitExpenseUseCaseTest {
 
         AddCustomSplitExpenseUseCase(
             expensesLocalStoreLazy = lazyOf(expensesLocalStore),
-            expenseExchangeResolverLazy = lazyOf(expenseExchangeResolver),
-            clientCreateIdGeneratorLazy = lazyOf(clientCreateIdGenerator),
+            expenseDraftFactoryLazy = lazyOf(
+                ExpenseDraftFactory(
+                    expenseExchangeResolverLazy = lazyOf(expenseExchangeResolver),
+                    clientCreateIdGeneratorLazy = lazyOf(clientCreateIdGenerator),
+                )
+            ),
         ).addExpense(
             event = event,
             expenseType = ExpenseType.Spending,

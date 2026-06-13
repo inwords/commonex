@@ -1,5 +1,5 @@
 import {ApiProperty} from '@nestjs/swagger';
-import {IsDate, IsEnum, IsNumber, IsOptional, IsString, Length, ValidateNested} from 'class-validator';
+import {IsBoolean, IsDate, IsEnum, IsNumber, IsOptional, IsString, Length, ValidateNested} from 'class-validator';
 import {Type} from 'class-transformer';
 
 import {ExpenseType} from '#domain/entities/expense.entity';
@@ -70,6 +70,21 @@ export class CreateExpenseRequestV2Dto extends CreateExpenseRequestV1Dto {
   @IsString()
   @Length(4, 4)
   pinCode!: string;
+
+  @ApiProperty({required: false, description: 'Whether supplied exchanged amounts use a custom rate'})
+  @IsOptional()
+  @IsBoolean()
+  isCustomRate?: boolean;
+
+  @ApiProperty({required: false})
+  @IsOptional()
+  @IsString()
+  revertsExpenseId?: string | null;
+
+  @ApiProperty({required: false})
+  @IsOptional()
+  @IsString()
+  replacesExpenseId?: string | null;
 }
 
 export class CreateExpenseResponseDto {
@@ -99,4 +114,10 @@ export class CreateExpenseResponseDto {
 
   @ApiProperty()
   updatedAt!: Date;
+
+  @ApiProperty({required: false})
+  revertsExpenseId?: string | null;
+
+  @ApiProperty({required: false})
+  replacesExpenseId?: string | null;
 }

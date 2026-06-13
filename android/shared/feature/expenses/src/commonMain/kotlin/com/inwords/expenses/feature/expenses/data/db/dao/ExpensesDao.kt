@@ -35,6 +35,39 @@ interface ExpensesDao {
     @Upsert
     suspend fun upsert(subjectPersonSplitEntities: List<ExpenseSplitEntity>)
 
+    @Query("DELETE FROM ${ExpenseEntity.TABLE_NAME} WHERE ${ExpenseEntity.ColumnNames.ID} = :expenseId")
+    suspend fun deleteExpense(expenseId: Long): Int
+
+    @Query("DELETE FROM ${ExpenseEntity.TABLE_NAME} WHERE ${ExpenseEntity.ColumnNames.ID} IN (:expenseIds)")
+    suspend fun deleteExpenses(expenseIds: List<Long>): Int
+
+    @Query(
+        "SELECT EXISTS(" +
+            "SELECT 1 FROM ${ExpenseEntity.TABLE_NAME} " +
+            "WHERE ${ExpenseEntity.ColumnNames.REVERTS_EXPENSE_ID} = :expenseId " +
+            "OR ${ExpenseEntity.ColumnNames.REPLACES_EXPENSE_ID} = :expenseId" +
+            ")",
+    )
+    suspend fun hasCorrectionFor(expenseId: Long): Boolean
+
+    @Query(
+        "SELECT EXISTS(" +
+            "SELECT 1 FROM ${ExpenseEntity.TABLE_NAME} " +
+            "WHERE ${ExpenseEntity.ColumnNames.REVERTS_EXPENSE_ID} = :expenseId " +
+            "OR ${ExpenseEntity.ColumnNames.REPLACES_EXPENSE_ID} = :expenseId" +
+            ")",
+    )
+    fun hasCorrectionForFlow(expenseId: Long): Flow<Boolean>
+
+    @Transaction
+    @Query(
+        "SELECT * FROM ${ExpenseEntity.TABLE_NAME} " +
+            "WHERE ${ExpenseEntity.ColumnNames.REVERTS_EXPENSE_ID} = :targetExpenseId " +
+            "OR ${ExpenseEntity.ColumnNames.REPLACES_EXPENSE_ID} = :targetExpenseId " +
+            "LIMIT 1",
+    )
+    fun queryCorrectionForTargetFlow(targetExpenseId: Long): Flow<ExpenseWithDetailsQuery?>
+
     @Query(
         "UPDATE ${ExpenseSplitEntity.TABLE_NAME} SET " +
             "${ExpenseSplitEntity.ColumnNames.EXCHANGED_AMOUNT_UNSCALED} = " +
@@ -54,6 +87,18 @@ interface ExpensesDao {
             "WHERE ${ExpenseEntity.ColumnNames.ID} = :expenseId"
     )
     suspend fun updateExpenseServerId(expenseId: Long, serverId: String): Int
+
+    @Query(
+        "UPDATE ${ExpenseEntity.TABLE_NAME} SET " +
+            "${ExpenseEntity.ColumnNames.REVERTS_EXPENSE_ID} = :revertsExpenseId, " +
+            "${ExpenseEntity.ColumnNames.REPLACES_EXPENSE_ID} = :replacesExpenseId " +
+            "WHERE ${ExpenseEntity.ColumnNames.ID} = :expenseId"
+    )
+    suspend fun updateExpenseCorrectionLinks(
+        expenseId: Long,
+        revertsExpenseId: Long?,
+        replacesExpenseId: Long?,
+    ): Int
 
     @Transaction
     @Query(

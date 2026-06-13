@@ -23,4 +23,13 @@ internal data class CreateExpenseRequest(
 
     @SerialName("pinCode")
     val pinCode: String,
+
+    @SerialName("isCustomRate")
+    val isCustomRate: Boolean,
+
+    @SerialName("revertsExpenseId")
+    val revertsExpenseId: String? = null,
+
+    @SerialName("replacesExpenseId")
+    val replacesExpenseId: String? = null,
 )

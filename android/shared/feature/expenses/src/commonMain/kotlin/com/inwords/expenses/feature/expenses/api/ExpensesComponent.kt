@@ -23,10 +23,12 @@ import com.inwords.expenses.feature.expenses.data.network.ExpensesRemoteStoreImp
 import com.inwords.expenses.feature.expenses.domain.AddCustomSplitExpenseUseCase
 import com.inwords.expenses.feature.expenses.domain.AddEqualSplitExpenseUseCase
 import com.inwords.expenses.feature.expenses.domain.CurrencyRatesCache
+import com.inwords.expenses.feature.expenses.domain.ExpenseDraftFactory
 import com.inwords.expenses.feature.expenses.domain.ExpenseExchangeResolver
 import com.inwords.expenses.feature.expenses.domain.ExpensesRefreshRequestsHolder
 import com.inwords.expenses.feature.expenses.domain.GetExpensesDetailsUseCase
 import com.inwords.expenses.feature.expenses.domain.GetExpensesUseCase
+import com.inwords.expenses.feature.expenses.domain.ReplaceExpenseUseCase
 import com.inwords.expenses.feature.expenses.domain.RequestExpensesRefreshUseCase
 import com.inwords.expenses.feature.expenses.domain.RevertExpenseUseCase
 import com.inwords.expenses.feature.expenses.domain.store.ExpensesLocalStore
@@ -34,6 +36,7 @@ import com.inwords.expenses.feature.expenses.domain.tasks.EventExpensesPullTask
 import com.inwords.expenses.feature.expenses.domain.tasks.EventExpensesPushTask
 import com.inwords.expenses.feature.expenses.ui.add.getAddExpensePaneNavModule
 import com.inwords.expenses.feature.expenses.ui.debts_list.getDebtsListPaneNavModule
+import com.inwords.expenses.feature.expenses.ui.list.ExpenseCorrectionStatusTextFactory
 import com.inwords.expenses.feature.expenses.ui.list.bottom_sheet.item.getExpenseItemPaneNavModule
 import com.inwords.expenses.feature.expenses.ui.list.dialog.revert.getExpenseRevertDialogNavModule
 import com.inwords.expenses.feature.expenses.ui.list.getExpensesPaneNavModule
@@ -75,6 +78,10 @@ class ExpensesComponent(private val deps: Deps) : Component {
     internal val eventsSyncStateHolderLazy get() = deps.eventsSyncStateHolderLazy
     internal val joinEventUseCaseLazy get() = deps.joinEventUseCaseLazy
     internal val settingsRepositoryLazy get() = deps.settingsRepositoryLazy
+
+    internal val expenseCorrectionStatusTextFactoryLazy: Lazy<ExpenseCorrectionStatusTextFactory> = lazy {
+        ExpenseCorrectionStatusTextFactory()
+    }
 
     val expensesLocalStore: Lazy<ExpensesLocalStore> = lazy {
         ExpensesLocalStoreImpl(
@@ -121,6 +128,13 @@ class ExpensesComponent(private val deps: Deps) : Component {
         )
     }
 
+    private val expenseDraftFactory = lazy {
+        ExpenseDraftFactory(
+            expenseExchangeResolverLazy = expenseExchangeResolver,
+            clientCreateIdGeneratorLazy = clientCreateIdGeneratorLazy,
+        )
+    }
+
     val getExpensesUseCaseLazy: Lazy<GetExpensesUseCase> = lazy {
         GetExpensesUseCase(
             expensesLocalStoreLazy = expensesLocalStore,
@@ -136,16 +150,14 @@ class ExpensesComponent(private val deps: Deps) : Component {
     val addEqualSplitExpenseUseCaseLazy: Lazy<AddEqualSplitExpenseUseCase> = lazy {
         AddEqualSplitExpenseUseCase(
             expensesLocalStoreLazy = expensesLocalStore,
-            expenseExchangeResolverLazy = expenseExchangeResolver,
-            clientCreateIdGeneratorLazy = clientCreateIdGeneratorLazy,
+            expenseDraftFactoryLazy = expenseDraftFactory,
         )
     }
 
     internal val addCustomSplitExpenseUseCaseLazy: Lazy<AddCustomSplitExpenseUseCase> = lazy {
         AddCustomSplitExpenseUseCase(
             expensesLocalStoreLazy = expensesLocalStore,
-            expenseExchangeResolverLazy = expenseExchangeResolver,
-            clientCreateIdGeneratorLazy = clientCreateIdGeneratorLazy,
+            expenseDraftFactoryLazy = expenseDraftFactory,
         )
     }
 
@@ -154,6 +166,13 @@ class ExpensesComponent(private val deps: Deps) : Component {
             eventsLocalStoreLazy = lazy { deps.eventsLocalStore },
             expensesLocalStoreLazy = expensesLocalStore,
             clientCreateIdGeneratorLazy = clientCreateIdGeneratorLazy,
+        )
+    }
+
+    internal val replaceExpenseUseCaseLazy: Lazy<ReplaceExpenseUseCase> = lazy {
+        ReplaceExpenseUseCase(
+            expensesLocalStoreLazy = expensesLocalStore,
+            expenseDraftFactoryLazy = expenseDraftFactory,
         )
     }
 

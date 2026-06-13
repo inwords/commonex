@@ -7,6 +7,7 @@ object ExpensesPaneTags {
     const val TIMELINE_LIST = "expenses_timeline_list"
     const val TOTAL_SPENDING_VALUE = "expenses_total_spending_value"
     const val DAY_CHIPS_ROW = "expenses_day_chips_row"
+    const val EXPENSE_STATUS_TEXT = "expenses_status_text"
     const val DAY_CHIP_PREFIX = "expenses_day_chip_"
 
     private const val DAY_HEADER_PREFIX = "expenses_day_header_"

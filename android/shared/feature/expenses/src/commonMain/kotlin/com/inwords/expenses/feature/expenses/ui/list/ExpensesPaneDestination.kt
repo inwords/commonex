@@ -31,6 +31,9 @@ internal fun ExpensesComponent.getExpensesPaneNavModule(
                         requestExpensesRefreshUseCase = requestExpensesRefreshUseCaseLazy.value,
                         eventsSyncStateHolder = eventsSyncStateHolderLazy.value,
                         settingsRepository = settingsRepositoryLazy.value,
+                        timelineUiModelFactory = ExpensesTimelineUiModelFactory(
+                            correctionStatusFactory = expenseCorrectionStatusTextFactoryLazy.value,
+                        ),
                     )
                 }
             })

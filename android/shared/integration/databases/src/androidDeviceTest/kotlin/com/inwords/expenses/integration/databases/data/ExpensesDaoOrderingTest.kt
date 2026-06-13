@@ -166,6 +166,8 @@ internal class ExpensesDaoOrderingTest {
                 isCustomRate = false,
                 timestamp = timestamp,
                 description = description,
+                revertsExpenseId = null,
+                replacesExpenseId = null,
             ),
             subjectPersonSplitEntities = listOf(
                 ExpenseSplitEntity(

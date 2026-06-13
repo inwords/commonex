@@ -1,10 +1,9 @@
 package com.inwords.expenses.feature.expenses.ui.list.bottom_sheet.item
 
-import com.inwords.expenses.feature.expenses.domain.model.Expense
 import kotlinx.collections.immutable.ImmutableList
 
 internal data class ExpenseItemPaneUiModel(
-    val expense: Expense,
+    val expenseId: Long,
     val description: String,
     val totalAmount: String,
     val primaryCurrencyCode: String,
@@ -14,6 +13,8 @@ internal data class ExpenseItemPaneUiModel(
     val originalCurrencyName: String,
     val exchangeRate: String?,
     val split: ImmutableList<PersonSplitUiModel>,
+    val canCorrect: Boolean,
+    val statusText: String?,
 ) {
 
     data class PersonSplitUiModel(

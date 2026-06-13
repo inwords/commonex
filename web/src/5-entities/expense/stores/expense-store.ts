@@ -1,4 +1,5 @@
 import {CreateExpenseRefundForm, Expense, ExpenseRefund, Tabs} from '@/5-entities/expense/types/types';
+import {filterActiveExpenses} from '@/5-entities/expense/lib/correction-status';
 import {makeAutoObservable} from 'mobx';
 import {userStore} from '@/5-entities/user/stores/user-store';
 
@@ -43,7 +44,8 @@ export class ExpenseStore {
   }
 
   get currentUserDebts() {
-    const myDebtsToOthers = this.expenses.reduce<Record<string, number>>((prev, curr) => {
+    const activeExpenses = filterActiveExpenses(this.expenses);
+    const myDebtsToOthers = activeExpenses.reduce<Record<string, number>>((prev, curr) => {
       if (curr.userWhoPaidId !== userStore.currentUser?.id) {
         prev[curr.userWhoPaidId] =
           (prev[curr.userWhoPaidId] || 0) +
@@ -59,7 +61,7 @@ export class ExpenseStore {
       return prev;
     }, {});
 
-    const othersDebtsToMe = this.expenses.reduce<Record<string, number>>((prev, curr) => {
+    const othersDebtsToMe = activeExpenses.reduce<Record<string, number>>((prev, curr) => {
       if (curr.userWhoPaidId === userStore.currentUser?.id) {
         curr.splitInformation.forEach((split) => {
           if (split.userId !== userStore.currentUser?.id) {
@@ -101,11 +103,11 @@ export class ExpenseStore {
   }
 
   get totalExpensesAmount() {
-    return this.expensesToView.reduce((sum, expense) => sum + expense.amount, 0);
+    return filterActiveExpenses(this.expensesToView).reduce((sum, expense) => sum + expense.amount, 0);
   }
 
   get currentUserSpentAmount() {
-    return this.expenses.reduce((sum, expense) => {
+    return filterActiveExpenses(this.expenses).reduce((sum, expense) => {
       const userSplit = expense.splitInformation.find((split) => split.userId === userStore.currentUser?.id);
       if (userSplit) {
         sum += userSplit.exchangedAmount;

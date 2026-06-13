@@ -31,5 +31,11 @@ internal data class ExpenseDto(
     val isCustomRate: Boolean,
 
     @SerialName("createdAt")
-    val createdAt: Instant
+    val createdAt: Instant,
+
+    @SerialName("revertsExpenseId")
+    val revertsExpenseId: String? = null,
+
+    @SerialName("replacesExpenseId")
+    val replacesExpenseId: String? = null,
 )

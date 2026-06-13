@@ -14,6 +14,7 @@ import com.inwords.expenses.feature.expenses.ui.utils.toRoundedString
 internal fun Expense.toUiModel(
     primaryCurrencyName: String,
     currentPersonId: Long,
+    statusText: String? = null,
 ): ExpensesPaneUiModel.Expenses.ExpenseUiModel {
     val amountSign = when (expenseType) {
         ExpenseType.Spending -> "-"
@@ -36,6 +37,7 @@ internal fun Expense.toUiModel(
         currentPersonPartAmount = currentPersonSplit?.let { split ->
             "$amountSign${split.exchangedAmount.toRoundedString()}"
         },
+        statusText = statusText,
     )
 }
 

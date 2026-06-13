@@ -71,6 +71,7 @@ class EventExpensesPushTask internal constructor(
         val networkResults = expensesRemoteStore.addExpensesToEvent(
             event = localEvent.event,
             expenses = expensePushItems,
+            allExpenses = localExpenses,
             currencies = localEvent.currencies,
             persons = localEvent.persons,
         )
@@ -98,6 +99,10 @@ class EventExpensesPushTask internal constructor(
             }
         }
 
-        IoResult.Success(Unit)
+        if (networkResults.any { result -> result is IoResult.Error.Retry }) {
+            IoResult.Error.Retry
+        } else {
+            IoResult.Success(Unit)
+        }
     }
 }

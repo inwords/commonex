@@ -19,6 +19,7 @@ import org.junit.rules.RuleChain
 import org.junit.runner.RunWith
 import ru.commonex.screens.AddPersonsScreen
 import ru.commonex.screens.ChoosePersonScreen
+import ru.commonex.screens.ExpenseDetailsScreen
 import ru.commonex.screens.ExpensesScreen
 import ru.commonex.screens.LocalEventsScreen
 import ru.commonex.screens.MenuDialogScreen
@@ -95,7 +96,15 @@ class BasicInstrumentedTest {
             .verifyOriginalCurrency("EUR (Euro)")
             .verifyExchangeRateHidden()
             .confirmRevertExpense()
-            .verifyRevertedExpenseExists("Булка")
+            .verifyExpenseExists("Булка")
+            .verifyRevertedExpenseDoesNotExist("Булка")
+
+        expensesScreen
+            .clickOnExpense("Булка")
+            .waitUntilLoadedWithoutCorrectionActions()
+            .verifyDescription("Булка")
+            .verifyRevertedStatusForToday()
+            .dismissPane()
 
         // Verify debts details and go back
         expensesScreen
@@ -164,6 +173,93 @@ class BasicInstrumentedTest {
             .verifyOriginalCurrency("USD (US Dollar)")
             .verifyExchangeRateVisible()
             .verifyExchangeRate(exchangeRateText)
+    }
+
+    /**
+     * Tests expense correction from the details pane:
+     * - Create event
+     * - Add an expense
+     * - Open details and edit the expense
+     * - Save replacement values
+     * - Verify the original is visible with edit status and replacement operation is hidden
+     * - Verify the original can no longer be edited or reverted
+     */
+    @Test
+    fun testExpenseCorrectionFlow() = composeRule.runTest {
+        val eventName = "Correction Event"
+        val originalDescription = "Original correction target"
+        val replacementDescription = "Corrected dinner"
+
+        createLocalEvent(eventName)
+
+        ExpensesScreen()
+            .clickAddExpense()
+            .enterDescription(originalDescription)
+            .enterAmount("90")
+            .clickConfirm()
+            .verifyExpenseExists(originalDescription)
+
+        ExpensesScreen()
+            .clickOnExpense(originalDescription)
+            .waitUntilLoaded()
+            .clickEditExpense()
+            .replaceDescription(replacementDescription)
+            .clickEqualSplitSwitch()
+            .replaceAmount("120")
+            .clickConfirm()
+
+        ExpenseDetailsScreen()
+            .dismissPane()
+            .verifyExpenseExists(originalDescription)
+            .verifyExpenseDoesNotExist(replacementDescription)
+
+        ExpensesScreen()
+            .clickOnExpense(originalDescription)
+            .waitUntilLoadedWithoutCorrectionActions()
+            .verifyDescription(originalDescription)
+            .verifyEditedStatusForToday()
+            .verifyCorrectionActionsHidden()
+            .dismissPane()
+            .verifyExpenseDoesNotExist(replacementDescription)
+    }
+
+    /**
+     * Tests that replacing an expense updates spending totals instead of stacking both rows:
+     * - Create event and add a 90 EUR expense
+     * - Verify total spending is 90 EUR
+     * - Edit the expense to 120 EUR
+     * - Verify total spending becomes 120 EUR and the replacement row stays hidden
+     */
+    @Test
+    fun testExpenseCorrectionUpdatesSpendingTotals() = composeRule.runTest {
+        val eventName = "Correction totals event"
+        val originalDescription = "Totals correction target"
+
+        createLocalEvent(eventName)
+
+        ExpensesScreen()
+            .clickAddExpense()
+            .enterDescription(originalDescription)
+            .enterAmount("90")
+            .clickConfirm()
+            .verifyExpenseExists(originalDescription)
+            .verifyTotalSpending("90 EUR")
+
+        ExpensesScreen()
+            .clickOnExpense(originalDescription)
+            .waitUntilLoaded()
+            .clickEditExpense()
+            .clickEqualSplitSwitch()
+            .replaceAmount("120")
+            .clickConfirm()
+
+        ExpenseDetailsScreen()
+            .dismissPane()
+            .verifyTotalSpending("120 EUR")
+            .clickOnExpense(originalDescription)
+            .waitUntilLoadedWithoutCorrectionActions()
+            .verifyEditedStatusForToday()
+            .dismissPane()
     }
 
     /**

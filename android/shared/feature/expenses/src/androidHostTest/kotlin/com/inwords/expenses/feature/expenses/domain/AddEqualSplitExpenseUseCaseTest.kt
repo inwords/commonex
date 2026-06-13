@@ -35,8 +35,12 @@ internal class AddEqualSplitExpenseUseCaseTest {
 
         AddEqualSplitExpenseUseCase(
             expensesLocalStoreLazy = lazyOf(expensesLocalStore),
-            expenseExchangeResolverLazy = lazyOf(expenseExchangeResolver),
-            clientCreateIdGeneratorLazy = lazyOf(clientCreateIdGenerator),
+            expenseDraftFactoryLazy = lazyOf(
+                ExpenseDraftFactory(
+                    expenseExchangeResolverLazy = lazyOf(expenseExchangeResolver),
+                    clientCreateIdGeneratorLazy = lazyOf(clientCreateIdGenerator),
+                )
+            ),
         ).addExpense(
             event = event,
             wholeAmount = 10.toBigDecimal(),
@@ -73,8 +77,12 @@ internal class AddEqualSplitExpenseUseCaseTest {
 
         AddEqualSplitExpenseUseCase(
             expensesLocalStoreLazy = lazyOf(expensesLocalStore),
-            expenseExchangeResolverLazy = lazyOf(expenseExchangeResolver),
-            clientCreateIdGeneratorLazy = lazyOf(clientCreateIdGenerator),
+            expenseDraftFactoryLazy = lazyOf(
+                ExpenseDraftFactory(
+                    expenseExchangeResolverLazy = lazyOf(expenseExchangeResolver),
+                    clientCreateIdGeneratorLazy = lazyOf(clientCreateIdGenerator),
+                )
+            ),
         ).addExpense(
             event = event,
             wholeAmount = 10.toBigDecimal(),
@@ -105,8 +113,12 @@ internal class AddEqualSplitExpenseUseCaseTest {
 
         AddEqualSplitExpenseUseCase(
             expensesLocalStoreLazy = lazyOf(expensesLocalStore),
-            expenseExchangeResolverLazy = lazyOf(expenseExchangeResolver),
-            clientCreateIdGeneratorLazy = lazyOf(clientCreateIdGenerator),
+            expenseDraftFactoryLazy = lazyOf(
+                ExpenseDraftFactory(
+                    expenseExchangeResolverLazy = lazyOf(expenseExchangeResolver),
+                    clientCreateIdGeneratorLazy = lazyOf(clientCreateIdGenerator),
+                )
+            ),
         ).addExpense(
             event = event,
             wholeAmount = 10.toBigDecimal(),

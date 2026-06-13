@@ -14,6 +14,7 @@ import com.inwords.expenses.core.utils.currencyRateScale
 import com.inwords.expenses.core.utils.divide
 import com.inwords.expenses.core.utils.flatMapLatestNoBuffer
 import com.inwords.expenses.core.utils.stateInWhileSubscribed
+import com.inwords.expenses.core.utils.sumOf
 import com.inwords.expenses.core.utils.toBigDecimalOrNull
 import com.inwords.expenses.feature.events.domain.GetCurrentEventStateUseCase
 import com.inwords.expenses.feature.events.domain.model.Currency
@@ -22,8 +23,11 @@ import com.inwords.expenses.feature.events.domain.model.Person
 import com.inwords.expenses.feature.expenses.domain.AddCustomSplitExpenseUseCase
 import com.inwords.expenses.feature.expenses.domain.AddEqualSplitExpenseUseCase
 import com.inwords.expenses.feature.expenses.domain.EqualSplitCalculator
+import com.inwords.expenses.feature.expenses.domain.ReplaceExpenseUseCase
+import com.inwords.expenses.feature.expenses.domain.model.Expense
 import com.inwords.expenses.feature.expenses.domain.model.ExpenseType
 import com.inwords.expenses.feature.expenses.domain.model.PersonWithAmount
+import com.inwords.expenses.feature.expenses.domain.store.ExpensesLocalStore
 import com.inwords.expenses.feature.expenses.ui.add.AddExpensePaneDestination.Replenishment
 import com.inwords.expenses.feature.expenses.ui.add.AddExpensePaneUiModel.CurrencyInfoUiModel
 import com.inwords.expenses.feature.expenses.ui.add.AddExpensePaneUiModel.ExpenseSplitWithPersonUiModel
@@ -53,8 +57,11 @@ internal class AddExpenseViewModel(
     getCurrentEventStateUseCase: GetCurrentEventStateUseCase,
     private val addEqualSplitExpenseUseCase: AddEqualSplitExpenseUseCase,
     private val addCustomSplitExpenseUseCase: AddCustomSplitExpenseUseCase,
+    private val replaceExpenseUseCase: ReplaceExpenseUseCase,
+    private val expensesLocalStore: ExpensesLocalStore,
     settingsRepository: SettingsRepository,
     private val replenishment: Replenishment?,
+    private val replacesExpenseId: Long?,
     private val stringProvider: StringProvider = DefaultStringProvider,
     viewModelScope: CoroutineScope = CoroutineScope(SupervisorJob() + IO),
 ) : ViewModel(viewModelScope = viewModelScope) {
@@ -110,13 +117,13 @@ internal class AddExpenseViewModel(
 
     private var confirmJob: Job? = null
 
-    private val selectedExpenseType = MutableStateFlow(replenishment?.let { ExpenseType.Replenishment } ?: ExpenseType.Spending)
+    private val selectedExpenseType = MutableStateFlow(replenishment?.let { ExpenseType.Replenishment })
     private val selectedCurrencyCode = MutableStateFlow(replenishment?.currencyCode)
     private val selectedPersonId = MutableStateFlow(replenishment?.fromPersonId)
     private val selectedSubjectPersonsIds = MutableStateFlow(replenishment?.toPersonId?.let { setOf(it) })
     private val inputExchangeRate = MutableStateFlow<AmountModel?>(null)
-    private val inputDescription = MutableStateFlow(if (replenishment == null) "" else null)
-    private val inputEqualSplit = MutableStateFlow(replenishment == null)
+    private val inputDescription = MutableStateFlow<String?>(null)
+    private val inputEqualSplit = MutableStateFlow(replenishment == null && replacesExpenseId == null)
     private val inputWholeAmount = MutableStateFlow(
         if (replenishment == null) {
             AmountModel(null, "")
@@ -128,14 +135,22 @@ internal class AddExpenseViewModel(
         }
     )
     private val inputSplit = MutableStateFlow<List<ExpenseSplitWithPersonModel>?>(null)
+    private val replacedExpense = replacesExpenseId
+        ?.let { expensesLocalStore.getExpenseFlow(it) }
+        ?: flowOf(null)
 
     private val _state: StateFlow<SimpleScreenState<AddExpenseScreenModel>> = combine(
         getCurrentEventStateUseCase.currentEvent,
+        replacedExpense,
         selectedExpenseType,
         selectedCurrencyCode,
         inputExchangeRate,
         selectedPersonId.flatMapLatestNoBuffer {
-            it?.let { flowOf(it) } ?: settingsRepository.getCurrentPersonId()
+            it?.let { flowOf(it) } ?: if (replacesExpenseId == null) {
+                settingsRepository.getCurrentPersonId()
+            } else {
+                flowOf(null)
+            }
         },
         selectedSubjectPersonsIds,
         inputDescription,
@@ -143,6 +158,7 @@ internal class AddExpenseViewModel(
         inputWholeAmount,
         inputSplit,
     ) { eventDetails,
+        replacedExpense,
         selectedExpenseType,
         selectedCurrencyCode,
         inputExchangeRate,
@@ -154,9 +170,10 @@ internal class AddExpenseViewModel(
         inputSplit ->
 
         eventDetails ?: return@combine SimpleScreenState.Error // can't work without event
-        selectedPersonId ?: return@combine SimpleScreenState.Error // it's current person if not selected, can't work without current person
+        if (replacesExpenseId != null && replacedExpense == null) return@combine SimpleScreenState.Error
 
-        val selectedPerson = eventDetails.persons.firstOrNull { it.id == selectedPersonId }
+        val effectiveSelectedPersonId = selectedPersonId ?: replacedExpense?.person?.id
+        val selectedPerson = eventDetails.persons.firstOrNull { it.id == effectiveSelectedPersonId }
             ?: return@combine SimpleScreenState.Error // selected person must be in event
         val persons = eventDetails.persons.map { person ->
             PersonInfoModel(
@@ -167,22 +184,28 @@ internal class AddExpenseViewModel(
         val subjectPersons = eventDetails.persons.map { person ->
             PersonInfoModel(
                 person = person,
-                selected = selectedSubjectPersonsIds?.contains(person.id) ?: true
+                selected = selectedSubjectPersonsIds?.contains(person.id)
+                    ?: replacedExpense?.subjectExpenseSplitWithPersons?.any { it.person.id == person.id }
+                    ?: true
             )
         }
 
         val selectedCurrency = eventDetails.currencies
-            .firstOrNull { it.code == selectedCurrencyCode }
+            .firstOrNull { it.code == (selectedCurrencyCode ?: replacedExpense?.currency?.code) }
             ?: eventDetails.primaryCurrency
         val exchangeRate = selectedCurrency
             .takeIf { it.id != eventDetails.primaryCurrency.id }
             ?.let { currency ->
                 val autoRate = eventDetails.primaryCurrency.rate
                     .divide(other = currency.rate, scale = currencyRateScale)
-                val inputRate = inputExchangeRate ?: AmountModel(
-                    amount = autoRate,
-                    amountRaw = autoRate.toStringExpanded(),
-                )
+                val inputRate = inputExchangeRate
+                    ?: replacedExpense
+                        ?.takeIf { selectedCurrencyCode == null && it.currency.id == currency.id }
+                        ?.toEffectiveExchangeRateModel()
+                    ?: AmountModel(
+                        amount = autoRate,
+                        amountRaw = autoRate.toStringExpanded(),
+                    )
                 AddExpenseScreenModel.ExchangeRateModel(
                     originalCurrencyCode = currency.code,
                     primaryCurrencyCode = eventDetails.primaryCurrency.code,
@@ -195,7 +218,7 @@ internal class AddExpenseViewModel(
             equalSplit = inputEqualSplit,
             wholeAmount = inputWholeAmount,
             split = inputSplit ?: if (replenishment == null) {
-                emptyList()
+                replacedExpense?.toSplitModels(subjectPersons) ?: emptyList()
             } else {
                 listOf(
                     ExpenseSplitWithPersonModel(
@@ -212,7 +235,9 @@ internal class AddExpenseViewModel(
 
         val model = AddExpenseScreenModel(
             event = eventDetails.event,
-            description = inputDescription ?: run {
+            description = inputDescription ?: replacedExpense?.description ?: if (replenishment == null) {
+                ""
+            } else {
                 stringProvider.getString(Res.string.expenses_repayment_from, selectedPerson.name)
             },
             currencies = eventDetails.currencies.map { currency ->
@@ -222,11 +247,13 @@ internal class AddExpenseViewModel(
                 )
             },
             exchangeRate = exchangeRate,
-            expenseType = selectedExpenseType,
+            expenseType = selectedExpenseType ?: replacedExpense?.expenseType ?: ExpenseType.Spending,
             persons = persons,
             subjectPersons = subjectPersons,
             equalSplit = inputEqualSplit,
-            wholeAmount = inputWholeAmount,
+            wholeAmount = inputWholeAmount.takeIf { it.amount != null || it.amountRaw.isNotEmpty() }
+                ?: replacedExpense?.toWholeAmountModel()
+                ?: inputWholeAmount,
             split = split,
             canSave = calculateCanSave(
                 equalSplit = inputEqualSplit,
@@ -268,7 +295,6 @@ internal class AddExpenseViewModel(
     fun onSubjectPersonClicked(person: PersonInfoUiModel) {
         selectedSubjectPersonsIds.update { current ->
             val selectedSubjectPersonsIds = if (current == null) {
-                // initialize set if it's null
                 val state = (_state.value as? SimpleScreenState.Success)?.data ?: return@update current
                 state.subjectPersons.mapTo(HashSet()) { it.person.id }
             } else {
@@ -360,6 +386,40 @@ internal class AddExpenseViewModel(
         )
     }
 
+    private fun Expense.toWholeAmountModel(): AmountModel {
+        val amount = subjectExpenseSplitWithPersons.sumOf { it.originalAmount }
+        return AmountModel(
+            amount = amount,
+            amountRaw = amount.toRoundedString(2),
+        )
+    }
+
+    private fun Expense.toEffectiveExchangeRateModel(): AmountModel? {
+        val originalAmount = subjectExpenseSplitWithPersons.sumOf { it.originalAmount }
+        if (originalAmount == BigDecimal.ZERO) return null
+        val rate = subjectExpenseSplitWithPersons.sumOf { it.exchangedAmount }
+            .divide(other = originalAmount, scale = currencyRateScale)
+        return AmountModel(
+            amount = rate,
+            amountRaw = rate.toStringExpanded(),
+        )
+    }
+
+    private fun Expense.toSplitModels(
+        subjectPersons: List<PersonInfoModel>,
+    ): List<ExpenseSplitWithPersonModel> {
+        return subjectExpenseSplitWithPersons.mapNotNull { split ->
+            val person = subjectPersons.firstOrNull { it.person.id == split.person.id } ?: return@mapNotNull null
+            ExpenseSplitWithPersonModel(
+                person = person,
+                amount = AmountModel(
+                    amount = split.originalAmount,
+                    amountRaw = split.originalAmount.toRoundedString(2),
+                ),
+            )
+        }
+    }
+
     fun onDescriptionChanged(description: String) {
         inputDescription.value = description
     }
@@ -380,33 +440,62 @@ internal class AddExpenseViewModel(
                 }
                 exchangeRate.normalizedInputRate?.takeIf { exchangeRate.isCustom }
             }
-            if (state.equalSplit) {
-                addEqualSplitExpenseUseCase.addExpense(
-                    event = state.event,
-                    wholeAmount = state.wholeAmount.amount ?: return@launch,
-                    expenseType = state.expenseType,
-                    description = description,
-                    selectedSubjectPersons = state.subjectPersons.filter { it.selected }.map { it.person },
-                    selectedCurrency = selectedCurrency,
-                    selectedPerson = selectedPerson,
-                    overrideRate = overrideRate,
-                )
+            val saved = if (state.equalSplit) {
+                if (replacesExpenseId == null) {
+                    addEqualSplitExpenseUseCase.addExpense(
+                        event = state.event,
+                        wholeAmount = state.wholeAmount.amount ?: return@launch,
+                        expenseType = state.expenseType,
+                        description = description,
+                        selectedSubjectPersons = state.subjectPersons.filter { it.selected }.map { it.person },
+                        selectedCurrency = selectedCurrency,
+                        selectedPerson = selectedPerson,
+                        overrideRate = overrideRate,
+                    )
+                } else {
+                    replaceExpenseUseCase.replaceEqualSplitExpense(
+                        event = state.event,
+                        originalExpenseId = replacesExpenseId,
+                        wholeAmount = state.wholeAmount.amount ?: return@launch,
+                        expenseType = state.expenseType,
+                        description = description,
+                        selectedSubjectPersons = state.subjectPersons.filter { it.selected }.map { it.person },
+                        selectedCurrency = selectedCurrency,
+                        selectedPerson = selectedPerson,
+                        overrideRate = overrideRate,
+                    )
+                }
             } else {
                 val personWithAmountSplit = state.split?.map {
                     PersonWithAmount(it.person.person, it.amount.amount ?: return@launch)
                 } ?: return@launch
-                addCustomSplitExpenseUseCase.addExpense(
-                    event = state.event,
-                    expenseType = state.expenseType,
-                    description = description,
-                    selectedCurrency = selectedCurrency,
-                    selectedPerson = selectedPerson,
-                    personWithAmountSplit = personWithAmountSplit,
-                    overrideRate = overrideRate,
-                )
+                if (replacesExpenseId == null) {
+                    addCustomSplitExpenseUseCase.addExpense(
+                        event = state.event,
+                        expenseType = state.expenseType,
+                        description = description,
+                        selectedCurrency = selectedCurrency,
+                        selectedPerson = selectedPerson,
+                        personWithAmountSplit = personWithAmountSplit,
+                        overrideRate = overrideRate,
+                    )
+                } else {
+                    replaceExpenseUseCase.replaceCustomSplitExpense(
+                        event = state.event,
+                        originalExpenseId = replacesExpenseId,
+                        expenseType = state.expenseType,
+                        description = description,
+                        selectedCurrency = selectedCurrency,
+                        selectedPerson = selectedPerson,
+                        personWithAmountSplit = personWithAmountSplit,
+                        overrideRate = overrideRate,
+                    )
+                }
             }
 
-            navigationController.popBackStack()
+            if (saved) {
+                navigationController.popBackStack()
+            }
         }
     }
 

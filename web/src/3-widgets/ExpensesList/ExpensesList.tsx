@@ -7,6 +7,8 @@ import {currencyStore} from '@/5-entities/currency/stores/currency-store';
 import {eventStore} from '@/5-entities/event/stores/event-store';
 import {ExpenseDetailsModal} from '@/3-widgets/ExpenseDetailsModal/ExpenseDetailsModal';
 import {useContent} from '@/6-shared/i18n/useContent';
+import {getExpenseCorrectionStatus, isExpenseCorrectionOperation, buildCorrectionStatusByExpenseId} from '@/5-entities/expense/lib/correction-status';
+import {getExpenseExchangeRate} from '@/5-entities/expense/lib/exchange-rate';
 
 export const ExpensesList = observer(() => {
   const content = useContent();
@@ -24,15 +26,18 @@ export const ExpensesList = observer(() => {
 
   const getExpenses = () => {
     if (expenseStore.currentTab === 0) {
-      return expenseStore.currentUserExpenses;
+      return expenseStore.currentUserExpenses.filter((expense) => !isExpenseCorrectionOperation(expense));
     }
 
     if (expenseStore.currentTab === 1) {
-      return expenseStore.expensesToView;
+      return expenseStore.expensesToView.filter((expense) => !isExpenseCorrectionOperation(expense));
     }
 
     return [];
   };
+
+  const allOperations = [...expenseStore.expenses, ...expenseStore.expenseRefunds];
+  const correctionStatuses = buildCorrectionStatusByExpenseId(allOperations, content.ExpensesList);
 
   return (
     <Box display="flex" justifyContent={'center'} padding={'20px 10px'}>
@@ -47,18 +52,11 @@ export const ExpensesList = observer(() => {
           }, 0);
 
           const shouldShowReturnButton = userStore.currentUser?.id !== e.userWhoPaidId && currentUserDebt > 0;
+          const correctionStatus = correctionStatuses.get(e.id) ?? null;
 
-          // Вычисляем курс валюты (если трата была в другой валюте)
           const isMultiCurrency = e.currencyId !== eventStore.currentEvent?.currencyId;
           const expenseCurrencyCode = currencyStore.getCurrencyCode(e.currencyId);
-
-          let exchangeRate = 1;
-          if (isMultiCurrency && e.splitInformation.length > 0) {
-            const firstSplit = e.splitInformation[0];
-            if (firstSplit.amount > 0) {
-              exchangeRate = firstSplit.exchangedAmount / firstSplit.amount;
-            }
-          }
+          const exchangeRate = getExpenseExchangeRate(e, eventStore.currentEvent?.currencyId);
 
           const handleIconClick = () => {
             const originalExpense = expenseStore.expenses.find((exp) => exp.id === e.id);
@@ -86,6 +84,12 @@ export const ExpensesList = observer(() => {
                     </Stack>
                   </Stack>
                 </Typography>
+
+                {correctionStatus && (
+                  <Typography variant="body2" sx={{mt: 1, color: 'text.secondary'}}>
+                    {correctionStatus}
+                  </Typography>
+                )}
 
                 <Typography variant="body2" sx={{mt: 1}}>
                   {content.ExpensesList.paidBy} {userStore.usersDictIdToName[e.userWhoPaidId] || content.ExpensesList.unknown}

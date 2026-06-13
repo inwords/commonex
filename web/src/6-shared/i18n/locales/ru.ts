@@ -82,6 +82,8 @@ const ru = {
     currency: 'Валюта траты:',
     manual: '(ручной)',
     refund: 'Вернуть',
+    editedOn: (date: string) => `Изменено ${date}`,
+    revertedOn: (date: string) => `Отменено ${date}`,
   },
   DebtsList: {
     noDebts: 'У вас нет задолженностей',

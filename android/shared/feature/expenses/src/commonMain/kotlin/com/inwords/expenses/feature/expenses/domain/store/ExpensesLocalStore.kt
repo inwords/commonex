@@ -15,9 +15,20 @@ interface ExpensesLocalStore {
 
     suspend fun getExpense(expenseId: Long): Expense?
 
+    suspend fun hasCorrectionFor(expenseId: Long): Boolean
+
+    fun hasCorrectionForFlow(expenseId: Long): Flow<Boolean>
+
+    fun getCorrectionForTargetFlow(targetExpenseId: Long): Flow<Expense?>
+
     suspend fun upsert(event: Event, expense: Expense): Expense
 
     suspend fun upsert(event: Event, expenses: List<Expense>): List<Expense>
+
+    suspend fun reconcileCorrectionConflicts(
+        event: Event,
+        expensesToUpsert: List<ExpensePullItem>,
+    ): List<Expense>
 
     suspend fun updateExpenseSplitExchangedAmount(expenseSplitId: Long, exchangedAmount: BigDecimal): Boolean
 

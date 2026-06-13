@@ -14,18 +14,21 @@ import com.inwords.expenses.feature.events.domain.GetCurrentEventStateUseCase
 import com.inwords.expenses.feature.expenses.domain.model.Expense
 import com.inwords.expenses.feature.expenses.domain.model.ExpenseType
 import com.inwords.expenses.feature.expenses.domain.store.ExpensesLocalStore
+import com.inwords.expenses.feature.expenses.ui.add.AddExpensePaneDestination
+import com.inwords.expenses.feature.expenses.ui.list.ExpenseCorrectionStatusTextFactory
 import com.inwords.expenses.feature.expenses.ui.list.dialog.revert.ExpenseRevertDialogDestination
 import com.inwords.expenses.feature.expenses.ui.utils.toRoundedString
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.flow.map
 
 internal class ExpenseItemPaneViewModel(
     private val navigationController: NavigationController,
     getCurrentEventStateUseCase: GetCurrentEventStateUseCase,
     private val expensesLocalStore: ExpensesLocalStore,
+    private val correctionStatusTextFactory: ExpenseCorrectionStatusTextFactory,
     private val expenseId: Long,
     private val eventId: Long,
     viewModelScope: CoroutineScope = CoroutineScope(SupervisorJob() + IO),
@@ -35,35 +38,59 @@ internal class ExpenseItemPaneViewModel(
         .flatMapLatestNoBuffer { currentEvent ->
             currentEvent ?: return@flatMapLatestNoBuffer flowOf(SimpleScreenState.Error)
 
-            expensesLocalStore.getExpenseFlow(expenseId).map { expense ->
+            combine(
+                expensesLocalStore.getExpenseFlow(expenseId),
+                expensesLocalStore.hasCorrectionForFlow(expenseId),
+                expensesLocalStore.getCorrectionForTargetFlow(expenseId),
+            ) { expense, hasCorrection, correction ->
                 if (expense == null) {
                     SimpleScreenState.Error
                 } else {
-                    SimpleScreenState.Success(expense.toUiModel(primaryCurrencyCode = currentEvent.primaryCurrency.code))
+                    SimpleScreenState.Success(
+                        expense.toUiModel(
+                            primaryCurrencyCode = currentEvent.primaryCurrency.code,
+                            canCorrect = !hasCorrection,
+                            statusText = correction?.let { correctionStatusTextFactory.createStatusForCorrection(it) },
+                        )
+                    )
                 }
             }
         }
         .stateInWhileSubscribed(viewModelScope, initialValue = SimpleScreenState.Loading)
 
     fun onRevertExpenseClick() {
-        val expenseDescription = (state.value as? SimpleScreenState.Success)?.data?.description ?: return
+        val item = (state.value as? SimpleScreenState.Success)?.data?.takeIf { it.canCorrect } ?: return
 
         navigationController.navigateTo(
             ExpenseRevertDialogDestination(
                 expenseId = expenseId,
                 eventId = eventId,
-                expenseDescription = expenseDescription,
+                expenseDescription = item.description,
             )
         )
     }
 
-    private fun Expense.toUiModel(primaryCurrencyCode: String): ExpenseItemPaneUiModel {
+    fun onEditExpenseClick() {
+        val item = (state.value as? SimpleScreenState.Success)?.data?.takeIf { it.canCorrect } ?: return
+        navigationController.navigateTo(
+            AddExpensePaneDestination(
+                replenishment = null,
+                replacesExpenseId = item.expenseId,
+            )
+        )
+    }
+
+    private fun Expense.toUiModel(
+        primaryCurrencyCode: String,
+        canCorrect: Boolean,
+        statusText: String?,
+    ): ExpenseItemPaneUiModel {
         val expense = this
         val amountSign = amountSign(expense.expenseType)
         val split = expense.subjectExpenseSplitWithPersons
 
         return ExpenseItemPaneUiModel(
-            expense = expense,
+            expenseId = expense.expenseId,
             description = expense.description,
             totalAmount = "$amountSign${expense.totalAmount.toRoundedString()}",
             primaryCurrencyCode = primaryCurrencyCode,
@@ -81,6 +108,8 @@ internal class ExpenseItemPaneViewModel(
                     amount = "$amountSign${splitWithPerson.originalAmount.toRoundedString()}",
                 )
             }.asImmutableListAdapter(),
+            canCorrect = canCorrect,
+            statusText = statusText,
         )
     }
 

@@ -15,6 +15,8 @@ kotlin {
         optimization {
             consumerKeepRules.files.add(file("consumer-rules.pro"))
         }
+
+        withHostTest {}
     }
 
     applyKmmDefaults("sharedCoreNavigation")
@@ -35,6 +37,11 @@ kotlin {
 
                 implementation(shared.lifecycle.viewmodel.compose.multiplatform)
                 implementation(shared.navigation3.ui.multiplatform)
+            }
+        }
+        commonTest {
+            dependencies {
+                implementation(shared.kotlin.test)
             }
         }
     }

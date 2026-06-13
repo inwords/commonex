@@ -23,6 +23,8 @@ internal fun ExpenseWithDetailsQuery.toDomain(): Expense {
         isCustomRate = this.expense.isCustomRate,
         timestamp = this.expense.timestamp,
         description = this.expense.description,
+        revertsExpenseId = this.expense.revertsExpenseId,
+        replacesExpenseId = this.expense.replacesExpenseId,
     )
 }
 

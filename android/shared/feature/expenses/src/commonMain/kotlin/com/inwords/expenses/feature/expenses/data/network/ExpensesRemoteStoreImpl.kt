@@ -1,6 +1,9 @@
 package com.inwords.expenses.feature.expenses.data.network
 
+import com.inwords.expenses.core.network.DomainErrorCodes
 import com.inwords.expenses.core.network.HostConfig
+import com.inwords.expenses.core.network.NetworkResult
+import com.inwords.expenses.core.network.getErrorCode
 import com.inwords.expenses.core.network.idempotencyKey
 import com.inwords.expenses.core.network.requestWithExceptionHandling
 import com.inwords.expenses.core.network.toIoResult
@@ -17,9 +20,11 @@ import com.inwords.expenses.feature.expenses.data.network.dto.ExpenseDto
 import com.inwords.expenses.feature.expenses.data.network.dto.GetEventExpensesRequest
 import com.inwords.expenses.feature.expenses.data.network.dto.SplitInformationDto
 import com.inwords.expenses.feature.expenses.data.network.dto.SplitInformationRequest
+import com.inwords.expenses.feature.expenses.domain.correctedExpenseId
 import com.inwords.expenses.feature.expenses.domain.model.Expense
 import com.inwords.expenses.feature.expenses.domain.model.ExpenseSplitWithPerson
 import com.inwords.expenses.feature.expenses.domain.model.ExpenseType
+import com.inwords.expenses.feature.expenses.domain.store.ExpensePullItem
 import com.inwords.expenses.feature.expenses.domain.store.ExpensePushItem
 import com.inwords.expenses.feature.expenses.domain.store.ExpensesRemoteStore
 import com.ionspin.kotlin.bignum.decimal.BigDecimal
@@ -42,7 +47,7 @@ internal class ExpensesRemoteStoreImpl(
         event: Event,
         currencies: List<Currency>,
         persons: List<Person>
-    ): IoResult<List<Expense>> {
+    ): IoResult<List<ExpensePullItem>> {
         val serverId = event.serverId
             .captureMessageIfNull("ExpensesRemoteStore.getExpenses called for an unsynced event")
             ?: return IoResult.Error.Failure
@@ -51,21 +56,24 @@ internal class ExpensesRemoteStoreImpl(
                 url(hostConfig) { pathSegments = listOf("api", "v2", "user", "event", serverId, "expenses") }
                 contentType(ContentType.Application.Json)
                 setBody(GetEventExpensesRequest(pinCode = event.pinCode))
-            }.body<List<ExpenseDto>>().mapNotNull { it.toExpense(localExpense = null, currencies, persons) }
+            }.body<List<ExpenseDto>>().mapNotNull { it.toPullItem(currencies, persons) }
         }.toIoResult()
     }
 
     override suspend fun addExpensesToEvent(
         event: Event,
         expenses: List<ExpensePushItem>,
+        allExpenses: List<Expense>,
         currencies: List<Currency>,
         persons: List<Person>,
     ): List<IoResult<Expense>> = coroutineScope {
+        val allExpensesById = allExpenses.associateBy { it.expenseId }
         expenses.map { expensePushItem ->
             async {
                 addExpenseToEvent(
                     event = event,
                     expense = expensePushItem.expense,
+                    allExpensesById = allExpensesById,
                     currencies = currencies,
                     persons = persons,
                     idempotencyKey = expensePushItem.idempotencyKey,
@@ -77,6 +85,7 @@ internal class ExpensesRemoteStoreImpl(
     private suspend fun addExpenseToEvent(
         event: Event,
         expense: Expense,
+        allExpensesById: Map<Long, Expense>,
         currencies: List<Currency>,
         persons: List<Person>,
         idempotencyKey: String,
@@ -95,7 +104,19 @@ internal class ExpensesRemoteStoreImpl(
                 setContext("currency_code", expense.currency.code)
             }
             ?: return IoResult.Error.Failure
-        return client.requestWithExceptionHandling {
+        val revertsExpenseId = mapCorrectionServerId(
+            localExpenseId = expense.revertsExpenseId,
+            allExpensesById = allExpensesById,
+            eventServerId = serverId,
+            contextKey = "reverts_expense_id",
+        ) { return it }
+        val replacesExpenseId = mapCorrectionServerId(
+            localExpenseId = expense.replacesExpenseId,
+            allExpensesById = allExpensesById,
+            eventServerId = serverId,
+            contextKey = "replaces_expense_id",
+        ) { return it }
+        val result = client.requestWithExceptionHandling {
             post {
                 url(hostConfig) { pathSegments = listOf("api", "v2", "user", "event", serverId, "expense") }
                 idempotencyKey(idempotencyKey)
@@ -118,16 +139,40 @@ internal class ExpensesRemoteStoreImpl(
                                 userId = splitInformationUserId,
                                 amount = expenseSplitWithPerson.originalAmount.doubleValue(false),
                                 exchangedAmount = expenseSplitWithPerson.exchangedAmount
-                                    .takeIf { expense.isCustomRate }
+                                    .takeIf { expense.isCustomRate || expense.correctedExpenseId != null }
                                     ?.doubleValue(false),
                             )
                         },
                         description = expense.description,
-                        pinCode = event.pinCode
+                        pinCode = event.pinCode,
+                        isCustomRate = expense.isCustomRate,
+                        revertsExpenseId = revertsExpenseId,
+                        replacesExpenseId = replacesExpenseId,
                     )
                 )
             }.body<ExpenseDto>().toExpense(expense, currencies, persons)
-        }.toIoResult()
+        }
+        return when (result) {
+            is NetworkResult.Error.Http.Client -> {
+                if (result.getErrorCode() in DomainErrorCodes.permanentExpenseCorrectionErrorCodes) {
+                    IoResult.Error.Failure
+                } else {
+                    result.toIoResult()
+                }
+            }
+            else -> result.toIoResult()
+        }
+    }
+
+    private fun ExpenseDto.toPullItem(
+        currencies: List<Currency>,
+        persons: List<Person>
+    ): ExpensePullItem? {
+        return ExpensePullItem(
+            expense = toExpense(localExpense = null, currencies, persons) ?: return null,
+            revertsExpenseServerId = revertsExpenseId,
+            replacesExpenseServerId = replacesExpenseId,
+        )
     }
 
     private fun ExpenseDto.toExpense(
@@ -156,6 +201,8 @@ internal class ExpensesRemoteStoreImpl(
             isCustomRate = isCustomRate,
             timestamp = createdAt,
             description = description,
+            revertsExpenseId = localExpense?.revertsExpenseId,
+            replacesExpenseId = localExpense?.replacesExpenseId,
         )
     }
 
@@ -175,6 +222,41 @@ internal class ExpensesRemoteStoreImpl(
             originalAmount = originalAmount,
             exchangedAmount = exchangedAmount,
         )
+    }
+
+    private inline fun mapCorrectionServerId(
+        localExpenseId: Long?,
+        allExpensesById: Map<Long, Expense>,
+        eventServerId: String,
+        contextKey: String,
+        onError: (IoResult.Error) -> Nothing,
+    ): String? {
+        val expenseId = localExpenseId ?: return null
+        return when (val result = resolveReferencedServerId(expenseId, allExpensesById, eventServerId, contextKey)) {
+            is IoResult.Success -> result.data
+            is IoResult.Error -> onError(result)
+        }
+    }
+
+    private fun resolveReferencedServerId(
+        expenseId: Long,
+        allExpensesById: Map<Long, Expense>,
+        eventServerId: String,
+        contextKey: String,
+    ): IoResult<String> {
+        val referencedExpense = allExpensesById[expenseId]
+            .captureMessageIfNull("ExpensesRemoteStore.addExpenseToEvent could not find referenced expense") {
+                setContext("event_server_id", eventServerId)
+                setContext(contextKey, expenseId.toString())
+            }
+            ?: return IoResult.Error.Failure
+        return referencedExpense.serverId
+            .captureMessageIfNull("ExpensesRemoteStore.addExpenseToEvent found referenced expense without a server id") {
+                setContext("event_server_id", eventServerId)
+                setContext(contextKey, expenseId.toString())
+            }
+            ?.let { IoResult.Success(it) }
+            ?: IoResult.Error.Retry
     }
 
 }

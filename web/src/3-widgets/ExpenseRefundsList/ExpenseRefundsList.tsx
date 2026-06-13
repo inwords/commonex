@@ -3,11 +3,12 @@ import {observer} from 'mobx-react-lite';
 import {expenseStore} from '@/5-entities/expense/stores/expense-store';
 import {currencyStore} from '@/5-entities/currency/stores/currency-store';
 import {eventStore} from '@/5-entities/event/stores/event-store';
+import {isExpenseCorrectionOperation} from '@/5-entities/expense/lib/correction-status';
 
 export const ExpenseRefundsList = observer(() => {
   const getExpenceRefunds = () => {
     if (expenseStore.currentTab === 3) {
-      return expenseStore.currentUserExpenseRefunds;
+      return expenseStore.currentUserExpenseRefunds.filter((expense) => !isExpenseCorrectionOperation(expense));
     }
 
     return [];

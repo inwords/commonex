@@ -12,6 +12,8 @@ export interface IExpense {
   expenseType: ExpenseType;
   splitInformation: Array<ISplitInfo>;
   isCustomRate: boolean;
+  revertsExpenseId?: string | null;
+  replacesExpenseId?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }

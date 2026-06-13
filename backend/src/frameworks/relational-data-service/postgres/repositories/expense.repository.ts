@@ -15,6 +15,47 @@ export class ExpenseRepository extends BaseRepository implements ExpenseReposito
     this.dataSource = dataSource;
   }
 
+  readonly findById: ExpenseRepositoryAbstract['findById'] = async (
+    expenseId: IExpense['id'],
+    trx,
+  ): Promise<[result: IExpense | undefined, queryDetails: IQueryDetails]> => {
+    const ctx = trx?.ctx instanceof EntityManager ? trx.ctx : undefined;
+
+    let query = this.getRepository(ctx).createQueryBuilder(this.queryName);
+
+    query = query.where(`${this.queryName}.id = :expenseId`, {
+      expenseId,
+    });
+
+    const queryDetails = this.getQueryDetails(query);
+    const result = await query.getOne();
+
+    return [result ?? undefined, queryDetails];
+  };
+
+  readonly findCorrectionForReferencedExpense: ExpenseRepositoryAbstract['findCorrectionForReferencedExpense'] = async (
+    eventId: IExpense['eventId'],
+    referencedExpenseId: IExpense['id'],
+    trx,
+  ): Promise<[result: IExpense | undefined, queryDetails: IQueryDetails]> => {
+    const ctx = trx?.ctx instanceof EntityManager ? trx.ctx : undefined;
+
+    let query = this.getRepository(ctx).createQueryBuilder(this.queryName);
+
+    query = query
+      .where(`${this.queryName}.event_id = :eventId`, {eventId})
+      .andWhere(
+        `(${this.queryName}.reverts_expense_id = :referencedExpenseId OR ${this.queryName}.replaces_expense_id = :referencedExpenseId)`,
+        {referencedExpenseId},
+      )
+      .limit(1);
+
+    const queryDetails = this.getQueryDetails(query);
+    const result = await query.getOne();
+
+    return [result ?? undefined, queryDetails];
+  };
+
   readonly findByEventId: ExpenseRepositoryAbstract['findByEventId'] = async (
     eventId: IExpense['eventId'],
     trx,

@@ -42,6 +42,7 @@ internal sealed interface ExpensesPaneUiModel {
             val timeText: String,
             val description: String,
             val currentPersonPartAmount: String?,
+            val statusText: String?,
         )
     }
 

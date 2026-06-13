@@ -91,7 +91,7 @@ internal class EventExpensesPushTaskTest {
         val result = task.pushEventExpenses(localDetails.event.id)
 
         assertEquals(IoResult.Success(Unit), result)
-        coVerify(exactly = 0) { expensesRemoteStore.addExpensesToEvent(any(), any(), any(), any()) }
+        coVerify(exactly = 0) { expensesRemoteStore.addExpensesToEvent(any(), any(), any(), any(), any()) }
     }
 
     @Test
@@ -103,7 +103,7 @@ internal class EventExpensesPushTaskTest {
         val result = task.pushEventExpenses(localDetails.event.id)
 
         assertEquals(IoResult.Success(Unit), result)
-        coVerify(exactly = 0) { expensesRemoteStore.addExpensesToEvent(any(), any(), any(), any()) }
+        coVerify(exactly = 0) { expensesRemoteStore.addExpensesToEvent(any(), any(), any(), any(), any()) }
     }
 
     @Test
@@ -121,7 +121,7 @@ internal class EventExpensesPushTaskTest {
         val result = task.pushEventExpenses(localDetails.event.id)
 
         assertEquals(IoResult.Success(Unit), result)
-        coVerify(exactly = 0) { expensesRemoteStore.addExpensesToEvent(any(), any(), any(), any()) }
+        coVerify(exactly = 0) { expensesRemoteStore.addExpensesToEvent(any(), any(), any(), any(), any()) }
     }
 
     @Test
@@ -144,6 +144,7 @@ internal class EventExpensesPushTaskTest {
                         idempotencyKey = "mobile:$CLIENT_ID:event.expense.add:srv-event:expense-1",
                     )
                 ),
+                allExpenses = listOf(localExpense),
                 currencies = localDetails.currencies,
                 persons = localDetails.persons,
             )
@@ -204,6 +205,7 @@ internal class EventExpensesPushTaskTest {
                         idempotencyKey = "mobile:$CLIENT_ID:event.expense.add:srv-event:expense-2",
                     ),
                 ),
+                allExpenses = listOf(firstExpense, secondExpense),
                 currencies = localDetails.currencies,
                 persons = localDetails.persons,
             )
@@ -227,7 +229,7 @@ internal class EventExpensesPushTaskTest {
 
         val result = task.pushEventExpenses(localDetails.event.id)
 
-        assertEquals(IoResult.Success(Unit), result)
+        assertEquals(IoResult.Error.Retry, result)
         coVerify(exactly = 1) { expensesLocalStore.updateExpenseServerId(firstExpense.expenseId, "srv-1") }
         coVerify(exactly = 0) { expensesLocalStore.updateExpenseServerId(secondExpense.expenseId, any()) }
     }
@@ -257,6 +259,7 @@ internal class EventExpensesPushTaskTest {
                         idempotencyKey = "mobile:$CLIENT_ID:event.expense.add:srv-event:expense-2",
                     ),
                 ),
+                allExpenses = listOf(firstExpense, secondExpense),
                 currencies = localDetails.currencies,
                 persons = localDetails.persons,
             )
@@ -280,7 +283,7 @@ internal class EventExpensesPushTaskTest {
 
         val result = task.pushEventExpenses(localDetails.event.id)
 
-        assertEquals(IoResult.Success(Unit), result)
+        assertEquals(IoResult.Error.Retry, result)
         coVerify(exactly = 0) { expensesLocalStore.updateExpenseServerId(firstExpense.expenseId, any()) }
         coVerify(exactly = 1) { expensesLocalStore.updateExpenseServerId(secondExpense.expenseId, "srv-2") }
         coVerify(exactly = 1) {
@@ -298,7 +301,7 @@ internal class EventExpensesPushTaskTest {
     }
 
     @Test
-    fun `pushEventExpenses returns success with no updates when all network results are errors`() = runTest {
+    fun `pushEventExpenses returns retry with no updates when all network results are retryable errors`() = runTest {
         val localDetails = eventDetails()
         val localExpense = expense(expenseId = 1L, serverId = null)
         coEvery { eventsLocalStore.getEventWithDetails(localDetails.event.id) } returns localDetails
@@ -312,6 +315,7 @@ internal class EventExpensesPushTaskTest {
                         idempotencyKey = "mobile:$CLIENT_ID:event.expense.add:srv-event:expense-1",
                     )
                 ),
+                allExpenses = listOf(localExpense),
                 currencies = localDetails.currencies,
                 persons = localDetails.persons,
             )
@@ -319,7 +323,7 @@ internal class EventExpensesPushTaskTest {
 
         val result = task.pushEventExpenses(localDetails.event.id)
 
-        assertEquals(IoResult.Success(Unit), result)
+        assertEquals(IoResult.Error.Retry, result)
         coVerify(exactly = 0) { expensesLocalStore.updateExpenseServerId(any(), any()) }
         coVerify(exactly = 0) { expensesLocalStore.updateExpenseSplitExchangedAmount(any(), any()) }
     }
@@ -375,6 +379,8 @@ internal class EventExpensesPushTaskTest {
             timestamp = Clock.System.now(),
             description = "Expense$expenseId",
             clientCreateId = "expense-$expenseId",
+            revertsExpenseId = null,
+            replacesExpenseId = null,
         )
     }
 

@@ -83,16 +83,21 @@ The iOS app (`applinks:commonex.ru` in `iosApp.entitlements`, `onOpenURL` / `onC
   The key is produced through the shared network idempotency generator, keeping per-install identity details out of expense sync logic.
 - Local numeric Room IDs are not valid idempotency identities for event, person, or expense creation. Durable client-side create IDs are generated once at local creation time, persisted in Room, and preserved across local updates and sync writes.
 - Legacy rows upgraded by DB migration `4->5` backfill unsynced IDs as non-numeric `legacy:<32-hex>` tokens (not `local:<row-id>`), so migrated unsynced entities keep durable non-ID-derived identities.
-- Partial network responses (success for some expenses, error for others) are supported: iterate over the full results list with index so alignment with local expenses is preserved; persist only successful results.
+- Reversal and correction links are stored locally by local numeric Room expense ID (`revertsExpenseId` / `replacesExpenseId`).
+- Expense push resolves local reversal/correction links to remote `serverId` values from the full local expense set; linked expenses must be synced before their correction or reversal can be pushed.
+- Expense pull inserts remote correction rows first, then resolves backend correction-link server IDs to local numeric expense IDs in the same local-store transaction.
+- If another device wins a competing correction, expense pull atomically removes the rejected unsynced local sibling and its unsynced correction descendants before inserting the server-authoritative correction.
+- An expense can have only one direct correction locally; further correction actions target the latest correction in the chain.
+- Partial network responses are supported: persist successful results while preserving their index alignment. Any retryable result makes expense push retry and stops pull, preventing an accepted request with a lost response from being mistaken for a competing correction.
+- Known permanent correction errors allow pull to continue so the server-authoritative correction can replace the rejected pending local chain.
 - After a successful push it writes back the remote expense `serverId` and the backend-confirmed `exchangedAmount` values for each split.
-- Mobile sends `amount` for every split and includes client-supplied `exchangedAmount` only when the local expense uses a custom rate (`isCustomRate == true`).
+- Mobile sends `amount` for every split and includes client-supplied `exchangedAmount` for custom-rate expenses and all corrections. Correction requests also send the local `isCustomRate` value so exact historical exchange arithmetic is preserved without changing rate metadata.
 
 - `EventExpensesPullTask` has the same synced-event/person/currency prerequisites.
-- Pull currently performs insert-only reconciliation:
-  it fetches remote expenses and upserts only those whose remote `serverId` does not already exist locally.
-- Pulled V2 expense payloads must include `isCustomRate`; mobile preserves that backend state so custom-rate expenses created on another client keep their custom conversion semantics after sync.
+- Pull inserts remote expenses whose `serverId` does not already exist locally and atomically removes rejected unsynced correction conflicts.
+- Pulled V2 expense payloads must include `isCustomRate`, `revertsExpenseId`, and `replacesExpenseId`; mobile preserves that backend state so custom-rate expenses and correction/reversal links created on another client keep their semantics after sync.
 - Current implication:
-  pull does not update or delete previously synced local expenses when the server changes an existing remote expense.
+  pull does not update or delete previously synced local expenses when the server changes an existing remote expense; conflict cleanup applies only to unsynced local corrections.
 
 ## Currency Handling
 

@@ -15,6 +15,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -41,6 +42,7 @@ import expenses.shared.feature.expenses.generated.resources.Res
 import expenses.shared.feature.expenses.generated.resources.common_error
 import expenses.shared.feature.expenses.generated.resources.expenses_date
 import expenses.shared.feature.expenses.generated.resources.expenses_description
+import expenses.shared.feature.expenses.generated.resources.expenses_edit_operation
 import expenses.shared.feature.expenses.generated.resources.expenses_exchange_rate
 import expenses.shared.feature.expenses.generated.resources.expenses_exchange_rate_value
 import expenses.shared.feature.expenses.generated.resources.expenses_expense_details
@@ -58,12 +60,14 @@ import kotlin.time.Instant
 internal fun ExpenseItemPane(
     state: SimpleScreenState<ExpenseItemPaneUiModel>,
     onRevertExpenseClick: () -> Unit,
+    onEditExpenseClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     when (state) {
         is SimpleScreenState.Success -> ExpenseItemPaneSuccess(
             state = state.data,
             onRevertExpenseClick = onRevertExpenseClick,
+            onEditExpenseClick = onEditExpenseClick,
             modifier = modifier,
         )
 
@@ -90,6 +94,7 @@ internal fun ExpenseItemPane(
 private fun ExpenseItemPaneSuccess(
     state: ExpenseItemPaneUiModel,
     onRevertExpenseClick: () -> Unit,
+    onEditExpenseClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -116,6 +121,17 @@ private fun ExpenseItemPaneSuccess(
             modifier = Modifier.padding(top = 8.dp),
             valueTestTag = "expense_item_pane_description_value",
         )
+        state.statusText?.let { statusText ->
+            Text(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .testTag("expense_item_pane_status_text"),
+                text = statusText,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
         DetailRow(
             label = stringResource(Res.string.expenses_total_amount),
             value = "${state.totalAmount} ${state.primaryCurrencyCode}",
@@ -161,26 +177,47 @@ private fun ExpenseItemPaneSuccess(
         )
         Spacer(modifier = Modifier.height(8.dp))
 
-        TextButton(
-            modifier = Modifier
-                .fillMaxWidth()
-                .testTag("expense_item_revert_action")
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            onClick = onRevertExpenseClick,
-            colors = ButtonDefaults.textButtonColors(
-                contentColor = MaterialTheme.colorScheme.error,
-            ),
-            contentPadding = PaddingValues(vertical = 16.dp),
-        ) {
-            Icon(
-                imageVector = Icons.Outlined.Delete,
-                contentDescription = null,
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = stringResource(Res.string.expenses_revert_operation),
-                style = MaterialTheme.typography.titleMedium,
-            )
+        if (state.canCorrect) {
+            TextButton(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("expense_item_edit_action")
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                onClick = onEditExpenseClick,
+                contentPadding = PaddingValues(vertical = 16.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Edit,
+                    contentDescription = null,
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = stringResource(Res.string.expenses_edit_operation),
+                    style = MaterialTheme.typography.titleMedium,
+                )
+            }
+
+            TextButton(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("expense_item_revert_action")
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                onClick = onRevertExpenseClick,
+                colors = ButtonDefaults.textButtonColors(
+                    contentColor = MaterialTheme.colorScheme.error,
+                ),
+                contentPadding = PaddingValues(vertical = 16.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Delete,
+                    contentDescription = null,
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = stringResource(Res.string.expenses_revert_operation),
+                    style = MaterialTheme.typography.titleMedium,
+                )
+            }
         }
         Spacer(modifier = Modifier.height(8.dp))
     }
@@ -290,7 +327,7 @@ private fun ExpenseItemPanePreview() {
             ExpenseItemPane(
                 state = SimpleScreenState.Success(
                     ExpenseItemPaneUiModel(
-                        expense = mockExpense(),
+                        expenseId = 1L,
                         description = "Булка с маслом из хорошей булочной, что тут ещё сказать",
                         totalAmount = "-300",
                         primaryCurrencyCode = "EUR",
@@ -299,6 +336,8 @@ private fun ExpenseItemPanePreview() {
                         originalCurrencyCode = "USD",
                         originalCurrencyName = "US Dollar",
                         exchangeRate = "0.92",
+                        canCorrect = true,
+                        statusText = "Edited on 12 June 2026",
                         split = persistentListOf(
                             ExpenseItemPaneUiModel.PersonSplitUiModel(
                                 personName = "Василий",
@@ -312,6 +351,7 @@ private fun ExpenseItemPanePreview() {
                     )
                 ),
                 onRevertExpenseClick = {},
+                onEditExpenseClick = {},
             )
         }
     }
@@ -349,5 +389,7 @@ private fun mockExpense(): Expense {
         isCustomRate = false,
         timestamp = Instant.parseOrNull("2026-03-02T18:43:00Z")!!,
         description = "Preview expense",
+        revertsExpenseId = null,
+        replacesExpenseId = null,
     )
 }

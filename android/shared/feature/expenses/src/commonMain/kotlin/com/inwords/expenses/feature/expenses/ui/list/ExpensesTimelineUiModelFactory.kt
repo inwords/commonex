@@ -7,9 +7,10 @@ import com.inwords.expenses.core.ui.utils.formatRelativeShortDate
 import com.inwords.expenses.core.ui.utils.getFullDateFormat
 import com.inwords.expenses.core.utils.asImmutableListAdapter
 import com.inwords.expenses.core.utils.sumOf
-import com.inwords.expenses.feature.expenses.domain.model.Expense
+import com.inwords.expenses.feature.expenses.domain.ExpenseTimelineProjection
 import com.inwords.expenses.feature.expenses.domain.model.ExpenseType
 import com.inwords.expenses.feature.expenses.domain.model.ExpensesDetails
+import com.inwords.expenses.feature.expenses.domain.toTimelineProjections
 import com.inwords.expenses.feature.expenses.ui.common.DebtShortUiModel
 import com.inwords.expenses.feature.expenses.ui.converter.toUiModel
 import com.inwords.expenses.feature.expenses.ui.list.ExpensesPaneUiModel.Expenses
@@ -28,6 +29,7 @@ import kotlin.time.Clock
 import kotlin.time.Instant
 
 internal class ExpensesTimelineUiModelFactory(
+    private val correctionStatusFactory: ExpenseCorrectionStatusTextFactory,
     private val stringProvider: StringProvider = DefaultStringProvider,
     private val timeZoneProvider: () -> TimeZone = { TimeZone.currentSystemDefault() },
     private val localeProvider: () -> Locale = { Locale.current },
@@ -44,9 +46,11 @@ internal class ExpensesTimelineUiModelFactory(
         val currentLocalDate = nowProvider.invoke().toLocalDateTime(timeZone).date
         val primaryCurrencyName = expensesDetails.event.primaryCurrency.name
         val primaryCurrencyCode = expensesDetails.event.primaryCurrency.code
-
+        val expenseStatuses = correctionStatusFactory.createStatusesByTargetExpenseId(expensesDetails.expenses)
+        val timelineProjections = expensesDetails.expenses.toTimelineProjections()
         val sections = buildSections(
-            expenses = expensesDetails.expenses,
+            timelineProjections = timelineProjections,
+            expenseStatuses = expenseStatuses,
             currentPersonId = currentPersonId,
             primaryCurrencyName = primaryCurrencyName,
             primaryCurrencyCode = primaryCurrencyCode,
@@ -65,9 +69,10 @@ internal class ExpensesTimelineUiModelFactory(
             currentPersonName = expensesDetails.event.persons.first { it.id == currentPersonId }.name,
             debts = debts.asImmutableListAdapter(),
             totalSpending = formatAmount(
-                amount = expensesDetails.expenses
-                    .filter { it.expenseType == ExpenseType.Spending }
-                    .sumOf { it.totalAmount },
+                amount = timelineProjections
+                    .filter { it.countsTowardSpending }
+                    .filter { it.expense.expenseType == ExpenseType.Spending }
+                    .sumOf { it.expense.totalAmount },
                 currencyCode = primaryCurrencyCode,
             ),
             dayChips = chips.asImmutableListAdapter(),
@@ -100,15 +105,16 @@ internal class ExpensesTimelineUiModelFactory(
         }
     }
 
-    private fun buildSections(
-        expenses: List<Expense>,
+    private suspend fun buildSections(
+        timelineProjections: List<ExpenseTimelineProjection>,
+        expenseStatuses: Map<Long, String>,
         currentPersonId: Long,
         primaryCurrencyName: String,
         primaryCurrencyCode: String,
         timeZone: TimeZone,
         locale: Locale,
     ): List<DaySectionBuildResult> {
-        if (expenses.isEmpty()) {
+        if (timelineProjections.isEmpty()) {
             return emptyList()
         }
 
@@ -120,6 +126,11 @@ internal class ExpensesTimelineUiModelFactory(
 
         fun flushSection() {
             val localDate = currentSectionDate ?: return
+            if (currentSectionExpenses.isEmpty()) {
+                currentSectionSpendingTotal = BigDecimal.ZERO
+                currentSectionHasSpending = false
+                return
+            }
             sections += DaySectionBuildResult(
                 dayKey = localDate.toString(),
                 localDate = localDate,
@@ -137,18 +148,22 @@ internal class ExpensesTimelineUiModelFactory(
             currentSectionHasSpending = false
         }
 
-        expenses.forEach { expense ->
+        timelineProjections.forEach { projection ->
+            val expense = projection.expense
             val expenseDate = expense.timestamp.toLocalDateTime(timeZone).date
             if (currentSectionDate != expenseDate) {
                 flushSection()
                 currentSectionDate = expenseDate
             }
 
-            currentSectionExpenses += expense.toUiModel(
-                primaryCurrencyName = primaryCurrencyName,
-                currentPersonId = currentPersonId,
-            )
-            if (expense.expenseType == ExpenseType.Spending) {
+            if (projection.showInList) {
+                currentSectionExpenses += expense.toUiModel(
+                    primaryCurrencyName = primaryCurrencyName,
+                    currentPersonId = currentPersonId,
+                    statusText = expenseStatuses[expense.expenseId],
+                )
+            }
+            if (projection.countsTowardSpending && expense.expenseType == ExpenseType.Spending) {
                 currentSectionHasSpending = true
                 currentSectionSpendingTotal += expense.totalAmount
             }

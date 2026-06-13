@@ -37,6 +37,7 @@ internal class MigrationTest {
     private val focusedMigrationDb = "app_db_migration_2_3.db"
     private val focusedMigration3To4Db = "app_db_migration_3_4.db"
     private val focusedMigration4To5Db = "app_db_migration_4_5.db"
+    private val focusedMigration5To6Db = "app_db_migration_5_6.db"
 
     @get:Rule
     val helper = MigrationTestHelper(
@@ -270,6 +271,64 @@ internal class MigrationTest {
                 assertEquals("server:srv-expense", db.expensesDao().queryById(20)?.expense?.clientCreateId)
                 val localExpenseClientCreateId = db.expensesDao().queryById(21)?.expense?.clientCreateId
                 assertTrue(localExpenseClientCreateId?.matches(Regex("legacy:[0-9a-f]{32}")) == true)
+            }
+
+            db.close()
+        }
+    }
+
+    @Test
+    @Throws(IOException::class)
+    fun migrate5To6_addsNullableLocalExpenseCorrectionLinks() {
+        helper.createDatabase(focusedMigration5To6Db, 5).apply {
+            val usd = SeededCurrencies.USD
+            execSQL(
+                "INSERT INTO ${CurrencyEntity.TABLE_NAME} (" +
+                    "${CurrencyEntity.ColumnNames.ID}, ${CurrencyEntity.ColumnNames.SERVER_ID}, ${CurrencyEntity.ColumnNames.CODE}, " +
+                    "${CurrencyEntity.ColumnNames.NAME}, ${CurrencyEntity.ColumnNames.RATE_UNSCALED}, ${CurrencyEntity.ColumnNames.RATE_SCALE}) " +
+                    "VALUES (1, 'srv-usd', 'USD', 'US Dollar', ${usd.rateUnscaledSqlLiteral}, ${usd.rateScale})"
+            )
+            execSQL(
+                "INSERT INTO ${EventEntity.TABLE_NAME} (" +
+                    "${EventEntity.ColumnNames.ID}, ${EventEntity.ColumnNames.SERVER_ID}, ${EventEntity.ColumnNames.CLIENT_CREATE_ID}, " +
+                    "${EventEntity.ColumnNames.NAME}, ${EventEntity.ColumnNames.PIN_CODE}, ${EventEntity.ColumnNames.PRIMARY_CURRENCY}) " +
+                    "VALUES (1, 'srv-event', 'server:srv-event', 'Trip', '1234', 1)"
+            )
+            execSQL(
+                "INSERT INTO ${PersonEntity.TABLE_NAME} (" +
+                    "${PersonEntity.ColumnNames.ID}, ${PersonEntity.ColumnNames.SERVER_ID}, ${PersonEntity.ColumnNames.CLIENT_CREATE_ID}, ${PersonEntity.ColumnNames.NAME}) " +
+                    "VALUES (1, 'srv-person', 'server:srv-person', 'Alice')"
+            )
+            execSQL("INSERT INTO event_person_cross_ref (event_id, person_id) VALUES (1, 1)")
+            execSQL(
+                "INSERT INTO ${ExpenseEntity.TABLE_NAME} (" +
+                    "${ExpenseEntity.ColumnNames.ID}, ${ExpenseEntity.ColumnNames.SERVER_ID}, ${ExpenseEntity.ColumnNames.CLIENT_CREATE_ID}, " +
+                    "${ExpenseEntity.ColumnNames.EVENT_ID}, ${ExpenseEntity.ColumnNames.CURRENCY_ID}, ${ExpenseEntity.ColumnNames.EXPENSE_TYPE}, " +
+                    "${ExpenseEntity.ColumnNames.PERSON_ID}, ${ExpenseEntity.ColumnNames.IS_CUSTOM_RATE}, ${ExpenseEntity.ColumnNames.TIMESTAMP}, " +
+                    "${ExpenseEntity.ColumnNames.DESCRIPTION}) " +
+                    "VALUES (20, 'srv-expense', 'server:srv-expense', 1, 1, 'spending', 1, 0, 0, 'Synced expense')"
+            )
+            execSQL(
+                "INSERT INTO ${ExpenseSplitEntity.TABLE_NAME} (" +
+                    "${ExpenseSplitEntity.ColumnNames.ID}, ${ExpenseSplitEntity.ColumnNames.EXPENSE_ID}, ${ExpenseSplitEntity.ColumnNames.PERSON_ID}, " +
+                    "${ExpenseSplitEntity.ColumnNames.ORIGINAL_AMOUNT_UNSCALED}, ${ExpenseSplitEntity.ColumnNames.ORIGINAL_AMOUNT_SCALE}, " +
+                    "${ExpenseSplitEntity.ColumnNames.EXCHANGED_AMOUNT_UNSCALED}, ${ExpenseSplitEntity.ColumnNames.EXCHANGED_AMOUNT_SCALE}) " +
+                    "VALUES (30, 20, 1, X'0A', 0, X'0A', 0)"
+            )
+
+            close()
+        }
+
+        createAppDatabase(
+            Room.databaseBuilder<AppDatabase>(
+                context = InstrumentationRegistry.getInstrumentation().targetContext,
+                name = focusedMigration5To6Db
+            )
+        ).also { db ->
+            runBlocking {
+                val expense = db.expensesDao().queryById(20)?.expense
+                assertEquals(null, expense?.revertsExpenseId)
+                assertEquals(null, expense?.replacesExpenseId)
             }
 
             db.close()

@@ -94,6 +94,8 @@ message Expense {
   string createdAt = 7;
   bool isCustomRate = 8;
   string updatedAt = 9;
+  optional string revertsExpenseId = 10;
+  optional string replacesExpenseId = 11;
 }
 
 message SplitInfo {
@@ -131,6 +133,8 @@ message ExpenseResponse {
   string createdAt = 7;
   bool isCustomRate = 8;
   string updatedAt = 9;
+  optional string revertsExpenseId = 10;
+  optional string replacesExpenseId = 11;
 }
 
 message GetEventExpensesV2Request {
@@ -147,6 +151,9 @@ message CreateExpenseV2Request {
   ExpenseType expenseType = 6;
   repeated SplitInfo splitInformation = 7;
   string createdAt = 8;
+  optional string revertsExpenseId = 9;
+  optional string replacesExpenseId = 10;
+  optional bool isCustomRate = 11;
 }
 
 message CreateEventShareTokenRequest {

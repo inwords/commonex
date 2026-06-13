@@ -9,6 +9,8 @@ import com.inwords.expenses.feature.events.domain.store.local.EventsLocalStore
 import com.inwords.expenses.feature.expenses.domain.model.Expense
 import com.inwords.expenses.feature.expenses.domain.model.ExpenseSplitWithPerson
 import com.inwords.expenses.feature.expenses.domain.model.ExpenseType
+import com.inwords.expenses.feature.expenses.domain.pendingCorrectionConflictIds
+import com.inwords.expenses.feature.expenses.domain.store.ExpensePullItem
 import com.inwords.expenses.feature.expenses.domain.store.ExpensesLocalStore
 import com.inwords.expenses.feature.expenses.domain.store.ExpensesRemoteStore
 import com.ionspin.kotlin.bignum.decimal.BigDecimal
@@ -101,7 +103,20 @@ internal class EventExpensesPullTaskTest {
                 currencies = localDetails.currencies,
                 persons = localDetails.persons,
             )
-        } returns IoResult.Success(listOf(existingExpense.copy(description = "remote copy"), newExpense))
+        } returns IoResult.Success(
+            listOf(
+                ExpensePullItem(
+                    expense = existingExpense.copy(description = "remote copy"),
+                    revertsExpenseServerId = null,
+                    replacesExpenseServerId = null,
+                ),
+                ExpensePullItem(
+                    expense = newExpense,
+                    revertsExpenseServerId = null,
+                    replacesExpenseServerId = null,
+                ),
+            )
+        )
         coEvery { expensesLocalStore.getExpenses(localDetails.event.id) } returns listOf(existingExpense)
         coEvery { expensesLocalStore.upsert(localDetails.event, listOf(newExpense)) } returns listOf(newExpense)
 
@@ -123,13 +138,118 @@ internal class EventExpensesPullTaskTest {
                 currencies = localDetails.currencies,
                 persons = localDetails.persons,
             )
-        } returns IoResult.Success(listOf(remoteExpense))
+        } returns IoResult.Success(
+            listOf(
+                ExpensePullItem(
+                    expense = remoteExpense,
+                    revertsExpenseServerId = null,
+                    replacesExpenseServerId = null,
+                )
+            )
+        )
         coEvery { expensesLocalStore.getExpenses(localDetails.event.id) } returns listOf(localExpense)
 
         val result = task.pullEventExpenses(localDetails.event.id)
 
         assertEquals(IoResult.Success(Unit), result)
         coVerify(exactly = 0) { expensesLocalStore.upsert(localDetails.event, any<List<Expense>>()) }
+    }
+
+    @Test
+    fun `pullEventExpenses delegates remote correction link resolution to local store`() = runTest {
+        val localDetails = eventDetails()
+        val localOriginal = expense(expenseId = 1L, serverId = "srv-1")
+        val remoteReplacement = expense(expenseId = 0L, serverId = "srv-2")
+        val remotePullItem = ExpensePullItem(
+            expense = remoteReplacement,
+            revertsExpenseServerId = null,
+            replacesExpenseServerId = "srv-1",
+        )
+        coEvery { eventsLocalStore.getEventWithDetails(localDetails.event.id) } returns localDetails
+        coEvery {
+            expensesRemoteStore.getExpenses(
+                event = localDetails.event,
+                currencies = localDetails.currencies,
+                persons = localDetails.persons,
+            )
+        } returns IoResult.Success(listOf(remotePullItem))
+        coEvery { expensesLocalStore.getExpenses(localDetails.event.id) } returns listOf(localOriginal)
+        coEvery {
+            expensesLocalStore.reconcileCorrectionConflicts(localDetails.event, any())
+        } returns listOf(remoteReplacement.copy(expenseId = 2L, replacesExpenseId = localOriginal.expenseId))
+
+        val result = task.pullEventExpenses(localDetails.event.id)
+
+        assertEquals(IoResult.Success(Unit), result)
+        coVerify(exactly = 1) {
+            expensesLocalStore.reconcileCorrectionConflicts(
+                localDetails.event,
+                listOf(remotePullItem),
+            )
+        }
+    }
+
+    @Test
+    fun `pullEventExpenses removes pending sibling correction accepted from another device`() = runTest {
+        val localDetails = eventDetails()
+        val localOriginal = expense(expenseId = 1L, serverId = "srv-1")
+            .copy(clientCreateId = "local-original-client-id")
+        val pendingLocalReplacement = expense(expenseId = 2L, serverId = null)
+            .copy(
+                clientCreateId = "pending-local-replacement",
+                replacesExpenseId = localOriginal.expenseId,
+            )
+        val pendingSequentialReplacement = expense(expenseId = 3L, serverId = null)
+            .copy(
+                clientCreateId = "pending-sequential-replacement",
+                replacesExpenseId = pendingLocalReplacement.expenseId,
+            )
+        val remoteReplacement = expense(expenseId = 0L, serverId = "srv-remote-replacement")
+        val remotePullItem = ExpensePullItem(
+            expense = remoteReplacement,
+            revertsExpenseServerId = null,
+            replacesExpenseServerId = "srv-1",
+        )
+        coEvery { eventsLocalStore.getEventWithDetails(localDetails.event.id) } returns localDetails
+        coEvery {
+            expensesRemoteStore.getExpenses(
+                event = localDetails.event,
+                currencies = localDetails.currencies,
+                persons = localDetails.persons,
+            )
+        } returns IoResult.Success(listOf(remotePullItem))
+        coEvery {
+            expensesLocalStore.getExpenses(localDetails.event.id)
+        } returns listOf(localOriginal, pendingLocalReplacement, pendingSequentialReplacement)
+        coEvery { expensesLocalStore.reconcileCorrectionConflicts(localDetails.event, any()) } returns listOf(
+            remoteReplacement.copy(expenseId = 4L, replacesExpenseId = localOriginal.expenseId),
+        )
+
+        val result = task.pullEventExpenses(localDetails.event.id)
+
+        assertEquals(IoResult.Success(Unit), result)
+        coVerify(exactly = 1) {
+            expensesLocalStore.reconcileCorrectionConflicts(
+                localDetails.event,
+                listOf(remotePullItem),
+            )
+        }
+    }
+
+    @Test
+    fun `pendingCorrectionConflictIds includes unsynced descendants`() {
+        val original = expense(expenseId = 1L, serverId = "srv-1")
+        val firstCorrection = expense(expenseId = 2L, serverId = null).copy(
+            replacesExpenseId = original.expenseId,
+        )
+        val secondCorrection = expense(expenseId = 3L, serverId = null).copy(
+            replacesExpenseId = firstCorrection.expenseId,
+        )
+
+        val result = listOf(original, firstCorrection, secondCorrection)
+            .pendingCorrectionConflictIds(setOf(original.expenseId))
+
+        assertEquals(listOf(firstCorrection.expenseId, secondCorrection.expenseId), result)
     }
 
     private fun event(serverId: String? = "srv-event"): Event {
@@ -190,6 +310,8 @@ internal class EventExpensesPullTaskTest {
             timestamp = Clock.System.now(),
             description = description,
             clientCreateId = "expense-$expenseId",
+            revertsExpenseId = null,
+            replacesExpenseId = null,
         )
     }
 }

@@ -39,6 +39,8 @@ export interface ExpenseBase {
   splitInformation: Array<SplitInfo>;
   isCustomRate: boolean;
   createdAt: string;
+  revertsExpenseId?: string | null;
+  replacesExpenseId?: string | null;
 }
 
 export interface Expense extends ExpenseBase {

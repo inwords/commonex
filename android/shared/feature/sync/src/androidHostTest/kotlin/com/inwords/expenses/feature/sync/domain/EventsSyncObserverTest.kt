@@ -81,6 +81,8 @@ internal class EventsSyncObserverTest {
             timestamp = kotlin.time.Instant.fromEpochMilliseconds(0),
             description = "Dinner",
             clientCreateId = "expense-50",
+            revertsExpenseId = null,
+            replacesExpenseId = null,
         )
     }
 

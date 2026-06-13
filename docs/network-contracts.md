@@ -117,16 +117,21 @@ Expense-create currency modes on V2:
   client sends `amount` values only, backend computes `exchangedAmount` from the daily rate table, and persists `isCustomRate = false`.
 - Different-currency expense with custom client rate:
   client sends `exchangedAmount` for every split, backend trusts those exchanged amounts, and persists `isCustomRate = true`.
+- Different-currency correction preserving historical automatic-rate arithmetic:
+  client sends every exact `exchangedAmount` plus `isCustomRate = false`; backend accepts this mode only when `replacesExpenseId` or `revertsExpenseId` is present.
 - Mixed custom-rate payloads are rejected:
-  if one split includes `exchangedAmount`, all splits must include it; backend returns `400` with error code `B4010`.
+  if one split includes `exchangedAmount`, all splits must include it; non-correction payloads also cannot combine supplied exchanged amounts with `isCustomRate = false`. Backend returns `400` with error code `B4010`.
+- Expense corrections and reversals are append-only:
+  V2 create may include either `replacesExpenseId` or `revertsExpenseId`, but not both. The reference must point to an expense in the same event and may have only one direct correction; legacy V1 create does not accept correction links.
 - User-facing currency access is gated by the backend supported-currency list:
   currency IDs outside that list are rejected by create-expense flows, and preloaded PostgreSQL currency rows or rate keys stay hidden until support is enabled in application config.
 
 Current client usage:
 
 - Web uses `/api/v3/user/currencies/all` to fetch the current UTC-day USD-based rate map and may send custom `exchangedAmount` values on V2 expense creation when the user overrides the automatic rate.
-- Shared mobile KMM clients send `amount` for every V2 expense split and include `exchangedAmount` only for custom-rate expenses (`expense.isCustomRate == true`).
-- V2 expense-read responses must include `isCustomRate` so mobile can preserve backend-confirmed custom-rate state when syncing expenses created on another client.
+- Shared mobile KMM clients send `amount` for every V2 expense split and include `exchangedAmount` for custom-rate expenses and corrections. V2 correction requests explicitly send `isCustomRate` so the backend can preserve exact historical exchanged amounts without changing rate metadata.
+- Shared mobile KMM clients send `revertsExpenseId` and `replacesExpenseId` only after resolving persisted local client-create references to synced remote expense IDs.
+- V2 expense-read responses must include `isCustomRate`, `revertsExpenseId`, and `replacesExpenseId` so mobile can preserve backend-confirmed custom-rate state and correction/reversal links when syncing expenses created on another client.
 - V3 currencies-with-rates currently returns only the supported backend currency list as `id`, `code`, and `updatedAt`, plus an `exchangeRate` map keyed by supported currency code.
 - For `/api/v3/user/currencies/all`, the backend returns currencies in a deterministic order.
 - Backend V3 currencies responses emit a weak `ETag` plus `Cache-Control: private, no-cache` so clients can revalidate the cached snapshot explicitly.

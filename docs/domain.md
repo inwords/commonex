@@ -41,8 +41,9 @@ This document defines core domain terms and the primary sources of truth for the
 ### Expense
 
 - A financial record within an event. Type is `expense` or `refund`.
-- Fields: id, description, userWhoPaidId, currencyId, eventId, expenseType, splitInformation, isCustomRate, createdAt, updatedAt.
+- Fields: id, description, userWhoPaidId, currencyId, eventId, expenseType, splitInformation, isCustomRate, revertsExpenseId, replacesExpenseId, createdAt, updatedAt.
 - `createdAt` is optional input and defaults to now.
+- `revertsExpenseId` and `replacesExpenseId` are optional links to another expense in the same event; only one may be set.
 - Canonical model: `backend/src/domain/entities/expense.entity.ts`.
 
 ### Split Information
@@ -102,6 +103,8 @@ This document defines core domain terms and the primary sources of truth for the
     - `exchangedAmount = round(amount * exchangeRate, 2)`.
 - V2 expense creation also supports custom client-supplied exchanged amounts:
   if at least one split includes `exchangedAmount`, every split must include it and the expense is stored with `isCustomRate = true`.
+- V2 expense creation may create a correction or reversal by setting exactly one of `replacesExpenseId` or `revertsExpenseId`.
+  The referenced expense must exist in the same event and may have only one direct correction. Further edits or reversals must reference the latest correction in the chain.
 - Missing currencies or rates yield errors (see Error Codes).
 
 ### Currency Rates
@@ -139,7 +142,8 @@ This document defines core domain terms and the primary sources of truth for the
 - `ExpenseSplitWithPerson` holds `originalAmount` (expense currency) and `exchangedAmount` (event currency).
 - `ExpenseType` uses `Spending` and `Replenishment` (maps to backend `expense` and `refund`).
 - Equal split divides by number of selected persons; custom split uses explicit amounts.
-- Reverting an expense creates a new expense with inverted amounts and opposite type.
+- Reverting an expense creates a new expense with inverted amounts, opposite type, and local `revertsExpenseId` pointing to the original.
+- Editing an expense creates a replacement expense with local `replacesExpenseId` pointing to the original; debt calculation ignores replaced originals.
 
 ### Debts
 

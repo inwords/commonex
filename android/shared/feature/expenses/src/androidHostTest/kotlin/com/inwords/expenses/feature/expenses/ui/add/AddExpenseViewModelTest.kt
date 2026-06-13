@@ -11,7 +11,12 @@ import com.inwords.expenses.feature.events.domain.model.EventDetails
 import com.inwords.expenses.feature.events.domain.model.Person
 import com.inwords.expenses.feature.expenses.domain.AddCustomSplitExpenseUseCase
 import com.inwords.expenses.feature.expenses.domain.AddEqualSplitExpenseUseCase
+import com.inwords.expenses.feature.expenses.domain.ReplaceExpenseUseCase
+import com.inwords.expenses.feature.expenses.domain.model.Expense
+import com.inwords.expenses.feature.expenses.domain.model.ExpenseSplitWithPerson
 import com.inwords.expenses.feature.expenses.domain.model.ExpenseType
+import com.inwords.expenses.feature.expenses.domain.model.PersonWithAmount
+import com.inwords.expenses.feature.expenses.domain.store.ExpensesLocalStore
 import com.inwords.expenses.feature.expenses.ui.add.AddExpensePaneUiModel.CurrencyInfoUiModel
 import com.inwords.expenses.feature.expenses.ui.add.AddExpensePaneUiModel.ExpenseSplitWithPersonUiModel
 import com.inwords.expenses.feature.expenses.ui.add.AddExpensePaneUiModel.PersonInfoUiModel
@@ -23,9 +28,11 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.justRun
 import io.mockk.mockk
+import io.mockk.slot
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -91,6 +98,8 @@ internal class AddExpenseViewModelTest {
     }
     private val addEqualSplitExpenseUseCase = mockk<AddEqualSplitExpenseUseCase>(relaxed = true)
     private val addCustomSplitExpenseUseCase = mockk<AddCustomSplitExpenseUseCase>(relaxed = true)
+    private val replaceExpenseUseCase = mockk<ReplaceExpenseUseCase>(relaxed = true)
+    private val expensesLocalStore = mockk<ExpensesLocalStore>(relaxed = true)
     private val settingsRepository = mockk<SettingsRepository>(relaxed = true) {
         coEvery { getCurrentPersonId() } returns currentPersonIdFlow
     }
@@ -98,6 +107,18 @@ internal class AddExpenseViewModelTest {
     @BeforeTest
     fun setup() {
         Dispatchers.setMain(testDispatcher)
+        coEvery {
+            addEqualSplitExpenseUseCase.addExpense(any(), any(), any(), any(), any(), any(), any(), any())
+        } returns true
+        coEvery {
+            addCustomSplitExpenseUseCase.addExpense(any(), any(), any(), any(), any(), any(), any())
+        } returns true
+        coEvery {
+            replaceExpenseUseCase.replaceEqualSplitExpense(any(), any(), any(), any(), any(), any(), any(), any(), any())
+        } returns true
+        coEvery {
+            replaceExpenseUseCase.replaceCustomSplitExpense(any(), any(), any(), any(), any(), any(), any(), any())
+        } returns true
     }
 
     @AfterTest
@@ -919,6 +940,197 @@ internal class AddExpenseViewModelTest {
     }
 
     @Test
+    fun `should pre-fill edit fields from replacement target`() = testScope.runTest {
+        val originalExpense = editTargetExpense()
+        currentEventFlow.value = TestFixtures.eventDetails
+        every { expensesLocalStore.getExpenseFlow(originalExpense.expenseId) } returns flowOf(originalExpense)
+
+        val viewModel = createViewModel(replacesExpenseId = originalExpense.expenseId)
+        runCurrent()
+        advanceUntilIdle()
+
+        viewModel.state.test {
+            awaitLoading()
+            val uiModel = awaitSuccess()
+
+            assertEquals("Original dinner", uiModel.description)
+            assertEquals(ExpenseType.Spending, uiModel.expenseType)
+            assertTrue(uiModel.currencies.byCode("EUR").selected)
+            assertTrue(uiModel.persons.byId(TestFixtures.person2.id).selected)
+            assertFalse(uiModel.equalSplit)
+            assertEquals("12", uiModel.wholeAmount)
+            assertEquals(
+                listOf(TestFixtures.person1.id, TestFixtures.person3.id),
+                uiModel.subjectPersons.filter { it.selected }.map { it.personId },
+            )
+            assertEquals(listOf("4", "8"), uiModel.split.map { it.amount })
+
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `should confirm edit through replace use case and navigate back`() = testScope.runTest {
+        val originalExpense = editTargetExpense()
+        currentEventFlow.value = TestFixtures.eventDetails
+        every { expensesLocalStore.getExpenseFlow(originalExpense.expenseId) } returns flowOf(originalExpense)
+        coEvery { replaceExpenseUseCase.replaceCustomSplitExpense(any(), any(), any(), any(), any(), any(), any(), any()) } returns true
+        val splitSlot = slot<List<PersonWithAmount>>()
+        val originalExpenseIdSlot = slot<Long>()
+        val descriptionSlot = slot<String>()
+
+        val viewModel = createViewModel(replacesExpenseId = originalExpense.expenseId)
+        runCurrent()
+        advanceUntilIdle()
+
+        viewModel.state.test {
+            awaitLoading()
+            awaitSuccess()
+            viewModel.onConfirmClicked()
+            runCurrent()
+            cancelAndIgnoreRemainingEvents()
+        }
+
+        coVerify(exactly = 1) {
+            replaceExpenseUseCase.replaceCustomSplitExpense(
+                event = any(),
+                originalExpenseId = capture(originalExpenseIdSlot),
+                expenseType = any(),
+                description = capture(descriptionSlot),
+                selectedCurrency = any(),
+                selectedPerson = any(),
+                personWithAmountSplit = capture(splitSlot),
+                overrideRate = BigDecimal.parseString("1.1758"),
+            )
+        }
+        assertEquals(originalExpense.expenseId, originalExpenseIdSlot.captured)
+        assertEquals("Original dinner", descriptionSlot.captured)
+        assertEquals(
+            listOf(
+                TestFixtures.person1.id to "4",
+                TestFixtures.person3.id to "8",
+            ),
+            splitSlot.captured.map { it.person.id to it.amount.toStringExpanded() },
+        )
+        coVerify(exactly = 0) { addEqualSplitExpenseUseCase.addExpense(any(), any(), any(), any(), any(), any(), any(), any()) }
+        coVerify(exactly = 0) { addCustomSplitExpenseUseCase.addExpense(any(), any(), any(), any(), any(), any(), any()) }
+        io.mockk.verify(exactly = 1) { navigationController.popBackStack() }
+    }
+
+    @Test
+    fun `should confirm equal split edit through replace use case and navigate back`() = testScope.runTest {
+        val originalExpense = editTargetExpense()
+        currentEventFlow.value = TestFixtures.eventDetails
+        every { expensesLocalStore.getExpenseFlow(originalExpense.expenseId) } returns flowOf(originalExpense)
+        coEvery { replaceExpenseUseCase.replaceEqualSplitExpense(any(), any(), any(), any(), any(), any(), any(), any(), any()) } returns true
+        val wholeAmountSlot = slot<BigDecimal>()
+        val subjectPersonsSlot = slot<List<Person>>()
+
+        val viewModel = createViewModel(replacesExpenseId = originalExpense.expenseId)
+        runCurrent()
+        advanceUntilIdle()
+
+        viewModel.state.test {
+            awaitLoading()
+            awaitSuccess()
+            viewModel.onEqualSplitChange(true)
+            viewModel.onWholeAmountChanged("18")
+            runCurrent()
+            awaitSuccess()
+            viewModel.onConfirmClicked()
+            runCurrent()
+            cancelAndIgnoreRemainingEvents()
+        }
+
+        coVerify(exactly = 1) {
+            replaceExpenseUseCase.replaceEqualSplitExpense(
+                event = any(),
+                originalExpenseId = originalExpense.expenseId,
+                wholeAmount = capture(wholeAmountSlot),
+                expenseType = any(),
+                description = "Original dinner",
+                selectedSubjectPersons = capture(subjectPersonsSlot),
+                selectedCurrency = any(),
+                selectedPerson = any(),
+                overrideRate = BigDecimal.parseString("1.1758"),
+            )
+        }
+        assertEquals("18", wholeAmountSlot.captured.toStringExpanded())
+        assertEquals(
+            listOf(TestFixtures.person1.id, TestFixtures.person3.id),
+            subjectPersonsSlot.captured.map { it.id },
+        )
+        coVerify(exactly = 0) { replaceExpenseUseCase.replaceCustomSplitExpense(any(), any(), any(), any(), any(), any(), any(), any()) }
+        coVerify(exactly = 0) { addEqualSplitExpenseUseCase.addExpense(any(), any(), any(), any(), any(), any(), any(), any()) }
+        coVerify(exactly = 0) { addCustomSplitExpenseUseCase.addExpense(any(), any(), any(), any(), any(), any(), any()) }
+        io.mockk.verify(exactly = 1) { navigationController.popBackStack() }
+    }
+
+    @Test
+    fun `should preserve custom exchange rate when editing`() = testScope.runTest {
+        val originalExpense = editTargetExpense().copy(
+            isCustomRate = true,
+            subjectExpenseSplitWithPersons = editTargetExpense().subjectExpenseSplitWithPersons.map { split ->
+                split.copy(exchangedAmount = split.originalAmount * 2.toBigDecimal())
+            },
+        )
+        currentEventFlow.value = TestFixtures.eventDetails
+        every { expensesLocalStore.getExpenseFlow(originalExpense.expenseId) } returns flowOf(originalExpense)
+        coEvery { replaceExpenseUseCase.replaceCustomSplitExpense(any(), any(), any(), any(), any(), any(), any(), any()) } returns true
+        val overrideRateSlot = slot<BigDecimal>()
+
+        val viewModel = createViewModel(replacesExpenseId = originalExpense.expenseId)
+        runCurrent()
+        advanceUntilIdle()
+
+        viewModel.state.test {
+            awaitLoading()
+            val state = awaitSuccess()
+            assertEquals("2", state.exchangeRate?.rateRaw)
+            assertTrue(state.exchangeRate?.isCustom == true)
+            viewModel.onConfirmClicked()
+            runCurrent()
+            cancelAndIgnoreRemainingEvents()
+        }
+
+        coVerify(exactly = 1) {
+            replaceExpenseUseCase.replaceCustomSplitExpense(
+                event = any(),
+                originalExpenseId = originalExpense.expenseId,
+                expenseType = any(),
+                description = any(),
+                selectedCurrency = any(),
+                selectedPerson = any(),
+                personWithAmountSplit = any(),
+                overrideRate = capture(overrideRateSlot),
+            )
+        }
+        assertEquals("2", overrideRateSlot.captured?.toStringExpanded())
+    }
+
+    @Test
+    fun `should keep edit open when replacement creation fails`() = testScope.runTest {
+        val originalExpense = editTargetExpense()
+        currentEventFlow.value = TestFixtures.eventDetails
+        every { expensesLocalStore.getExpenseFlow(originalExpense.expenseId) } returns flowOf(originalExpense)
+        coEvery { replaceExpenseUseCase.replaceCustomSplitExpense(any(), any(), any(), any(), any(), any(), any(), any()) } returns false
+
+        val viewModel = createViewModel(replacesExpenseId = originalExpense.expenseId)
+        runCurrent()
+        advanceUntilIdle()
+
+        viewModel.state.test {
+            awaitLoading()
+            awaitSuccess()
+            viewModel.onConfirmClicked()
+            runCurrent()
+            cancelAndIgnoreRemainingEvents()
+        }
+
+        io.mockk.verify(exactly = 0) { navigationController.popBackStack() }
+    }
+
+    @Test
     fun `should indicate save capability based on equal split amount entry`() = testScope.runTest {
         // Given
         currentEventFlow.value = TestFixtures.eventDetails
@@ -1473,15 +1685,19 @@ internal class AddExpenseViewModelTest {
 
     // region Helper Methods
     private fun createViewModel(
-        replenishment: AddExpensePaneDestination.Replenishment? = null
+        replenishment: AddExpensePaneDestination.Replenishment? = null,
+        replacesExpenseId: Long? = null,
     ): AddExpenseViewModel {
         return AddExpenseViewModel(
             navigationController = navigationController,
             getCurrentEventStateUseCase = getCurrentEventStateUseCase,
             addEqualSplitExpenseUseCase = addEqualSplitExpenseUseCase,
             addCustomSplitExpenseUseCase = addCustomSplitExpenseUseCase,
+            replaceExpenseUseCase = replaceExpenseUseCase,
+            expensesLocalStore = expensesLocalStore,
             settingsRepository = settingsRepository,
             replenishment = replenishment,
+            replacesExpenseId = replacesExpenseId,
             stringProvider = object : com.inwords.expenses.core.ui.utils.StringProvider {
                 override suspend fun getString(stringResource: StringResource): String {
                     return stringResource.key
@@ -1492,6 +1708,38 @@ internal class AddExpenseViewModelTest {
                 }
             },
             viewModelScope = this.testScope.backgroundScope,
+        )
+    }
+
+    private fun editTargetExpense(): Expense {
+        return Expense(
+            expenseId = 44L,
+            serverId = "expense-44",
+            currency = TestFixtures.EUR,
+            expenseType = ExpenseType.Spending,
+            person = TestFixtures.person2,
+            subjectExpenseSplitWithPersons = listOf(
+                ExpenseSplitWithPerson(
+                    expenseSplitId = 440L,
+                    expenseId = 44L,
+                    person = TestFixtures.person1,
+                    originalAmount = 4.toBigDecimal(),
+                    exchangedAmount = BigDecimal.parseString("4.70"),
+                ),
+                ExpenseSplitWithPerson(
+                    expenseSplitId = 441L,
+                    expenseId = 44L,
+                    person = TestFixtures.person3,
+                    originalAmount = 8.toBigDecimal(),
+                    exchangedAmount = BigDecimal.parseString("9.41"),
+                ),
+            ),
+            isCustomRate = false,
+            timestamp = kotlin.time.Instant.fromEpochMilliseconds(0),
+            description = "Original dinner",
+            clientCreateId = "expense-client-44",
+            revertsExpenseId = null,
+            replacesExpenseId = null,
         )
     }
 

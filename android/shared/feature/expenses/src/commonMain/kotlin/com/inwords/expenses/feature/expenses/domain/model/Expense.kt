@@ -17,6 +17,8 @@ data class Expense(
     val timestamp: Instant,
     val description: String,
     val clientCreateId: String,
+    val revertsExpenseId: Long?,
+    val replacesExpenseId: Long?,
 ) {
 
     val totalAmount: BigDecimal = subjectExpenseSplitWithPersons.sumOf { it.exchangedAmount }

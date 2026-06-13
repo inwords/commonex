@@ -69,7 +69,7 @@ internal class ExpensesViewModel(
     private val requestExpensesRefreshUseCase: RequestExpensesRefreshUseCase,
     eventsSyncStateHolder: EventsSyncStateHolder,
     settingsRepository: SettingsRepository,
-    private val timelineUiModelFactory: ExpensesTimelineUiModelFactory = ExpensesTimelineUiModelFactory(),
+    private val timelineUiModelFactory: ExpensesTimelineUiModelFactory,
     unconfinedDispatcher: CoroutineDispatcher = UNCONFINED,
     viewModelScope: CoroutineScope = CoroutineScope(SupervisorJob() + IO),
 ) : ViewModel(viewModelScope = viewModelScope) {
@@ -209,7 +209,12 @@ internal class ExpensesViewModel(
     }
 
     fun onAddExpenseClick() {
-        navigationController.navigateTo(AddExpensePaneDestination())
+        navigationController.navigateTo(
+            AddExpensePaneDestination(
+                replenishment = null,
+                replacesExpenseId = null,
+            )
+        )
     }
 
     fun onExpenseClick(expense: ExpenseUiModel) {
@@ -242,7 +247,8 @@ internal class ExpensesViewModel(
                     toPersonId = creditor.personId,
                     currencyCode = creditor.currencyCode,
                     amount = creditor.amount
-                )
+                ),
+                replacesExpenseId = null,
             )
         )
     }

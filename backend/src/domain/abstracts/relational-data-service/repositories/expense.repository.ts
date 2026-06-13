@@ -2,6 +2,15 @@ import {IQueryDetails, ITransaction, ITransactionWithLock} from '#domain/abstrac
 import {IExpense} from '#domain/entities/expense.entity';
 
 export abstract class ExpenseRepositoryAbstract {
+  abstract findById: (
+    expenseId: IExpense['id'],
+    trx?: ITransaction,
+  ) => Promise<[result: IExpense | undefined, queryDetails: IQueryDetails]>;
+  abstract findCorrectionForReferencedExpense: (
+    eventId: IExpense['eventId'],
+    referencedExpenseId: IExpense['id'],
+    trx?: ITransaction,
+  ) => Promise<[result: IExpense | undefined, queryDetails: IQueryDetails]>;
   abstract findByEventId: (
     eventId: IExpense['eventId'],
     trx?: ITransactionWithLock,

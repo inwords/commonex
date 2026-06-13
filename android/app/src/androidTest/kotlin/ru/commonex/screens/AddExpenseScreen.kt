@@ -7,25 +7,34 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
+import com.inwords.expenses.feature.expenses.ui.add.AddExpensePaneTags
 import expenses.shared.feature.expenses.generated.resources.Res
-import expenses.shared.feature.expenses.generated.resources.expenses_description
 import expenses.shared.feature.expenses.generated.resources.expenses_repayment
-import expenses.shared.feature.expenses.generated.resources.expenses_total_amount
 import org.jetbrains.compose.resources.getString
 
 internal class AddExpenseScreen : BaseScreen() {
 
     context(rule: ComposeTestRule)
     suspend fun enterDescription(description: String): AddExpenseScreen {
-        val descriptionLabel = getString(Res.string.expenses_description)
-        rule.onNodeWithText(descriptionLabel).performTextInput(description)
+        rule.onNodeWithTag(AddExpensePaneTags.DESCRIPTION_INPUT).performTextInput(description)
+        return this
+    }
+
+    context(rule: ComposeTestRule)
+    suspend fun replaceDescription(description: String): AddExpenseScreen {
+        rule.onNodeWithTag(AddExpensePaneTags.DESCRIPTION_INPUT).performTextReplacement(description)
         return this
     }
 
     context(rule: ComposeTestRule)
     suspend fun enterAmount(amount: String): AddExpenseScreen {
-        val totalAmountLabel = getString(Res.string.expenses_total_amount)
-        rule.onNodeWithText(totalAmountLabel).performTextInput(amount)
+        rule.onNodeWithTag(AddExpensePaneTags.TOTAL_AMOUNT_INPUT).performTextInput(amount)
+        return this
+    }
+
+    context(rule: ComposeTestRule)
+    suspend fun replaceAmount(amount: String): AddExpenseScreen {
+        rule.onNodeWithTag(AddExpensePaneTags.TOTAL_AMOUNT_INPUT).performTextReplacement(amount)
         return this
     }
 

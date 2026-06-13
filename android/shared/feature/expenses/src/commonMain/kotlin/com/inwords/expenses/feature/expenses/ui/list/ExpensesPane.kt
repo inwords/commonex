@@ -701,6 +701,16 @@ private fun ExpenseItem(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
+            expense.statusText?.let { statusText ->
+                Text(
+                    modifier = Modifier.testTag(ExpensesPaneTags.EXPENSE_STATUS_TEXT),
+                    text = statusText,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
     }
 }
@@ -879,5 +889,6 @@ private fun mockExpenseUiModel(
         timeText = timeText,
         description = description,
         currentPersonPartAmount = null,
+        statusText = null,
     )
 }

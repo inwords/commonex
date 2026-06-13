@@ -154,7 +154,8 @@ private fun AddExpensePaneSuccess(
         OutlinedTextField(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp),
+                .padding(horizontal = 8.dp)
+                .testTag(AddExpensePaneTags.DESCRIPTION_INPUT),
             textStyle = MaterialTheme.typography.headlineSmall,
             value = state.description,
             label = { Text(text = stringResource(Res.string.expenses_description)) },
@@ -327,6 +328,11 @@ private fun currencyOptionTag(currencyCode: String): String {
     return "add_expense_currency_option_$currencyCode"
 }
 
+object AddExpensePaneTags {
+    const val DESCRIPTION_INPUT = "add_expense_description_input"
+    const val TOTAL_AMOUNT_INPUT = "add_expense_total_amount_input"
+}
+
 @Composable
 private fun ExchangeRateInput(
     exchangeRate: ExchangeRateUiModel,
@@ -370,7 +376,7 @@ private fun SplitEqualPartsInput(
     modifier: Modifier = Modifier,
 ) {
     OutlinedTextField(
-        modifier = modifier,
+        modifier = modifier.testTag(AddExpensePaneTags.TOTAL_AMOUNT_INPUT),
         textStyle = MaterialTheme.typography.headlineSmall,
         value = amount,
         label = { Text(text = stringResource(Res.string.expenses_total_amount)) },

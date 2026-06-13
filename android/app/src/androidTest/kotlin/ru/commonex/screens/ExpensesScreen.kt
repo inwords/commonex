@@ -2,9 +2,12 @@ package ru.commonex.screens
 
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -17,6 +20,8 @@ import expenses.shared.feature.expenses.generated.resources.expenses_details
 import expenses.shared.feature.expenses.generated.resources.expenses_none
 import expenses.shared.feature.expenses.generated.resources.expenses_operation
 import expenses.shared.feature.expenses.generated.resources.expenses_revert_description
+import expenses.shared.feature.expenses.generated.resources.expenses_status_edited
+import expenses.shared.feature.expenses.generated.resources.expenses_status_reverted
 import org.jetbrains.compose.resources.getString
 import kotlin.math.abs
 import expenses.shared.feature.events.generated.resources.Res as EventsRes
@@ -82,21 +87,47 @@ internal class ExpensesScreen : BaseScreen() {
     }
 
     context(rule: ComposeTestRule)
-    suspend fun verifyRevertedExpenseExists(originalExpenseDescription: String): ExpensesScreen {
+    fun verifyExpenseDoesNotExist(description: String): ExpensesScreen {
+        waitForElementWithTextDoesNotExist(description)
+        rule.onAllNodesWithText(description).assertCountEquals(0)
+        return this
+    }
+
+    context(rule: ComposeTestRule)
+    suspend fun verifyRevertedExpenseDoesNotExist(originalExpenseDescription: String): ExpensesScreen {
         val description = getString(Res.string.expenses_revert_description, originalExpenseDescription)
-        return verifyExpenseExists(description)
+        return verifyExpenseDoesNotExist(description)
+    }
+
+    context(rule: ComposeTestRule)
+    suspend fun verifyEditedStatusForToday(): ExpensesScreen {
+        return verifyExpenseStatusForToday(ExpenseStatus.Edited)
+    }
+
+    context(rule: ComposeTestRule)
+    suspend fun verifyRevertedStatusForToday(): ExpensesScreen {
+        return verifyExpenseStatusForToday(ExpenseStatus.Reverted)
     }
 
     context(rule: ComposeTestRule)
     fun verifyTotalSpending(totalSpending: String): ExpensesScreen {
+        waitUntilTotalSpending(totalSpending)
+        return this
+    }
+
+    context(rule: ComposeTestRule)
+    fun waitUntilTotalSpending(
+        totalSpending: String,
+        timeout: Long = 10_000,
+    ): ExpensesScreen {
         val amountPart = totalSpending.substringBefore(' ').trim()
         val currencyPart = totalSpending.substringAfterLast(' ').trim()
-        val totalLabelText = rule.onNodeWithTag(ExpensesPaneTags.TOTAL_SPENDING_VALUE)
-            .fetchSemanticsNode()
-            .config[SemanticsProperties.Text]
-            .joinToString(separator = " ") { annotatedString -> annotatedString.text }
-        check(totalLabelText.contains(amountPart) && totalLabelText.contains(currencyPart)) {
-            "Total spending label '$totalLabelText' does not contain expected '$totalSpending'"
+        rule.waitUntil(timeoutMillis = timeout) {
+            val totalLabelText = rule.onNodeWithTag(ExpensesPaneTags.TOTAL_SPENDING_VALUE)
+                .fetchSemanticsNode()
+                .config[SemanticsProperties.Text]
+                .joinToString(separator = " ") { annotatedString -> annotatedString.text }
+            totalLabelText.contains(amountPart) && totalLabelText.contains(currencyPart)
         }
         return this
     }
@@ -224,6 +255,26 @@ internal class ExpensesScreen : BaseScreen() {
     private fun swipeTimelineUp() {
         rule.onNodeWithTag(ExpensesPaneTags.TIMELINE_LIST).performScrollToIndex(FIRST_DAY_HEADER_INDEX)
         rule.waitForIdle()
+    }
+
+    context(rule: ComposeTestRule)
+    private suspend fun verifyExpenseStatusForToday(status: ExpenseStatus): ExpensesScreen {
+        waitForElementWithTag(ExpensesPaneTags.EXPENSE_STATUS_TEXT)
+        rule.onNodeWithTag(ExpensesPaneTags.EXPENSE_STATUS_TEXT)
+            .assertIsDisplayed()
+            .assertTextContains(
+                when (status) {
+                    ExpenseStatus.Edited -> getString(Res.string.expenses_status_edited)
+                    ExpenseStatus.Reverted -> getString(Res.string.expenses_status_reverted)
+                },
+                substring = true,
+            )
+        return this
+    }
+
+    private enum class ExpenseStatus {
+        Edited,
+        Reverted,
     }
 
     private companion object {

@@ -62,8 +62,9 @@ internal class DebtCalculator(
      */
     private fun calculateAccumulatedDebts(): Map<Person, Map<Person, AccumulatedDebt>> {
         val debtorToCreditorDebts = hashMapOf<Person, MutableMap<Person, MutableList<Debt>>>()
+        val activeExpenses = expenses.filterActiveExpenses()
 
-        expenses.forEach { expense ->
+        activeExpenses.forEach { expense ->
             expense.subjectExpenseSplitWithPersons.forEach { subjectExpenseSplit ->
                 if (subjectExpenseSplit.person != expense.person && subjectExpenseSplit.exchangedAmount != BigDecimal.ZERO) {
                     val subjectDebtorToCreditorDebts = debtorToCreditorDebts.getOrPut(subjectExpenseSplit.person) { mutableMapOf() }

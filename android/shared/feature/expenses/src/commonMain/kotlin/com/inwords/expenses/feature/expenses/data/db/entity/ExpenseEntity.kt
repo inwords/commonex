@@ -40,6 +40,8 @@ import kotlin.time.Instant
         Index(value = [ExpenseEntity.ColumnNames.EVENT_ID]),
         Index(value = [ExpenseEntity.ColumnNames.CURRENCY_ID]),
         Index(value = [ExpenseEntity.ColumnNames.PERSON_ID]),
+        Index(value = [ExpenseEntity.ColumnNames.REVERTS_EXPENSE_ID]),
+        Index(value = [ExpenseEntity.ColumnNames.REPLACES_EXPENSE_ID]),
     ]
 )
 @TypeConverters(InstantConverter::class, ExpenseTypeConverter::class)
@@ -74,6 +76,12 @@ data class ExpenseEntity(
 
     @ColumnInfo(ColumnNames.DESCRIPTION)
     val description: String,
+
+    @ColumnInfo(ColumnNames.REVERTS_EXPENSE_ID)
+    val revertsExpenseId: Long?,
+
+    @ColumnInfo(ColumnNames.REPLACES_EXPENSE_ID)
+    val replacesExpenseId: Long?,
 ) {
 
     companion object {
@@ -93,5 +101,7 @@ data class ExpenseEntity(
         const val IS_CUSTOM_RATE = "is_custom_rate"
         const val TIMESTAMP = "timestamp"
         const val DESCRIPTION = "description"
+        const val REVERTS_EXPENSE_ID = "reverts_expense_id"
+        const val REPLACES_EXPENSE_ID = "replaces_expense_id"
     }
 }

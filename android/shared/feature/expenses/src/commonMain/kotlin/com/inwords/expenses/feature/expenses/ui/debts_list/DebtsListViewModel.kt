@@ -63,7 +63,8 @@ internal class DebtsListViewModel(
                     toPersonId = creditor.personId,
                     currencyCode = creditor.currencyCode,
                     amount = creditor.amount
-                )
+                ),
+                replacesExpenseId = null,
             )
         )
     }

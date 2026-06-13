@@ -16,7 +16,9 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class AddExpensePaneDestination(
     @SerialName("replenishment")
-    val replenishment: Replenishment? = null,
+    val replenishment: Replenishment?,
+    @SerialName("replacesExpenseId")
+    val replacesExpenseId: Long?,
 ) : Destination {
 
     @Serializable
@@ -45,8 +47,11 @@ internal fun ExpensesComponent.getAddExpensePaneNavModule(
                         getCurrentEventStateUseCase = getCurrentEventStateUseCaseLazy.value,
                         addEqualSplitExpenseUseCase = addEqualSplitExpenseUseCaseLazy.value,
                         addCustomSplitExpenseUseCase = addCustomSplitExpenseUseCaseLazy.value,
+                        replaceExpenseUseCase = replaceExpenseUseCaseLazy.value,
+                        expensesLocalStore = expensesLocalStore.value,
                         settingsRepository = settingsRepositoryLazy.value,
                         replenishment = key.replenishment,
+                        replacesExpenseId = key.replacesExpenseId,
                     )
                 }
             })

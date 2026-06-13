@@ -46,6 +46,8 @@ internal class ExpenseToUiModelTest {
             timestamp = Clock.System.now(),
             description = "Lunch",
             clientCreateId = "expense-10",
+            revertsExpenseId = null,
+            replacesExpenseId = null,
         )
 
         val uiModel = expense.toUiModel(primaryCurrencyName = "Euro", currentPersonId = currentPerson.id)
@@ -78,6 +80,8 @@ internal class ExpenseToUiModelTest {
             timestamp = Clock.System.now(),
             description = "Taxi",
             clientCreateId = "expense-11",
+            revertsExpenseId = null,
+            replacesExpenseId = null,
         )
 
         val uiModel = expense.toUiModel(primaryCurrencyName = "Euro", currentPersonId = 999L)

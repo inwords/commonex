@@ -5,6 +5,7 @@ import com.inwords.expenses.core.utils.IoResult
 import com.inwords.expenses.feature.events.domain.model.Event
 import com.inwords.expenses.feature.events.domain.store.local.EventsLocalStore
 import com.inwords.expenses.feature.expenses.domain.model.Expense
+import com.inwords.expenses.feature.expenses.domain.store.ExpensePullItem
 import com.inwords.expenses.feature.expenses.domain.store.ExpensesLocalStore
 import com.inwords.expenses.feature.expenses.domain.store.ExpensesRemoteStore
 import kotlinx.coroutines.NonCancellable
@@ -34,14 +35,14 @@ class EventExpensesPullTask internal constructor(
             persons = localEvent.persons
         )
 
-        val remoteExpenses = when (remoteResult) {
+        val remoteExpenseItems = when (remoteResult) {
             is IoResult.Success -> remoteResult.data
             is IoResult.Error -> return@withContext remoteResult
         }
 
         val localExpenses = expensesLocalStore.getExpenses(eventId)
 
-        updateLocalExpenses(localEvent.event, localExpenses, remoteExpenses)
+        updateLocalExpenses(localEvent.event, localExpenses, remoteExpenseItems)
 
         IoResult.Success(Unit)
     }
@@ -49,20 +50,22 @@ class EventExpensesPullTask internal constructor(
     private suspend fun updateLocalExpenses(
         event: Event,
         localExpenses: List<Expense>,
-        remoteExpenses: List<Expense>
-    ): List<Expense> {
+        remoteExpenseItems: List<ExpensePullItem>
+    ) {
         val localExpensesMap = localExpenses.mapNotNullTo(HashSet()) { it.serverId }
 
-        val expensesToInsert = remoteExpenses.filter { remoteExpense ->
-            remoteExpense.serverId !in localExpensesMap
+        val expensesToInsert = remoteExpenseItems.filter { remoteExpenseItem ->
+            remoteExpenseItem.expense.serverId !in localExpensesMap
         }
 
-        return if (expensesToInsert.isNotEmpty()) {
+        if (expensesToInsert.any { it.revertsExpenseServerId != null || it.replacesExpenseServerId != null }) {
             withContext(NonCancellable) {
-                expensesLocalStore.upsert(event, expensesToInsert)
+                expensesLocalStore.reconcileCorrectionConflicts(event, expensesToInsert)
             }
-        } else {
-            localExpenses
+        } else if (expensesToInsert.isNotEmpty()) {
+            withContext(NonCancellable) {
+                expensesLocalStore.upsert(event, expensesToInsert.map { it.expense })
+            }
         }
     }
 

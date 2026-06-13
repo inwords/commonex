@@ -355,6 +355,9 @@ internal class ExpensesViewModelDeletionTest {
             requestExpensesRefreshUseCase = requestExpensesRefreshUseCase,
             eventsSyncStateHolder = eventsSyncStateHolder,
             settingsRepository = settingsRepository,
+            timelineUiModelFactory = ExpensesTimelineUiModelFactory(
+                correctionStatusFactory = ExpenseCorrectionStatusTextFactory(),
+            ),
             unconfinedDispatcher = testDispatcher,
             viewModelScope = this.testScope.backgroundScope,
         )

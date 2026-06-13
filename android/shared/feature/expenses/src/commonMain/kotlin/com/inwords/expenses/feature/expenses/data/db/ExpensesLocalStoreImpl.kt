@@ -6,6 +6,8 @@ import com.inwords.expenses.feature.expenses.data.db.converter.toDomain
 import com.inwords.expenses.feature.expenses.data.db.converter.toEntity
 import com.inwords.expenses.feature.expenses.data.db.dao.ExpensesDao
 import com.inwords.expenses.feature.expenses.domain.model.Expense
+import com.inwords.expenses.feature.expenses.domain.pendingCorrectionConflictIds
+import com.inwords.expenses.feature.expenses.domain.store.ExpensePullItem
 import com.inwords.expenses.feature.expenses.domain.store.ExpensesLocalStore
 import com.ionspin.kotlin.bignum.decimal.BigDecimal
 import kotlinx.coroutines.flow.Flow
@@ -40,6 +42,20 @@ internal class ExpensesLocalStoreImpl(
         return expensesDao.queryById(expenseId)?.toDomain()
     }
 
+    override suspend fun hasCorrectionFor(expenseId: Long): Boolean {
+        return expensesDao.hasCorrectionFor(expenseId)
+    }
+
+    override fun hasCorrectionForFlow(expenseId: Long): Flow<Boolean> {
+        return expensesDao.hasCorrectionForFlow(expenseId).distinctUntilChanged()
+    }
+
+    override fun getCorrectionForTargetFlow(targetExpenseId: Long): Flow<Expense?> {
+        return expensesDao.queryCorrectionForTargetFlow(targetExpenseId)
+            .map { entity -> entity?.toDomain() }
+            .distinctUntilChanged()
+    }
+
     override suspend fun upsert(event: Event, expense: Expense): Expense {
         val id = expensesDao.upsert(
             expenseEntity = expense.toEntity(event),
@@ -52,6 +68,35 @@ internal class ExpensesLocalStoreImpl(
     override suspend fun upsert(event: Event, expenses: List<Expense>): List<Expense> {
         return transactionHelper.immediateWriteTransaction {
             expenses.map { expense -> upsert(event, expense) }
+        }
+    }
+
+    override suspend fun reconcileCorrectionConflicts(
+        event: Event,
+        expensesToUpsert: List<ExpensePullItem>,
+    ): List<Expense> {
+        return transactionHelper.immediateWriteTransaction {
+            val currentExpenses = expensesDao.queryByEventId(event.id)
+                .map { entity -> entity.toDomain() }
+            val currentExpenseIdsByServerId = currentExpenses.mapNotNull { expense ->
+                expense.serverId?.let { serverId -> serverId to expense.expenseId }
+            }.toMap()
+            val remoteCorrectionTargets = expensesToUpsert
+                .flatMap { item -> listOfNotNull(item.revertsExpenseServerId, item.replacesExpenseServerId) }
+                .mapNotNullTo(HashSet()) { serverId -> currentExpenseIdsByServerId[serverId] }
+            val expenseIdsToDelete = currentExpenses.pendingCorrectionConflictIds(remoteCorrectionTargets)
+            if (expenseIdsToDelete.isNotEmpty()) {
+                expensesDao.deleteExpenses(expenseIdsToDelete)
+            }
+            expensesToUpsert.map { item ->
+                upsert(
+                    event = event,
+                    expense = item.expense.copy(
+                        revertsExpenseId = item.revertsExpenseServerId?.let { currentExpenseIdsByServerId[it] },
+                        replacesExpenseId = item.replacesExpenseServerId?.let { currentExpenseIdsByServerId[it] },
+                    ),
+                )
+            }
         }
     }
 

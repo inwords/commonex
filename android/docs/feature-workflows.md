@@ -153,6 +153,8 @@ When adding new data or schema changes for existing users:
 **Migration tests (Android instrumented)**: `MigrationTestHelper.createDatabase()` bypasses Room callbacks, so seed base data manually (e.g., currencies) or invoke `RoomOnCreateCallback.onCreate()` with the SQLite connection before running migrations. Keep
 this helper scoped to migration verification, not performance benchmarking.
 
+Backend TypeORM migrations are generated from entity changes; do not hand-write them unless the generated SQL cannot express a required data migration and the exception is called out in the plan or review.
+
 ### Adding Dependencies
 
 - Update version catalogs in `gradle/shared.versions.toml` or `gradle/buildSrc.versions.toml`

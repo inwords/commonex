@@ -9,6 +9,7 @@ import com.inwords.expenses.feature.events.domain.model.Person
 import com.inwords.expenses.feature.expenses.domain.model.Expense
 import com.inwords.expenses.feature.expenses.domain.model.ExpenseSplitWithPerson
 import com.inwords.expenses.feature.expenses.domain.model.ExpenseType
+import com.inwords.expenses.feature.expenses.domain.store.ExpensePullItem
 import com.inwords.expenses.feature.expenses.domain.store.ExpensePushItem
 import com.ionspin.kotlin.bignum.decimal.BigDecimal
 import io.ktor.client.HttpClient
@@ -79,6 +80,7 @@ internal class ExpensesRemoteStoreImplTest {
                         idempotencyKey = "expense-add-key-1",
                     )
                 ),
+                allExpenses = listOf(expense(isCustomRate = false)),
                 currencies = listOf(currency()),
                 persons = listOf(person()),
             )
@@ -127,11 +129,148 @@ internal class ExpensesRemoteStoreImplTest {
                         idempotencyKey = "expense-add-key-1",
                     )
                 ),
+                allExpenses = listOf(expense(isCustomRate = true)),
                 currencies = listOf(currency()),
                 persons = listOf(person()),
             )
 
             assertIs<IoResult.Success<Expense>>(result.single())
+        }
+    }
+
+    @Test
+    fun `addExpensesToEvent includes exact exchange values and non-custom mode for correction`() = runTest {
+        val originalExpense = expense(isCustomRate = false).copy(
+            serverId = "srv-original-expense",
+            clientCreateId = "original-expense-client-1",
+        )
+        val correctionExpense = expense(isCustomRate = false).copy(
+            expenseId = 2L,
+            replacesExpenseId = originalExpense.expenseId,
+        )
+        val client = HttpClient(MockEngine) {
+            install(ContentNegotiation) {
+                json(Json { ignoreUnknownKeys = true })
+            }
+            engine {
+                addHandler { request ->
+                    val bodyText = extractRequestBody(request.body)
+                    val bodyJson = Json.parseToJsonElement(bodyText).jsonObject
+                    val splitJson = bodyJson.getValue("splitInformation").jsonArray.single().jsonObject
+
+                    assertEquals("false", bodyJson.getValue("isCustomRate").jsonPrimitive.content)
+                    assertEquals("12.5", splitJson.getValue("exchangedAmount").jsonPrimitive.content)
+
+                    respond(
+                        content = ByteReadChannel(successResponseJson(replacesExpenseId = "srv-original-expense")),
+                        status = HttpStatusCode.Created,
+                        headers = headersOf(
+                            HttpHeaders.ContentType to listOf(ContentType.Application.Json.toString())
+                        ),
+                    )
+                }
+            }
+        }
+
+        client.use { client ->
+            val result = ExpensesRemoteStoreImpl(
+                client = { client },
+                hostConfig = HostConfig(URLProtocol.HTTPS, "commonex.test"),
+            ).addExpensesToEvent(
+                event = event(),
+                expenses = listOf(
+                    ExpensePushItem(
+                        expense = correctionExpense,
+                        idempotencyKey = "expense-add-key-1",
+                    )
+                ),
+                allExpenses = listOf(originalExpense, correctionExpense),
+                currencies = listOf(currency()),
+                persons = listOf(person()),
+            )
+
+            assertIs<IoResult.Success<Expense>>(result.single())
+        }
+    }
+
+    @Test
+    fun `addExpensesToEvent treats permanent correction conflict as failure`() = runTest {
+        val originalExpense = expense(isCustomRate = false).copy(
+            serverId = "srv-original-expense",
+            clientCreateId = "original-expense-client-1",
+        )
+        val correctionExpense = expense(isCustomRate = false).copy(
+            expenseId = 2L,
+            revertsExpenseId = originalExpense.expenseId,
+        )
+        val client = HttpClient(MockEngine) {
+            expectSuccess = true
+            install(ContentNegotiation) {
+                json(Json { ignoreUnknownKeys = true })
+            }
+            engine {
+                addHandler {
+                    respond(
+                        content = ByteReadChannel("""{"statusCode":409,"code":"B4013","message":"Expense is already reverted"}"""),
+                        status = HttpStatusCode.Conflict,
+                        headers = headersOf(
+                            HttpHeaders.ContentType to listOf(ContentType.Application.Json.toString())
+                        ),
+                    )
+                }
+            }
+        }
+
+        client.use { client ->
+            val result = ExpensesRemoteStoreImpl(
+                client = { client },
+                hostConfig = HostConfig(URLProtocol.HTTPS, "commonex.test"),
+            ).addExpensesToEvent(
+                event = event(),
+                expenses = listOf(ExpensePushItem(correctionExpense, "expense-add-key-1")),
+                allExpenses = listOf(originalExpense, correctionExpense),
+                currencies = listOf(currency()),
+                persons = listOf(person()),
+            )
+
+            assertEquals(IoResult.Error.Failure, result.single())
+        }
+    }
+
+    @Test
+    fun `addExpensesToEvent retries correction when referenced expense is not synced yet`() = runTest {
+        val originalExpense = expense(isCustomRate = false).copy(
+            serverId = null,
+            clientCreateId = "original-expense-client-1",
+        )
+        val correctionExpense = expense(isCustomRate = false).copy(
+            expenseId = 2L,
+            revertsExpenseId = originalExpense.expenseId,
+        )
+        val client = HttpClient(MockEngine) {
+            install(ContentNegotiation) {
+                json(Json { ignoreUnknownKeys = true })
+            }
+            engine {
+                addHandler {
+                    error("Correction request should wait until the referenced expense has a server id")
+                }
+            }
+        }
+
+        client.use { client ->
+            val result = ExpensesRemoteStoreImpl(
+                client = { client },
+                hostConfig = HostConfig(URLProtocol.HTTPS, "commonex.test"),
+            ).addExpensesToEvent(
+                event = event(),
+                expenses = listOf(ExpensePushItem(correctionExpense, "expense-add-key-1")),
+                allExpenses = listOf(originalExpense, correctionExpense),
+                currencies = listOf(currency()),
+                persons = listOf(person()),
+            )
+
+            assertEquals(IoResult.Error.Retry, result.single())
         }
     }
 
@@ -164,7 +303,95 @@ internal class ExpensesRemoteStoreImplTest {
                 persons = listOf(person()),
             )
 
-            assertTrue(assertIs<IoResult.Success<List<Expense>>>(result).data.single().isCustomRate)
+            assertTrue(assertIs<IoResult.Success<List<ExpensePullItem>>>(result).data.single().expense.isCustomRate)
+        }
+    }
+
+    @Test
+    fun `addExpensesToEvent resolves local correction ids to server ids in request`() = runTest {
+        val originalExpense = expense(isCustomRate = false).copy(
+            serverId = "srv-original-expense",
+            clientCreateId = "original-expense-client-1",
+        )
+        val correctionExpense = expense(isCustomRate = false).copy(
+            expenseId = 2L,
+            revertsExpenseId = originalExpense.expenseId,
+        )
+        val client = HttpClient(MockEngine) {
+            install(ContentNegotiation) {
+                json(Json { ignoreUnknownKeys = true })
+            }
+            engine {
+                addHandler { request ->
+                    val bodyText = extractRequestBody(request.body)
+                    val bodyJson = Json.parseToJsonElement(bodyText).jsonObject
+
+                    assertEquals("srv-original-expense", bodyJson.getValue("revertsExpenseId").jsonPrimitive.content)
+
+                    respond(
+                        content = ByteReadChannel(successResponseJson(revertsExpenseId = "srv-original-expense")),
+                        status = HttpStatusCode.Created,
+                        headers = headersOf(
+                            HttpHeaders.ContentType to listOf(ContentType.Application.Json.toString())
+                        ),
+                    )
+                }
+            }
+        }
+
+        client.use { client ->
+            val result = ExpensesRemoteStoreImpl(
+                client = { client },
+                hostConfig = HostConfig(URLProtocol.HTTPS, "commonex.test"),
+            ).addExpensesToEvent(
+                event = event(),
+                expenses = listOf(
+                    ExpensePushItem(
+                        expense = correctionExpense,
+                        idempotencyKey = "expense-add-key-1",
+                    )
+                ),
+                allExpenses = listOf(originalExpense, correctionExpense),
+                currencies = listOf(currency()),
+                persons = listOf(person()),
+            )
+
+            assertEquals(originalExpense.expenseId, assertIs<IoResult.Success<Expense>>(result.single()).data.revertsExpenseId)
+        }
+    }
+
+    @Test
+    fun `getExpenses preserves remote correction server ids outside local expense model`() = runTest {
+        val client = HttpClient(MockEngine) {
+            install(ContentNegotiation) {
+                json(Json { ignoreUnknownKeys = true })
+            }
+            engine {
+                addHandler {
+                    respond(
+                        content = ByteReadChannel("[${successResponseJson(replacesExpenseId = "srv-original-expense")}]"),
+                        status = HttpStatusCode.OK,
+                        headers = headersOf(
+                            HttpHeaders.ContentType to listOf(ContentType.Application.Json.toString())
+                        ),
+                    )
+                }
+            }
+        }
+
+        client.use { client ->
+            val result = ExpensesRemoteStoreImpl(
+                client = { client },
+                hostConfig = HostConfig(URLProtocol.HTTPS, "commonex.test"),
+            ).getExpenses(
+                event = event(),
+                currencies = listOf(currency()),
+                persons = listOf(person()),
+            )
+
+            val pullItem = assertIs<IoResult.Success<List<ExpensePullItem>>>(result).data.single()
+            assertEquals(null, pullItem.expense.replacesExpenseId)
+            assertEquals("srv-original-expense", pullItem.replacesExpenseServerId)
         }
     }
 
@@ -226,10 +453,16 @@ internal class ExpensesRemoteStoreImplTest {
             timestamp = Instant.parse("2026-01-01T00:00:00Z"),
             description = "Dinner",
             clientCreateId = "expense-client-1",
+            revertsExpenseId = null,
+            replacesExpenseId = null,
         )
     }
 
-    private fun successResponseJson(isCustomRate: Boolean = false): String {
+    private fun successResponseJson(
+        isCustomRate: Boolean = false,
+        revertsExpenseId: String? = null,
+        replacesExpenseId: String? = null,
+    ): String {
         return """
             {
               "id": "srv-expense",
@@ -247,7 +480,13 @@ internal class ExpensesRemoteStoreImplTest {
               ],
               "isCustomRate": $isCustomRate,
               "createdAt": "2026-01-01T00:00:00Z"
+              ${optionalJsonField("revertsExpenseId", revertsExpenseId)}
+              ${optionalJsonField("replacesExpenseId", replacesExpenseId)}
             }
         """.trimIndent()
+    }
+
+    private fun optionalJsonField(name: String, value: String?): String {
+        return value?.let { ",\n\"$name\": \"$it\"" }.orEmpty()
     }
 }

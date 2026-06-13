@@ -17,7 +17,11 @@ import {
   CurrencyNotFoundError,
   CurrencyRateNotFoundError,
   InconsistentExchangedAmountError,
+  ExpenseAlreadyRevertedError,
+  ExpenseCorrectionConflictError,
+  ExpenseReferenceNotFoundError,
 } from '#domain/errors/errors';
+import {validateExpenseCorrectionLinks as validateExpenseCorrectionLinksDomain} from '#domain/expense-correction/expense-correction';
 
 type SplitInfoInput = Omit<ISplitInfo, 'exchangedAmount'> & Partial<Pick<ISplitInfo, 'exchangedAmount'>>;
 
@@ -25,6 +29,7 @@ type InputCore = Omit<IExpense, 'createdAt' | 'id' | 'updatedAt' | 'isCustomRate
   Partial<Pick<IExpense, 'createdAt'>> & {
     splitInformation: Array<SplitInfoInput>;
     pinCode: string;
+    isCustomRate?: boolean;
   };
 
 type Input = InputCore & {
@@ -39,6 +44,9 @@ type Output = Result<
   | CurrencyNotFoundError
   | CurrencyRateNotFoundError
   | InconsistentExchangedAmountError
+  | ExpenseAlreadyRevertedError
+  | ExpenseCorrectionConflictError
+  | ExpenseReferenceNotFoundError
 >;
 
 @Injectable()
@@ -57,7 +65,7 @@ export class SaveEventExpenseV2UseCase implements UseCase<Input, Output> {
 
   private async executeCore(input: InputCore): Promise<Output> {
     return this.rDataService.transaction(async (ctx) => {
-      const {pinCode, ...restInput} = input;
+      const {pinCode, isCustomRate: requestedIsCustomRate, ...restInput} = input;
 
       const [event] = await this.rDataService.event.findById(restInput.eventId, {
         ctx,
@@ -81,6 +89,12 @@ export class SaveEventExpenseV2UseCase implements UseCase<Input, Output> {
         return pinCodeResult;
       }
 
+      const correctionValidation = await this.validateExpenseCorrectionLinks(restInput, ctx);
+
+      if (isError(correctionValidation)) {
+        return correctionValidation;
+      }
+
       if (event.currencyId === input.currencyId) {
         const splitInformation: ISplitInfo[] = [];
 
@@ -97,11 +111,14 @@ export class SaveEventExpenseV2UseCase implements UseCase<Input, Output> {
 
         return success(expense);
       } else {
-        // Проверяем, передан ли exchangedAmount хотя бы в одном элементе
         const hasCustomRate = input.splitInformation.some((s) => s.exchangedAmount !== undefined);
 
         if (hasCustomRate) {
-          // Кастомный курс - используем переданные exchangedAmount
+          const isCorrection = restInput.revertsExpenseId != null || restInput.replacesExpenseId != null;
+          if (requestedIsCustomRate === false && !isCorrection) {
+            return error(new InconsistentExchangedAmountError());
+          }
+
           const splitInformation: ISplitInfo[] = [];
           for (const splitInfo of input.splitInformation) {
             if (splitInfo.exchangedAmount === undefined) {
@@ -114,13 +131,12 @@ export class SaveEventExpenseV2UseCase implements UseCase<Input, Output> {
             });
           }
 
-          const expense = new ExpenseValueObject({...restInput, splitInformation, isCustomRate: true}).value;
+          const expense = new ExpenseValueObject({...restInput, splitInformation, isCustomRate: requestedIsCustomRate ?? true}).value;
 
           await this.rDataService.expense.insert(expense, {ctx});
 
           return success(expense);
         } else {
-          // Автоматический курс (существующая логика)
           const expenseCurrency = await this.supportedCurrencyService.findById(restInput.currencyId, {ctx});
           const eventCurrency = await this.supportedCurrencyService.findById(event.currencyId, {ctx});
 
@@ -165,5 +181,24 @@ export class SaveEventExpenseV2UseCase implements UseCase<Input, Output> {
       }
     });
   }
-}
 
+  private async validateExpenseCorrectionLinks(
+    input: Omit<InputCore, 'pinCode'>,
+    ctx: unknown,
+  ): Promise<Result<true, ExpenseAlreadyRevertedError | ExpenseCorrectionConflictError | ExpenseReferenceNotFoundError>> {
+    const referencedExpenseId = input.revertsExpenseId ?? input.replacesExpenseId;
+
+    if (referencedExpenseId == null) {
+      return validateExpenseCorrectionLinksDomain(input, undefined, undefined);
+    }
+
+    const [referencedExpense] = await this.rDataService.expense.findById(referencedExpenseId, {ctx});
+    const [existingCorrection] = await this.rDataService.expense.findCorrectionForReferencedExpense(
+      input.eventId,
+      referencedExpenseId,
+      {ctx},
+    );
+
+    return validateExpenseCorrectionLinksDomain(input, referencedExpense, existingCorrection);
+  }
+}
