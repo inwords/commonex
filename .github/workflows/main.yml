@@ -27,7 +27,7 @@ jobs:
       has-infra-changes: ${{ steps.filter.outputs.infra }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Filter changes
         id: filter
@@ -95,7 +95,7 @@ jobs:
       matrix: ${{ fromJson(needs.containers_matrix_prep.outputs.matrix) }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
@@ -125,7 +125,7 @@ jobs:
       )
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Set up SSH key
         run: |
