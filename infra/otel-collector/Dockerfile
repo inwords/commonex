@@ -21,6 +21,9 @@ WORKDIR /
 
 # Copy the generated collector binary from the builder stage
 COPY --from=builder /build/otelcol-custom .
+COPY otel-collector-config.yaml /etc/otel-collector-config.yaml
+
+RUN /otelcol-custom validate --config=/etc/otel-collector-config.yaml
 
 # Expose necessary ports
 EXPOSE 4317/tcp

@@ -171,6 +171,7 @@ COPY --from=base /etc/nginx /etc/nginx
 COPY --from=base /usr/sbin/nginx /usr/sbin/
 COPY --from=base /tmp/nginx-runDeps.txt /tmp/nginx-runDeps.txt
 COPY --from=base /usr/lib/nginx/modules/*.so /usr/lib/nginx/modules/
+COPY nginx-prod.conf /etc/nginx/nginx.conf
 
 RUN \
     addgroup --gid $NGINX_GROUP_GID -S nginx \
@@ -183,6 +184,29 @@ RUN \
     && touch /var/log/nginx/access.log /var/log/nginx/error.log \
     && ln -sf /dev/stdout /var/log/nginx/access.log \
     && ln -sf /dev/stderr /var/log/nginx/error.log
+
+RUN \
+    apk add --no-cache --virtual .nginx-validation openssl \
+    && install -d -m 0700 /etc/nginx/ssl/live/commonex.ru \
+    && openssl req -x509 -newkey rsa:2048 -nodes -days 1 \
+      -subj '/CN=build-validation.invalid' \
+      -keyout /etc/nginx/ssl/live/commonex.ru/privkey.pem \
+      -out /etc/nginx/ssl/live/commonex.ru/fullchain.pem \
+    && cp /etc/nginx/nginx.conf /tmp/nginx-build-validation.conf \
+    && sed -i \
+      -e 's/server nest-backend-green:/server 127.0.0.2:/g' \
+      -e 's/server nest-backend-blue:/server 127.0.0.3:/g' \
+      -e 's/server next-web:/server 127.0.0.4:/g' \
+      -e 's/server grafana:/server 127.0.0.5:/g' \
+      -e 's/endpoint otelcollector:/endpoint 127.0.0.6:/g' \
+      /tmp/nginx-build-validation.conf \
+    && nginx -t -c /tmp/nginx-build-validation.conf \
+    && rm -f /tmp/nginx-build-validation.conf \
+      /etc/nginx/ssl/live/commonex.ru/privkey.pem \
+      /etc/nginx/ssl/live/commonex.ru/fullchain.pem \
+    && rmdir /etc/nginx/ssl/live/commonex.ru \
+      /etc/nginx/ssl/live /etc/nginx/ssl \
+    && apk del .nginx-validation
 
 # uncomment to show the configuration
 #RUN nginx -V
@@ -198,4 +222,4 @@ RUN \
       /var/run/nginx/
 
 USER nginx
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["sh", "-c", "nginx -t && exec nginx -g 'daemon off;'"]
