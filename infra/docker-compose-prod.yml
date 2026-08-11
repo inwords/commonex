@@ -117,7 +117,6 @@ services:
       - "443:443/tcp"
       - "443:443/udp"
     volumes:
-      - ./nginx/nginx-prod.conf:/etc/nginx/nginx.conf:ro
       - /etc/commonex/ssl/certbot/live/commonex.ru:/etc/nginx/ssl/live/commonex.ru:ro
       - /etc/commonex/ssl/certbot/archive/commonex.ru:/etc/nginx/ssl/archive/commonex.ru:ro
       - /etc/commonex/www/certbot/:/var/www/certbot/:ro
@@ -145,7 +144,6 @@ services:
       - no-new-privileges:true
     command: [ "--config=/etc/otel-collector-config.yaml" ]
     volumes:
-      - ./otel-collector/otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
       - app-network
