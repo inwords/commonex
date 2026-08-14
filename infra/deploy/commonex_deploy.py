@@ -204,6 +204,16 @@ def audit(message: str, config: DeploymentConfig = DEFAULT_CONFIG) -> None:
             os.close(descriptor)
 
 
+def _audit_best_effort(message: str, config: DeploymentConfig) -> None:
+    """Preserve an existing deployment outcome if its secondary audit fails."""
+
+    try:
+        audit(message, config)
+    except Exception:
+        # The caller is already handling or has committed the primary outcome.
+        pass
+
+
 def release_id(value: str) -> str:
     if not RELEASE_PATTERN.fullmatch(value):
         raise ValueError("release id must be a lowercase 40-character Git SHA")
@@ -1014,14 +1024,11 @@ def _cleanup_staged_releases(
             shutil.rmtree(path)
             fsync_directory(config.release_root)
         except Exception as error:
-            try:
-                audit(
-                    f"RESULT cleanup status=FAILED error={type(error).__name__} "
-                    f"release={path.name}",
-                    config,
-                )
-            except Exception:
-                pass
+            _audit_best_effort(
+                f"RESULT cleanup status=FAILED error={type(error).__name__} "
+                f"release={path.name}",
+                config,
+            )
 
 
 def _activation_identifier(operation: str, value: str) -> str:
@@ -1086,15 +1093,12 @@ def _activate(
                 "manual reconciliation is required"
             ) from clear_error
     except AmbiguousActivationCommitError as activation_error:
-        try:
-            audit(
-                f"RESULT {operation} {identifier} run={run_number} "
-                "status=AMBIGUOUS_COMMIT configuration_restored=NOT_ATTEMPTED "
-                f"error={type(activation_error).__name__}",
-                config,
-            )
-        except Exception:
-            pass
+        _audit_best_effort(
+            f"RESULT {operation} {identifier} run={run_number} "
+            "status=AMBIGUOUS_COMMIT configuration_restored=NOT_ATTEMPTED "
+            f"error={type(activation_error).__name__}",
+            config,
+        )
         raise
     except Exception as activation_error:
         if backups_ready and installation_started:
@@ -1125,15 +1129,12 @@ def _activate(
             try:
                 _clear_activation_intent(activation_intent, config)
             except Exception as clear_error:
-                try:
-                    audit(
-                        f"RESULT {operation} {identifier} run={run_number} "
-                        "status=AMBIGUOUS_COMMIT configuration_restored="
-                        f"{restoration} error={type(clear_error).__name__}",
-                        config,
-                    )
-                except Exception:
-                    pass
+                _audit_best_effort(
+                    f"RESULT {operation} {identifier} run={run_number} "
+                    "status=AMBIGUOUS_COMMIT configuration_restored="
+                    f"{restoration} error={type(clear_error).__name__}",
+                    config,
+                )
                 raise AmbiguousActivationCommitError(
                     "configuration was restored but its activation intent could "
                     "not be durably cleared; manual reconciliation is required"
@@ -1155,14 +1156,11 @@ def _activate(
     try:
         _cleanup_staged_releases(next_history, config)
     except Exception as cleanup_error:
-        try:
-            audit(
-                f"RESULT cleanup status=FAILED "
-                f"error={type(cleanup_error).__name__}",
-                config,
-            )
-        except Exception:
-            pass
+        _audit_best_effort(
+            f"RESULT cleanup status=FAILED "
+            f"error={type(cleanup_error).__name__}",
+            config,
+        )
     try:
         if operation == "rollback":
             audit(
