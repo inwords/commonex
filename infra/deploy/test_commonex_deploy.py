@@ -140,6 +140,19 @@ class DeployScriptTest(unittest.TestCase):
             deploy.deploy(OLDER_RELEASE_ID, 2, self.config)
         return first_compose, second_compose
 
+    def test_best_effort_audit_preserves_the_primary_outcome(self) -> None:
+        with mock.patch.object(
+            deploy,
+            "audit",
+            side_effect=OSError("simulated secondary audit failure"),
+        ) as audit:
+            deploy._audit_best_effort("RESULT cleanup status=FAILED", self.config)
+
+        audit.assert_called_once_with(
+            "RESULT cleanup status=FAILED",
+            self.config,
+        )
+
     def test_parse_invocation_accepts_only_explicit_commands(self) -> None:
         self.assertEqual(
             deploy.parse_invocation(["forced"], f"stage {RELEASE_ID}"),
