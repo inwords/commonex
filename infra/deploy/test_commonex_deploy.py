@@ -22,12 +22,23 @@ import commonex_deploy as deploy  # noqa: E402
 
 RELEASE_ID = "a" * 40
 OLDER_RELEASE_ID = "b" * 40
+VALID_IMAGE_REFERENCES = {
+    "COMMONEX_BACKEND_IMAGE": "ruggedbl/commonex-nest-backend@sha256:" + "a" * 64,
+    "COMMONEX_FRONTEND_IMAGE": "ruggedbl/commonex-next-web@sha256:" + "b" * 64,
+    "COMMONEX_OTEL_COLLECTOR_IMAGE": "ruggedbl/opentelemetry-collector-custom@sha256:"
+    + "c" * 64,
+    "COMMONEX_NGINX_IMAGE": "ruggedbl/nginx-http3@sha256:" + "d" * 64,
+}
+IMMUTABLE_IMAGE_KEYS = frozenset(VALID_IMAGE_REFERENCES)
 
 
 def valid_environment(marker: str = "value") -> bytes:
-    return "".join(
-        f"{key}={marker}-{key.lower()}\n" for key in sorted(deploy.REQUIRED_ENV_KEYS)
-    ).encode()
+    values = {
+        key: f"{marker}-{key.lower()}"
+        for key in deploy.REQUIRED_ENV_KEYS - IMMUTABLE_IMAGE_KEYS
+    }
+    values.update(VALID_IMAGE_REFERENCES)
+    return "".join(f"{key}={value}\n" for key, value in sorted(values.items())).encode()
 
 
 def release_archive(
@@ -250,6 +261,86 @@ class DeployScriptTest(unittest.TestCase):
         environment.write_text("POSTGRES_PORT=5432\n", encoding="utf-8")
         with self.assertRaises(ValueError):
             deploy.validate_env(environment)
+
+    def test_validate_env_rejects_mutable_or_unapproved_image_references(self) -> None:
+        environment = self.root / ".env"
+        digest = "a" * 64
+        invalid_references = {
+            "missing backend image": ("COMMONEX_BACKEND_IMAGE", None),
+            "missing frontend image": ("COMMONEX_FRONTEND_IMAGE", None),
+            "missing otel collector image": ("COMMONEX_OTEL_COLLECTOR_IMAGE", None),
+            "missing nginx image": ("COMMONEX_NGINX_IMAGE", None),
+            "mutable tag": ("COMMONEX_BACKEND_IMAGE", "ruggedbl/commonex-nest-backend:latest"),
+            "wrong repository": (
+                "COMMONEX_BACKEND_IMAGE",
+                f"ruggedbl/commonex-next-web@sha256:{digest}",
+            ),
+            "malformed digest": (
+                "COMMONEX_BACKEND_IMAGE",
+                "ruggedbl/commonex-nest-backend@sha256:abc",
+            ),
+            "uppercase digest": (
+                "COMMONEX_BACKEND_IMAGE",
+                f"ruggedbl/commonex-nest-backend@sha256:{digest.upper()}",
+            ),
+        }
+
+        for name, (key, value) in invalid_references.items():
+            with self.subTest(name=name):
+                lines = valid_environment().decode().splitlines()
+                lines = [line for line in lines if not line.startswith(f"{key}=")]
+                if value is not None:
+                    lines.append(f"{key}={value}")
+                environment.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+                with self.assertRaises(ValueError):
+                    deploy.validate_env(environment)
+
+        environment.write_bytes(valid_environment())
+        deploy.validate_env(environment)
+
+    def test_validate_calls_compose_only_after_immutable_image_environment_passes(
+        self,
+    ) -> None:
+        compose = b"""services:
+  nest-backend-green:
+    image: ${COMMONEX_BACKEND_IMAGE}
+  nest-backend-blue:
+    image: ${COMMONEX_BACKEND_IMAGE}
+  next-web:
+    image: ${COMMONEX_FRONTEND_IMAGE}
+  otel-collector:
+    image: ${COMMONEX_OTEL_COLLECTOR_IMAGE}
+  nginx:
+    image: ${COMMONEX_NGINX_IMAGE}
+"""
+        invalid_environment = valid_environment().replace(
+            VALID_IMAGE_REFERENCES["COMMONEX_BACKEND_IMAGE"].encode(),
+            b"ruggedbl/commonex-nest-backend:latest",
+        )
+        deploy.stage(
+            RELEASE_ID,
+            self.config,
+            release_archive(compose=compose, environment=invalid_environment),
+        )
+
+        with (
+            mock.patch.object(deploy, "run_command") as run_command,
+            self.assertRaises(ValueError),
+        ):
+            deploy.validate(RELEASE_ID, self.config)
+
+        run_command.assert_not_called()
+
+        deploy.stage(
+            OLDER_RELEASE_ID,
+            self.config,
+            release_archive(compose=compose, environment=valid_environment()),
+        )
+        with mock.patch.object(deploy, "run_command") as run_command:
+            deploy.validate(OLDER_RELEASE_ID, self.config)
+
+        run_command.assert_called_once()
 
     def test_deploy_restores_configuration_when_compose_fails(self) -> None:
         self.config.app_dir.mkdir()

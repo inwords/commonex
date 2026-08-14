@@ -24,6 +24,12 @@ FILES = {
     "docker-compose-prod.yml": 0o644,
     ".env": 0o600,
 }
+IMMUTABLE_IMAGE_REPOSITORIES = {
+    "COMMONEX_BACKEND_IMAGE": "ruggedbl/commonex-nest-backend",
+    "COMMONEX_FRONTEND_IMAGE": "ruggedbl/commonex-next-web",
+    "COMMONEX_OTEL_COLLECTOR_IMAGE": "ruggedbl/opentelemetry-collector-custom",
+    "COMMONEX_NGINX_IMAGE": "ruggedbl/nginx-http3",
+}
 REQUIRED_ENV_KEYS = {
     "POSTGRES_PORT",
     "POSTGRES_USER_NAME",
@@ -35,6 +41,7 @@ REQUIRED_ENV_KEYS = {
     "DEVTOOLS_SECRET",
     "GF_SECURITY_ADMIN_USER",
     "GF_SECURITY_ADMIN_PASSWORD",
+    *IMMUTABLE_IMAGE_REPOSITORIES,
 }
 
 MAX_ARCHIVE_BYTES = 10 * 1024 * 1024
@@ -42,6 +49,9 @@ READ_CHUNK_BYTES = 1024 * 1024
 RELEASE_PATTERN = re.compile(r"^[0-9a-f]{40}$")
 RUN_NUMBER_PATTERN = re.compile(r"^[1-9][0-9]{0,19}$")
 ENV_KEY_PATTERN = re.compile(r"^[A-Z][A-Z0-9_]*$")
+IMMUTABLE_IMAGE_REFERENCE_PATTERN = re.compile(
+    r"^(?P<repository>[^@]+)@sha256:[0-9a-f]{64}$"
+)
 MANIFEST_LINE_PATTERN = re.compile(r"^([0-9a-f]{64})  (.+)$")
 COMMANDS = frozenset({"stage", "validate", "deploy"})
 SAFE_ENVIRONMENT = {
@@ -368,20 +378,25 @@ def stage(
 
 
 def validate_env(path: Path) -> None:
-    keys: set[str] = set()
+    values: dict[str, str] = {}
     for line_number, raw in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
         if not raw or raw.startswith("#"):
             continue
         if "\x00" in raw:
             raise ValueError(f"invalid environment entry at line {line_number}")
-        key, separator, _ = raw.partition("=")
-        if separator != "=" or not ENV_KEY_PATTERN.fullmatch(key) or key in keys:
+        key, separator, value = raw.partition("=")
+        if separator != "=" or not ENV_KEY_PATTERN.fullmatch(key) or key in values:
             raise ValueError(f"invalid environment entry at line {line_number}")
-        keys.add(key)
+        values[key] = value
 
-    missing = REQUIRED_ENV_KEYS - keys
+    missing = REQUIRED_ENV_KEYS - values.keys()
     if missing:
         raise ValueError(f"environment is missing keys: {sorted(missing)}")
+
+    for key, repository in IMMUTABLE_IMAGE_REPOSITORIES.items():
+        match = IMMUTABLE_IMAGE_REFERENCE_PATTERN.fullmatch(values[key])
+        if match is None or match.group("repository") != repository:
+            raise ValueError(f"invalid immutable image reference: {key}")
 
 
 def _expected_directories() -> set[str]:
