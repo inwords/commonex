@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import os
 import re
 import shlex
@@ -53,7 +54,7 @@ IMMUTABLE_IMAGE_REFERENCE_PATTERN = re.compile(
     r"^(?P<repository>[^@]+)@sha256:[0-9a-f]{64}$"
 )
 MANIFEST_LINE_PATTERN = re.compile(r"^([0-9a-f]{64})  (.+)$")
-COMMANDS = frozenset({"stage", "validate", "deploy"})
+COMMANDS = frozenset({"stage", "validate", "deploy", "rollback", "current-images"})
 SAFE_ENVIRONMENT = {
     "HOME": "/root",
     "LANG": "C.UTF-8",
@@ -377,7 +378,7 @@ def stage(
         audit(f"RESULT stage release={value} status=PASS", config)
 
 
-def validate_env(path: Path) -> None:
+def _environment_values(path: Path) -> dict[str, str]:
     values: dict[str, str] = {}
     for line_number, raw in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
         if not raw or raw.startswith("#"):
@@ -397,6 +398,11 @@ def validate_env(path: Path) -> None:
         match = IMMUTABLE_IMAGE_REFERENCE_PATTERN.fullmatch(values[key])
         if match is None or match.group("repository") != repository:
             raise ValueError(f"invalid immutable image reference: {key}")
+    return values
+
+
+def validate_env(path: Path) -> None:
+    _environment_values(path)
 
 
 def _expected_directories() -> set[str]:
@@ -593,6 +599,10 @@ def _last_successful_run_path(config: DeploymentConfig) -> Path:
     return config.release_root / "last-successful-run"
 
 
+def _activation_state_path(config: DeploymentConfig) -> Path:
+    return config.release_root / "activation-state.json"
+
+
 def _read_last_successful_run(config: DeploymentConfig) -> int:
     ensure_release_root(config)
     path = _last_successful_run_path(config)
@@ -622,17 +632,106 @@ def _read_last_successful_run(config: DeploymentConfig) -> int:
     return deployment_run_number(value.removesuffix("\n"))
 
 
-def _write_last_successful_run(run_number: int, config: DeploymentConfig) -> None:
+def _validate_activation_state(
+    run_number: object,
+    history: object,
+) -> tuple[int, list[str]]:
+    if isinstance(run_number, bool) or not isinstance(run_number, int):
+        raise ValueError("activation state has an invalid run number")
+    deployment_run_number(str(run_number))
+    if not isinstance(history, list) or len(history) > 3:
+        raise ValueError("activation state has an invalid history")
+    if any(not isinstance(value, str) for value in history):
+        raise ValueError("activation state has an invalid history")
+    validated_history = [release_id(value) for value in history]
+    if len(set(validated_history)) != len(validated_history):
+        raise ValueError("activation state history contains duplicates")
+    return run_number, validated_history
+
+
+def _read_activation_state(config: DeploymentConfig) -> tuple[int, list[str]]:
     ensure_release_root(config)
-    destination = _last_successful_run_path(config)
+    path = _activation_state_path(config)
+    if path.is_symlink():
+        raise PermissionError(f"deployment state is a symlink: {path}")
+
+    flags = _open_flags(os.O_RDONLY, _close_on_exec_flag(), _no_follow_flag())
+    try:
+        descriptor = os.open(path, flags)
+    except FileNotFoundError:
+        return _read_last_successful_run(config), []
+
+    try:
+        metadata = os.fstat(descriptor)
+        if not stat.S_ISREG(metadata.st_mode):
+            raise PermissionError(f"deployment state is not a regular file: {path}")
+        _verify_owner(metadata, path, config)
+        mode = stat.S_IMODE(metadata.st_mode)
+        if os.name == "posix" and mode != 0o600:
+            raise PermissionError(f"unsafe mode {mode:o} for deployment state: {path}")
+        with os.fdopen(descriptor, "r", encoding="utf-8", newline="\n") as stream:
+            descriptor = -1
+            serialized = stream.read(8193)
+    finally:
+        if descriptor >= 0:
+            os.close(descriptor)
+
+    if len(serialized) > 8192:
+        raise ValueError("activation state is too large")
+    try:
+        state = json.loads(serialized)
+    except (json.JSONDecodeError, UnicodeError) as error:
+        raise ValueError("activation state is invalid") from error
+    if not isinstance(state, dict) or set(state) != {
+        "last_successful_run",
+        "history",
+    }:
+        raise ValueError("activation state is invalid")
+    return _validate_activation_state(
+        state["last_successful_run"],
+        state["history"],
+    )
+
+
+def _write_activation_state(
+    run_number: int,
+    history: list[str],
+    config: DeploymentConfig,
+) -> None:
+    run_number, history = _validate_activation_state(run_number, history)
+    ensure_release_root(config)
+    destination = _activation_state_path(config)
+    try:
+        metadata = destination.lstat()
+    except FileNotFoundError:
+        pass
+    else:
+        if stat.S_ISLNK(metadata.st_mode):
+            raise PermissionError(f"deployment state is a symlink: {destination}")
+        if not stat.S_ISREG(metadata.st_mode):
+            raise PermissionError(
+                f"deployment state is not a regular file: {destination}"
+            )
+        _verify_owner(metadata, destination, config)
+        mode = stat.S_IMODE(metadata.st_mode)
+        if os.name == "posix" and mode != 0o600:
+            raise PermissionError(
+                f"unsafe mode {mode:o} for deployment state: {destination}"
+            )
     descriptor, temporary_name = tempfile.mkstemp(
-        prefix=".last-successful-run.", dir=config.release_root
+        prefix=".activation-state.", dir=config.release_root
     )
     temporary = Path(temporary_name)
     try:
-        with os.fdopen(descriptor, "w", encoding="ascii", newline="\n") as stream:
+        with os.fdopen(descriptor, "w", encoding="utf-8", newline="\n") as stream:
             descriptor = -1
-            stream.write(f"{run_number}\n")
+            json.dump(
+                {"last_successful_run": run_number, "history": history},
+                stream,
+                separators=(",", ":"),
+                sort_keys=True,
+            )
+            stream.write("\n")
             stream.flush()
             os.fsync(stream.fileno())
         if config.enforce_root_ownership:
@@ -646,6 +745,175 @@ def _write_last_successful_run(run_number: int, config: DeploymentConfig) -> Non
         temporary.unlink(missing_ok=True)
 
 
+def _reconcile_configuration(directory: Path) -> None:
+    run_command(
+        compose_command(
+            directory,
+            "up",
+            "-d",
+            "--pull",
+            "always",
+            "--wait",
+            "--wait-timeout",
+            "120",
+        ),
+        directory,
+    )
+
+
+def _cleanup_staged_releases(
+    history: list[str],
+    config: DeploymentConfig,
+) -> None:
+    retained = set(history)
+    for path in sorted(config.release_root.iterdir(), key=lambda entry: entry.name):
+        if not RELEASE_PATTERN.fullmatch(path.name) or path.name in retained:
+            continue
+        try:
+            metadata = path.lstat()
+            if not stat.S_ISDIR(metadata.st_mode) or stat.S_ISLNK(metadata.st_mode):
+                raise PermissionError(f"staged release is not a trusted directory: {path}")
+            verify_directory(path, config, exact_mode=0o700)
+            shutil.rmtree(path)
+            fsync_directory(config.release_root)
+        except Exception as error:
+            try:
+                audit(
+                    f"RESULT cleanup status=FAILED error={type(error).__name__} "
+                    f"release={path.name}",
+                    config,
+                )
+            except Exception:
+                pass
+
+
+def _activation_identifier(operation: str, value: str) -> str:
+    if operation == "rollback":
+        return f"target={value}"
+    return f"release={value}"
+
+
+def _activate(
+    operation: str,
+    value: str,
+    run_number: int,
+    history: list[str],
+    config: DeploymentConfig,
+) -> None:
+    identifier = _activation_identifier(operation, value)
+    rollback_directory = _rollback_path(value, config)
+    audit(
+        f"ACTION {operation} {identifier} run={run_number} "
+        "consequence=replace_allowlisted_config_and_reconcile_compose "
+        f"rollback={rollback_directory} result=START",
+        config,
+    )
+
+    backups_ready = False
+    installation_started = False
+    compose_started = False
+    next_history = [value, *(item for item in history if item != value)][:3]
+    try:
+        directory = _validate_release_contents(value, config)
+        run_command(compose_command(directory, "pull"), directory)
+        verify_directory(config.app_dir, config)
+        verify_directory(config.rollback_root, config)
+        rollback_directory.mkdir(mode=0o700)
+        if config.enforce_root_ownership:
+            os.chown(rollback_directory, 0, 0)
+        fsync_directory(config.rollback_root)
+
+        _backup_configuration(rollback_directory, config)
+        backups_ready = True
+        installation_started = True
+        for name, mode in FILES.items():
+            atomic_install(directory / name, config.app_dir / name, mode, config)
+
+        compose_started = True
+        _reconcile_configuration(config.app_dir)
+        _write_activation_state(run_number, next_history, config)
+    except Exception as activation_error:
+        if backups_ready and installation_started:
+            try:
+                _restore_configuration(rollback_directory, config)
+                _reconcile_configuration(config.app_dir)
+            except Exception as restore_error:
+                failure_prefix = (
+                    f"RESULT rollback {identifier} run={run_number} status=FAILED"
+                    if operation == "rollback"
+                    else f"RESULT deploy {identifier} status=FAILED run={run_number}"
+                )
+                audit(
+                    f"{failure_prefix} configuration_restored=FAILED "
+                    f"runtime_may_have_changed={str(compose_started).lower()} "
+                    f"activation_error={type(activation_error).__name__} "
+                    f"restore_error={type(restore_error).__name__}",
+                    config,
+                )
+                raise ConfigurationRestoreError(
+                    "activation failed and configuration restoration also failed"
+                ) from restore_error
+            restoration = "PASS"
+        else:
+            restoration = "NOT_NEEDED"
+
+        failure_prefix = (
+            f"RESULT rollback {identifier} run={run_number} status=FAILED"
+            if operation == "rollback"
+            else f"RESULT deploy {identifier} status=FAILED run={run_number}"
+        )
+        audit(
+            f"{failure_prefix} configuration_restored={restoration} "
+            f"runtime_may_have_changed={str(compose_started).lower()} "
+            f"error={type(activation_error).__name__}",
+            config,
+        )
+        raise
+
+    try:
+        _cleanup_staged_releases(next_history, config)
+    except Exception as cleanup_error:
+        try:
+            audit(
+                f"RESULT cleanup status=FAILED "
+                f"error={type(cleanup_error).__name__}",
+                config,
+            )
+        except Exception:
+            pass
+    if operation == "rollback":
+        audit(
+            f"RESULT rollback {identifier} run={run_number} "
+            "configuration_restored=NOT_NEEDED status=PASS "
+            f"rollback={rollback_directory}",
+            config,
+        )
+    else:
+        audit(
+            f"RESULT deploy {identifier} run={run_number} "
+            f"rollback={rollback_directory} status=PASS",
+            config,
+        )
+
+
+def _reject_non_increasing_run(
+    operation: str,
+    value: str,
+    run_number: int,
+    last_successful_run: int,
+    config: DeploymentConfig,
+) -> None:
+    if run_number > last_successful_run:
+        return
+    audit(
+        f"RESULT {operation} {_activation_identifier(operation, value)} "
+        f"run={run_number} status=REJECTED "
+        f"last_successful_run={last_successful_run}",
+        config,
+    )
+    raise ValueError("activation run is older than or equal to the last success")
+
+
 def deploy(
     value: str,
     run_number: int,
@@ -654,82 +922,44 @@ def deploy(
     value = release_id(value)
     run_number = deployment_run_number(str(run_number))
     with operation_lock(config):
-        last_successful_run = _read_last_successful_run(config)
-        if run_number <= last_successful_run:
+        last_successful_run, history = _read_activation_state(config)
+        _reject_non_increasing_run(
+            "deploy", value, run_number, last_successful_run, config
+        )
+        _activate("deploy", value, run_number, history, config)
+
+
+def rollback(
+    value: str,
+    run_number: int,
+    config: DeploymentConfig = DEFAULT_CONFIG,
+) -> None:
+    value = release_id(value)
+    run_number = deployment_run_number(str(run_number))
+    with operation_lock(config):
+        last_successful_run, history = _read_activation_state(config)
+        _reject_non_increasing_run(
+            "rollback", value, run_number, last_successful_run, config
+        )
+        if value not in history:
             audit(
-                f"RESULT deploy release={value} run={run_number} status=REJECTED "
-                f"last_successful_run={last_successful_run}",
+                f"RESULT rollback target={value} run={run_number} "
+                "status=REJECTED reason=target_not_retained",
                 config,
             )
-            raise ValueError(
-                "deployment run is older than or equal to the last success"
-            )
-        directory = _validate_release_contents(value, config)
-        verify_directory(config.app_dir, config)
-        verify_directory(config.rollback_root, config)
-        rollback = _rollback_path(value, config)
-        audit(
-            f"ACTION deploy release={value} "
-            "consequence=replace_allowlisted_config_and_reconcile_compose "
-            f"rollback={rollback} result=START",
-            config,
-        )
+            raise ValueError("rollback target is not retained in activation history")
+        _activate("rollback", value, run_number, history, config)
 
-        rollback.mkdir(mode=0o700)
-        if config.enforce_root_ownership:
-            os.chown(rollback, 0, 0)
-        fsync_directory(config.rollback_root)
 
-        backups_ready = False
-        installation_started = False
-        compose_started = False
-        try:
-            _backup_configuration(rollback, config)
-            backups_ready = True
-            installation_started = True
-            for name, mode in FILES.items():
-                atomic_install(directory / name, config.app_dir / name, mode, config)
-
-            compose_started = True
-            run_command(
-                compose_command(config.app_dir, "up", "-d", "--pull", "always"),
-                config.app_dir,
-            )
-            _write_last_successful_run(run_number, config)
-        except Exception as deployment_error:
-            if backups_ready and installation_started:
-                try:
-                    _restore_configuration(rollback, config)
-                except Exception as restore_error:
-                    audit(
-                        f"RESULT deploy release={value} status=FAILED "
-                        "configuration_restored=FAILED "
-                        f"runtime_may_have_changed={str(compose_started).lower()} "
-                        f"deployment_error={type(deployment_error).__name__} "
-                        f"restore_error={type(restore_error).__name__}",
-                        config,
-                    )
-                    raise ConfigurationRestoreError(
-                        "deployment failed and configuration restoration also failed"
-                    ) from restore_error
-                restoration = "PASS"
-            else:
-                restoration = "NOT_NEEDED"
-
-            audit(
-                f"RESULT deploy release={value} status=FAILED "
-                f"configuration_restored={restoration} "
-                f"runtime_may_have_changed={str(compose_started).lower()} "
-                f"error={type(deployment_error).__name__}",
-                config,
-            )
-            raise
-
-        audit(
-            f"RESULT deploy release={value} run={run_number} "
-            f"rollback={rollback} status=PASS",
-            config,
-        )
+def current_images(config: DeploymentConfig = DEFAULT_CONFIG) -> None:
+    with operation_lock(config):
+        _, history = _read_activation_state(config)
+        if not history:
+            raise ValueError("no immutable activation history exists; bootstrap required")
+        directory = _validate_release_contents(history[0], config)
+        values = _environment_values(directory / ".env")
+        for key in sorted(IMMUTABLE_IMAGE_REPOSITORIES):
+            print(f"{key}={values[key]}")
 
 
 def parse_invocation(
@@ -746,10 +976,14 @@ def parse_invocation(
     command_name = command[0]
     if command_name not in COMMANDS:
         raise ValueError("command is not allowed")
-    if command_name == "deploy":
+    if command_name in {"deploy", "rollback"}:
         if len(command) != 3:
             raise ValueError("command is not allowed")
         return command_name, release_id(command[1]), deployment_run_number(command[2])
+    if command_name == "current-images":
+        if len(command) != 1:
+            raise ValueError("command is not allowed")
+        return command_name, "", None
     if len(command) != 2:
         raise ValueError("command is not allowed")
     return command_name, release_id(command[1]), None
@@ -770,6 +1004,12 @@ def execute(
         if run_number is None:
             raise ValueError("deployment run number is required")
         deploy(value, run_number, config)
+    elif command == "rollback":
+        if run_number is None:
+            raise ValueError("deployment run number is required")
+        rollback(value, run_number, config)
+    elif command == "current-images":
+        current_images(config)
     else:
         raise ValueError("command is not allowed")
 

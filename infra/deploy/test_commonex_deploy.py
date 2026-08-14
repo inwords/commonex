@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import gzip
 import io
+import json
 import os
 import subprocess
 import sys
@@ -22,6 +23,8 @@ import commonex_deploy as deploy  # noqa: E402
 
 RELEASE_ID = "a" * 40
 OLDER_RELEASE_ID = "b" * 40
+THIRD_RELEASE_ID = "c" * 40
+FOURTH_RELEASE_ID = "d" * 40
 VALID_IMAGE_REFERENCES = {
     "COMMONEX_BACKEND_IMAGE": "ruggedbl/commonex-nest-backend@sha256:" + "a" * 64,
     "COMMONEX_FRONTEND_IMAGE": "ruggedbl/commonex-next-web@sha256:" + "b" * 64,
@@ -38,6 +41,20 @@ def valid_environment(marker: str = "value") -> bytes:
         for key in deploy.REQUIRED_ENV_KEYS - IMMUTABLE_IMAGE_KEYS
     }
     values.update(VALID_IMAGE_REFERENCES)
+    return "".join(f"{key}={value}\n" for key, value in sorted(values.items())).encode()
+
+
+def environment_with_images(marker: str, digest_character: str) -> bytes:
+    values = {
+        key: f"{marker}-{key.lower()}"
+        for key in deploy.REQUIRED_ENV_KEYS - IMMUTABLE_IMAGE_KEYS
+    }
+    values.update(
+        {
+            key: f"{repository}@sha256:{digest_character * 64}"
+            for key, repository in deploy.IMMUTABLE_IMAGE_REPOSITORIES.items()
+        }
+    )
     return "".join(f"{key}={value}\n" for key, value in sorted(values.items())).encode()
 
 
@@ -99,6 +116,14 @@ class DeployScriptTest(unittest.TestCase):
             enforce_root_ownership=False,
         )
 
+    def prepare_active_configuration(self, marker: str = "old") -> None:
+        self.config.app_dir.mkdir(exist_ok=True)
+        self.config.rollback_root.mkdir(exist_ok=True)
+        (self.config.app_dir / "docker-compose-prod.yml").write_bytes(
+            f"services:\n  {marker}:\n    image: busybox\n".encode()
+        )
+        (self.config.app_dir / ".env").write_bytes(valid_environment(marker))
+
     def test_parse_invocation_accepts_only_explicit_commands(self) -> None:
         self.assertEqual(
             deploy.parse_invocation(["forced"], f"stage {RELEASE_ID}"),
@@ -112,6 +137,14 @@ class DeployScriptTest(unittest.TestCase):
             deploy.parse_invocation(["forced"], f"deploy {RELEASE_ID} 42"),
             ("deploy", RELEASE_ID, 42),
         )
+        self.assertEqual(
+            deploy.parse_invocation(["forced"], f"rollback {RELEASE_ID} 42"),
+            ("rollback", RELEASE_ID, 42),
+        )
+        self.assertEqual(
+            deploy.parse_invocation(["current-images"], ""),
+            ("current-images", "", None),
+        )
 
         invalid_commands = [
             (["forced"], f"stage {RELEASE_ID}; id"),
@@ -122,6 +155,12 @@ class DeployScriptTest(unittest.TestCase):
             (["deploy", RELEASE_ID, "01"], ""),
             (["validate", RELEASE_ID, "42"], ""),
             (["stage", RELEASE_ID, "extra"], ""),
+            (["rollback", "not-a-sha", "42"], ""),
+            (["rollback", RELEASE_ID], ""),
+            (["rollback", RELEASE_ID, "0"], ""),
+            (["rollback", RELEASE_ID, "01"], ""),
+            (["rollback", RELEASE_ID, "42", "extra"], ""),
+            (["current-images", "extra"], ""),
         ]
         for arguments, original_command in invalid_commands:
             with (
@@ -129,6 +168,69 @@ class DeployScriptTest(unittest.TestCase):
                 self.assertRaises(ValueError),
             ):
                 deploy.parse_invocation(arguments, original_command)
+
+    def test_current_images_reports_only_validated_images_from_newest_release(
+        self,
+    ) -> None:
+        self.prepare_active_configuration()
+        environment = environment_with_images("top-secret", "e")
+        deploy.stage(RELEASE_ID, self.config, release_archive(environment=environment))
+        with mock.patch.object(deploy, "run_command"):
+            deploy.deploy(RELEASE_ID, 1, self.config)
+
+        output = io.StringIO()
+        with (
+            mock.patch.object(deploy, "run_command") as run_command,
+            mock.patch("sys.stdout", output),
+        ):
+            deploy.current_images(self.config)
+
+        expected = "".join(
+            f"{key}={deploy.IMMUTABLE_IMAGE_REPOSITORIES[key]}@sha256:{'e' * 64}\n"
+            for key in sorted(IMMUTABLE_IMAGE_KEYS)
+        )
+        self.assertEqual(output.getvalue(), expected)
+        self.assertNotIn("top-secret", output.getvalue())
+        run_command.assert_called_once_with(
+            deploy.compose_command(
+                self.config.release_root / RELEASE_ID, "config", "--quiet"
+            ),
+            self.config.release_root / RELEASE_ID,
+        )
+
+    def test_current_images_fails_before_immutable_activation_history_exists(
+        self,
+    ) -> None:
+        output = io.StringIO()
+        with (
+            mock.patch("sys.stdout", output),
+            self.assertRaisesRegex(ValueError, "no immutable activation history"),
+        ):
+            deploy.current_images(self.config)
+
+        self.assertEqual(output.getvalue(), "")
+
+    def test_current_images_rejects_a_retained_release_modified_after_activation(
+        self,
+    ) -> None:
+        self.prepare_active_configuration()
+        deploy.stage(RELEASE_ID, self.config, release_archive())
+        with mock.patch.object(deploy, "run_command"):
+            deploy.deploy(RELEASE_ID, 1, self.config)
+        (self.config.release_root / RELEASE_ID / ".env").write_bytes(
+            valid_environment() + b"POSTGRES_PASSWORD=exposed\n"
+        )
+
+        output = io.StringIO()
+        with (
+            mock.patch.object(deploy, "run_command") as run_command,
+            mock.patch("sys.stdout", output),
+            self.assertRaises(ValueError),
+        ):
+            deploy.current_images(self.config)
+
+        self.assertEqual(output.getvalue(), "")
+        run_command.assert_not_called()
 
     def test_read_archive_removes_partial_file_when_limit_is_exceeded(self) -> None:
         config = deploy.DeploymentConfig(
@@ -342,6 +444,344 @@ class DeployScriptTest(unittest.TestCase):
 
         run_command.assert_called_once()
 
+    def test_successful_deploy_retains_exactly_three_activation_releases(self) -> None:
+        self.prepare_active_configuration()
+        releases = [
+            RELEASE_ID,
+            OLDER_RELEASE_ID,
+            THIRD_RELEASE_ID,
+            FOURTH_RELEASE_ID,
+        ]
+
+        with mock.patch.object(deploy, "run_command"):
+            for run_number, value in enumerate(releases, 1):
+                deploy.stage(
+                    value,
+                    self.config,
+                    release_archive(
+                        compose=f"services:\n  release{run_number}:\n    image: busybox\n".encode(),
+                        environment=environment_with_images(
+                            f"release-{run_number}", str(run_number)
+                        ),
+                    ),
+                )
+                deploy.deploy(value, run_number, self.config)
+                self.assertTrue((self.config.release_root / value).is_dir())
+
+        state = json.loads(
+            (self.config.release_root / "activation-state.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertEqual(
+            state,
+            {"last_successful_run": 4, "history": list(reversed(releases[1:]))},
+        )
+        self.assertFalse((self.config.release_root / RELEASE_ID).exists())
+        for value in releases[1:]:
+            self.assertTrue((self.config.release_root / value).is_dir())
+
+    def test_rollback_rejects_target_outside_history_before_validation(self) -> None:
+        self.prepare_active_configuration()
+        deploy.stage(RELEASE_ID, self.config, release_archive())
+        with mock.patch.object(deploy, "run_command"):
+            deploy.deploy(RELEASE_ID, 1, self.config)
+        deploy.stage(OLDER_RELEASE_ID, self.config, release_archive())
+        state_before = (self.config.release_root / "activation-state.json").read_bytes()
+
+        with (
+            mock.patch.object(deploy, "_validate_release_contents") as validate,
+            mock.patch.object(deploy, "atomic_install") as install,
+            self.assertRaisesRegex(ValueError, "not retained"),
+        ):
+            deploy.rollback(OLDER_RELEASE_ID, 2, self.config)
+
+        validate.assert_not_called()
+        install.assert_not_called()
+        self.assertEqual(
+            (self.config.release_root / "activation-state.json").read_bytes(),
+            state_before,
+        )
+
+    def test_rollback_revalidates_retained_target_before_installation(self) -> None:
+        self.prepare_active_configuration()
+        deploy.stage(RELEASE_ID, self.config, release_archive())
+        with mock.patch.object(deploy, "run_command"):
+            deploy.deploy(RELEASE_ID, 1, self.config)
+        state_before = (self.config.release_root / "activation-state.json").read_bytes()
+        (self.config.release_root / RELEASE_ID / ".env").write_bytes(
+            valid_environment() + b"POSTGRES_PASSWORD=duplicate\n"
+        )
+
+        with (
+            mock.patch.object(deploy, "run_command") as run_command,
+            mock.patch.object(deploy, "atomic_install") as install,
+            self.assertRaises(ValueError),
+        ):
+            deploy.rollback(RELEASE_ID, 2, self.config)
+
+        run_command.assert_not_called()
+        install.assert_not_called()
+        self.assertEqual(
+            (self.config.release_root / "activation-state.json").read_bytes(),
+            state_before,
+        )
+
+    def test_rollback_promotes_retained_release_and_advances_current_run(self) -> None:
+        self.prepare_active_configuration()
+        first_compose = b"services:\n  first:\n    image: busybox\n"
+        second_compose = b"services:\n  second:\n    image: busybox\n"
+        deploy.stage(
+            RELEASE_ID,
+            self.config,
+            release_archive(
+                compose=first_compose,
+                environment=environment_with_images("first", "1"),
+            ),
+        )
+        with mock.patch.object(deploy, "run_command"):
+            deploy.deploy(RELEASE_ID, 1, self.config)
+        deploy.stage(
+            OLDER_RELEASE_ID,
+            self.config,
+            release_archive(
+                compose=second_compose,
+                environment=environment_with_images("second", "2"),
+            ),
+        )
+        with mock.patch.object(deploy, "run_command"):
+            deploy.deploy(OLDER_RELEASE_ID, 2, self.config)
+
+        with mock.patch.object(deploy, "run_command") as run_command:
+            deploy.rollback(RELEASE_ID, 3, self.config)
+
+        self.assertEqual(
+            (self.config.app_dir / "docker-compose-prod.yml").read_bytes(),
+            first_compose,
+        )
+        self.assertEqual(
+            deploy._read_activation_state(self.config),
+            (3, [RELEASE_ID, OLDER_RELEASE_ID]),
+        )
+        self.assertTrue((self.config.release_root / RELEASE_ID).is_dir())
+        self.assertTrue((self.config.release_root / OLDER_RELEASE_ID).is_dir())
+        commands = [call.args for call in run_command.call_args_list]
+        target = self.config.release_root / RELEASE_ID
+        self.assertIn(
+            (deploy.compose_command(target, "pull"), target),
+            commands,
+        )
+        self.assertIn(
+            (
+                deploy.compose_command(
+                    self.config.app_dir,
+                    "up",
+                    "-d",
+                    "--pull",
+                    "always",
+                    "--wait",
+                    "--wait-timeout",
+                    "120",
+                ),
+                self.config.app_dir,
+            ),
+            commands,
+        )
+        log = self.config.log_path.read_text(encoding="utf-8")
+        self.assertIn(
+            f"ACTION rollback target={RELEASE_ID} run=3",
+            log,
+        )
+        self.assertIn(
+            f"RESULT rollback target={RELEASE_ID} run=3 "
+            "configuration_restored=NOT_NEEDED status=PASS",
+            log,
+        )
+
+    def test_rollback_compose_failure_restores_and_reconciles_previous_activation(
+        self,
+    ) -> None:
+        self.prepare_active_configuration()
+        first_compose = b"services:\n  first:\n    image: busybox\n"
+        second_compose = b"services:\n  second:\n    image: busybox\n"
+        deploy.stage(
+            RELEASE_ID,
+            self.config,
+            release_archive(compose=first_compose),
+        )
+        with mock.patch.object(deploy, "run_command"):
+            deploy.deploy(RELEASE_ID, 1, self.config)
+        deploy.stage(
+            OLDER_RELEASE_ID,
+            self.config,
+            release_archive(compose=second_compose),
+        )
+        with mock.patch.object(deploy, "run_command"):
+            deploy.deploy(OLDER_RELEASE_ID, 2, self.config)
+        state_before = (self.config.release_root / "activation-state.json").read_bytes()
+        activation_attempts = 0
+
+        def fail_candidate_reconciliation(command: list[str], cwd: Path) -> None:
+            nonlocal activation_attempts
+            if cwd == self.config.app_dir and "up" in command:
+                activation_attempts += 1
+                if activation_attempts == 1:
+                    raise subprocess.CalledProcessError(1, command)
+
+        with (
+            mock.patch.object(
+                deploy, "run_command", side_effect=fail_candidate_reconciliation
+            ),
+            self.assertRaises(subprocess.CalledProcessError),
+        ):
+            deploy.rollback(RELEASE_ID, 3, self.config)
+
+        self.assertEqual(activation_attempts, 2)
+        self.assertEqual(
+            (self.config.app_dir / "docker-compose-prod.yml").read_bytes(),
+            second_compose,
+        )
+        self.assertEqual(
+            (self.config.release_root / "activation-state.json").read_bytes(),
+            state_before,
+        )
+        log = self.config.log_path.read_text(encoding="utf-8")
+        self.assertIn(
+            f"RESULT rollback target={RELEASE_ID} run=3 status=FAILED",
+            log,
+        )
+        self.assertIn("configuration_restored=PASS", log)
+
+    def test_post_mutation_state_failure_restores_and_reconciles_prior_definition(
+        self,
+    ) -> None:
+        self.prepare_active_configuration()
+        first_compose = b"services:\n  first:\n    image: busybox\n"
+        second_compose = b"services:\n  second:\n    image: busybox\n"
+        deploy.stage(RELEASE_ID, self.config, release_archive(compose=first_compose))
+        with mock.patch.object(deploy, "run_command"):
+            deploy.deploy(RELEASE_ID, 1, self.config)
+        deploy.stage(
+            OLDER_RELEASE_ID, self.config, release_archive(compose=second_compose)
+        )
+        with mock.patch.object(deploy, "run_command"):
+            deploy.deploy(OLDER_RELEASE_ID, 2, self.config)
+        state_before = (self.config.release_root / "activation-state.json").read_bytes()
+        app_reconciliations = 0
+
+        def record_reconciliation(command: list[str], cwd: Path) -> None:
+            nonlocal app_reconciliations
+            if cwd == self.config.app_dir and "up" in command:
+                app_reconciliations += 1
+
+        with (
+            mock.patch.object(deploy, "run_command", side_effect=record_reconciliation),
+            mock.patch.object(
+                deploy,
+                "_write_activation_state",
+                side_effect=OSError("simulated state commit failure"),
+            ),
+            self.assertRaises(OSError),
+        ):
+            deploy.rollback(RELEASE_ID, 3, self.config)
+
+        self.assertEqual(app_reconciliations, 2)
+        self.assertEqual(
+            (self.config.app_dir / "docker-compose-prod.yml").read_bytes(),
+            second_compose,
+        )
+        self.assertEqual(
+            (self.config.release_root / "activation-state.json").read_bytes(),
+            state_before,
+        )
+
+    def test_cleanup_failure_is_audited_after_state_commit(self) -> None:
+        self.prepare_active_configuration()
+        deploy.stage(RELEASE_ID, self.config, release_archive())
+        with mock.patch.object(deploy, "run_command"):
+            deploy.deploy(RELEASE_ID, 1, self.config)
+        deploy.stage(OLDER_RELEASE_ID, self.config, release_archive())
+        deploy.stage(THIRD_RELEASE_ID, self.config, release_archive())
+
+        with (
+            mock.patch.object(deploy, "run_command"),
+            mock.patch.object(
+                deploy.shutil,
+                "rmtree",
+                side_effect=OSError("simulated cleanup failure"),
+            ),
+        ):
+            deploy.deploy(OLDER_RELEASE_ID, 2, self.config)
+
+        self.assertEqual(
+            deploy._read_activation_state(self.config),
+            (2, [OLDER_RELEASE_ID, RELEASE_ID]),
+        )
+        self.assertTrue((self.config.release_root / RELEASE_ID).is_dir())
+        self.assertTrue((self.config.release_root / OLDER_RELEASE_ID).is_dir())
+        self.assertTrue((self.config.release_root / THIRD_RELEASE_ID).is_dir())
+        self.assertIn(
+            "RESULT cleanup status=FAILED error=OSError",
+            self.config.log_path.read_text(encoding="utf-8"),
+        )
+
+    def test_activation_state_rejects_malformed_or_untrusted_content(self) -> None:
+        self.config.release_root.mkdir(mode=0o700)
+        state_path = self.config.release_root / "activation-state.json"
+        invalid_states = [
+            b"not-json\n",
+            b'{"last_successful_run":0,"history":[]}\n',
+            json.dumps(
+                {"last_successful_run": 1, "history": ["not-a-sha"]}
+            ).encode(),
+            json.dumps(
+                {"last_successful_run": 1, "history": [RELEASE_ID, RELEASE_ID]}
+            ).encode(),
+            json.dumps(
+                {
+                    "last_successful_run": 1,
+                    "history": [
+                        RELEASE_ID,
+                        OLDER_RELEASE_ID,
+                        THIRD_RELEASE_ID,
+                        FOURTH_RELEASE_ID,
+                    ],
+                }
+            ).encode(),
+            json.dumps(
+                {"last_successful_run": 1, "history": [RELEASE_ID], "extra": True}
+            ).encode(),
+        ]
+
+        for content in invalid_states:
+            with self.subTest(content=content):
+                state_path.write_bytes(content)
+                state_path.chmod(0o600)
+                with self.assertRaises(ValueError):
+                    deploy._read_activation_state(self.config)
+
+    @unittest.skipUnless(os.name == "posix", "POSIX modes and symlinks are required")
+    def test_activation_state_rejects_unsafe_mode_and_symlink(self) -> None:
+        self.config.release_root.mkdir(mode=0o700)
+        state_path = self.config.release_root / "activation-state.json"
+        state_path.write_text(
+            json.dumps({"last_successful_run": 1, "history": [RELEASE_ID]}),
+            encoding="utf-8",
+        )
+        state_path.chmod(0o644)
+        with self.assertRaisesRegex(PermissionError, "unsafe mode"):
+            deploy._read_activation_state(self.config)
+
+        state_path.unlink()
+        outside = self.root / "outside-state.json"
+        outside.write_text(
+            json.dumps({"last_successful_run": 1, "history": [RELEASE_ID]}),
+            encoding="utf-8",
+        )
+        state_path.symlink_to(outside)
+        with self.assertRaises(PermissionError):
+            deploy._read_activation_state(self.config)
+
     def test_deploy_restores_configuration_when_compose_fails(self) -> None:
         self.config.app_dir.mkdir()
         self.config.rollback_root.mkdir()
@@ -355,8 +795,13 @@ class DeployScriptTest(unittest.TestCase):
             release_archive(environment=valid_environment("new")),
         )
 
+        activation_attempts = 0
+
         def run_command(command: list[str], _cwd: Path) -> None:
+            nonlocal activation_attempts
             if "up" in command:
+                activation_attempts += 1
+            if "up" in command and activation_attempts == 1:
                 raise subprocess.CalledProcessError(1, command)
 
         with (
@@ -369,6 +814,10 @@ class DeployScriptTest(unittest.TestCase):
             (self.config.app_dir / "docker-compose-prod.yml").read_bytes(), old_compose
         )
         self.assertEqual((self.config.app_dir / ".env").read_bytes(), old_environment)
+        self.assertEqual(activation_attempts, 2)
+        self.assertFalse(
+            (self.config.release_root / "activation-state.json").exists()
+        )
         log = self.config.log_path.read_text(encoding="utf-8")
         self.assertIn("configuration_restored=PASS", log)
         self.assertIn("runtime_may_have_changed=true", log)
@@ -410,6 +859,9 @@ class DeployScriptTest(unittest.TestCase):
             (self.config.app_dir / "docker-compose-prod.yml").read_bytes(), old_compose
         )
         self.assertEqual((self.config.app_dir / ".env").read_bytes(), old_environment)
+        self.assertFalse(
+            (self.config.release_root / "activation-state.json").exists()
+        )
         log = self.config.log_path.read_text(encoding="utf-8")
         self.assertIn("configuration_restored=PASS", log)
         self.assertIn("runtime_may_have_changed=false", log)
@@ -448,10 +900,11 @@ class DeployScriptTest(unittest.TestCase):
             b"services:\n  newest:\n    image: busybox\n",
         )
         self.assertEqual(
-            (self.config.release_root / "last-successful-run").read_text(
-                encoding="utf-8"
-            ),
-            "20\n",
+            deploy._read_activation_state(self.config),
+            (20, [RELEASE_ID]),
+        )
+        self.assertFalse(
+            (self.config.release_root / "last-successful-run").exists()
         )
 
     def test_deploy_reports_when_configuration_restoration_fails(self) -> None:
