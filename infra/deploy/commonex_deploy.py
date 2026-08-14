@@ -54,6 +54,9 @@ IMMUTABLE_IMAGE_REFERENCE_PATTERN = re.compile(
     r"^(?P<repository>[^@]+)@sha256:[0-9a-f]{64}$"
 )
 MANIFEST_LINE_PATTERN = re.compile(r"^([0-9a-f]{64})  (.+)$")
+ROLLBACK_BACKUP_PATTERN = re.compile(
+    r"^deploy-[0-9a-f]{40}-[0-9]{8}T[0-9]{12}Z$"
+)
 COMMANDS = frozenset({"stage", "validate", "deploy", "rollback", "current-images"})
 SAFE_ENVIRONMENT = {
     "HOME": "/root",
@@ -88,6 +91,10 @@ class AmbiguousActivationCommitError(RuntimeError):
 
 class ActivationCommittedAuditError(RuntimeError):
     """Raised when activation committed but its final audit record failed."""
+
+
+class UnresolvedActivationIntentError(RuntimeError):
+    """Raised when a prior interrupted activation needs manual reconciliation."""
 
 
 def timestamp() -> str:
@@ -353,6 +360,7 @@ def stage(
     source_stream = input_stream if input_stream is not None else sys.stdin.buffer
 
     with operation_lock(config):
+        _ensure_no_activation_intent(config)
         audit(f"ACTION stage release={value} result=START", config)
         archive: Optional[Path] = None
         temporary: Optional[Path] = None
@@ -526,18 +534,20 @@ def run_compose_config(directory: Path) -> None:
 
 def validate(value: str, config: DeploymentConfig = DEFAULT_CONFIG) -> Path:
     value = release_id(value)
-    audit(f"ACTION validate release={value} result=START", config)
-    try:
-        directory = _validate_release_contents(value, config)
-    except Exception as error:
-        audit(
-            f"RESULT validate release={value} status=FAILED "
-            f"error={type(error).__name__}",
-            config,
-        )
-        raise
-    audit(f"RESULT validate release={value} status=PASS", config)
-    return directory
+    with operation_lock(config):
+        _ensure_no_activation_intent(config)
+        audit(f"ACTION validate release={value} result=START", config)
+        try:
+            directory = _validate_release_contents(value, config)
+        except Exception as error:
+            audit(
+                f"RESULT validate release={value} status=FAILED "
+                f"error={type(error).__name__}",
+                config,
+            )
+            raise
+        audit(f"RESULT validate release={value} status=PASS", config)
+        return directory
 
 
 def atomic_install(
@@ -609,6 +619,170 @@ def _last_successful_run_path(config: DeploymentConfig) -> Path:
 
 def _activation_state_path(config: DeploymentConfig) -> Path:
     return config.release_root / "activation-state.json"
+
+
+def _activation_intent_path(config: DeploymentConfig) -> Path:
+    return config.release_root / "activation-intent.json"
+
+
+def _validate_activation_intent(state: object) -> dict[str, object]:
+    expected_keys = {
+        "candidate_release",
+        "operation",
+        "previous_release",
+        "rollback_backup",
+        "run_number",
+    }
+    if not isinstance(state, dict) or set(state) != expected_keys:
+        raise ValueError("activation intent is invalid")
+    candidate = state["candidate_release"]
+    operation = state["operation"]
+    previous = state["previous_release"]
+    rollback_backup = state["rollback_backup"]
+    run_number = state["run_number"]
+    if not isinstance(candidate, str):
+        raise ValueError("activation intent is invalid")
+    release_id(candidate)
+    if operation not in {"deploy", "rollback"}:
+        raise ValueError("activation intent is invalid")
+    if previous is not None:
+        if not isinstance(previous, str):
+            raise ValueError("activation intent is invalid")
+        release_id(previous)
+    if (
+        not isinstance(rollback_backup, str)
+        or ROLLBACK_BACKUP_PATTERN.fullmatch(rollback_backup) is None
+    ):
+        raise ValueError("activation intent is invalid")
+    if isinstance(run_number, bool) or not isinstance(run_number, int):
+        raise ValueError("activation intent is invalid")
+    deployment_run_number(str(run_number))
+    return state
+
+
+def _read_activation_intent(
+    config: DeploymentConfig,
+) -> Optional[dict[str, object]]:
+    ensure_release_root(config)
+    path = _activation_intent_path(config)
+    if path.is_symlink():
+        raise PermissionError(f"activation intent is a symlink: {path}")
+    flags = _open_flags(os.O_RDONLY, _close_on_exec_flag(), _no_follow_flag())
+    try:
+        descriptor = os.open(path, flags)
+    except FileNotFoundError:
+        return None
+
+    try:
+        metadata = os.fstat(descriptor)
+        if not stat.S_ISREG(metadata.st_mode):
+            raise PermissionError(f"activation intent is not a regular file: {path}")
+        _verify_owner(metadata, path, config)
+        mode = stat.S_IMODE(metadata.st_mode)
+        if os.name == "posix" and mode != 0o600:
+            raise PermissionError(f"unsafe mode {mode:o} for activation intent: {path}")
+        with os.fdopen(descriptor, "r", encoding="utf-8", newline="\n") as stream:
+            descriptor = -1
+            serialized = stream.read(4097)
+    finally:
+        if descriptor >= 0:
+            os.close(descriptor)
+
+    if len(serialized) > 4096:
+        raise ValueError("activation intent is too large")
+    try:
+        state = json.loads(serialized, object_pairs_hook=_unique_json_object)
+    except (json.JSONDecodeError, UnicodeError) as error:
+        raise ValueError("activation intent is invalid") from error
+    return _validate_activation_intent(state)
+
+
+def _unresolved_activation_intent(config: DeploymentConfig) -> RuntimeError:
+    return UnresolvedActivationIntentError(
+        f"unresolved activation intent exists at {_activation_intent_path(config)}; "
+        "manually reconcile the active configuration, runtime, and activation state, "
+        "then remove the intent file as root"
+    )
+
+
+def _ensure_no_activation_intent(config: DeploymentConfig) -> None:
+    try:
+        intent = _read_activation_intent(config)
+    except Exception as error:
+        raise _unresolved_activation_intent(config) from error
+    if intent is not None:
+        raise _unresolved_activation_intent(config)
+
+
+def _write_activation_intent(
+    operation: str,
+    value: str,
+    run_number: int,
+    previous_release: Optional[str],
+    rollback_directory: Path,
+    config: DeploymentConfig,
+) -> dict[str, object]:
+    _ensure_no_activation_intent(config)
+    intent = _validate_activation_intent(
+        {
+            "candidate_release": value,
+            "operation": operation,
+            "previous_release": previous_release,
+            "rollback_backup": rollback_directory.name,
+            "run_number": run_number,
+        }
+    )
+    _persist_activation_intent(intent, config)
+    return intent
+
+
+def _persist_activation_intent(
+    intent: dict[str, object], config: DeploymentConfig
+) -> None:
+    intent = _validate_activation_intent(intent)
+    destination = _activation_intent_path(config)
+    descriptor, temporary_name = tempfile.mkstemp(
+        prefix=".activation-intent.", dir=config.release_root
+    )
+    temporary = Path(temporary_name)
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8", newline="\n") as stream:
+            descriptor = -1
+            json.dump(intent, stream, separators=(",", ":"), sort_keys=True)
+            stream.write("\n")
+            stream.flush()
+            os.fsync(stream.fileno())
+        if config.enforce_root_ownership:
+            os.chown(temporary, 0, 0)
+        temporary.chmod(0o600)
+        temporary.replace(destination)
+        fsync_directory(config.release_root)
+    finally:
+        if descriptor >= 0:
+            os.close(descriptor)
+        temporary.unlink(missing_ok=True)
+
+
+def _clear_activation_intent(
+    expected: dict[str, object], config: DeploymentConfig
+) -> None:
+    actual = _read_activation_intent(config)
+    if actual != expected:
+        raise RuntimeError("activation intent changed during activation")
+    path = _activation_intent_path(config)
+    try:
+        path.unlink()
+        fsync_directory(config.release_root)
+    except Exception as clear_error:
+        try:
+            if not path.exists() and not path.is_symlink():
+                _persist_activation_intent(expected, config)
+        except Exception as restore_error:
+            raise AmbiguousActivationCommitError(
+                "activation intent removal and restoration could not be durably "
+                "confirmed"
+            ) from restore_error
+        raise clear_error
 
 
 def _read_last_successful_run(config: DeploymentConfig) -> int:
@@ -815,6 +989,7 @@ def _reconcile_configuration(directory: Path) -> None:
             "-d",
             "--pull",
             "always",
+            "--remove-orphans",
             "--wait",
             "--wait-timeout",
             "120",
@@ -874,6 +1049,7 @@ def _activate(
     backups_ready = False
     installation_started = False
     compose_started = False
+    activation_intent: Optional[dict[str, object]] = None
     next_history = [value, *(item for item in history if item != value)][:3]
     try:
         directory = _validate_release_contents(value, config)
@@ -887,6 +1063,14 @@ def _activate(
 
         _backup_configuration(rollback_directory, config)
         backups_ready = True
+        activation_intent = _write_activation_intent(
+            operation,
+            value,
+            run_number,
+            history[0] if history else None,
+            rollback_directory,
+            config,
+        )
         installation_started = True
         for name, mode in FILES.items():
             atomic_install(directory / name, config.app_dir / name, mode, config)
@@ -894,6 +1078,13 @@ def _activate(
         compose_started = True
         _reconcile_configuration(config.app_dir)
         _write_activation_state(run_number, next_history, config)
+        try:
+            _clear_activation_intent(activation_intent, config)
+        except Exception as clear_error:
+            raise AmbiguousActivationCommitError(
+                "activation committed but its intent could not be durably cleared; "
+                "manual reconciliation is required"
+            ) from clear_error
     except AmbiguousActivationCommitError as activation_error:
         try:
             audit(
@@ -929,6 +1120,24 @@ def _activate(
             restoration = "PASS"
         else:
             restoration = "NOT_NEEDED"
+
+        if activation_intent is not None:
+            try:
+                _clear_activation_intent(activation_intent, config)
+            except Exception as clear_error:
+                try:
+                    audit(
+                        f"RESULT {operation} {identifier} run={run_number} "
+                        "status=AMBIGUOUS_COMMIT configuration_restored="
+                        f"{restoration} error={type(clear_error).__name__}",
+                        config,
+                    )
+                except Exception:
+                    pass
+                raise AmbiguousActivationCommitError(
+                    "configuration was restored but its activation intent could "
+                    "not be durably cleared; manual reconciliation is required"
+                ) from clear_error
 
         failure_prefix = (
             f"RESULT rollback {identifier} run={run_number} status=FAILED"
@@ -1001,6 +1210,7 @@ def deploy(
     value = release_id(value)
     run_number = deployment_run_number(str(run_number))
     with operation_lock(config):
+        _ensure_no_activation_intent(config)
         last_successful_run, history = _read_activation_state(config)
         _reject_non_increasing_run(
             "deploy", value, run_number, last_successful_run, config
@@ -1016,6 +1226,7 @@ def rollback(
     value = release_id(value)
     run_number = deployment_run_number(str(run_number))
     with operation_lock(config):
+        _ensure_no_activation_intent(config)
         last_successful_run, history = _read_activation_state(config)
         _reject_non_increasing_run(
             "rollback", value, run_number, last_successful_run, config
@@ -1032,6 +1243,7 @@ def rollback(
 
 def current_images(config: DeploymentConfig = DEFAULT_CONFIG) -> None:
     with operation_lock(config):
+        _ensure_no_activation_intent(config)
         _, history = _read_activation_state(config)
         if not history:
             raise ValueError("no immutable activation history exists; bootstrap required")

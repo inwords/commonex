@@ -66,7 +66,7 @@ class ResolveReleaseImagesTest(unittest.TestCase):
             ],
         )
 
-    def test_bootstrap_resolves_sha_for_changed_and_latest_for_unchanged(self) -> None:
+    def test_bootstrap_requires_every_service_and_resolves_only_sha_tags(self) -> None:
         inspected_tags = []
 
         def inspect(tag: str) -> str:
@@ -74,17 +74,33 @@ class ResolveReleaseImagesTest(unittest.TestCase):
             repository = tag.rsplit(":", 1)[0]
             return DIGESTS[repository]
 
-        resolver.resolve_release_images('["frontend"]', GIT_SHA, None, inspect)
+        resolver.resolve_release_images(
+            '["backend", "frontend", "otel-collector", "nginx"]',
+            GIT_SHA,
+            None,
+            inspect,
+        )
 
         self.assertEqual(
             inspected_tags,
             [
-                "ruggedbl/commonex-nest-backend:latest",
+                f"ruggedbl/commonex-nest-backend:{GIT_SHA}",
                 f"ruggedbl/commonex-next-web:{GIT_SHA}",
-                "ruggedbl/nginx-http3:latest",
-                "ruggedbl/opentelemetry-collector-custom:latest",
+                f"ruggedbl/nginx-http3:{GIT_SHA}",
+                f"ruggedbl/opentelemetry-collector-custom:{GIT_SHA}",
             ],
         )
+
+    def test_bootstrap_rejects_partial_service_set_before_inspection(self) -> None:
+        with self.assertRaisesRegex(
+            ValueError, "bootstrap requires all services"
+        ):
+            resolver.resolve_release_images(
+                '["frontend"]',
+                GIT_SHA,
+                None,
+                lambda _tag: self.fail("image inspection must not run"),
+            )
 
     def test_malformed_changed_service_json_fails_before_inspection(self) -> None:
         invalid_values = [

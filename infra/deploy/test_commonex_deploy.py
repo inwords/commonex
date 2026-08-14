@@ -595,6 +595,7 @@ class DeployScriptTest(unittest.TestCase):
                     "-d",
                     "--pull",
                     "always",
+                    "--remove-orphans",
                     "--wait",
                     "--wait-timeout",
                     "120",
@@ -647,7 +648,7 @@ class DeployScriptTest(unittest.TestCase):
         with (
             mock.patch.object(
                 deploy, "run_command", side_effect=fail_candidate_reconciliation
-            ),
+            ) as run_command,
             self.assertRaises(subprocess.CalledProcessError),
         ):
             deploy.rollback(RELEASE_ID, 3, self.config)
@@ -667,6 +668,204 @@ class DeployScriptTest(unittest.TestCase):
             log,
         )
         self.assertIn("configuration_restored=PASS", log)
+        reconciliation_commands = [
+            command
+            for call in run_command.call_args_list
+            if (command := call.args[0]) and "up" in command
+        ]
+        self.assertEqual(len(reconciliation_commands), 2)
+        self.assertTrue(
+            all("--remove-orphans" in command for command in reconciliation_commands)
+        )
+
+    def test_activation_intent_survives_abrupt_exit_and_blocks_later_commands(
+        self,
+    ) -> None:
+        class SimulatedAbruptExit(BaseException):
+            pass
+
+        self.prepare_active_configuration()
+        deploy.stage(RELEASE_ID, self.config, release_archive())
+
+        with (
+            mock.patch.object(deploy, "run_command"),
+            mock.patch.object(
+                deploy,
+                "atomic_install",
+                side_effect=SimulatedAbruptExit("simulated process death"),
+            ),
+            self.assertRaises(SimulatedAbruptExit),
+        ):
+            deploy.deploy(RELEASE_ID, 1, self.config)
+
+        intent_path = self.config.release_root / "activation-intent.json"
+        intent = json.loads(intent_path.read_text(encoding="utf-8"))
+        self.assertEqual(intent["candidate_release"], RELEASE_ID)
+        self.assertIsNone(intent["previous_release"])
+        self.assertEqual(intent["operation"], "deploy")
+        self.assertEqual(intent["run_number"], 1)
+        self.assertRegex(intent["rollback_backup"], rf"^deploy-{RELEASE_ID}-")
+
+        with (
+            mock.patch.object(deploy, "run_command") as run_command,
+            self.assertRaisesRegex(
+                RuntimeError, "unresolved activation intent.*manually reconcile"
+            ),
+        ):
+            deploy.deploy(RELEASE_ID, 2, self.config)
+        run_command.assert_not_called()
+
+    def test_activation_intent_survives_abrupt_exit_after_runtime_reconciliation(
+        self,
+    ) -> None:
+        class SimulatedAbruptExit(BaseException):
+            pass
+
+        self.prepare_active_configuration()
+        candidate_compose = b"services:\n  candidate:\n    image: busybox\n"
+        deploy.stage(
+            RELEASE_ID,
+            self.config,
+            release_archive(compose=candidate_compose),
+        )
+
+        with (
+            mock.patch.object(deploy, "run_command"),
+            mock.patch.object(
+                deploy,
+                "_write_activation_state",
+                side_effect=SimulatedAbruptExit("simulated process death"),
+            ),
+            self.assertRaises(SimulatedAbruptExit),
+        ):
+            deploy.deploy(RELEASE_ID, 1, self.config)
+
+        self.assertEqual(
+            (self.config.app_dir / "docker-compose-prod.yml").read_bytes(),
+            candidate_compose,
+        )
+        self.assertFalse(
+            (self.config.release_root / "activation-state.json").exists()
+        )
+        self.assertTrue(
+            (self.config.release_root / "activation-intent.json").exists()
+        )
+
+    def test_activation_intent_survives_abrupt_exit_after_state_commit(self) -> None:
+        class SimulatedAbruptExit(BaseException):
+            pass
+
+        self.prepare_active_configuration()
+        deploy.stage(RELEASE_ID, self.config, release_archive())
+
+        with (
+            mock.patch.object(deploy, "run_command"),
+            mock.patch.object(
+                deploy,
+                "_clear_activation_intent",
+                side_effect=SimulatedAbruptExit("simulated process death"),
+            ),
+            self.assertRaises(SimulatedAbruptExit),
+        ):
+            deploy.deploy(RELEASE_ID, 1, self.config)
+
+        self.assertEqual(
+            deploy._read_activation_state(self.config),
+            (1, [RELEASE_ID]),
+        )
+        self.assertTrue(
+            (self.config.release_root / "activation-intent.json").exists()
+        )
+
+    def test_successful_activation_durably_clears_intent(self) -> None:
+        self.prepare_active_configuration()
+        deploy.stage(RELEASE_ID, self.config, release_archive())
+
+        with mock.patch.object(deploy, "run_command"):
+            deploy.deploy(RELEASE_ID, 1, self.config)
+
+        self.assertFalse(
+            (self.config.release_root / "activation-intent.json").exists()
+        )
+
+    def test_intent_clear_fsync_failure_restores_marker_and_fails_closed(
+        self,
+    ) -> None:
+        self.prepare_active_configuration()
+        deploy.stage(RELEASE_ID, self.config, release_archive())
+        intent_path = self.config.release_root / "activation-intent.json"
+        real_fsync_directory = deploy.fsync_directory
+        clear_fsync_failed = False
+
+        def fail_first_clear_fsync(path: Path) -> None:
+            nonlocal clear_fsync_failed
+            if (
+                path == self.config.release_root
+                and not intent_path.exists()
+                and not clear_fsync_failed
+            ):
+                clear_fsync_failed = True
+                raise OSError("simulated intent clear fsync failure")
+            real_fsync_directory(path)
+
+        with (
+            mock.patch.object(deploy, "run_command"),
+            mock.patch.object(
+                deploy, "fsync_directory", side_effect=fail_first_clear_fsync
+            ),
+            self.assertRaisesRegex(
+                deploy.AmbiguousActivationCommitError,
+                "intent could not be durably cleared",
+            ),
+        ):
+            deploy.deploy(RELEASE_ID, 1, self.config)
+
+        self.assertTrue(clear_fsync_failed)
+        self.assertTrue(intent_path.exists())
+        self.assertEqual(deploy._read_activation_state(self.config), (1, [RELEASE_ID]))
+        with self.assertRaisesRegex(
+            deploy.UnresolvedActivationIntentError,
+            "unresolved activation intent",
+        ):
+            deploy.current_images(self.config)
+
+    def test_restored_activation_failure_durably_clears_intent(self) -> None:
+        self.prepare_active_configuration()
+        deploy.stage(RELEASE_ID, self.config, release_archive())
+        reconciliations = 0
+
+        def fail_candidate_only(command: list[str], cwd: Path) -> None:
+            nonlocal reconciliations
+            if cwd == self.config.app_dir and "up" in command:
+                reconciliations += 1
+                if reconciliations == 1:
+                    raise subprocess.CalledProcessError(1, command)
+
+        with (
+            mock.patch.object(deploy, "run_command", side_effect=fail_candidate_only),
+            self.assertRaises(subprocess.CalledProcessError),
+        ):
+            deploy.deploy(RELEASE_ID, 1, self.config)
+
+        self.assertEqual(reconciliations, 2)
+        self.assertFalse(
+            (self.config.release_root / "activation-intent.json").exists()
+        )
+
+    def test_unresolved_intent_blocks_current_images_without_exposing_state(
+        self,
+    ) -> None:
+        self.config.release_root.mkdir(mode=0o700)
+        intent_path = self.config.release_root / "activation-intent.json"
+        intent_path.write_text("malformed secret\n", encoding="utf-8")
+        intent_path.chmod(0o600)
+
+        with self.assertRaisesRegex(
+            RuntimeError, "unresolved activation intent.*manually reconcile"
+        ) as raised:
+            deploy.current_images(self.config)
+
+        self.assertNotIn("malformed secret", str(raised.exception))
 
     def test_post_mutation_state_failure_restores_and_reconciles_prior_definition(
         self,
@@ -762,13 +961,18 @@ class DeployScriptTest(unittest.TestCase):
         first_compose, second_compose = self.prepare_two_activation_history()
         state_path = self.config.release_root / "activation-state.json"
         release_root_fsyncs = 0
+        state_commit_started = False
         app_reconciliations = 0
 
         def fail_commit_and_restore_fsync(path: Path) -> None:
-            nonlocal release_root_fsyncs
+            nonlocal release_root_fsyncs, state_commit_started
             if path == self.config.release_root:
-                release_root_fsyncs += 1
-                raise OSError("simulated unconfirmed state restoration")
+                state = json.loads(state_path.read_text(encoding="utf-8"))
+                if state["last_successful_run"] == 3:
+                    state_commit_started = True
+                if state_commit_started:
+                    release_root_fsyncs += 1
+                    raise OSError("simulated unconfirmed state restoration")
 
         def record_reconciliation(command: list[str], cwd: Path) -> None:
             nonlocal app_reconciliations
@@ -802,6 +1006,9 @@ class DeployScriptTest(unittest.TestCase):
         self.assertIn(
             json.loads(state_path.read_text(encoding="utf-8"))["last_successful_run"],
             {2, 3},
+        )
+        self.assertTrue(
+            (self.config.release_root / "activation-intent.json").exists()
         )
 
     def test_cleanup_failure_is_audited_after_state_commit(self) -> None:

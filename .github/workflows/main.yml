@@ -53,9 +53,17 @@ jobs:
 
       - name: Prepare matrix JSON
         id: matrix-json
+        env:
+          MAIN_SERVICES: '["backend","frontend","otel-collector","nginx"]'
         run: |
-          # 'filter.outputs.changes' contains a JSON array of changed service names, e.g. ["backend","frontend"].
-          changed_services='${{ steps.filter.outputs.changes }}'
+          if [[ "$GITHUB_EVENT_NAME" == "push" && "$GITHUB_REF" == "refs/heads/main" ]]; then
+            # Every surviving main run is self-contained, even when earlier runs fail
+            # or a newer run overtakes one waiting for a service build slot.
+            changed_services="$MAIN_SERVICES"
+          else
+            # Pull requests stay change-scoped to keep their validation economical.
+            changed_services='${{ steps.filter.outputs.changes }}'
+          fi
 
           # Define all available services in a JSON file
           cat <<EOF > services.json
@@ -111,6 +119,9 @@ jobs:
       needs.containers_matrix_prep.outputs.has-services == 'true'
     strategy:
       matrix: ${{ fromJson(needs.containers_matrix_prep.outputs.matrix) }}
+    concurrency:
+      group: commonex-image-${{ matrix.service.name }}
+      cancel-in-progress: false
     steps:
       - name: Checkout code
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6

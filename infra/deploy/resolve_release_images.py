@@ -140,6 +140,8 @@ def resolve_release_images(
     current = (
         None if current_images_text is None else _current_images(current_images_text)
     )
+    if current is None and changed_services != set(SERVICE_IMAGES):
+        raise ValueError("bootstrap requires all services")
 
     resolved = {}
     for key in sorted(IMAGES_BY_KEY):
@@ -147,9 +149,8 @@ def resolve_release_images(
         if current is not None and service not in changed_services:
             resolved[key] = current[key]
             continue
-        tag = git_sha if service in changed_services else "latest"
         digest = _validated_digest(
-            manifest_digest_resolver(f"{repository}:{tag}"),
+            manifest_digest_resolver(f"{repository}:{git_sha}"),
             "resolved image digest is invalid",
         )
         resolved[key] = f"{repository}@{digest}"
