@@ -30,7 +30,8 @@ class MainWorkflowContractTest(unittest.TestCase):
 
     def test_each_service_build_is_serialized_across_workflow_runs(self) -> None:
         self.assertIn(
-            "group: commonex-image-${{ matrix.service.name }}", self.workflow
+            "group: commonex-image-${{ matrix.service.name }}-${{ github.ref }}",
+            self.workflow,
         )
         self.assertIn("cancel-in-progress: false", self.workflow)
         self.assertNotIn("queue:", self.workflow)
