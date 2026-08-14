@@ -4,6 +4,12 @@ permissions:
   contents: read
 
 on:
+  workflow_dispatch:
+    inputs:
+      release_sha:
+        description: Retained release Git SHA to activate
+        required: true
+        type: string
   push:
     branches:
       - main
@@ -23,11 +29,13 @@ on:
 
 jobs:
   containers_matrix_prep:
+    if: github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.matrix-json.outputs.matrix }}
       has-services: ${{ steps.matrix-json.outputs.has-services }}
       has-infra-changes: ${{ steps.filter.outputs.infra }}
+      changed-services: ${{ steps.matrix-json.outputs.changed-services }}
     steps:
       - name: Checkout code
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
@@ -55,22 +63,26 @@ jobs:
             {
               "name": "backend",
               "context": "./backend",
-              "tags": "ruggedbl/commonex-nest-backend:latest"
+              "image_env": "COMMONEX_BACKEND_IMAGE",
+              "repository": "ruggedbl/commonex-nest-backend"
             },
             {
               "name": "frontend",
               "context": "./web",
-              "tags": "ruggedbl/commonex-next-web:latest"
+              "image_env": "COMMONEX_FRONTEND_IMAGE",
+              "repository": "ruggedbl/commonex-next-web"
             },
             {
               "name": "otel-collector",
               "context": "./infra/otel-collector",
-              "tags": "ruggedbl/opentelemetry-collector-custom:latest"
+              "image_env": "COMMONEX_OTEL_COLLECTOR_IMAGE",
+              "repository": "ruggedbl/opentelemetry-collector-custom"
             },
             {
               "name": "nginx",
               "context": "./infra/nginx",
-              "tags": "ruggedbl/nginx-http3:latest"
+              "image_env": "COMMONEX_NGINX_IMAGE",
+              "repository": "ruggedbl/nginx-http3"
             }
           ]
           EOF
@@ -82,6 +94,7 @@ jobs:
           ' services.json)
 
           echo "matrix={\"service\":$matrix}" >> $GITHUB_OUTPUT
+          echo "changed-services=$(echo "$matrix" | jq -c '[.[].name]')" >> $GITHUB_OUTPUT
 
           # Check if matrix has any services
           if [ "$(echo $matrix | jq 'length')" -gt 0 ]; then
@@ -93,7 +106,9 @@ jobs:
   build-and-push:
     runs-on: ubuntu-latest
     needs: containers_matrix_prep
-    if: needs.containers_matrix_prep.outputs.has-services == 'true'
+    if: |
+      github.event_name != 'workflow_dispatch' &&
+      needs.containers_matrix_prep.outputs.has-services == 'true'
     strategy:
       matrix: ${{ fromJson(needs.containers_matrix_prep.outputs.matrix) }}
     steps:
@@ -114,12 +129,16 @@ jobs:
         with:
           context: ${{ matrix.service.context }}
           push: ${{ github.ref == 'refs/heads/main' }}
-          tags: ${{ matrix.service.tags }}
+          tags: |
+            ${{ matrix.service.repository }}:latest
+            ${{ matrix.service.repository }}:${{ github.sha }}
 
   infra-deploy-tests:
     runs-on: ubuntu-latest
     needs: containers_matrix_prep
-    if: needs.containers_matrix_prep.outputs.has-infra-changes == 'true'
+    if: |
+      github.event_name != 'workflow_dispatch' &&
+      needs.containers_matrix_prep.outputs.has-infra-changes == 'true'
     steps:
       - name: Checkout code
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
@@ -136,6 +155,7 @@ jobs:
     needs: [containers_matrix_prep, build-and-push, infra-deploy-tests]
     if: |
       always() &&
+      github.event_name != 'workflow_dispatch' &&
       github.ref == 'refs/heads/main' &&
       (needs.infra-deploy-tests.result == 'success' || needs.infra-deploy-tests.result == 'skipped') &&
       (
@@ -163,6 +183,29 @@ jobs:
             '    UserKnownHostsFile ~/.ssh/known_hosts' > ~/.ssh/config
           chmod 600 ~/.ssh/config
 
+      - name: Resolve immutable release images
+        env:
+          CHANGED_SERVICES: ${{ needs.containers_matrix_prep.outputs.changed-services }}
+        run: |
+          current_images_status=0
+          ssh commonex-production "current-images" \
+            > current-images.env 2> current-images.err || current_images_status=$?
+
+          resolver_arguments=("$CHANGED_SERVICES" "$GITHUB_SHA")
+          if [ "$current_images_status" -eq 0 ]; then
+            resolver_arguments+=("current-images.env")
+          elif printf '%s\n' \
+            'commonex-deploy: no immutable activation history exists; bootstrap required' \
+            | cmp -s - current-images.err; then
+            rm -f current-images.env current-images.err
+          else
+            echo "Unable to read the active immutable image references." >&2
+            exit "$current_images_status"
+          fi
+
+          python3 infra/deploy/resolve_release_images.py \
+            "${resolver_arguments[@]}" > release-images.env
+
       - name: Prepare validated release archive
         run: |
           install -d release
@@ -180,6 +223,7 @@ jobs:
           GF_SECURITY_ADMIN_USER=${{ secrets.GF_SECURITY_ADMIN_USER }}
           GF_SECURITY_ADMIN_PASSWORD=${{ secrets.GF_SECURITY_ADMIN_PASSWORD }}
           ENVEOF
+          cat release-images.env >> release/.env
           tar -C release -czf commonex-release.tar.gz docker-compose-prod.yml .env
 
       - name: Stage, validate, and deploy release
@@ -187,3 +231,41 @@ jobs:
           ssh commonex-production "stage $GITHUB_SHA" < commonex-release.tar.gz
           ssh commonex-production "validate $GITHUB_SHA"
           ssh commonex-production "deploy $GITHUB_SHA $GITHUB_RUN_NUMBER"
+
+  rollback:
+    if: github.event_name == 'workflow_dispatch'
+    environment: production
+    concurrency:
+      group: commonex-production
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - name: Set up SSH key
+        run: |
+          mkdir -p ~/.ssh
+          install -m 600 /dev/null ~/.ssh/id_ed25519
+          printf '%s\n' "${{ secrets.SSH_DEPLOY_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+          install -m 600 infra/deploy/known_hosts ~/.ssh/known_hosts
+          printf '%s\n' \
+            'Host commonex-production' \
+            '    HostName ${{ secrets.SERVER_IP }}' \
+            '    User commonex-deploy' \
+            '    IdentityFile ~/.ssh/id_ed25519' \
+            '    IdentitiesOnly yes' \
+            '    HostKeyAlias commonex-production' \
+            '    StrictHostKeyChecking yes' \
+            '    UserKnownHostsFile ~/.ssh/known_hosts' > ~/.ssh/config
+          chmod 600 ~/.ssh/config
+
+      - name: Activate retained release
+        env:
+          RELEASE_SHA: ${{ inputs.release_sha }}
+        run: |
+          if [[ ! "$RELEASE_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "release_sha must be a lowercase 40-character Git SHA" >&2
+            exit 1
+          fi
+          ssh commonex-production "rollback $RELEASE_SHA $GITHUB_RUN_NUMBER"
