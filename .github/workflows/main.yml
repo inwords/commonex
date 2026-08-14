@@ -233,7 +233,9 @@ jobs:
           ssh commonex-production "deploy $GITHUB_SHA $GITHUB_RUN_NUMBER"
 
   rollback:
-    if: github.event_name == 'workflow_dispatch'
+    if: |
+      github.event_name == 'workflow_dispatch' &&
+      github.ref == 'refs/heads/main'
     environment: production
     concurrency:
       group: commonex-production
@@ -242,6 +244,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: main
 
       - name: Set up SSH key
         run: |
