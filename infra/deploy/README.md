@@ -37,7 +37,7 @@ The script intentionally uses `/usr/bin/python3`; verify that it is Python 3.9 o
 
 ## Immutable release contract
 
-Every staged release contains only `docker-compose-prod.yml` and `.env`. Its `.env` must contain these four image variables, each as the repository name followed by a digest in the exact `repository@sha256:<64-lowercase-hex>` form:
+Every release archive contains only `docker-compose-prod.yml` and `.env`. After staging, the root-only host directory also contains the wrapper-generated `manifest.sha256`. The release `.env` must contain these four image variables, each as the repository name followed by a digest in the exact `repository@sha256:<64-lowercase-hex>` form:
 
 - `COMMONEX_BACKEND_IMAGE=ruggedbl/commonex-nest-backend@sha256:<64-lowercase-hex>`
 - `COMMONEX_FRONTEND_IMAGE=ruggedbl/commonex-next-web@sha256:<64-lowercase-hex>`
@@ -57,7 +57,7 @@ For an ordinary deploy, the workflow resolves the SHA tag for each changed servi
 - Per-activation configuration rollback: `/etc/commonex/rollback/deploy-<sha>-<timestamp>`
 - Active configuration: `/etc/commonex/app/docker-compose-prod.yml` (`0644`) and `/etc/commonex/app/.env` (`0600`), both owned by `root:root`
 
-After an activation, the MRU history and cleanup retain up to three distinct staged release directories represented by that history (three once enough releases have been activated). A staged release that is not in that history is not a rollback target; operators may only roll back to one of the listed retained SHAs.
+The activation history and eligible rollback targets are capped at three distinct SHAs. Cleanup attempts to remove staged directories not represented by that history, but extra directories can remain if cleanup fails; inspect `/var/log/commonex-deploy.log` for `RESULT cleanup status=FAILED`. A staged release that is not in the history is not a rollback target; operators may only roll back to one of the listed retained SHAs.
 
 The `commonex-deploy` user is not a member of the Docker group. Its authorized key must use:
 
@@ -109,7 +109,7 @@ During activation the wrapper pulls the staged digest-pinned images, saves the c
 ### Failure handling and audit outcomes
 
 - **Exit 0 — success.** Confirm the `status=PASS` audit result, `docker compose ... ps`, and the relevant service health checks.
-- **Exit 1 — ordinary failure.** Stop further deployments. Inspect the matching audit event for `configuration_restored=PASS`, `NOT_NEEDED`, or `FAILED`. For `PASS`, validate and reconcile the restored definition with `docker compose --env-file .env -f docker-compose-prod.yml config --quiet` and `docker compose --env-file .env -f docker-compose-prod.yml up -d`, then check `ps` and service health. For `FAILED`, restore the allowlisted files from the rollback directory recorded in the audit event before validating and reconciling. The run/history state is not advanced by this path.
+- **Exit 1 — ordinary failure.** For a failed activation audit record containing `configuration_restored`, stop further deployments. For `PASS`, validate and reconcile the restored definition with `docker compose --env-file .env -f docker-compose-prod.yml config --quiet` and `docker compose --env-file .env -f docker-compose-prod.yml up -d`, then check `ps` and service health. For `FAILED`, restore the allowlisted files from the rollback directory recorded in the audit event before validating and reconciling. The run/history state is not advanced by this path. Rejected stale-run, non-retained-target, and input-validation failures do not change configuration and may not contain `configuration_restored`; correct the command or input before trying again.
 - **Exit 3 — ambiguous activation commit.** Treat the active release and activation-state result as unknown: the wrapper could not durably confirm restoration of the prior activation state after a state-write problem. Do not retry or start another deploy/rollback. Stop approvals, preserve the audit log and state file, inspect the active configuration and running containers, and resolve the state manually before any further activation.
 - **Exit 2 — post-commit audit failure.** The activation already committed: configuration, runtime reconciliation, and activation state have completed, but writing the final success audit record failed. Do not assume a rollback occurred and do not retry blindly. Inspect the active `.env`, `activation-state.json`, Compose `ps`, and service health; repair the audit-log condition and record the operator decision before resuming deployments.
 
