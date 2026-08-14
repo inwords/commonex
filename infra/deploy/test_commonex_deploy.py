@@ -124,6 +124,22 @@ class DeployScriptTest(unittest.TestCase):
         )
         (self.config.app_dir / ".env").write_bytes(valid_environment(marker))
 
+    def prepare_two_activation_history(self) -> tuple[bytes, bytes]:
+        self.prepare_active_configuration()
+        first_compose = b"services:\n  first:\n    image: busybox\n"
+        second_compose = b"services:\n  second:\n    image: busybox\n"
+        deploy.stage(RELEASE_ID, self.config, release_archive(compose=first_compose))
+        with mock.patch.object(deploy, "run_command"):
+            deploy.deploy(RELEASE_ID, 1, self.config)
+        deploy.stage(
+            OLDER_RELEASE_ID,
+            self.config,
+            release_archive(compose=second_compose),
+        )
+        with mock.patch.object(deploy, "run_command"):
+            deploy.deploy(OLDER_RELEASE_ID, 2, self.config)
+        return first_compose, second_compose
+
     def test_parse_invocation_accepts_only_explicit_commands(self) -> None:
         self.assertEqual(
             deploy.parse_invocation(["forced"], f"stage {RELEASE_ID}"),
@@ -695,6 +711,99 @@ class DeployScriptTest(unittest.TestCase):
             state_before,
         )
 
+    def test_post_replace_state_fsync_failure_restores_state_before_configuration(
+        self,
+    ) -> None:
+        first_compose, second_compose = self.prepare_two_activation_history()
+        state_path = self.config.release_root / "activation-state.json"
+        state_before = state_path.read_bytes()
+        real_fsync_directory = deploy.fsync_directory
+        failed_new_state_fsync = False
+        app_reconciliations = 0
+
+        def fail_new_state_fsync(path: Path) -> None:
+            nonlocal failed_new_state_fsync
+            if path == self.config.release_root and not failed_new_state_fsync:
+                state = json.loads(state_path.read_text(encoding="utf-8"))
+                if state["last_successful_run"] == 3:
+                    failed_new_state_fsync = True
+                    raise OSError("simulated post-replace state fsync failure")
+            real_fsync_directory(path)
+
+        def record_reconciliation(command: list[str], cwd: Path) -> None:
+            nonlocal app_reconciliations
+            if cwd == self.config.app_dir and "up" in command:
+                app_reconciliations += 1
+
+        with (
+            mock.patch.object(
+                deploy, "fsync_directory", side_effect=fail_new_state_fsync
+            ),
+            mock.patch.object(deploy, "run_command", side_effect=record_reconciliation),
+            self.assertRaisesRegex(OSError, "post-replace state fsync failure"),
+        ):
+            deploy.rollback(RELEASE_ID, 3, self.config)
+
+        self.assertTrue(failed_new_state_fsync)
+        self.assertEqual(state_path.read_bytes(), state_before)
+        self.assertEqual(
+            (self.config.app_dir / "docker-compose-prod.yml").read_bytes(),
+            second_compose,
+        )
+        self.assertNotEqual(
+            (self.config.app_dir / "docker-compose-prod.yml").read_bytes(),
+            first_compose,
+        )
+        self.assertEqual(app_reconciliations, 2)
+
+    def test_unconfirmed_state_restoration_keeps_candidate_configuration_active(
+        self,
+    ) -> None:
+        first_compose, second_compose = self.prepare_two_activation_history()
+        state_path = self.config.release_root / "activation-state.json"
+        release_root_fsyncs = 0
+        app_reconciliations = 0
+
+        def fail_commit_and_restore_fsync(path: Path) -> None:
+            nonlocal release_root_fsyncs
+            if path == self.config.release_root:
+                release_root_fsyncs += 1
+                raise OSError("simulated unconfirmed state restoration")
+
+        def record_reconciliation(command: list[str], cwd: Path) -> None:
+            nonlocal app_reconciliations
+            if cwd == self.config.app_dir and "up" in command:
+                app_reconciliations += 1
+
+        with (
+            mock.patch.object(
+                deploy, "fsync_directory", side_effect=fail_commit_and_restore_fsync
+            ),
+            mock.patch.object(deploy, "run_command", side_effect=record_reconciliation),
+            self.assertRaisesRegex(
+                RuntimeError, "activation state commit is ambiguous"
+            ) as raised,
+        ):
+            deploy.rollback(RELEASE_ID, 3, self.config)
+
+        self.assertEqual(
+            type(raised.exception).__name__, "AmbiguousActivationCommitError"
+        )
+        self.assertGreaterEqual(release_root_fsyncs, 2)
+        self.assertEqual(app_reconciliations, 1)
+        self.assertEqual(
+            (self.config.app_dir / "docker-compose-prod.yml").read_bytes(),
+            first_compose,
+        )
+        self.assertNotEqual(
+            (self.config.app_dir / "docker-compose-prod.yml").read_bytes(),
+            second_compose,
+        )
+        self.assertIn(
+            json.loads(state_path.read_text(encoding="utf-8"))["last_successful_run"],
+            {2, 3},
+        )
+
     def test_cleanup_failure_is_audited_after_state_commit(self) -> None:
         self.prepare_active_configuration()
         deploy.stage(RELEASE_ID, self.config, release_archive())
@@ -725,12 +834,76 @@ class DeployScriptTest(unittest.TestCase):
             self.config.log_path.read_text(encoding="utf-8"),
         )
 
+    def test_final_audit_failure_reports_committed_activation_without_recovery(
+        self,
+    ) -> None:
+        self.prepare_active_configuration()
+        candidate_compose = b"services:\n  candidate:\n    image: busybox\n"
+        deploy.stage(
+            RELEASE_ID,
+            self.config,
+            release_archive(compose=candidate_compose),
+        )
+        audit_messages: list[str] = []
+        app_reconciliations = 0
+
+        def fail_only_final_audit(
+            message: str,
+            _config: deploy.DeploymentConfig = deploy.DEFAULT_CONFIG,
+        ) -> None:
+            audit_messages.append(message)
+            if message.startswith("RESULT deploy") and "status=PASS" in message:
+                raise OSError("simulated final audit failure")
+
+        def record_reconciliation(command: list[str], cwd: Path) -> None:
+            nonlocal app_reconciliations
+            if cwd == self.config.app_dir and "up" in command:
+                app_reconciliations += 1
+
+        stderr = io.StringIO()
+        with (
+            mock.patch.object(deploy, "audit", side_effect=fail_only_final_audit),
+            mock.patch.object(deploy, "run_command", side_effect=record_reconciliation),
+            mock.patch.object(
+                deploy,
+                "main",
+                side_effect=lambda: deploy.deploy(RELEASE_ID, 1, self.config),
+            ),
+            mock.patch("sys.stderr", stderr),
+        ):
+            result = deploy.run_cli()
+
+        self.assertEqual(result, 2)
+        self.assertEqual(app_reconciliations, 1)
+        self.assertEqual(
+            (self.config.app_dir / "docker-compose-prod.yml").read_bytes(),
+            candidate_compose,
+        )
+        self.assertEqual(
+            deploy._read_activation_state(self.config),
+            (1, [RELEASE_ID]),
+        )
+        self.assertFalse(
+            any("RESULT command status=FAILED" in message for message in audit_messages)
+        )
+        self.assertNotIn("configuration_restored", "\n".join(audit_messages))
+        self.assertIn("activation committed but final audit failed", stderr.getvalue())
+
     def test_activation_state_rejects_malformed_or_untrusted_content(self) -> None:
         self.config.release_root.mkdir(mode=0o700)
         state_path = self.config.release_root / "activation-state.json"
         invalid_states = [
             b"not-json\n",
             b'{"last_successful_run":0,"history":[]}\n',
+            (
+                b'{"last_successful_run":1,"last_successful_run":2,'
+                b'"history":["' + RELEASE_ID.encode() + b'"]}\n'
+            ),
+            (
+                b'{"last_successful_run":1,"history":["'
+                + RELEASE_ID.encode()
+                + b'"],"history":[]}\n'
+            ),
             json.dumps(
                 {"last_successful_run": 1, "history": ["not-a-sha"]}
             ).encode(),
@@ -905,6 +1078,38 @@ class DeployScriptTest(unittest.TestCase):
         )
         self.assertFalse(
             (self.config.release_root / "last-successful-run").exists()
+        )
+
+    def test_legacy_run_blocks_stale_activation_then_migrates_to_canonical_state(
+        self,
+    ) -> None:
+        self.prepare_active_configuration()
+        candidate_compose = b"services:\n  migrated:\n    image: busybox\n"
+        deploy.stage(
+            RELEASE_ID,
+            self.config,
+            release_archive(compose=candidate_compose),
+        )
+        legacy_state = self.config.release_root / "last-successful-run"
+        legacy_state.write_bytes(b"20\n")
+        legacy_state.chmod(0o600)
+
+        with mock.patch.object(deploy, "run_command"):
+            with self.assertRaisesRegex(ValueError, "older than or equal"):
+                deploy.deploy(RELEASE_ID, 20, self.config)
+            self.assertFalse(
+                (self.config.release_root / "activation-state.json").exists()
+            )
+            deploy.deploy(RELEASE_ID, 21, self.config)
+
+        self.assertEqual(
+            deploy._read_activation_state(self.config),
+            (21, [RELEASE_ID]),
+        )
+        self.assertEqual(legacy_state.read_text(encoding="ascii"), "20\n")
+        self.assertEqual(
+            (self.config.app_dir / "docker-compose-prod.yml").read_bytes(),
+            candidate_compose,
         )
 
     def test_deploy_reports_when_configuration_restoration_fails(self) -> None:

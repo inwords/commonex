@@ -82,6 +82,14 @@ class ConfigurationRestoreError(RuntimeError):
     """Raised when both deployment and configuration restoration fail."""
 
 
+class AmbiguousActivationCommitError(RuntimeError):
+    """Raised when durable activation-state restoration cannot be confirmed."""
+
+
+class ActivationCommittedAuditError(RuntimeError):
+    """Raised when activation committed but its final audit record failed."""
+
+
 def timestamp() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
@@ -649,6 +657,15 @@ def _validate_activation_state(
     return run_number, validated_history
 
 
+def _unique_json_object(pairs: list[tuple[str, object]]) -> dict[str, object]:
+    result: dict[str, object] = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError("activation state contains a duplicate JSON key")
+        result[key] = value
+    return result
+
+
 def _read_activation_state(config: DeploymentConfig) -> tuple[int, list[str]]:
     ensure_release_root(config)
     path = _activation_state_path(config)
@@ -679,7 +696,7 @@ def _read_activation_state(config: DeploymentConfig) -> tuple[int, list[str]]:
     if len(serialized) > 8192:
         raise ValueError("activation state is too large")
     try:
-        state = json.loads(serialized)
+        state = json.loads(serialized, object_pairs_hook=_unique_json_object)
     except (json.JSONDecodeError, UnicodeError) as error:
         raise ValueError("activation state is invalid") from error
     if not isinstance(state, dict) or set(state) != {
@@ -701,6 +718,7 @@ def _write_activation_state(
     run_number, history = _validate_activation_state(run_number, history)
     ensure_release_root(config)
     destination = _activation_state_path(config)
+    previous_state: Optional[bytes] = None
     try:
         metadata = destination.lstat()
     except FileNotFoundError:
@@ -718,10 +736,12 @@ def _write_activation_state(
             raise PermissionError(
                 f"unsafe mode {mode:o} for deployment state: {destination}"
             )
+        previous_state = destination.read_bytes()
     descriptor, temporary_name = tempfile.mkstemp(
         prefix=".activation-state.", dir=config.release_root
     )
     temporary = Path(temporary_name)
+    replacement_complete = False
     try:
         with os.fdopen(descriptor, "w", encoding="utf-8", newline="\n") as stream:
             descriptor = -1
@@ -732,6 +752,48 @@ def _write_activation_state(
                 sort_keys=True,
             )
             stream.write("\n")
+            stream.flush()
+            os.fsync(stream.fileno())
+        if config.enforce_root_ownership:
+            os.chown(temporary, 0, 0)
+        temporary.chmod(0o600)
+        temporary.replace(destination)
+        replacement_complete = True
+        fsync_directory(config.release_root)
+    except Exception as commit_error:
+        if replacement_complete:
+            try:
+                _restore_activation_state(previous_state, config)
+            except Exception as restore_error:
+                raise AmbiguousActivationCommitError(
+                    "activation state commit is ambiguous because prior state "
+                    "restoration could not be durably confirmed"
+                ) from restore_error
+        raise commit_error
+    finally:
+        if descriptor >= 0:
+            os.close(descriptor)
+        temporary.unlink(missing_ok=True)
+
+
+def _restore_activation_state(
+    previous_state: Optional[bytes],
+    config: DeploymentConfig,
+) -> None:
+    destination = _activation_state_path(config)
+    if previous_state is None:
+        destination.unlink()
+        fsync_directory(config.release_root)
+        return
+
+    descriptor, temporary_name = tempfile.mkstemp(
+        prefix=".activation-state-restore.", dir=config.release_root
+    )
+    temporary = Path(temporary_name)
+    try:
+        with os.fdopen(descriptor, "wb") as stream:
+            descriptor = -1
+            stream.write(previous_state)
             stream.flush()
             os.fsync(stream.fileno())
         if config.enforce_root_ownership:
@@ -832,6 +894,17 @@ def _activate(
         compose_started = True
         _reconcile_configuration(config.app_dir)
         _write_activation_state(run_number, next_history, config)
+    except AmbiguousActivationCommitError as activation_error:
+        try:
+            audit(
+                f"RESULT {operation} {identifier} run={run_number} "
+                "status=AMBIGUOUS_COMMIT configuration_restored=NOT_ATTEMPTED "
+                f"error={type(activation_error).__name__}",
+                config,
+            )
+        except Exception:
+            pass
+        raise
     except Exception as activation_error:
         if backups_ready and installation_started:
             try:
@@ -881,19 +954,25 @@ def _activate(
             )
         except Exception:
             pass
-    if operation == "rollback":
-        audit(
-            f"RESULT rollback {identifier} run={run_number} "
-            "configuration_restored=NOT_NEEDED status=PASS "
-            f"rollback={rollback_directory}",
-            config,
-        )
-    else:
-        audit(
-            f"RESULT deploy {identifier} run={run_number} "
-            f"rollback={rollback_directory} status=PASS",
-            config,
-        )
+    try:
+        if operation == "rollback":
+            audit(
+                f"RESULT rollback {identifier} run={run_number} "
+                "configuration_restored=NOT_NEEDED status=PASS "
+                f"rollback={rollback_directory}",
+                config,
+            )
+        else:
+            audit(
+                f"RESULT deploy {identifier} run={run_number} "
+                f"rollback={rollback_directory} status=PASS",
+                config,
+            )
+    except Exception as audit_error:
+        raise ActivationCommittedAuditError(
+            f"activation committed but final audit failed for {operation} "
+            f"{identifier} run={run_number}"
+        ) from audit_error
 
 
 def _reject_non_increasing_run(
@@ -1032,6 +1111,12 @@ def main(
 def run_cli() -> int:
     try:
         main()
+    except ActivationCommittedAuditError as error:
+        print(f"commonex-deploy: {error}", file=sys.stderr)
+        return 2
+    except AmbiguousActivationCommitError as error:
+        print(f"commonex-deploy: {error}", file=sys.stderr)
+        return 3
     except Exception as error:
         try:
             audit(f"RESULT command status=FAILED error={type(error).__name__}")
