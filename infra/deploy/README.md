@@ -6,7 +6,7 @@
 
 Complete this bootstrap and preflight before enabling the workflow. Preserve the currently working Compose file, `.env`, and host-managed Grafana content; do not generate replacements during wrapper installation.
 
-The merged wrapper **must be installed and validated before approving the first immutable deploy**. The workflow always asks the host for `current-images`: before the first immutable activation the host responds with the expected bootstrap message, and later it supplies the active immutable references used for partial-build inheritance. Keep a recoverable copy of the previous wrapper while installing the merged version:
+The merged wrapper **must be installed and validated before approving the first immutable deploy**. The ordinary deploy job asks the host for `current-images`: before the first immutable activation the host responds with the expected bootstrap message, and later it supplies the active immutable references. Keep a recoverable copy of the previous wrapper while installing the merged version:
 
 ```bash
 install -d -o root -g root -m 0755 /etc/commonex/app
@@ -27,6 +27,7 @@ install -o root -g root -m 0755 infra/deploy/commonex_deploy.py /usr/local/sbin/
 
 cd /etc/commonex/app
 docker compose --env-file .env -f docker-compose-prod.yml config --quiet
+docker compose up --help | grep -F -- '--remove-orphans'
 ```
 
 Install the restricted SSH key and sudo policy below, then test that the forced command rejects an invalid command. Also test `ssh commonex-production "current-images"`: on a host with no activation history it must fail with `commonex-deploy: no immutable activation history exists; bootstrap required`; after the first activation it must print four image-reference lines. This output is not secret-bearing, but it remains limited to the forced command scope.
@@ -44,7 +45,7 @@ Every release archive contains only `docker-compose-prod.yml` and `.env`. After 
 - `COMMONEX_OTEL_COLLECTOR_IMAGE=ruggedbl/opentelemetry-collector-custom@sha256:<64-lowercase-hex>`
 - `COMMONEX_NGINX_IMAGE=ruggedbl/nginx-http3@sha256:<64-lowercase-hex>`
 
-For an ordinary deploy, the workflow resolves the SHA tag for each changed service to a digest. It inherits an unchanged service's digest reference from `current-images`, so a partial build does not change unrelated service images. Only the explicit first-deployment bootstrap consults `latest` for services that were not built in that run; once an immutable activation exists, later deploys do not use `latest` for inheritance. The Git SHA tags are retained as registry anchors for their image blobs. This process does not delete remote image tags, including tags older than the three retained host releases.
+Every push to `main` builds and SHA-tags all four custom images, with each service serialized across workflow runs. A surviving run is therefore self-contained even if an earlier run fails or is superseded while waiting. Pull-request image builds remain change-scoped and are not pushed. The deploy job resolves all four current Git SHA tags to digests; first-deployment bootstrap fails closed unless all four services were built, and it never consults `latest`. The Git SHA tags are retained as registry anchors for their image blobs. This process does not delete remote image tags, including tags older than the three retained host releases.
 
 ## Host paths and restricted command
 
@@ -52,6 +53,7 @@ For an ordinary deploy, the workflow resolves the SHA tag for each changed servi
 - Installed executable: `/usr/local/sbin/commonex-deploy`, owned by `root:root`, mode `0755`
 - Releases: `/var/lib/commonex-releases`, owned by `root:root`, mode `0700`
 - Activation state: `/var/lib/commonex-releases/activation-state.json`, owned by `root:root`, mode `0600`; it records the replay-protection `last_successful_run` and a most-recently-used history of up to three distinct release SHAs.
+- Activation intent: `/var/lib/commonex-releases/activation-intent.json`, owned by `root:root`, mode `0600`; it identifies the previous and candidate releases plus the configuration backup while an activation is in progress. Its presence blocks further wrapper commands until manual reconciliation.
 - Legacy last successful workflow run: `/var/lib/commonex-releases/last-successful-run`, owned by `root:root`, mode `0600`; it is read only when no activation-state file exists.
 - Deployment log: `/var/log/commonex-deploy.log`, owned by `root:root`, mode `0600`
 - Per-activation configuration rollback: `/etc/commonex/rollback/deploy-<sha>-<timestamp>`
@@ -92,7 +94,7 @@ The production host currently runs Python 3.9, so the wrapper must remain compat
 python3 -m unittest discover -s infra/deploy -p 'test_*.py'
 ```
 
-Before enabling deployments, confirm the restricted SSH key reaches only the forced command, invalid and extra-argument commands are rejected, the deployment log and activation state remain root-only, and `docker compose --env-file .env -f docker-compose-prod.yml config --quiet` succeeds from `/etc/commonex/app`.
+Before enabling deployments, confirm the restricted SSH key reaches only the forced command, invalid and extra-argument commands are rejected, the deployment log and state files remain root-only, `docker compose --env-file .env -f docker-compose-prod.yml config --quiet` succeeds from `/etc/commonex/app`, and `docker compose up --help` lists `--remove-orphans`. The unit tests verify the exact Compose command used for successful activation and failure restoration; a live Docker daemon integration test is not part of this repository suite.
 
 ## Manual release rollback
 
@@ -104,13 +106,13 @@ Rollback is manual-only. It is never initiated automatically by the wrapper or w
 4. Inspect the workflow result and the matching `/var/log/commonex-deploy.log` audit records. A successful rollback writes `RESULT rollback target=<sha> ... status=PASS` and moves that SHA to the front of the MRU history.
 5. On the host, run `docker compose --env-file .env -f docker-compose-prod.yml ps` in `/etc/commonex/app`, then verify service health before resuming deployments.
 
-During activation the wrapper pulls the staged digest-pinned images, saves the current allowlisted configuration, installs the selected release, reconciles Compose with `up -d --pull always --wait --wait-timeout 120`, then records the new run number and history. A normal failure before commit restores the previous configuration and does not advance the activation history or successful-run state. Because Compose may already have changed containers, still perform the checks below.
+During activation the wrapper pulls the staged digest-pinned images, saves the current allowlisted configuration, durably records its activation intent, installs the selected release, reconciles Compose with `up -d --pull always --remove-orphans --wait --wait-timeout 120`, records the new run number and history, and finally clears the intent. A normal failure before commit restores and reconciles the previous configuration, then clears the intent without advancing the activation history or successful-run state. Because Compose may already have changed containers, still perform the checks below.
 
 ### Failure handling and audit outcomes
 
 - **Exit 0 — success.** Confirm the `status=PASS` audit result, `docker compose ... ps`, and the relevant service health checks.
-- **Exit 1 — ordinary failure.** For a failed activation audit record containing `configuration_restored`, stop further deployments. For `PASS`, validate and reconcile the restored definition with `docker compose --env-file .env -f docker-compose-prod.yml config --quiet` and `docker compose --env-file .env -f docker-compose-prod.yml up -d`, then check `ps` and service health. For `FAILED`, restore the allowlisted files from the rollback directory recorded in the audit event before validating and reconciling. The run/history state is not advanced by this path. Rejected stale-run, non-retained-target, and input-validation failures do not change configuration and may not contain `configuration_restored`; correct the command or input before trying again.
-- **Exit 3 — ambiguous activation commit.** Treat the active release and activation-state result as unknown: the wrapper could not durably confirm restoration of the prior activation state after a state-write problem. Do not retry or start another deploy/rollback. Stop approvals, preserve the audit log and state file, inspect the active configuration and running containers, and resolve the state manually before any further activation.
+- **Exit 1 — ordinary failure.** For a failed activation audit record containing `configuration_restored`, stop further deployments. For `PASS`, validate and reconcile the restored definition with `docker compose --env-file .env -f docker-compose-prod.yml config --quiet` and `docker compose --env-file .env -f docker-compose-prod.yml up -d --remove-orphans`, then check `ps`, service health, and that no activation-intent file remains. For `FAILED`, restore the allowlisted files from the rollback directory recorded in the audit event before validating and reconciling. The run/history state is not advanced by this path. Rejected stale-run, non-retained-target, and input-validation failures do not change configuration and may not contain `configuration_restored`; correct the command or input before trying again.
+- **Exit 3 — ambiguous activation commit.** Treat the active release and activation-state result as unknown: a state commit/restoration or activation-intent cleanup could not be durably confirmed. Do not retry or start another wrapper command. Stop approvals; preserve the audit log, state, intent, active files, and backup named in the intent; inspect Compose and service health; decide whether the prior or candidate release is authoritative; make the active files, running containers, and activation state agree; then remove `activation-intent.json` as root and fsync or otherwise durably persist the release directory before resuming. Never remove an intent merely to unblock the workflow.
 - **Exit 2 — post-commit audit failure.** The activation already committed: configuration, runtime reconciliation, and activation state have completed, but writing the final success audit record failed. Do not assume a rollback occurred and do not retry blindly. Inspect the active `.env`, `activation-state.json`, Compose `ps`, and service health; repair the audit-log condition and record the operator decision before resuming deployments.
 
-All activation attempts are logged, including rejected non-increasing run numbers and rollback targets that are not retained. The audit log is the operational record; it must not be made writable by the deployment account.
+The wrapper attempts to log activations, including rejected non-increasing run numbers and rollback targets that are not retained. If the audit write itself fails, exit 2 or the explicit audit-failure diagnostic is the only guarantee; preserve the available host and workflow evidence. The audit log must not be made writable by the deployment account.
