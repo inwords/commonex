@@ -24,7 +24,7 @@ services:
       - db-network
 
   nest-backend-green:
-    image: ruggedbl/commonex-nest-backend
+    image: ${COMMONEX_BACKEND_IMAGE}
     deploy:
       resources:
         limits:
@@ -55,7 +55,7 @@ services:
       - app-network
 
   nest-backend-blue:
-    image: ruggedbl/commonex-nest-backend
+    image: ${COMMONEX_BACKEND_IMAGE}
     deploy:
       resources:
         limits:
@@ -86,7 +86,7 @@ services:
       - app-network
 
   next-web:
-    image: ruggedbl/commonex-next-web
+    image: ${COMMONEX_FRONTEND_IMAGE}
     deploy:
       resources:
         limits:
@@ -104,7 +104,7 @@ services:
       - app-network
 
   nginx:
-    image: ruggedbl/nginx-http3
+    image: ${COMMONEX_NGINX_IMAGE}
     deploy:
       resources:
         limits:
@@ -133,7 +133,7 @@ services:
       - app-network
 
   otel-collector:
-    image: ruggedbl/opentelemetry-collector-custom
+    image: ${COMMONEX_OTEL_COLLECTOR_IMAGE}
     container_name: otelcollector
     deploy:
       resources:
