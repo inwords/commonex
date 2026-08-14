@@ -120,7 +120,7 @@ jobs:
     strategy:
       matrix: ${{ fromJson(needs.containers_matrix_prep.outputs.matrix) }}
     concurrency:
-      group: commonex-image-${{ matrix.service.name }}
+      group: commonex-image-${{ matrix.service.name }}-${{ github.ref }}
       cancel-in-progress: false
     steps:
       - name: Checkout code
