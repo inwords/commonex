@@ -238,10 +238,36 @@ jobs:
           tar -C release -czf commonex-release.tar.gz docker-compose-prod.yml .env
 
       - name: Stage, validate, and deploy release
+        id: deploy_activation
         run: |
           ssh commonex-production "stage $GITHUB_SHA" < commonex-release.tar.gz
           ssh commonex-production "validate $GITHUB_SHA"
-          ssh commonex-production "deploy $GITHUB_SHA $GITHUB_RUN_NUMBER"
+          activation_status=0
+          ssh commonex-production "deploy $GITHUB_SHA $GITHUB_RUN_NUMBER" || activation_status=$?
+          echo "status=$activation_status" >> "$GITHUB_OUTPUT"
+          if [[ "$activation_status" -ne 0 && "$activation_status" -ne 2 ]]; then
+            exit "$activation_status"
+          fi
+
+      - name: Verify active release images
+        run: |
+          ssh commonex-production "current-images" > active-images.env
+          sort release-images.env > expected-images.sorted
+          sort active-images.env > active-images.sorted
+          if ! cmp -s expected-images.sorted active-images.sorted; then
+            echo "::error::Deployment committed, but active image references do not match the intended release."
+            exit 1
+          fi
+
+      - name: Verify public service health
+        if: always() && steps.deploy_activation.outcome == 'success'
+        run: python3 infra/deploy/verify_public_services.py
+
+      - name: Preserve committed deployment audit failure
+        if: always() && steps.deploy_activation.outputs.status == '2'
+        run: |
+          echo "::error::Deployment committed, but its final audit record failed."
+          exit 2
 
   rollback:
     if: |
@@ -276,6 +302,7 @@ jobs:
           chmod 600 ~/.ssh/config
 
       - name: Activate retained release
+        id: rollback_activation
         env:
           RELEASE_SHA: ${{ inputs.release_sha }}
         run: |
@@ -283,4 +310,26 @@ jobs:
             echo "release_sha must be a lowercase 40-character Git SHA" >&2
             exit 1
           fi
-          ssh commonex-production "rollback $RELEASE_SHA $GITHUB_RUN_NUMBER"
+          activation_status=0
+          ssh commonex-production "rollback $RELEASE_SHA $GITHUB_RUN_NUMBER" || activation_status=$?
+          echo "status=$activation_status" >> "$GITHUB_OUTPUT"
+          if [[ "$activation_status" -ne 0 && "$activation_status" -ne 2 ]]; then
+            exit "$activation_status"
+          fi
+
+      - name: Verify active rollback images
+        run: |
+          if ! ssh commonex-production "current-images" > active-images.env; then
+            echo "::error::Rollback committed, but active image references could not be read."
+            exit 1
+          fi
+
+      - name: Verify public service health
+        if: always() && steps.rollback_activation.outcome == 'success'
+        run: python3 infra/deploy/verify_public_services.py
+
+      - name: Preserve committed rollback audit failure
+        if: always() && steps.rollback_activation.outputs.status == '2'
+        run: |
+          echo "::error::Rollback committed, but its final audit record failed."
+          exit 2
