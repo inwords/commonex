@@ -39,7 +39,8 @@
       "#domain/*": ["src/domain/*"],
       "#usecases/*": ["src/usecases/*"],
       "#frameworks/*": ["src/frameworks/*"],
-      "#packages/*": ["src/packages/*"]
+      "#packages/*": ["src/packages/*"],
+      "fastify": ["node_modules/@nestjs/platform-fastify/node_modules/fastify"]
     }
   },
   "include": ["src", "scripts", "migrations"]

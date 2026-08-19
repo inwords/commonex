@@ -1,5 +1,14 @@
 import {Attributes, metrics} from '@opentelemetry/api';
-import type {FastifyInstance, FastifyPluginCallback, FastifyReply, FastifyRequest, RouteHandlerMethod} from 'fastify';
+import type {
+  FastifyBaseLogger,
+  FastifyInstance,
+  FastifyPluginCallback,
+  FastifyReply,
+  FastifyRequest,
+  FastifyTypeProvider,
+  RawServerDefault,
+  RouteHandlerMethod,
+} from 'fastify';
 import fastifyPlugin from 'fastify-plugin';
 import {
   ATTR_ERROR_TYPE,
@@ -160,7 +169,12 @@ const createRouteResolver = (instance: FastifyInstance) => {
   };
 };
 
-const fastifyHttpMetricsPluginImpl: FastifyPluginCallback<FastifyHttpMetricsPluginOptions> = (instance, opts, done) => {
+const fastifyHttpMetricsPluginImpl: FastifyPluginCallback<
+  FastifyHttpMetricsPluginOptions,
+  RawServerDefault,
+  FastifyTypeProvider,
+  FastifyBaseLogger
+> = (instance, opts, done) => {
   const applicationRoot = normalizeApplicationRoot(opts.applicationRoot);
 
   const meter = metrics.getMeter(METER_NAME, METER_VERSION);
