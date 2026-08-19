@@ -198,7 +198,7 @@ class DeployScriptTest(unittest.TestCase):
             ):
                 deploy.parse_invocation(arguments, original_command)
 
-    def test_current_images_reports_only_validated_images_from_newest_release(
+    def test_current_images_reports_only_validated_images_from_active_release(
         self,
     ) -> None:
         self.prepare_active_configuration()
@@ -226,6 +226,25 @@ class DeployScriptTest(unittest.TestCase):
             ),
             self.config.release_root / RELEASE_ID,
         )
+
+    def test_current_images_rejects_active_configuration_mismatch(self) -> None:
+        self.prepare_active_configuration()
+        deploy.stage(RELEASE_ID, self.config, release_archive())
+        with mock.patch.object(deploy, "run_command"):
+            deploy.deploy(RELEASE_ID, 1, self.config)
+
+        (self.config.app_dir / ".env").write_bytes(
+            environment_with_images("different-active-release", "f")
+        )
+
+        with (
+            mock.patch.object(deploy, "run_command"),
+            self.assertRaisesRegex(
+                RuntimeError,
+                "active configuration does not match current release: .env",
+            ),
+        ):
+            deploy.current_images(self.config)
 
     def test_current_images_fails_before_immutable_activation_history_exists(
         self,

@@ -1246,7 +1246,15 @@ def current_images(config: DeploymentConfig = DEFAULT_CONFIG) -> None:
         if not history:
             raise ValueError("no immutable activation history exists; bootstrap required")
         directory = _validate_release_contents(history[0], config)
-        values = _environment_values(directory / ".env")
+        verify_directory(config.app_dir, config)
+        for name in FILES:
+            active = config.app_dir / name
+            _verify_current_file(active, config)
+            if sha256(active) != sha256(directory / name):
+                raise RuntimeError(
+                    f"active configuration does not match current release: {name}"
+                )
+        values = _environment_values(config.app_dir / ".env")
         for key in sorted(IMMUTABLE_IMAGE_REPOSITORIES):
             print(f"{key}={values[key]}")
 
