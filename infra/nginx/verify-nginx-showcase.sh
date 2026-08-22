@@ -75,7 +75,7 @@ require_count() {
 
 require_config 'resolver 127.0.0.11 valid=10s ipv6=off;'
 require_config 'resolver_timeout 5s;'
-require_config 'max_headers 200;'
+require_config 'max_headers 100;'
 require_config 'log_format showcase escape=json'
 require_config '$ssl_curve'
 require_config '$ssl_sigalg'
@@ -123,7 +123,7 @@ grep -Fq 'HTTP/1.1 200 OK' "$verification_root/http-response.txt"
 {
     printf 'GET /.well-known/assetlinks.json HTTP/1.1\r\nHost: commonex.ru\r\n'
     header_number=1
-    while [ "$header_number" -le 220 ]; do
+    while [ "$header_number" -le 120 ]; do
         printf 'X-Showcase-%s: value\r\n' "$header_number"
         header_number=$((header_number + 1))
     done
