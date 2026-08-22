@@ -423,7 +423,7 @@
 			repositoryURL = "https://github.com/getsentry/sentry-cocoa.git";
 			requirement = {
 				kind = exactVersion;
-				version = 8.57.3;
+				version = 8.58.2;
 			};
 		};
 		36F83F2F2F06914700B2B1C1 /* XCRemoteSwiftPackageReference "appmetrica-sdk-ios" */ = {
