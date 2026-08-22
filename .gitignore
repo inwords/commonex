@@ -3,3 +3,6 @@
 
 # Local agent signal backlog
 .agents/local/
+
+# Repository-local git worktrees
+.worktrees/
