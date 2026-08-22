@@ -65,7 +65,7 @@
     "@eslint/eslintrc": "3.3.6",
     "@eslint/js": "10.0.1",
     "@nestjs/cli": "11.0.24",
-    "@nestjs/schematics": "11.0.9",
+    "@nestjs/schematics": "11.1.0",
     "@nestjs/testing": "11.2.1",
     "@types/async-retry": "1.4.9",
     "@types/bcrypt": "6.0.0",
