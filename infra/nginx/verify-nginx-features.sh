@@ -2,11 +2,10 @@
 
 set -eu
 
-config_source="${1:?usage: verify-nginx-showcase.sh <nginx-config> <openssl-binary>}"
-openssl_binary="${2:?usage: verify-nginx-showcase.sh <nginx-config> <openssl-binary>}"
+config_source="${1:?usage: verify-nginx-features.sh <nginx-config> <openssl-binary>}"
+openssl_binary="${2:?usage: verify-nginx-features.sh <nginx-config> <openssl-binary>}"
 verification_root="$(mktemp -d)"
 verification_config="$verification_root/nginx.conf"
-access_log="$verification_root/access.log"
 nginx_started=0
 
 cleanup() {
@@ -32,7 +31,6 @@ sed -i \
     -e 's/otelcollector/localhost/g' \
     -e "s#/etc/nginx/ssl/live/commonex.ru/fullchain.pem#$verification_root/fullchain.pem#g" \
     -e "s#/etc/nginx/ssl/live/commonex.ru/privkey.pem#$verification_root/privkey.pem#g" \
-    -e "s#/var/log/nginx/access.log#$access_log#g" \
     -e "s#/var/www/assetlinks.json#$verification_root/assetlinks.json#g" \
     "$verification_config"
 
@@ -58,7 +56,7 @@ effective_config="$(nginx -T -c "$verification_config" 2>&1)"
 require_config() {
     expected="$1"
     if ! printf '%s\n' "$effective_config" | grep -Fq -- "$expected"; then
-        echo "nginx showcase verification: missing effective configuration: $expected" >&2
+        echo "nginx feature verification: missing effective configuration: $expected" >&2
         exit 1
     fi
 }
@@ -68,7 +66,7 @@ require_count() {
     pattern="$2"
     actual="$(printf '%s\n' "$effective_config" | grep -Ec -- "$pattern" || true)"
     if [ "$actual" -ne "$expected" ]; then
-        echo "nginx showcase verification: expected $expected matches for $pattern, found $actual" >&2
+        echo "nginx feature verification: expected $expected matches for $pattern, found $actual" >&2
         exit 1
     fi
 }
@@ -76,14 +74,6 @@ require_count() {
 require_config 'resolver 127.0.0.11 valid=10s ipv6=off;'
 require_config 'resolver_timeout 5s;'
 require_config 'max_headers 100;'
-require_config 'log_format showcase escape=json'
-require_config '$ssl_curve'
-require_config '$ssl_sigalg'
-require_config '$ssl_sigalgs'
-require_config '$ssl_early_data'
-require_config '$ssl_session_reused'
-require_config '$http3'
-require_config '$upstream_response_time'
 require_count 4 '^[[:space:]]*zone [^;]* 64k;'
 require_count 6 '^[[:space:]]*server .* resolve'
 require_count 2 '^[[:space:]]*least_time header inflight;'
@@ -150,11 +140,4 @@ while [ -e /var/run/nginx/nginx.pid ] && [ "$wait_number" -le 50 ]; do
 done
 nginx_started=0
 
-grep -Fq '"tls_protocol":"TLSv1.3"' "$access_log"
-grep -Fq '"tls_curve":"X25519MLKEM768"' "$access_log"
-grep -Fq '"tls_sigalg":"' "$access_log"
-grep -Fq '"tls_client_sigalgs":"' "$access_log"
-grep -Fq '"tls_early_data":"' "$access_log"
-grep -Fq '"tls_session_reused":"' "$access_log"
-
-echo 'nginx showcase verification: PASS'
+echo 'nginx feature verification: PASS'

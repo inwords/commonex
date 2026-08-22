@@ -19,7 +19,6 @@ and OpenTelemetry Collector for observability. Supports blue-green deployment fo
 - SSL/TLS termination with certificate compression (`ssl_certificate_compression on`)
 - Docker DNS re-resolution for replaceable Compose service containers
 - Latency-aware `least_time header inflight` balancing for blue-green backend traffic
-- Structured JSON access logs with upstream, HTTP/3, and TLS capability fields
 - A 100-request-header limit, validated during the image build
 - Build-time TLS 1.3 proof using the `X25519MLKEM768` post-quantum hybrid group
 - Security headers defined at `http` level and inherited via `add_header_inherit merge`
