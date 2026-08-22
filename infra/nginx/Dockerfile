@@ -159,15 +159,15 @@ RUN \
          | xargs -r apk info --installed \
          | sort -u > /tmp/nginx-runDeps.txt
 
-COPY nginx-prod.conf /tmp/nginx-showcase.conf
-COPY verify-nginx-showcase.sh /tmp/verify-nginx-showcase.sh
+COPY nginx-prod.conf /tmp/nginx-feature-verification.conf
+COPY verify-nginx-features.sh /tmp/verify-nginx-features.sh
 
 RUN \
-    sh /tmp/verify-nginx-showcase.sh \
-      /tmp/nginx-showcase.conf \
+    sh /tmp/verify-nginx-features.sh \
+      /tmp/nginx-feature-verification.conf \
       /usr/src/openssl-$OPENSSL_VERSION/apps/openssl \
     && rm -f /var/run/nginx/nginx.pid \
-    && rm /tmp/nginx-showcase.conf /tmp/verify-nginx-showcase.sh
+    && rm /tmp/nginx-feature-verification.conf /tmp/verify-nginx-features.sh
 
 FROM alpine:3.23
 ARG NGINX_VERSION
