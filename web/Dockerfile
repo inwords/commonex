@@ -15,7 +15,7 @@ ENV NODE_ENV=production
 RUN npm run build
 
 # Production stage with Nginx (unprivileged for security)
-FROM nginxinc/nginx-unprivileged:1.29.5-alpine3.23
+FROM nginxinc/nginx-unprivileged:1.31.4-alpine3.24
 
 # Install curl for health checks (as root, then switch back)
 USER root
