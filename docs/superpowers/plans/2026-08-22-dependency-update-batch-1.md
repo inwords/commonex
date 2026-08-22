@@ -85,6 +85,6 @@
 1. Verify the final manifest versions and user caps, confirm no unselected bundle was deliberately added, and inspect all commits/diffs from `origin/main`.
 2. Rerun Android host tests, backend lint/tests/build with disposable PostgreSQL, and web lint/build using fresh command output.
 3. Run dependency/outdated checks where practical to prove capped packages remain intentionally behind only their disallowed majors; inspect install/build output for new warnings.
-4. Produce a concise, project-relevant release-note summary with authoritative links, including migrations/features actually adopted and known baseline warnings that remain.
-5. Request final code review, address valid findings with targeted revalidation, and confirm the branch is clean except for the known unstaged `android/gradlew.bat` EOL artifact.
-6. Push `codex/dependency-update-batch-1` and open a draft PR whose title/body prominently identify **dependency update batch 1**, list validation evidence, caps, relevant release notes, and remaining baseline warnings.
+4. Produce a concise, project-relevant release-note summary and draft PR body in the task report with authoritative links, including migrations/features actually adopted and known baseline warnings that remain.
+5. Confirm the branch diff/status is ready for the controller's final whole-branch review, except for the known unstaged `android/gradlew.bat` EOL artifact. Do not push or create the PR from this task.
+6. After Task 4 review, the controller performs the required final whole-branch review, addresses findings, then pushes `codex/dependency-update-batch-1` and opens a draft PR whose title/body prominently identify **dependency update batch 1**.
