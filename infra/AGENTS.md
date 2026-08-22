@@ -17,7 +17,11 @@ and OpenTelemetry Collector for observability. Supports blue-green deployment fo
 - HTTP1.1, HTTP/2 and HTTP/3 (QUIC) support for clients; h2c to upstream backends
 - Brotli compression
 - SSL/TLS termination with certificate compression (`ssl_certificate_compression on`)
-- Upstream load balancing for backend services
+- Docker DNS re-resolution for replaceable Compose service containers
+- Latency-aware `least_time header inflight` balancing for blue-green backend traffic
+- Structured JSON access logs with upstream, HTTP/3, and TLS capability fields
+- A 200-request-header limit, validated during the image build
+- Build-time TLS 1.3 proof using the `X25519MLKEM768` post-quantum hybrid group
 - Security headers defined at `http` level and inherited via `add_header_inherit merge`
 
 ### OpenTelemetry Collector
@@ -115,6 +119,7 @@ docker compose -f infra/docker-compose-prod.yml ps
 ```bash
 docker compose -f infra/docker-compose-prod.yml config
 docker compose -f infra/docker-compose-prod.yml ps
+docker build --pull --tag commonex-nginx:validation infra/nginx
 ```
 
 For troubleshooting, see [`docs/troubleshooting.md`](docs/troubleshooting.md).
