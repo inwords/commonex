@@ -13,7 +13,11 @@
 - **Connection refused**: Check service is running and listening on correct port
 - **Host tests cannot reach DB**: `docker-compose-prod.yml` keeps DB on an internal network; temporarily publish
   `5432:5432` only for local test runs.
-- **DNS resolution**: Verify service names match `infra/docker-compose-prod.yml`
+- **Nginx Docker DNS re-resolution**: Compose-backed upstreams use Docker's `127.0.0.11` resolver, refresh names every
+  10 seconds, and time out DNS queries after 5 seconds. Verify service names match `infra/docker-compose-prod.yml`
+  and every `server ... resolve` entry remains inside an upstream with a shared `zone`. Inspect the effective runtime
+  configuration with `docker compose -f infra/docker-compose-prod.yml exec nginx nginx -T` and check Nginx error logs
+  for resolver failures.
 
 ## Logging Issues
 
