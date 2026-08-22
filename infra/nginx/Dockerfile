@@ -1,5 +1,5 @@
 # https://nginx.org/en/CHANGES
-ARG NGINX_VERSION=1.29.5
+ARG NGINX_VERSION=1.31.4
 
 # https://github.com/nginxinc/nginx-otel/releases
 ARG NGINX_OTEL_VERSION=0.1.2
@@ -8,7 +8,7 @@ ARG NGINX_OTEL_VERSION=0.1.2
 ARG NGX_BROTLI_COMMIT=a71f9312c2deb28875acc7bacfdd5695a111aa53
 
 # https://github.com/openssl/openssl/releases
-ARG OPENSSL_VERSION=3.6.1
+ARG OPENSSL_VERSION=3.6.3
 
 # NGINX UID / GID
 ARG NGINX_USER_UID=1000
