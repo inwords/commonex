@@ -44,7 +44,14 @@
 
 **Steps:**
 
-1. Apply bundles 21, 22, 24, 26, and 28-47 with exact approved targets from the design, keeping `@fastify/static` at 9.3.0 and coordinating OpenTelemetry, TypeScript ESLint, and Jest families.
+1. Apply bundles 21, 22, 24, 26, and 28-47 with these exact targets:
+   - `@fastify/static` 9.3.0; `fastify` 5.12.1; `@grpc/grpc-js` 1.14.4; `@grpc/proto-loader` 0.8.1.
+   - `@nestjs/cli` 11.0.24; `@nestjs/config` 4.0.4; `@nestjs/schedule` 6.1.3; `@nestjs/swagger` 11.4.7; `@nestjs/typeorm` 11.0.3.
+   - `@opentelemetry/api` 1.9.1; OTLP metric/trace exporters, instrumentation, and SDK Node 0.221.0; resources 2.10.0; auto-instrumentations-node 0.79.0.
+   - `@types/lodash` 4.17.25; `@types/node` 26.2.0; `@types/supertest` 7.2.1.
+   - TypeScript ESLint plugin/parser 8.67.0; `@eslint/eslintrc` 3.3.6; ESLint 10.9.0; eslint-plugin-prettier 5.5.6; globals 17.11.0.
+   - Jest 30.4.2; ts-jest 29.4.12; ts-loader 9.6.2; Axios 1.19.0; dotenv 17.4.2; pg 8.23.0; Prettier 3.9.6; Zod 4.4.3.
+   Keep OpenTelemetry, TypeScript ESLint, and Jest families coordinated.
 2. Refresh the lockfile with the repository package manager using CMD as npm's script shell on Windows; do not accept unrelated major upgrades.
 3. Inspect peer/deprecation/install warnings. Fix every warning newly introduced by this batch at its cause; distinguish documented baseline warnings.
 4. Run lint and build. Start a uniquely named disposable PostgreSQL 16 container on port 55432, run migrations, then run all Jest tests in-band with the documented test environment; stop the exact container afterward.
@@ -60,7 +67,7 @@
 
 **Steps:**
 
-1. Apply bundles 48-51, 54, 56-57, and 59 with MUI capped at 7.3.11 and MobX capped at 6.16.1; keep Next/eslint-config-next and React/react-dom aligned.
+1. Apply bundles 48-51, 54, 56-57, and 59 with these exact targets: `@mui/material` and `@mui/icons-material` 7.3.11; Next.js and eslint-config-next 16.3.2; React and React DOM 19.2.8; MobX 6.16.1 while retaining mobx-react-lite 4.1.1; react-router-dom 7.18.2; `@types/react` 19.2.18; `@types/react-dom` 19.2.4; `@types/node` 26.2.0; Prettier 3.9.6.
 2. Refresh the lockfile using CMD as npm's script shell on Windows.
 3. Run ESLint and the production Next.js build. Compare output with the documented baseline static-export rewrite warnings and fix every new warning.
 4. If production code must change, add a focused regression test only where an existing runner supports it; otherwise use the narrowest build/type/lint proof and document the limitation.
