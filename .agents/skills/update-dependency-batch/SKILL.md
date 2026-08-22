@@ -16,6 +16,8 @@ Research every proposed bundle against the repository before recommending it. Gi
 5. **Stop.** Do not edit version files until the user names bundle numbers in a follow-up message.
 6. Apply exactly the selected bundles and only their authorized changes, validate, then complete the release-note coverage audit.
 
+For cross-project or release-note-heavy batches, delegate independent research, application, or review tracks to subagents when ownership is separable. Keep the controller responsible for the selection gate, cross-project integration, release-note coverage audit, and final review.
+
 ## Proposal output
 
 Use one concise section per bundle; do not split a menu from the notes.

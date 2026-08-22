@@ -8,6 +8,9 @@
   `@opentelemetry/instrumentation-pg`,
   `@opentelemetry/instrumentation-nestjs-core`,
   `@opentelemetry/instrumentation-runtime-node`
+- The current instrumentation line emits stable HTTP and network semantic conventions only. Dashboards, alerts, and
+  queries must use stable attributes rather than legacy HTTP `v1.7.0`/duplicate outputs or gRPC `net.peer.name` and
+  `net.peer.port` attributes.
 - HTTP server metrics are produced by `src/frameworks/observability/fastify-http-metrics.plugin.ts`, registered in
   `src/main.ts` before Nest app creation.
 - `http.server.request.duration` histogram boundaries are configured via `NodeSDK` views in `src/otel.ts`
