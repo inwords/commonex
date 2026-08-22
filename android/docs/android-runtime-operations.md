@@ -37,6 +37,7 @@ Current production classification:
     - `environment = production | development`
     - `tracesSampleRate = 0.2` in production
     - `tracesSampleRate = 1.0` in non-production builds
+    - `enableUnhandledCppExceptionMonitoring = false`, so Apple C++ exceptions are not reported as generic unhandled native crashes
 - Android and iOS both use the same shared initialization function, so changes here affect both platforms unless platform-specific branching is added.
 
 ## AppMetrica

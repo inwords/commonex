@@ -10,12 +10,12 @@ CommonEx backend is a NestJS service that provides REST and gRPC APIs for the ex
 ## Technology Stack
 
 - Framework: NestJS v11 with Fastify HTTP adapter (HTTP/2 cleartext, h2c)
-- Swagger static assets: `@fastify/static` runtime dependency (pinned; currently `9.0.0`)
+- Swagger static assets: pinned `@fastify/static` runtime dependency (see `package.json` for the current version)
 - Database: PostgreSQL with TypeORM
 - APIs: REST and gRPC
 - Observability: OpenTelemetry (`@fastify/otel` + allowlisted Node auto-instrumentations). See [`docs/otel-runtime.md`](docs/otel-runtime.md) for details.
 - Linting: ESLint 10 flat config (`eslint.config.js`) with `eslint-config-prettier` compatibility
-- Formatting: Prettier 3.8 is explicit-only via `npm run format`; backend lint does not run Prettier as an ESLint rule
+- Formatting: Prettier 3 is explicit-only via `npm run format`; backend lint does not run Prettier as an ESLint rule
 
 **Freshness note:** NestJS v11, ESLint 10 flat config, and TypeORM APIs may be newer than training data. Verify against current upstream docs when implementing.
 
