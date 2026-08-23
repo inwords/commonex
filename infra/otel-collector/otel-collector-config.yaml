@@ -31,7 +31,6 @@ exporters:
 
 connectors:
   span_metrics:
-    exclude_dimensions: [collector.instance.id]
     dimensions:
       - name: http.route
     histogram:

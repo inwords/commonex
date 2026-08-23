@@ -42,7 +42,7 @@ ARG CONFIG="\
     --add-module=/usr/src/ngx_brotli \
 "
 
-FROM golang:1.25-alpine3.24 AS go-toolchain
+FROM golang:1.27-alpine3.24 AS go-toolchain
 
 FROM alpine:3.24 AS base
 
@@ -88,7 +88,7 @@ RUN \
 
 WORKDIR /usr/src/
 
-RUN go version | grep -Eq '^go version go1\.25(\.| )'
+RUN go version | grep -Eq '^go version go1\.27(\.| )'
 
 RUN \
     echo "Cloning nginx $NGINX_VERSION ..." \
