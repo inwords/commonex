@@ -39,6 +39,11 @@ connectors:
 
 extensions:
   health_check:
+    http:
+      endpoint: 127.0.0.1:13133
+      status:
+        enabled: true
+        path: /
 
 service:
   extensions: [ health_check ]
