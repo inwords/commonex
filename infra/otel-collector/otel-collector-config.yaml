@@ -6,6 +6,7 @@ receivers:
 
   docker_stats:
     endpoint: unix:///var/run/docker.sock
+    stream_stats: true
     collection_interval: 5s
     timeout: 5s
     api_version: "1.45"
