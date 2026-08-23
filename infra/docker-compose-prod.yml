@@ -1,6 +1,6 @@
 services:
   db:
-    image: postgres:17-alpine3.23
+    image: postgres:17-alpine3.24
     deploy:
       resources:
         limits:
