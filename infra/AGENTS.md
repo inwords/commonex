@@ -29,7 +29,6 @@ and OpenTelemetry Collector for observability. Supports blue-green deployment fo
 - Configured via `otel-collector-config.yaml`
 - Exports to VictoriaMetrics via OTLP HTTP (`/opentelemetry/v1/metrics`) with cumulative temporality
 - Runs `memory_limiter` before `batch` with `GOMEMLIMIT=150MiB` under the 200 MB container limit
-- Excludes `collector.instance.id` from span metrics because the deployment has one Collector instance
 - Uses the legacy-semantics health endpoint locally at `127.0.0.1:13133` for its Compose health check
 - `deltatocumulative` is not currently configured; add it only if an upstream source starts emitting delta metrics
 
