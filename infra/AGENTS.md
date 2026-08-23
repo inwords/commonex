@@ -65,7 +65,7 @@ docker compose -f infra/docker-compose-prod.yml ps
 3. Remove temporary DB port publishing after tests to keep production topology unchanged.
 4. Quick local Postgres option:
    ```bash
-   docker run --name commonex-postgres-test -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=postgres -p 5432:5432 -d postgres:17-alpine3.23
+   docker run --name commonex-postgres-test -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=postgres -p 5432:5432 -d postgres:17-alpine3.24
    docker rm -f commonex-postgres-test  # cleanup
    ```
 

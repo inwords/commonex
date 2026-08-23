@@ -1,5 +1,5 @@
 # Stage 1: Builder
-FROM golang:1.25-alpine3.23 AS builder
+FROM golang:1.25-alpine3.24 AS builder
 
 ARG OTEL_VERSION=0.148.0
 
@@ -15,7 +15,7 @@ COPY manifest.yaml .
 RUN CGO_ENABLED=0 builder --config=manifest.yaml
 
 # Stage 2: Final Image
-FROM alpine:3.23
+FROM alpine:3.24
 
 WORKDIR /
 

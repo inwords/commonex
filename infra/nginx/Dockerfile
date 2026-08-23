@@ -42,7 +42,12 @@ ARG CONFIG="\
     --add-module=/usr/src/ngx_brotli \
 "
 
-FROM alpine:3.23 AS base
+FROM golang:1.25-alpine3.24 AS go-toolchain
+
+FROM alpine:3.24 AS base
+
+COPY --from=go-toolchain /usr/local/go /usr/local/go
+ENV PATH="/usr/local/go/bin:${PATH}" GOTOOLCHAIN=local
 
 ARG NGINX_VERSION
 ARG NGINX_OTEL_VERSION
@@ -57,7 +62,6 @@ RUN \
         gcc \
         gd-dev \
         gnupg \
-        go \
         libc-dev \
         linux-headers \
         make \
@@ -83,6 +87,8 @@ RUN \
    && git config --global init.defaultBranch master
 
 WORKDIR /usr/src/
+
+RUN go version | grep -Eq '^go version go1\.25(\.| )'
 
 RUN \
     echo "Cloning nginx $NGINX_VERSION ..." \
@@ -169,7 +175,7 @@ RUN \
     && rm -f /var/run/nginx/nginx.pid \
     && rm /tmp/nginx-feature-verification.conf /tmp/verify-nginx-features.sh
 
-FROM alpine:3.23
+FROM alpine:3.24
 ARG NGINX_VERSION
 ARG NGINX_USER_UID
 ARG NGINX_GROUP_GID
