@@ -29,7 +29,9 @@ and OpenTelemetry Collector for observability. Supports blue-green deployment fo
 - Configured via `otel-collector-config.yaml`
 - Exports to VictoriaMetrics via OTLP HTTP (`/opentelemetry/v1/metrics`) with cumulative temporality
 - Runs `memory_limiter` before `batch` with `GOMEMLIMIT=150MiB` under the 200 MB container limit
-- Uses the legacy-semantics health endpoint locally at `127.0.0.1:13133` for its Compose health check
+- Uses a component-status-aware health endpoint locally at `127.0.0.1:13133` for its Compose health check, enabled by
+  `extension.healthcheck.useComponentStatus`. Its result depends on components reporting status, so an exporter retry
+  does not necessarily make the endpoint unhealthy.
 - `deltatocumulative` is not currently configured; add it only if an upstream source starts emitting delta metrics
 
 ### Docker Compose
@@ -108,7 +110,8 @@ docker compose -f infra/docker-compose-prod.yml ps
 
 - Nginx monitors upstream health
 - Backend services expose `/health` endpoints
-- The OpenTelemetry Collector health check probes `http://127.0.0.1:13133/` inside its container
+- The OpenTelemetry Collector health check probes `http://127.0.0.1:13133/` inside its container using component status
+  reporting; health remains dependent on the statuses components report.
 
 ### Blue-Green Deployment
 

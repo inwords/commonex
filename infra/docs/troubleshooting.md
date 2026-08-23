@@ -39,7 +39,9 @@
     - check panel/query window (`$__rate_interval`, step/min-interval), especially for `rate(...)` queries
 - **Collector rejects telemetry under memory pressure**: `memory_limiter` refusals are retryable, but telemetry can be lost
   if senders exhaust their retries. Check Collector memory/refusal metrics and downstream exporter health.
-- **Collector health**: Probe `http://127.0.0.1:13133/` from inside the Collector container.
+- **Collector health**: Probe `http://127.0.0.1:13133/` from inside the Collector container. The endpoint uses component
+  status reporting, so its result depends on components emitting status; an exporter retry alone does not necessarily make
+  it unhealthy.
 
 ## Resource Issues
 
