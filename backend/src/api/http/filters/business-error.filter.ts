@@ -4,6 +4,7 @@ import {
   CurrencyNotFoundError,
   CurrencyRateNotFoundError,
   EventDeletedError,
+  EventMutationConflictError,
   EventNotFoundError,
   IdempotencyHashMismatchError,
   InconsistentExchangedAmountError,
@@ -15,6 +16,7 @@ import {
 type BusinessError =
   | EventNotFoundError
   | EventDeletedError
+  | EventMutationConflictError
   | InvalidPinCodeError
   | InvalidTokenError
   | TokenExpiredError
@@ -26,6 +28,7 @@ type BusinessError =
 @Catch(
   EventNotFoundError,
   EventDeletedError,
+  EventMutationConflictError,
   InvalidPinCodeError,
   InvalidTokenError,
   TokenExpiredError,

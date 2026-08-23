@@ -2,6 +2,8 @@ import {RelationalDataService} from '#frameworks/relational-data-service/postgre
 import {appDbConfig} from '#frameworks/relational-data-service/postgres/config';
 import {IEvent} from '#domain/entities/event.entity';
 import {IQueryDetails} from '#domain/abstracts/relational-data-service/types';
+import {EventMutationConflictError} from '#domain/errors/errors';
+import {EntityManager, QueryFailedError} from 'typeorm';
 
 describe('EventRepository', () => {
   let relationalDataService: RelationalDataService;
@@ -101,6 +103,98 @@ describe('EventRepository', () => {
 
       expect(result.result).toMatchObject(event);
       expect(result.queryDetails).toMatchSnapshot();
+    });
+
+    it('should report a domain conflict when an event row cannot be locked immediately', async () => {
+      const event = {
+        id: 'event-1',
+        name: 'Test Event',
+        currencyId: 'currency-1',
+        pinCode: '1234',
+        createdAt: new Date('2023-01-01T00:00:00Z'),
+        updatedAt: new Date('2023-01-01T00:00:00Z'),
+        deletedAt: null,
+      };
+
+      await relationalDataService.event.insert(event);
+
+      let notifyLockAcquired!: () => void;
+      const lockAcquired = new Promise<void>((resolve) => {
+        notifyLockAcquired = resolve;
+      });
+      let releaseLock!: () => void;
+      const lockRelease = new Promise<void>((resolve) => {
+        releaseLock = resolve;
+      });
+
+      const lockHolder = relationalDataService.transaction(async (ctx) => {
+        await relationalDataService.event.findById('event-1', {ctx, lock: 'pessimistic_write'});
+        notifyLockAcquired();
+        await lockRelease;
+      });
+
+      await lockAcquired;
+
+      try {
+        await expect(
+          relationalDataService.transaction((ctx) =>
+            relationalDataService.event.findById('event-1', {
+              ctx,
+              lock: 'pessimistic_write',
+              onLocked: 'nowait',
+            }),
+          ),
+        ).rejects.toBeInstanceOf(EventMutationConflictError);
+      } finally {
+        releaseLock();
+        await lockHolder;
+      }
+    });
+
+    it('should preserve lock timeout errors when nowait was not requested', async () => {
+      const event = {
+        id: 'event-1',
+        name: 'Test Event',
+        currencyId: 'currency-1',
+        pinCode: '1234',
+        createdAt: new Date('2023-01-01T00:00:00Z'),
+        updatedAt: new Date('2023-01-01T00:00:00Z'),
+        deletedAt: null,
+      };
+
+      await relationalDataService.event.insert(event);
+
+      let notifyLockAcquired!: () => void;
+      const lockAcquired = new Promise<void>((resolve) => {
+        notifyLockAcquired = resolve;
+      });
+      let releaseLock!: () => void;
+      const lockRelease = new Promise<void>((resolve) => {
+        releaseLock = resolve;
+      });
+
+      const lockHolder = relationalDataService.transaction(async (ctx) => {
+        await relationalDataService.event.findById('event-1', {ctx, lock: 'pessimistic_write'});
+        notifyLockAcquired();
+        await lockRelease;
+      });
+
+      await lockAcquired;
+
+      try {
+        await expect(
+          relationalDataService.transaction(async (ctx) => {
+            await (ctx as EntityManager).query("SET LOCAL lock_timeout = '1ms'");
+            return relationalDataService.event.findById('event-1', {
+              ctx,
+              lock: 'pessimistic_write',
+            });
+          }),
+        ).rejects.toBeInstanceOf(QueryFailedError);
+      } finally {
+        releaseLock();
+        await lockHolder;
+      }
     });
   });
 
