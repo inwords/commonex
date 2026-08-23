@@ -23,7 +23,7 @@ WORKDIR /
 COPY --from=builder /build/otelcol-custom .
 COPY otel-collector-config.yaml /etc/otel-collector-config.yaml
 
-RUN /otelcol-custom validate --config=/etc/otel-collector-config.yaml
+RUN /otelcol-custom validate --config=/etc/otel-collector-config.yaml --feature-gates=+extension.healthcheck.useComponentStatus
 
 # Expose necessary ports
 EXPOSE 4317/tcp
