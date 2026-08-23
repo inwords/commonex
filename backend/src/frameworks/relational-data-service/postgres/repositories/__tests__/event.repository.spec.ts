@@ -2,7 +2,7 @@ import {RelationalDataService} from '#frameworks/relational-data-service/postgre
 import {appDbConfig} from '#frameworks/relational-data-service/postgres/config';
 import {IEvent} from '#domain/entities/event.entity';
 import {IQueryDetails} from '#domain/abstracts/relational-data-service/types';
-import {EventMutationConflictError} from '#domain/errors/errors';
+import {EventOperationConflictError} from '#domain/errors/errors';
 import {EntityManager, QueryFailedError} from 'typeorm';
 
 describe('EventRepository', () => {
@@ -144,7 +144,7 @@ describe('EventRepository', () => {
               onLocked: 'nowait',
             }),
           ),
-        ).rejects.toBeInstanceOf(EventMutationConflictError);
+        ).rejects.toBeInstanceOf(EventOperationConflictError);
       } finally {
         releaseLock();
         await lockHolder;
