@@ -57,6 +57,13 @@ export class InconsistentExchangedAmountError {
   readonly httpCode = HttpStatus.BAD_REQUEST;
 }
 
+export class EventMutationConflictError {
+  readonly name = 'EventMutationConflictError' as const;
+  readonly code = ErrorCode.EVENT_MUTATION_CONFLICT;
+  readonly message = 'Event is being modified by another request';
+  readonly httpCode = HttpStatus.CONFLICT;
+}
+
 export class IdempotencyHashMismatchError {
   readonly name = 'IdempotencyHashMismatchError' as const;
   readonly code = ErrorCode.IDEMPOTENCY_HASH_MISMATCH;
