@@ -142,7 +142,7 @@ services:
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
-    command: [ "--config=/etc/otel-collector-config.yaml" ]
+    command: [ "--config=/etc/otel-collector-config.yaml", "--feature-gates=+extension.healthcheck.useComponentStatus" ]
     environment:
       - GOMEMLIMIT=150MiB
     healthcheck:
