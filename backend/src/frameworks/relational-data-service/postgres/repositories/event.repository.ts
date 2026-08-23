@@ -4,7 +4,7 @@ import {DataSource, EntityManager, QueryFailedError, Repository} from 'typeorm';
 import {IEvent} from '#domain/entities/event.entity';
 import {IQueryDetails} from '#domain/abstracts/relational-data-service/types';
 import {EventEntity} from '#frameworks/relational-data-service/postgres/entities/event.entity';
-import {EventMutationConflictError} from '#domain/errors/errors';
+import {EventOperationConflictError} from '#domain/errors/errors';
 
 const POSTGRES_LOCK_NOT_AVAILABLE_ERROR_CODE = '55P03';
 
@@ -50,7 +50,7 @@ export class EventRepository extends BaseRepository implements EventRepositoryAb
         exception instanceof QueryFailedError &&
         (exception.driverError as Error & {code?: string}).code === POSTGRES_LOCK_NOT_AVAILABLE_ERROR_CODE
       ) {
-        throw new EventMutationConflictError();
+        throw new EventOperationConflictError();
       }
 
       throw exception;

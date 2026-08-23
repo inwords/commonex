@@ -192,5 +192,5 @@ This document defines core domain terms and the primary sources of truth for the
 - B4008 INVALID_TOKEN
 - B4009 TOKEN_EXPIRED
 - B4010 INCONSISTENT_EXCHANGED_AMOUNT
-- B4015 EVENT_MUTATION_CONFLICT
+- B4015 EVENT_OPERATION_CONFLICT
 - See `backend/src/domain/errors/` for full mapping and HTTP status codes.

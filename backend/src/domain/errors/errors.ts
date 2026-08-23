@@ -57,10 +57,10 @@ export class InconsistentExchangedAmountError {
   readonly httpCode = HttpStatus.BAD_REQUEST;
 }
 
-export class EventMutationConflictError {
-  readonly name = 'EventMutationConflictError' as const;
-  readonly code = ErrorCode.EVENT_MUTATION_CONFLICT;
-  readonly message = 'Event is being modified by another request';
+export class EventOperationConflictError {
+  readonly name = 'EventOperationConflictError' as const;
+  readonly code = ErrorCode.EVENT_OPERATION_CONFLICT;
+  readonly message = 'Another operation is in progress for this event';
   readonly httpCode = HttpStatus.CONFLICT;
 }
 
