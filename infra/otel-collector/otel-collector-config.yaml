@@ -11,22 +11,27 @@ receivers:
     api_version: "1.45"
 
 processors:
+  memory_limiter:
+    check_interval: 1s
+    limit_percentage: 70
+    spike_limit_percentage: 15
   batch:
 
 exporters:
-  otlphttp/victoriametrics:
+  otlp_http/victoriametrics:
     compression: gzip
     encoding: proto
     metrics_endpoint: http://victoriametrics:8428/opentelemetry/v1/metrics
     tls:
       insecure: true
-  otlp/victoriatraces:
+  otlp_grpc/victoriatraces:
     endpoint: victoriatraces:4317
     tls:
       insecure: true
 
 connectors:
-  spanmetrics:
+  span_metrics:
+    exclude_dimensions: [collector.instance.id]
     dimensions:
       - name: http.route
     histogram:
@@ -40,10 +45,10 @@ service:
   extensions: [ health_check ]
   pipelines:
     metrics:
-      receivers: [ otlp, docker_stats, spanmetrics ]
-      processors: [ batch ]
-      exporters: [ otlphttp/victoriametrics ]
+      receivers: [ otlp, docker_stats, span_metrics ]
+      processors: [ memory_limiter, batch ]
+      exporters: [ otlp_http/victoriametrics ]
     traces:
       receivers: [ otlp ]
-      processors: [ batch ]
-      exporters: [ otlp/victoriatraces, spanmetrics ]
+      processors: [ memory_limiter, batch ]
+      exporters: [ otlp_grpc/victoriatraces, span_metrics ]

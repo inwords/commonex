@@ -143,6 +143,14 @@ services:
     security_opt:
       - no-new-privileges:true
     command: [ "--config=/etc/otel-collector-config.yaml" ]
+    environment:
+      - GOMEMLIMIT=150MiB
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:13133/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
