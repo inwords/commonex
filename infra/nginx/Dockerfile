@@ -42,12 +42,7 @@ ARG CONFIG="\
     --add-module=/usr/src/ngx_brotli \
 "
 
-FROM golang:1.27-alpine3.24 AS go-toolchain
-
 FROM alpine:3.24 AS base
-
-COPY --from=go-toolchain /usr/local/go /usr/local/go
-ENV PATH="/usr/local/go/bin:${PATH}" GOTOOLCHAIN=local
 
 ARG NGINX_VERSION
 ARG NGINX_OTEL_VERSION
@@ -87,8 +82,6 @@ RUN \
    && git config --global init.defaultBranch master
 
 WORKDIR /usr/src/
-
-RUN go version | grep -Eq '^go version go1\.27(\.| )'
 
 RUN \
     echo "Cloning nginx $NGINX_VERSION ..." \
