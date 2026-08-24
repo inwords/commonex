@@ -154,7 +154,7 @@ jobs:
           working-directory: ./android
           script: echo "Generated AVD snapshot for caching."
 
-      - name: Run UI tests with Marathon and AppFunctions tests
+      - name: Run UI tests with Marathon
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: ${{ env.API_LEVEL }}
@@ -168,9 +168,7 @@ jobs:
           disable-animations: true
           disable-spellchecker: true
           working-directory: ./android
-          script: |
-            marathon
-            ./gradlew :shared:integration:base:connectedAndroidDeviceTest --no-daemon --continue
+          script: marathon
 
       - name: Upload Android test reports
         if: always()
@@ -179,6 +177,61 @@ jobs:
           name: android-test-reports
           path: |
             ${{ github.workspace }}/android/build/reports/marathon/
+
+  appfunctions_tests_android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: 22
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v5
+
+      - name: Accept Android SDK licenses
+        run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
+
+      - name: Run AppFunctions tests on API 36
+        uses: reactivecircus/android-emulator-runner@v2
+        env:
+          CI: true
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+        with:
+          api-level: 36
+          target: default
+          arch: x86_64
+          profile: pixel_6
+          cores: 4
+          ram-size: 8G
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          disable-spellchecker: true
+          working-directory: ./android
+          script: |
+            ./gradlew :app:connectedAutotestAndroidTest -Dcom.android.tools.r8.disableApiModeling=true -Pandroid.testInstrumentationRunnerArguments.class=ru.commonex.AppFunctionRegistrationTest --no-daemon --continue
+            ./gradlew :shared:integration:base:connectedAndroidDeviceTest --no-daemon --continue
+
+      - name: Upload AppFunctions test reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: appfunctions-test-reports
+          path: |
+            ${{ github.workspace }}/android/app/build/reports/androidTests/
             ${{ github.workspace }}/android/shared/integration/base/build/reports/
             ${{ github.workspace }}/android/shared/integration/base/build/outputs/androidTest-results/
 

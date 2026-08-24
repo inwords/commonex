@@ -31,7 +31,13 @@ Detailed testing strategy, architecture, and patterns for the Android/KMM projec
 
 - For `shared:integration:base` AppFunctions tests, run `./gradlew --quiet :shared:integration:base:connectedAndroidDeviceTest`.
 - This module's `androidDeviceTest` source set uses `io.mockk:mockk-android` and `execution = "HOST"` because orchestrator-based discovery did not report results correctly for this module.
-- This path was validated on both API 35 and API 36 emulators in-session.
+- The AppFunctions suite runs on API 36 because its generated service extends the API 36 platform
+  `android.app.appfunctions.AppFunctionService` class.
+- CI keeps this suite in a dedicated API 36 job so the broader Marathon UI suite can retain its API 35 ATD coverage.
+- AppFunctions business behavior is exercised through the KSP-generated `CommonExAppFunctionService`, so the suite
+  also guards the service-entry-point generation and current context-free method signatures.
+- The app-level `AppFunctionRegistrationTest` separately verifies that the generated service, binding permission,
+  intent filter, v2 schema asset property, and global app metadata are present in the installed package.
 
 ## Instrumented Test Architecture
 

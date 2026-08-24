@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">CommonEx</string>
+    <string name="app_functions_display_description">Manage expense-sharing events, participants, expenses, and debts</string>
 </resources>

@@ -4,12 +4,11 @@ import androidx.appfunctions.AppFunctionSerializable
 
 /**
  * Result returned after adding a participant to an event.
- *
- * @property event The updated event summary.
- * @property participantName The participant that was added.
  */
 @AppFunctionSerializable(isDescribedByKDoc = true)
 internal data class AppFunctionParticipantMutation(
+    /** The updated event summary. */
     val event: AppFunctionEvent,
+    /** The participant that was added. */
     val participantName: String,
 )

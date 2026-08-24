@@ -1,6 +1,5 @@
 package com.inwords.expenses.integration.base.appfunctions
 
-import androidx.appfunctions.AppFunctionContext
 import androidx.appfunctions.AppFunctionElementAlreadyExistsException
 import androidx.appfunctions.AppFunctionElementNotFoundException
 import androidx.appfunctions.AppFunctionInvalidArgumentException
@@ -40,8 +39,7 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 internal class CommonExAppFunctionsTest {
 
-    private lateinit var appFunctions: CommonExAppFunctions
-    private lateinit var appFunctionContext: AppFunctionContext
+    private lateinit var appFunctions: CommonExAppFunctionService
 
     private lateinit var eventsComponent: EventsComponent
     private lateinit var expensesComponent: ExpensesComponent
@@ -56,8 +54,7 @@ internal class CommonExAppFunctionsTest {
 
     @Before
     fun setup() {
-        appFunctions = CommonExAppFunctions()
-        appFunctionContext = mockk(relaxed = true)
+        appFunctions = CommonExAppFunctionService()
 
         eventsComponent = mockk(relaxed = true)
         expensesComponent = mockk(relaxed = true)
@@ -97,7 +94,7 @@ internal class CommonExAppFunctionsTest {
             )
         )
 
-        val result = appFunctions.listCurrencies(appFunctionContext)
+        val result = appFunctions.listCurrencies()
 
         assertEquals(listOf("EUR", "USD"), result.map { currency -> currency.code })
         assertEquals(listOf("Euro", "Dollar"), result.map { currency -> currency.name })
@@ -127,7 +124,6 @@ internal class CommonExAppFunctionsTest {
         } returns createdEventDetails
 
         val result = appFunctions.createEvent(
-            appFunctionContext = appFunctionContext,
             name = "Weekend Trip",
             primaryCurrencyCode = "eur",
             ownerName = "Vasya",
@@ -151,7 +147,6 @@ internal class CommonExAppFunctionsTest {
     fun createEvent_shouldRejectBlankOwnerName() = runBlocking {
         try {
             appFunctions.createEvent(
-                appFunctionContext = appFunctionContext,
                 name = "Weekend Trip",
                 primaryCurrencyCode = "EUR",
                 ownerName = "   ",
@@ -173,7 +168,6 @@ internal class CommonExAppFunctionsTest {
 
         try {
             appFunctions.createEvent(
-                appFunctionContext = appFunctionContext,
                 name = "Weekend Trip",
                 primaryCurrencyCode = "GBP",
                 ownerName = "Vasya",
@@ -213,7 +207,7 @@ internal class CommonExAppFunctionsTest {
             primaryCurrency = currency,
         )
 
-        val result = appFunctions.listEvents(appFunctionContext)
+        val result = appFunctions.listEvents()
 
         assertEquals(2, result.size)
         assertEquals("Trip", result[0].name)
@@ -228,7 +222,7 @@ internal class CommonExAppFunctionsTest {
     fun listEvents_shouldReturnEmptyListWhenNoEventsExist() = runBlocking {
         every { getEventsUseCase.getEvents() } returns flowOf(emptyList())
 
-        val result = appFunctions.listEvents(appFunctionContext)
+        val result = appFunctions.listEvents()
 
         assertTrue(result.isEmpty())
     }
@@ -240,7 +234,7 @@ internal class CommonExAppFunctionsTest {
         every { eventsLocalStore.getEventsFlow() } returns flowOf(listOf(trip1, trip2))
 
         try {
-            appFunctions.addParticipant(appFunctionContext, "Trip", "Alice")
+            appFunctions.addParticipant("Trip", "Alice")
             fail("Expected AppFunctionInvalidArgumentException to be thrown.")
         } catch (exception: AppFunctionInvalidArgumentException) {
             assertTrue(exception.message!!.contains("Multiple events named 'Trip' exist"))
@@ -253,7 +247,7 @@ internal class CommonExAppFunctionsTest {
         every { eventsLocalStore.getEventsFlow() } returns flowOf(emptyList())
 
         try {
-            appFunctions.addParticipant(appFunctionContext, "Unknown Event", "Alice")
+            appFunctions.addParticipant("Unknown Event", "Alice")
             fail("Expected AppFunctionElementNotFoundException to be thrown.")
         } catch (exception: AppFunctionElementNotFoundException) {
             assertEquals("Event 'Unknown Event' was not found.", exception.message)
@@ -274,7 +268,7 @@ internal class CommonExAppFunctionsTest {
         coEvery { eventsLocalStore.getEventWithDetails(1) } returns eventDetails
         coEvery { eventsLocalStore.insertPersonsWithCrossRefs(any(), any(), any()) } returns mockk()
 
-        val result = appFunctions.addParticipant(appFunctionContext, "Trip", "Alice")
+        val result = appFunctions.addParticipant("Trip", "Alice")
 
         assertEquals("Trip", result.event.name)
         assertEquals(1, result.event.participantCount)
@@ -305,7 +299,7 @@ internal class CommonExAppFunctionsTest {
         coEvery { eventsLocalStore.getEventWithDetails(1) } returns eventDetails
 
         try {
-            appFunctions.addParticipant(appFunctionContext, "Trip", "alice")
+            appFunctions.addParticipant("Trip", "alice")
             fail("Expected AppFunctionElementAlreadyExistsException to be thrown.")
         } catch (exception: AppFunctionElementAlreadyExistsException) {
             assertEquals(
@@ -332,7 +326,7 @@ internal class CommonExAppFunctionsTest {
         coEvery { eventsLocalStore.getEventWithDetails(1) } returns eventDetails
         every { getExpensesUseCase.getExpensesFlow(1) } returns flowOf(emptyList())
 
-        val result = appFunctions.getDebts(appFunctionContext, "Trip")
+        val result = appFunctions.getDebts("Trip")
 
         assertTrue(result.isEmpty())
     }
@@ -369,7 +363,7 @@ internal class CommonExAppFunctionsTest {
         coEvery { eventsLocalStore.getEventWithDetails(1) } returns eventDetails
         every { getExpensesUseCase.getExpensesFlow(1) } returns flowOf(listOf(expense))
 
-        val result = appFunctions.getDebts(appFunctionContext, "Trip")
+        val result = appFunctions.getDebts("Trip")
 
         assertEquals(1, result.size)
         assertEquals("Bob", result[0].debtorName)
@@ -383,7 +377,7 @@ internal class CommonExAppFunctionsTest {
         every { eventsLocalStore.getEventsFlow() } returns flowOf(emptyList())
 
         try {
-            appFunctions.getDebts(appFunctionContext, "Unknown Event")
+            appFunctions.getDebts("Unknown Event")
             fail("Expected AppFunctionElementNotFoundException to be thrown.")
         } catch (exception: AppFunctionElementNotFoundException) {
             assertEquals("Event 'Unknown Event' was not found.", exception.message)
@@ -406,7 +400,6 @@ internal class CommonExAppFunctionsTest {
         coEvery { eventsLocalStore.getEventWithDetails(1) } returns eventDetails
 
         val result = appFunctions.addExpense(
-            appFunctionContext = appFunctionContext,
             eventName = "Trip",
             amount = "20.00",
             description = "Dinner",
@@ -437,7 +430,6 @@ internal class CommonExAppFunctionsTest {
     fun addExpense_shouldRejectBlankAmount() = runBlocking {
         try {
             appFunctions.addExpense(
-                appFunctionContext = appFunctionContext,
                 eventName = "Trip",
                 amount = "   ",
                 description = "Dinner",
@@ -453,7 +445,6 @@ internal class CommonExAppFunctionsTest {
     fun addExpense_shouldRejectInvalidAmountFormat() = runBlocking {
         try {
             appFunctions.addExpense(
-                appFunctionContext = appFunctionContext,
                 eventName = "Trip",
                 amount = "not-a-number",
                 description = "Dinner",
@@ -472,7 +463,6 @@ internal class CommonExAppFunctionsTest {
     fun addExpense_shouldRejectZeroAmount() = runBlocking {
         try {
             appFunctions.addExpense(
-                appFunctionContext = appFunctionContext,
                 eventName = "Trip",
                 amount = "0",
                 description = "Dinner",
@@ -491,7 +481,6 @@ internal class CommonExAppFunctionsTest {
     fun addExpense_shouldRejectNegativeAmount() = runBlocking {
         try {
             appFunctions.addExpense(
-                appFunctionContext = appFunctionContext,
                 eventName = "Trip",
                 amount = "-10.50",
                 description = "Dinner",
@@ -523,7 +512,6 @@ internal class CommonExAppFunctionsTest {
         coEvery { eventsLocalStore.getEventWithDetails(1) } returns eventDetails
 
         val result = appFunctions.addExpense(
-            appFunctionContext = appFunctionContext,
             eventName = "Trip",
             amount = "10.00",
             description = "Split three ways",
@@ -551,7 +539,6 @@ internal class CommonExAppFunctionsTest {
 
         try {
             appFunctions.addExpense(
-                appFunctionContext = appFunctionContext,
                 eventName = "Unknown Event",
                 amount = "10.00",
                 description = "Dinner",
@@ -580,7 +567,6 @@ internal class CommonExAppFunctionsTest {
 
         try {
             appFunctions.addExpense(
-                appFunctionContext = appFunctionContext,
                 eventName = "Trip",
                 amount = "10.00",
                 description = "Dinner",
@@ -612,7 +598,6 @@ internal class CommonExAppFunctionsTest {
 
         try {
             appFunctions.addExpense(
-                appFunctionContext = appFunctionContext,
                 eventName = "Trip",
                 amount = "10.00",
                 description = "Dinner",

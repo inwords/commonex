@@ -3,21 +3,16 @@ package ru.commonex
 import android.app.Application
 import android.os.StrictMode
 import android.util.Log
-import androidx.appfunctions.service.AppFunctionConfiguration
 import androidx.work.Configuration
 import com.inwords.expenses.core.analytics.AppMetricaAndroidBridge
 import com.inwords.expenses.core.analytics.initializeAppMetrica
 import com.inwords.expenses.core.utils.IO
-import com.inwords.expenses.integration.base.appfunctions.createAppFunctionConfiguration
 import com.inwords.expenses.integration.base.enableSync
 import com.inwords.expenses.integration.base.initializeSentry
 import com.inwords.expenses.integration.base.registerComponents
 import kotlinx.coroutines.asExecutor
 
-class App : Application(), Configuration.Provider, AppFunctionConfiguration.Provider {
-
-    override val appFunctionConfiguration: AppFunctionConfiguration
-        get() = createAppFunctionConfiguration()
+class App : Application(), Configuration.Provider {
 
     private val production = !BuildConfig.DEBUG && BuildConfig.BUILD_TYPE != "autotest"
 

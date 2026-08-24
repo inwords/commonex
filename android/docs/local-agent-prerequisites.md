@@ -37,8 +37,9 @@ For future agent runs (Codex, Claude, or similar) on this repo:
 
 ## API and System Image (for device/emulator runs)
 
-- For **instrumented tests** or **managed devices**: API level is set in CI (see `.github/workflows/android.yml`: `API_LEVEL`, AVD target `aosp_atd`, profile `pixel_6`). Locally, use an emulator or device at an API level compatible with the app (see
-  `app/build.gradle.kts` for min/target SDK).
+- For **instrumented tests** or **managed devices**: CI runs the Marathon UI suite on API 35 with the `aosp_atd`
+  image and AppFunctions tests separately on API 36 with the default AOSP image. Locally, use an emulator or device at
+  an API level compatible with the tested feature (see `app/build.gradle.kts` for min/target SDK).
 - For **Marathon**: a device or emulator must be running; `adb devices` should list at least one device.
 
 ## iOS Local Prerequisites

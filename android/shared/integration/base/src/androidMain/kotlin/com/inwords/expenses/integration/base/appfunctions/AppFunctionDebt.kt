@@ -4,16 +4,15 @@ import androidx.appfunctions.AppFunctionSerializable
 
 /**
  * A single net debt line for an event.
- *
- * @property debtorName The participant who owes money.
- * @property creditorName The participant who should receive money.
- * @property amount The debt amount in decimal string form.
- * @property currencyCode The currency code of the debt amount.
  */
 @AppFunctionSerializable(isDescribedByKDoc = true)
 internal data class AppFunctionDebt(
+    /** The participant who owes money. */
     val debtorName: String,
+    /** The participant who should receive money. */
     val creditorName: String,
+    /** The debt amount in decimal string form. */
     val amount: String,
+    /** The currency code of the debt amount. */
     val currencyCode: String,
 )
