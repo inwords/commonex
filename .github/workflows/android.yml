@@ -84,7 +84,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
-      API_LEVEL: 35
+      API_LEVEL: 36
       AVD_TARGET: aosp_atd
       AVD_ARCH: x86_64
       AVD_PROFILE: pixel_6
@@ -160,6 +160,9 @@ jobs:
 
       - name: Run UI tests with Marathon and AppFunctions tests
         uses: reactivecircus/android-emulator-runner@v2
+        env:
+          CI: true
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
         with:
           api-level: ${{ env.API_LEVEL }}
           target: ${{ env.AVD_TARGET }}
@@ -174,6 +177,7 @@ jobs:
           working-directory: ./android
           script: |
             marathon
+            ./gradlew :app:connectedAutotestAndroidTest -Dcom.android.tools.r8.disableApiModeling=true -Pandroid.testInstrumentationRunnerArguments.class=ru.commonex.AppFunctionRegistrationTest --no-daemon --continue
             ./gradlew :shared:integration:base:connectedAndroidDeviceTest --no-daemon --continue
 
       - name: Upload Android test reports
@@ -183,6 +187,7 @@ jobs:
           name: android-test-reports
           path: |
             ${{ github.workspace }}/android/build/reports/marathon/
+            ${{ github.workspace }}/android/app/build/reports/androidTests/
             ${{ github.workspace }}/android/shared/integration/base/build/reports/
             ${{ github.workspace }}/android/shared/integration/base/build/outputs/androidTest-results/
 

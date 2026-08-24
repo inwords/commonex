@@ -67,9 +67,13 @@ kotlin {
             }
         }
         androidMain {
+            // The AppFunctions compiler emits the service schema as a KSP resource; the KMP Android target does not
+            // package KSP resources on its own.
+            resources.srcDir(
+                files(layout.buildDirectory.dir("generated/ksp/android/androidMain/resources")).builtBy("kspAndroidMain"),
+            )
             dependencies {
                 implementation(shared.androidx.appfunctions)
-                implementation(shared.androidx.appfunctions.service)
                 implementation(shared.ionspin.kotlin.bignum)
                 // guava: required by kotlinx-coroutines-guava (transitive from appfunctions) for MoreExecutors/Uninterruptibles
                 implementation(shared.guava)

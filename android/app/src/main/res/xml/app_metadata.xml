@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AppFunctionAppMetadata xmlns:appfn="http://schemas.android.com/apk/androidx.appfunctions"
+    appfn:description="CommonEx provides functions for local expense-sharing events. Call listCurrencies before createEvent when the primary currency code is unknown. Use listEvents to resolve an exact event name before reading debts or adding participants and expenses. Expenses use the event primary currency and split equally among all current participants."
+    appfn:displayDescription="@string/app_functions_display_description" />

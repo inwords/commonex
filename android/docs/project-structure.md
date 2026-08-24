@@ -54,7 +54,7 @@ gradle/                       # Version catalogs and properties
 
 - **Main Activity:** `app/src/main/kotlin/ru/commonex/ui/MainActivity.kt`
 - **App Application:** `app/src/main/kotlin/ru/commonex/App.kt`
-- **Android AppFunctions entry point:** `shared/integration/base/src/androidMain/kotlin/com/inwords/expenses/integration/base/appfunctions/CommonExAppFunctions.kt`
+- **Android AppFunctions entry point:** `shared/integration/base/src/androidMain/kotlin/com/inwords/expenses/integration/base/appfunctions/BaseCommonExAppFunctionService.kt`
 - **iOS App:** `iosApp/iosApp/iOSApp.swift`
 - **Manifest:** `app/src/main/AndroidManifest.xml` (includes deep linking config)
 - **R8 app rules:** `app/src/main/keepRules/commonex.keep`

@@ -37,8 +37,9 @@ For future agent runs (Codex, Claude, or similar) on this repo:
 
 ## API and System Image (for device/emulator runs)
 
-- For **instrumented tests** or **managed devices**: API level is set in CI (see `.github/workflows/android.yml`: `API_LEVEL`, AVD target `aosp_atd`, profile `pixel_6`). Locally, use an emulator or device at an API level compatible with the app (see
-  `app/build.gradle.kts` for min/target SDK).
+- For **instrumented tests** or **managed devices**: CI runs the Marathon UI suite and the AppFunctions device tests
+  on one API 36 `aosp_atd` emulator (see `.github/workflows/android.yml`: `API_LEVEL`, `AVD_TARGET`, profile
+  `pixel_6`). Locally, use an emulator or device at the same API level (see `app/build.gradle.kts` for min/target SDK).
 - For **Marathon**: a device or emulator must be running; `adb devices` should list at least one device.
 
 ## iOS Local Prerequisites
@@ -59,7 +60,7 @@ For future agent runs (Codex, Claude, or similar) on this repo:
 |---------------------------|---------------------------------------------------------------------------------------------------------------------------------|
 | **No device**             | Fast local gate only: `assembleDebug`, `testHostTest`, `lintDebug`. Sufficient for most code-only changes.                      |
 | **Device or emulator**    | Instrumented tests (`connectedAutotestAndroidTest`), Room/device tests, or when validating on a real device.                    |
-| **Gradle Managed Device** | Local runs without a pre-started emulator; e.g. `:app:pixel6Api35AtdAutotestAndroidTest`. Requires compatible SDK/system image. |
+| **Gradle Managed Device** | Local runs without a pre-started emulator; e.g. `:app:pixel6Api36AtdAutotestAndroidTest`. Requires compatible SDK/system image. |
 | **Marathon**              | Multi-device, sharded, retried instrumented runs; CI uses Marathon. Local use requires the Marathon distribution (see below).   |
 
 Do not run instrumented or Marathon flows by default; use them only when the task explicitly requires device/emulator behavior (e.g. UI E2E, deeplinks, Room on device).

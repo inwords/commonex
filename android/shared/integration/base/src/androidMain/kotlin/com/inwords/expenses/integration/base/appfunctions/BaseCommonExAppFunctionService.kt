@@ -1,11 +1,14 @@
 package com.inwords.expenses.integration.base.appfunctions
 
+import androidx.annotation.RequiresApi
+import androidx.appfunctions.AppFunction
 import androidx.appfunctions.AppFunctionAppUnknownException
-import androidx.appfunctions.AppFunctionContext
 import androidx.appfunctions.AppFunctionElementAlreadyExistsException
 import androidx.appfunctions.AppFunctionElementNotFoundException
+import androidx.appfunctions.AppFunctionInstruction
 import androidx.appfunctions.AppFunctionInvalidArgumentException
-import androidx.appfunctions.service.AppFunction
+import androidx.appfunctions.AppFunctionService
+import androidx.appfunctions.AppFunctionServiceEntryPoint
 import com.inwords.expenses.core.locator.ComponentsMap
 import com.inwords.expenses.core.locator.getComponent
 import com.inwords.expenses.core.utils.IO
@@ -25,7 +28,12 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 
-internal class CommonExAppFunctions {
+@RequiresApi(36)
+@AppFunctionServiceEntryPoint(
+    serviceName = "CommonExAppFunctionService",
+    appFunctionXmlFileName = "commonex_app_function_service",
+)
+abstract class BaseCommonExAppFunctionService : AppFunctionService() {
 
     private val eventsComponent: EventsComponent
         get() = ComponentsMap.getComponent()
@@ -39,7 +47,8 @@ internal class CommonExAppFunctions {
      * @return All available currencies, sorted by currency code.
      */
     @AppFunction(isDescribedByKDoc = true)
-    suspend fun listCurrencies(@Suppress("unused") appFunctionContext: AppFunctionContext): List<AppFunctionCurrency> = withContext(IO) {
+    @AppFunctionInstruction("Lists supported currency codes for createEvent.")
+    internal suspend fun listCurrencies(): List<AppFunctionCurrency> = withContext(IO) {
         loadAvailableCurrencies().map { currency ->
             currency.toAppFunctionCurrency()
         }
@@ -56,8 +65,10 @@ internal class CommonExAppFunctions {
      * @throws AppFunctionElementNotFoundException If the requested currency is unavailable.
      */
     @AppFunction(isDescribedByKDoc = true)
-    suspend fun createEvent(
-        @Suppress("unused") appFunctionContext: AppFunctionContext,
+    @AppFunctionInstruction(
+        "Creates an expense-sharing event. Required workflow: call listCurrencies first when the primary currency code is unknown.",
+    )
+    internal suspend fun createEvent(
         name: String,
         primaryCurrencyCode: String,
         ownerName: String,
@@ -82,7 +93,8 @@ internal class CommonExAppFunctions {
      * @return All local events with participant counts and primary currency codes when available.
      */
     @AppFunction(isDescribedByKDoc = true)
-    suspend fun listEvents(@Suppress("unused") appFunctionContext: AppFunctionContext): List<AppFunctionEvent> = withContext(IO) {
+    @AppFunctionInstruction("Lists local expense-sharing events and the details needed to select an event by name.")
+    internal suspend fun listEvents(): List<AppFunctionEvent> = withContext(IO) {
         val events = eventsComponent.getEventsUseCaseLazy.value.getEvents().first()
         coroutineScope {
             events.map { event ->
@@ -103,8 +115,8 @@ internal class CommonExAppFunctions {
      * @throws AppFunctionElementNotFoundException If the event is missing.
      */
     @AppFunction(isDescribedByKDoc = true)
-    suspend fun getDebts(
-        @Suppress("unused") appFunctionContext: AppFunctionContext,
+    @AppFunctionInstruction("Calculates net debts for one uniquely named local event.")
+    internal suspend fun getDebts(
         eventName: String,
     ): List<AppFunctionDebt> = withContext(IO) {
         val eventDetails = findEventDetailsByName(eventName)
@@ -137,8 +149,8 @@ internal class CommonExAppFunctions {
      * @throws AppFunctionElementAlreadyExistsException If the participant already exists in the event.
      */
     @AppFunction(isDescribedByKDoc = true)
-    suspend fun addParticipant(
-        @Suppress("unused") appFunctionContext: AppFunctionContext,
+    @AppFunctionInstruction("Adds one uniquely named participant to one uniquely named local event.")
+    internal suspend fun addParticipant(
         eventName: String,
         participantName: String,
     ): AppFunctionParticipantMutation = withContext(IO) {
@@ -183,8 +195,10 @@ internal class CommonExAppFunctions {
      * @throws AppFunctionElementNotFoundException If the event or payer cannot be found.
      */
     @AppFunction(isDescribedByKDoc = true)
-    suspend fun addExpense(
-        @Suppress("unused") appFunctionContext: AppFunctionContext,
+    @AppFunctionInstruction(
+        "Adds a positive expense in the event primary currency and splits it equally among all current participants.",
+    )
+    internal suspend fun addExpense(
         eventName: String,
         amount: String,
         description: String,

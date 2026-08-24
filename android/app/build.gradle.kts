@@ -86,9 +86,9 @@ android {
         @Suppress("UnstableApiUsage")
         managedDevices {
             allDevices {
-                create<ManagedVirtualDevice>("pixel6Api35Atd") {
+                create<ManagedVirtualDevice>("pixel6Api36Atd") {
                     device = "Pixel 6"
-                    apiLevel = 35
+                    apiLevel = 36
                     systemImageSource = "aosp-atd"
                     testedAbi = "x86_64"
                 }
@@ -117,8 +117,6 @@ dependencies {
 
     // network
     implementation(shared.cronet.bundled)
-
-    implementation(shared.androidx.appfunctions.service)
 
     // compose
     val composeBom = platform(shared.compose.bom)

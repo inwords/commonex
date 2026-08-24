@@ -213,7 +213,6 @@ HSPLandroidx/activity/result/ActivityResultRegistry$Companion;-><init>()V
 HSPLandroidx/activity/result/ActivityResultRegistry$Companion;-><init>(Lkotlin/jvm/internal/DefaultConstructorMarker;)V
 Landroidx/activity/result/ActivityResultRegistryOwner;
 PLandroidx/appfunctions/internal/AppSearchUtilsKt$$ExternalSyntheticLambda0;-><init>()V
-Landroidx/appfunctions/service/AppFunctionConfiguration$Provider;
 Landroidx/arch/core/executor/ArchTaskExecutor;
 HSPLandroidx/arch/core/executor/ArchTaskExecutor;-><clinit>()V
 HSPLandroidx/arch/core/executor/ArchTaskExecutor;-><init>()V

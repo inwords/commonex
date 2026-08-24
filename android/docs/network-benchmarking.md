@@ -29,13 +29,13 @@ Compile the benchmark:
 Validate once on the managed device without collecting measurements:
 
 ```powershell
-.\gradlew --quiet :benchmarks:network:pixel6Api35AtdReleaseAndroidTest "-Pandroid.testInstrumentationRunnerArguments.androidx.benchmark.dryRunMode.enable=true"
+.\gradlew --quiet :benchmarks:network:pixel6Api36AtdReleaseAndroidTest "-Pandroid.testInstrumentationRunnerArguments.androidx.benchmark.dryRunMode.enable=true"
 ```
 
 Collect provisional managed-emulator measurements:
 
 ```powershell
-.\gradlew --quiet --rerun-tasks :benchmarks:network:pixel6Api35AtdReleaseAndroidTest "-Pandroid.testInstrumentationRunnerArguments.androidx.benchmark.suppressErrors=EMULATOR,UNLOCKED" "-Pandroid.testInstrumentationRunnerArguments.androidx.benchmark.profiling.mode=None"
+.\gradlew --quiet --rerun-tasks :benchmarks:network:pixel6Api36AtdReleaseAndroidTest "-Pandroid.testInstrumentationRunnerArguments.androidx.benchmark.suppressErrors=EMULATOR,UNLOCKED" "-Pandroid.testInstrumentationRunnerArguments.androidx.benchmark.profiling.mode=None"
 ```
 
 Collect decision-grade measurements on a connected physical device without suppressions:
