@@ -919,6 +919,39 @@ internal class AddExpenseViewModelTest {
     }
 
     @Test
+    fun `should disable replenishment save when its only subject is deselected`() = testScope.runTest {
+        val replenishmentDestination = AddExpensePaneDestination.Replenishment(
+            fromPersonId = TestFixtures.person2.id,
+            toPersonId = TestFixtures.person3.id,
+            currencyCode = TestFixtures.EUR.code,
+            amount = "7.5"
+        )
+        currentEventFlow.value = TestFixtures.eventDetails
+        val viewModel = createViewModel(replenishmentDestination)
+        runCurrent()
+
+        viewModel.state.test {
+            awaitLoading()
+            awaitSuccess()
+
+            viewModel.onSubjectPersonClicked(
+                PersonInfoUiModel(TestFixtures.person3.id, TestFixtures.person3.name, true)
+            )
+            runCurrent()
+
+            val updated = awaitSuccess()
+            assertEquals(0, updated.split.size)
+            assertFalse(updated.canSave)
+
+            viewModel.onEqualSplitChange(true)
+            val equalSplit = awaitSuccess()
+            assertTrue(equalSplit.subjectPersons.none { it.selected })
+            assertFalse(equalSplit.canSave)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
     fun `should indicate save capability based on equal split amount entry`() = testScope.runTest {
         // Given
         currentEventFlow.value = TestFixtures.eventDetails
@@ -1291,6 +1324,27 @@ internal class AddExpenseViewModelTest {
             awaitErrorState()
 
             expectNoEvents()
+        }
+    }
+
+    @Test
+    fun `should disable replenishment save when restored subject is missing`() = testScope.runTest {
+        val replenishmentDestination = AddExpensePaneDestination.Replenishment(
+            fromPersonId = TestFixtures.person1.id,
+            toPersonId = 888L,
+            currencyCode = TestFixtures.USD.code,
+            amount = "10"
+        )
+        currentEventFlow.value = TestFixtures.eventDetails
+        val viewModel = createViewModel(replenishmentDestination)
+        runCurrent()
+
+        viewModel.state.test {
+            awaitLoading()
+            val uiModel = awaitSuccess()
+            assertEquals(0, uiModel.split.size)
+            assertFalse(uiModel.canSave)
+            cancelAndIgnoreRemainingEvents()
         }
     }
 

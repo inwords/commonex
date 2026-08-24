@@ -197,15 +197,17 @@ internal class AddExpenseViewModel(
             split = inputSplit ?: if (replenishment == null) {
                 emptyList()
             } else {
-                listOf(
-                    ExpenseSplitWithPersonModel(
-                        person = subjectPersons.first { it.selected },
-                        amount = AmountModel(
-                            amount = replenishment.amount.toBigDecimalOrNull(),
-                            amountRaw = replenishment.amount
+                subjectPersons.firstOrNull { it.selected }?.let { selectedPerson ->
+                    listOf(
+                        ExpenseSplitWithPersonModel(
+                            person = selectedPerson,
+                            amount = AmountModel(
+                                amount = replenishment.amount.toBigDecimalOrNull(),
+                                amountRaw = replenishment.amount
+                            )
                         )
                     )
-                )
+                } ?: emptyList()
             },
             subjectPersons = subjectPersons
         )
@@ -232,6 +234,7 @@ internal class AddExpenseViewModel(
                 equalSplit = inputEqualSplit,
                 wholeAmount = inputWholeAmount,
                 split = split,
+                hasSelectedSubject = subjectPersons.any { it.selected },
                 exchangeRate = exchangeRate,
             )
         )
@@ -463,6 +466,7 @@ internal class AddExpenseViewModel(
         equalSplit: Boolean,
         wholeAmount: AmountModel,
         split: List<ExpenseSplitWithPersonModel>,
+        hasSelectedSubject: Boolean,
         exchangeRate: AddExpenseScreenModel.ExchangeRateModel?,
     ): Boolean {
         val hasValidAmount = if (equalSplit) {
@@ -471,7 +475,7 @@ internal class AddExpenseViewModel(
             split.isNotEmpty() && split.all { it.amount.amount != null }
         }
         val hasValidExchangeRate = exchangeRate?.isValid ?: true
-        return hasValidAmount && hasValidExchangeRate
+        return hasSelectedSubject && hasValidAmount && hasValidExchangeRate
     }
 
 }
