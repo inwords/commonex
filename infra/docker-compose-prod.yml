@@ -179,7 +179,7 @@ services:
       - monitoring-network
 
   victoriatraces:
-    image: victoriametrics/victoria-traces:v0.10.0
+    image: victoriametrics/victoria-traces:v0.11.0
     container_name: victoriatraces
     deploy:
       resources:
