@@ -7,11 +7,11 @@ Detailed testing strategy, architecture, and patterns for the Android/KMM projec
 - **Unit tests:** JUnit 6 for host/JVM tests
 - **Instrumented tests (non-UI):** Android Tests with JUnit 6
 - **Instrumented tests (Compose UI E2E tests):** Android Tests with JUnit 4 and Marathon. Prefer Marathon over `:app:connectedAutotestAndroidTest` for local UI-test validation because it matches the retried/sharded runner used in CI. Use `connectedAutotestAndroidTest` only for narrow targeted debugging when Marathon is unavailable or would be unnecessary overhead. Run against the real backend; avoid mocks and hardcoded remote fixtures by creating required data in-test.
-- **Device fallback for targeted UI validation:** If `:app:connectedAutotestAndroidTest` is blocked by `No connected devices!`, use the managed-device path `:app:pixel6Api35AtdAutotestAndroidTest` for the same targeted test before reporting completion.
+- **Device fallback for targeted UI validation:** If `:app:connectedAutotestAndroidTest` is blocked by `No connected devices!`, use the managed-device path `:app:pixel6Api36AtdAutotestAndroidTest` for the same targeted test before reporting completion.
 - **Completion bar for UI work:** If you change Compose UI behavior or add/edit instrumented UI flows, do not report completion from compile/host tests alone. Run at least one relevant instrumented UI path and report the exact command and scope that were validated.
 - **Deterministic expense timestamps in instrumented tests:** To pin creation time when driving the real add-expense flow, use `com.inwords.expenses.feature.expenses.domain.ExpenseTimeBackdoor.overrideForTests(Instant?)` in a try/finally reset to `null`. Add-expense use cases read this for persisted `timestamp`; referencing a non-existent helper type breaks `:app:compileAutotestAndroidTestKotlin`.
 - **Room tests:** use `androidx.room:room-testing`/`MigrationTestHelper` for migration validation only (example `MigrationTest.kt` in `androidDeviceTest` source set).
-- **Device testing:** Managed devices configured in `pixel6Api35*` tasks
+- **Device testing:** Managed devices configured in `pixel6Api36*` tasks
 - **Marathon runner:** Cross-platform test runner for CI with retries and sharding
 
 ## KMM Library Host Tests
@@ -29,9 +29,16 @@ Detailed testing strategy, architecture, and patterns for the Android/KMM projec
 
 ## KMM Library Device Tests
 
-- For `shared:integration:base` AppFunctions tests, run `./gradlew --quiet :shared:integration:base:connectedAndroidDeviceTest`.
-- This module's `androidDeviceTest` source set uses `io.mockk:mockk-android` and `execution = "HOST"` because orchestrator-based discovery did not report results correctly for this module.
-- This path was validated on both API 35 and API 36 emulators in-session.
+- AppFunctions business behavior: `./gradlew --quiet :shared:integration:base:connectedAndroidDeviceTest`. The suite
+  calls the KSP-generated `CommonExAppFunctionService`, so it also guards entry-point generation and the context-free
+  method signatures.
+- AppFunctions registration (generated service, binding permission, intent filter, v2 schema asset property, app
+  metadata): `./gradlew --quiet :app:connectedAutotestAndroidTest "-Dcom.android.tools.r8.disableApiModeling=true" "-Pandroid.testInstrumentationRunnerArguments.class=ru.commonex.AppFunctionRegistrationTest"`.
+- Both need an API 36 device because the generated service extends the API 36 platform
+  `android.app.appfunctions.AppFunctionService`; the CI emulator is described in
+  [`local-agent-prerequisites.md`](local-agent-prerequisites.md#api-and-system-image-for-deviceemulator-runs).
+- The `shared:integration:base` `androidDeviceTest` source set uses `io.mockk:mockk-android` and `execution = "HOST"`
+  because orchestrator-based discovery did not report results correctly for this module.
 
 ## Instrumented Test Architecture
 

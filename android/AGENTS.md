@@ -74,8 +74,8 @@ On Windows use `.\gradlew` and `;` instead of `&&`; quote `-D` properties.
 ./gradlew --quiet connectedAndroidDeviceTest   # includes Room tests
 
 # Managed devices (no booted emulator needed)
-./gradlew --quiet :app:pixel6Api35AtdAutotestAndroidTest "-Dcom.android.tools.r8.disableApiModeling=true"
-./gradlew --quiet :app:pixel6Api35AtdAndroidDeviceTest
+./gradlew --quiet :app:pixel6Api36AtdAutotestAndroidTest "-Dcom.android.tools.r8.disableApiModeling=true"
+./gradlew --quiet :app:pixel6Api36AtdAndroidDeviceTest
 
 # Code coverage (Kover)
 ./gradlew --quiet testHostTest :app:test -Pkover koverHtmlReport koverXmlReport

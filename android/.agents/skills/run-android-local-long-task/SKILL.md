@@ -61,7 +61,7 @@ Use only when the task explicitly involves device/emulator behavior, UI E2E, or 
 1. `./gradlew --quiet assembleAutotest` and `./gradlew --quiet :app:assembleAutotestAndroidTest`
 2. Then one of:
     - Connected device/emulator: `./gradlew --quiet :app:connectedAutotestAndroidTest "-Dcom.android.tools.r8.disableApiModeling=true"`
-    - Managed device: `./gradlew --quiet :app:pixel6Api35AtdAutotestAndroidTest "-Dcom.android.tools.r8.disableApiModeling=true"`
+    - Managed device: `./gradlew --quiet :app:pixel6Api36AtdAutotestAndroidTest "-Dcom.android.tools.r8.disableApiModeling=true"`
     - Marathon: see `android/marathon/README.md` (requires local `marathon/` distribution)
 
 PowerShell: use `.\gradlew` and quote `-D...` properties. If Gradle misparses, use `cmd /c "..."` for that command.
