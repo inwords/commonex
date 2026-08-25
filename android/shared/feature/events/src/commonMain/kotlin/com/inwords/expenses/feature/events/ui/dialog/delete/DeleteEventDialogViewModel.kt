@@ -10,10 +10,12 @@ import com.inwords.expenses.feature.events.domain.DeleteEventUseCase.DeleteEvent
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
+@OptIn(DelicateCoroutinesApi::class)
 internal class DeleteEventDialogViewModel(
     private val navigationController: NavigationController,
     private val eventDeletionStateManager: EventDeletionStateManager,

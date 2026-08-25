@@ -24,6 +24,7 @@ import expenses.shared.feature.menu.generated.resources.Res
 import expenses.shared.feature.menu.generated.resources.menu_share_fallback_message
 import expenses.shared.feature.menu.generated.resources.menu_share_secure_message
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -35,6 +36,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+@OptIn(FlowPreview::class)
 internal class MenuViewModel(
     private val navigationController: NavigationController,
     getCurrentEventStateUseCase: GetCurrentEventStateUseCase,

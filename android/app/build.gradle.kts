@@ -54,20 +54,22 @@ android {
             isShrinkResources = false
         }
         release {
-            isMinifyEnabled = true
-            isShrinkResources = true
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            optimization {
+                enable = true
+            }
             signingConfig = if (System.getenv("CI") == "true" && System.getenv("FORCE_DEBUG_SIGNATURE") != "true") {
                 signingConfigs.getByName("release")
             } else {
                 signingConfigs.getByName("debug")
             }
         }
-        @Suppress("UNUSED")
-        val autotest by creating {
+        create("autotest") {
             initWith(getByName("release"))
+            optimization {
+                enable = false
+            }
+            isMinifyEnabled = true
             isShrinkResources = false
-            proguardFile("proguard-rules-autotest.pro")
             testProguardFile("proguard-test-rules.pro")
             signingConfig = signingConfigs.getByName("debug")
             matchingFallbacks += listOf("release")

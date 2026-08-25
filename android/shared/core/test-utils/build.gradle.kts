@@ -8,10 +8,6 @@ kotlin {
     android {
         namespace = "com.inwords.expenses.core.testutils"
 
-        @Suppress("UnstableApiUsage")
-        optimization {
-            consumerKeepRules.files.add(file("consumer-rules.pro"))
-        }
     }
 
     applyKmmDefaults("sharedCoreTestUtils")

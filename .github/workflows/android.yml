@@ -42,13 +42,20 @@ jobs:
         run: echo $KEYSTORE_JKS_BASE64 | base64 --decode > ./app/keystore.jks
 
       - name: Build :app with Gradle
-        run: ./gradlew testHostTest :app:test :app:assembleDebug :app:assembleRelease :app:bundleRelease -Pkover koverHtmlReport koverXmlReport --no-daemon --no-configuration-cache --continue
+        run: ./gradlew testHostTest :app:test :app:assembleDebug :app:assembleRelease :app:bundleRelease -Pkover koverHtmlReport koverXmlReport --no-daemon --continue
         env:
           CI: true
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+
+      - name: Upload R8 Configuration Analyzer report
+        uses: actions/upload-artifact@v7
+        with:
+          name: R8 Configuration Analyzer Report
+          path: ${{ github.workspace }}/android/app/build/outputs/mapping/release/configanalyzer.html
+          if-no-files-found: error
 
       - name: Upload Kover coverage reports
         uses: actions/upload-artifact@v7
@@ -112,7 +119,6 @@ jobs:
           :app:assembleAutotestAndroidTest
           -Dcom.android.tools.r8.disableApiModeling
           --no-daemon
-          --no-configuration-cache
           --continue
 
       - name: Install Marathon CLI
@@ -164,7 +170,7 @@ jobs:
           working-directory: ./android
           script: |
             marathon
-            ./gradlew :shared:integration:base:connectedAndroidDeviceTest --no-daemon --no-configuration-cache --continue
+            ./gradlew :shared:integration:base:connectedAndroidDeviceTest --no-daemon --continue
 
       - name: Upload Android test reports
         if: always()

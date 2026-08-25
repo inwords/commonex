@@ -11,11 +11,6 @@ kotlin {
     android {
         namespace = "com.inwords.expenses.feature.menu"
 
-        @Suppress("UnstableApiUsage")
-        optimization {
-            consumerKeepRules.files.add(file("consumer-rules.pro"))
-        }
-
         experimentalProperties["android.experimental.kmp.enableAndroidResources"] = true
 
         withHostTest {}
