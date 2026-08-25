@@ -8,11 +8,6 @@ kotlin {
     android {
         namespace = "com.inwords.expenses.feature.sync"
 
-        @Suppress("UnstableApiUsage")
-        optimization {
-            consumerKeepRules.files.add(file("consumer-rules.pro"))
-        }
-
         withHostTest {}
     }
 

@@ -10,11 +10,6 @@ kotlin {
     android {
         namespace = "com.inwords.expenses.feature.share"
 
-        @Suppress("UnstableApiUsage")
-        optimization {
-            consumerKeepRules.files.add(file("consumer-rules.pro"))
-        }
-
         experimentalProperties["android.experimental.kmp.enableAndroidResources"] = true
     }
 

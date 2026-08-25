@@ -4,17 +4,16 @@
 
 ### Expected Warnings (safe to ignore)
 
-- `WARNING: The option setting 'android.r8.optimizedResourceShrinking=true' is experimental`
 - `Calculating task graph as configuration cache cannot be reused because file 'gradle\buildSrc.versions.toml' has changed`
 - Cronet namespace warnings in manifest merger
 - Redundant visibility modifier warnings from generated Room code
 - Native library stripping warnings for specific .so files
 - `OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes` during unit tests
-- `Parallel Configuration Cache is an incubating feature` warnings
+- Isolated Projects incubating-feature notices from Gradle
 
 ### Build Process Notes
 
-- Configuration cache is enabled and may show "incubating feature" warnings
+- Configuration cache and Isolated Projects are enabled; project configuration may run in parallel
 - First build after clean takes ~28 seconds
 - Incremental builds are much faster due to Gradle caching
 - KSP generates code for Room DAOs and may show redundant modifier warnings
@@ -32,7 +31,7 @@
 
 - **Clean builds solve most KSP issues:** `./gradlew --quiet clean`
 - **Memory problems:** Check JVM args in gradle.properties (currently set to 2GB)
-- **Parallel build issues:** Parallel execution enabled, may cause race conditions
+- **Isolated Projects issues:** Run `./gradlew --quiet help --isolated-projects -Dorg.gradle.isolated-projects.diagnostics=true` to collect constraint violations
 - **Configuration cache:** Can be cleared by deleting `.gradle/configuration-cache/`
 
 ## Runtime Issues
@@ -47,7 +46,7 @@
 ## Performance Debugging
 
 - **Baseline profiles:** Generated in `baselineprofile/` module for startup optimization
-- **R8 optimization:** Check `app/proguard-rules.pro` for keep rules
+- **R8 optimization:** Check `app/src/main/keepRules/` and run `./gradlew --quiet :app:analyzeReleaseR8Config`; the standalone report is written to `app/build/reports/r8/r8-config-analyzer-release.html`
 - **Build times:** First build ~28s, incremental much faster with Gradle cache
 
 ## Known TODOs and Technical Debt

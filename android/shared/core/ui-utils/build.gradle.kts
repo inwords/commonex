@@ -10,10 +10,6 @@ kotlin {
     android {
         namespace = "com.inwords.expenses.core.ui.utils"
 
-        @Suppress("UnstableApiUsage")
-        optimization {
-            consumerKeepRules.files.add(file("consumer-rules.pro"))
-        }
     }
 
     applyKmmDefaults("sharedCoreUiUtils")

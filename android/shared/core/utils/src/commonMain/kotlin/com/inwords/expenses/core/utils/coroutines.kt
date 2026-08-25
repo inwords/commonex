@@ -19,7 +19,6 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import kotlin.experimental.ExperimentalTypeInference
 import kotlin.time.Duration
 
 val UI: MainCoroutineDispatcher get() = Dispatchers.Main.immediate
@@ -79,9 +78,9 @@ fun <T> Flow<T>.shareInWhileSubscribed(
     )
 }
 
-@OptIn(ExperimentalCoroutinesApi::class, ExperimentalTypeInference::class)
+@OptIn(ExperimentalCoroutinesApi::class)
 inline fun <T, R> Flow<T>.flatMapLatestNoBuffer(
-    @BuilderInference crossinline transform: suspend (value: T) -> Flow<R>
+    crossinline transform: suspend (value: T) -> Flow<R>
 ): Flow<R> {
     return this.flatMapLatest(transform)
         .buffer(0)

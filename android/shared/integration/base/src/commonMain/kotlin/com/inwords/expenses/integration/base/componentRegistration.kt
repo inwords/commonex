@@ -44,11 +44,11 @@ internal fun registerCommonComponents(
             shareComponent = shareComponent,
         )
     ) {
-        lateinit var syncComponent: Lazy<SyncComponent>
+        var syncComponent: Lazy<SyncComponent>? = null
 
         val eventsComponent = buildEventsComponent(
             platformDeps = platformDeps,
-            syncComponentProvider = { syncComponent },
+            syncComponentProvider = { checkNotNull(syncComponent) },
         )
 
         val expensesComponent = buildExpensesComponent(
@@ -59,11 +59,12 @@ internal fun registerCommonComponents(
             eventsComponent = eventsComponent,
         )
 
-        syncComponent = buildSyncComponent(
+        val initializedSyncComponent = buildSyncComponent(
             platformDeps = platformDeps,
             eventsComponent = eventsComponent,
             expensesComponent = expensesComponent,
         )
+        syncComponent = initializedSyncComponent
 
         ComponentsMap.registerComponent<SettingsComponent>(settingsComponent)
         ComponentsMap.registerComponent<DatabasesComponent>(dbComponent)
@@ -71,7 +72,7 @@ internal fun registerCommonComponents(
         ComponentsMap.registerComponent<EventsComponent>(eventsComponent)
         ComponentsMap.registerComponent<ExpensesComponent>(expensesComponent)
         ComponentsMap.registerComponent<MenuComponent>(menuComponent)
-        ComponentsMap.registerComponent<SyncComponent>(syncComponent)
+        ComponentsMap.registerComponent<SyncComponent>(initializedSyncComponent)
         ComponentsMap.registerComponent<ShareComponent>(shareComponent)
     }
 }

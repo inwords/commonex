@@ -55,9 +55,9 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.plus
+import kotlin.coroutines.ContinuationInterceptor
 import kotlin.time.Duration.Companion.milliseconds
 
-@OptIn(ExperimentalStdlibApi::class)
 internal class ExpensesViewModel(
     private val navigationController: NavigationController,
     private val getCurrentEventStateUseCase: GetCurrentEventStateUseCase,
@@ -167,7 +167,7 @@ internal class ExpensesViewModel(
 
         flowOf(SimpleScreenState.Success(timelineData))
     }
-        .flowOn(viewModelScope.coroutineContext[CoroutineDispatcher] ?: IO)
+        .flowOn(viewModelScope.coroutineContext[ContinuationInterceptor] ?: IO)
         .combine(selectedDayKey) { state, selected ->
             if (state !is SimpleScreenState.Success) return@combine state
 

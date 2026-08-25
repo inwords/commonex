@@ -42,7 +42,7 @@ gradle/                       # Version catalogs and properties
 - `gradle/shared.versions.toml` - Shared dependency versions
 - `gradle/buildSrc.versions.toml` - Build plugin versions
 - `buildSrc/src/main/kotlin/` - Custom Gradle plugins
-- `app/proguard-rules.pro` - R8/ProGuard configuration
+- `app/src/main/keepRules/` - Release R8 keep rules
 - `gradle.properties` - Build optimization settings
 
 ## Custom Gradle Plugins
@@ -57,9 +57,10 @@ gradle/                       # Version catalogs and properties
 - **Android AppFunctions entry point:** `shared/integration/base/src/androidMain/kotlin/com/inwords/expenses/integration/base/appfunctions/CommonExAppFunctions.kt`
 - **iOS App:** `iosApp/iosApp/iOSApp.swift`
 - **Manifest:** `app/src/main/AndroidManifest.xml` (includes deep linking config)
-- **ProGuard:** `app/proguard-rules.pro` (minimal rules for Cronet and protobuf)
-- **ProGuard:** `app/proguard-rules-autotest.pro` (rules for android tests)
-- **ProGuard:** `app/proguard-test-rules.pro` (rules for android tests)
+- **R8 app rules:** `app/src/main/keepRules/commonex.keep`
+- **R8 autotest rules:** `app/src/autotest/keepRules/autotest.keep`
+- **R8 instrumented-test rules:** `app/proguard-test-rules.pro`
+- **KMP consumer rules:** colocated with applicable common code under `src/commonMain/keepRules/`
 
 ## Version Catalog Structure
 

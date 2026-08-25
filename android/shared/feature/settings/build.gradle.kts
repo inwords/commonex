@@ -9,10 +9,6 @@ kotlin {
     android {
         namespace = "com.inwords.expenses.feature.settings"
 
-        @Suppress("UnstableApiUsage")
-        optimization {
-            consumerKeepRules.files.add(file("consumer-rules.pro"))
-        }
     }
 
     applyKmmDefaults("sharedSettings")

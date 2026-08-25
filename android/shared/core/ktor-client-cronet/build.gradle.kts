@@ -4,10 +4,6 @@ plugins {
 
 android {
     namespace = "com.inwords.expenses.core.ktor_client_cronet"
-
-    defaultConfig {
-        consumerProguardFiles("consumer-rules.pro")
-    }
 }
 
 dependencies {

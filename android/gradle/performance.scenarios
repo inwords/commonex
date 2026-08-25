@@ -10,7 +10,7 @@ clean_build {
     title = "CI/CD Clean Build"
     cleanup-tasks = ["clean"]
     tasks = ["testHostTest", ":app:assembleDebug", ":app:assembleRelease", ":app:bundleRelease"]
-    gradle-args = ["--no-configuration-cache"]
+    gradle-args = ["--no-configuration-cache", "--no-isolated-projects"]
     warm-ups = 2
     iterations = 3
 }
@@ -20,7 +20,7 @@ debug_build {
     title = "Local Debug Build"
     cleanup-tasks = ["clean"]
     tasks = [":app:assembleDebug"]
-    gradle-args = ["--no-configuration-cache"]
+    gradle-args = ["--no-configuration-cache", "--no-isolated-projects"]
     warm-ups = 2
     iterations = 5
 }

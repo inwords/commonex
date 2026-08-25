@@ -70,7 +70,7 @@ jobs:
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-        run: ./android/gradlew -p android --quiet :app:bundleRelease --no-daemon --no-configuration-cache
+        run: ./android/gradlew -p android --quiet :app:bundleRelease --no-daemon
 
       - name: Remove release keystore
         if: always()

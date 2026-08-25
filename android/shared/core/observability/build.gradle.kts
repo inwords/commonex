@@ -8,7 +8,16 @@ plugins {
 kotlin {
     android {
         namespace = "com.inwords.expenses.core.observability"
+        withHostTest {}
     }
 
     applyKmmDefaults("sharedCoreObservability")
+
+    sourceSets {
+        commonTest {
+            dependencies {
+                implementation(shared.kotlin.test)
+            }
+        }
+    }
 }

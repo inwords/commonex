@@ -11,11 +11,6 @@ kotlin {
     android {
         namespace = "com.inwords.expenses.integration.databases"
 
-        @Suppress("UnstableApiUsage")
-        optimization {
-            consumerKeepRules.files.add(file("consumer-rules.pro"))
-        }
-
         androidResources {
             enable = true
         }
@@ -69,8 +64,7 @@ kotlin {
                 implementation(shared.compose.runtime)
             }
         }
-        @Suppress("unused")
-        val androidDeviceTest by getting {
+        getByName("androidDeviceTest") {
             dependencies {
                 implementation(shared.room.testing)
                 implementation(shared.androidx.test.runner)

@@ -13,11 +13,6 @@ kotlin {
     android {
         namespace = "com.inwords.expenses.integration.base"
 
-        @Suppress("UnstableApiUsage")
-        optimization {
-            consumerKeepRules.files.add(file("consumer-rules.pro"))
-        }
-
         androidResources {
             enable = true
         }
@@ -74,8 +69,7 @@ kotlin {
                 implementation(shared.guava)
             }
         }
-        @Suppress("unused")
-        val androidDeviceTest by getting {
+        getByName("androidDeviceTest") {
             dependencies {
                 implementation(shared.androidx.test.runner)
                 implementation(shared.androidx.test.ext.junit)
@@ -94,7 +88,7 @@ kotlin {
 
     targets.withType<KotlinNativeTarget>().configureEach {
         binaries.withType<Framework>().configureEach {
-            export(project(":shared:core:analytics"))
+            export(project.dependencies.project(":shared:core:analytics"))
         }
     }
 }

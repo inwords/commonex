@@ -11,11 +11,6 @@ kotlin {
     android {
         namespace = "com.inwords.expenses.core.navigation"
 
-        @Suppress("UnstableApiUsage")
-        optimization {
-            consumerKeepRules.files.add(file("consumer-rules.pro"))
-        }
-
         withHostTest {}
     }
 
