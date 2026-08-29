@@ -118,7 +118,7 @@ dependencies {
     implementation(project(":shared:integration:base"))
 
     // network
-    implementation(shared.cronet.embedded)
+    implementation(shared.cronet.bundled)
 
     implementation(shared.androidx.appfunctions.service)
 

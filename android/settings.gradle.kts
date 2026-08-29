@@ -23,7 +23,12 @@ plugins {
 kover {
     enableCoverage()
     reports {
-        excludedProjects.addAll(":baselineprofile", ":benchmarks", ":benchmarks:databases")
+        excludedProjects.addAll(
+            ":baselineprofile",
+            ":benchmarks",
+            ":benchmarks:databases",
+            ":benchmarks:network",
+        )
     }
 }
 @Suppress("UnstableApiUsage")
@@ -60,6 +65,7 @@ include(":app")
 include(":baselineprofile")
 include(":benchmarks")
 include(":benchmarks:databases")
+include(":benchmarks:network")
 
 include(":shared")
 include(":shared:core")
