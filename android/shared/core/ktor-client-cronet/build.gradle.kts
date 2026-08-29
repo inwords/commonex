@@ -1,5 +1,6 @@
 plugins {
     id("shared-library-plugin")
+    alias(shared.plugins.android.junit5)
 }
 
 android {
@@ -9,5 +10,9 @@ android {
 dependencies {
     implementation(shared.ktor.client.core)
 
-    implementation(shared.cronet.api)
+    implementation(shared.cronet)
+
+    testImplementation(shared.coroutines.test)
+    testImplementation(shared.junit.jupiter.api)
+    testRuntimeOnly(shared.junit.jupiter.engine)
 }

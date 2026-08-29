@@ -31,7 +31,7 @@ kotlin {
                 implementation(project(":shared:core:ktor-client-cronet"))
 
                 implementation(shared.ktor.client.logging.jvm)
-                implementation(shared.cronet.api)
+                implementation(shared.cronet)
             }
         }
         iosMain.dependencies {

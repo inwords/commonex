@@ -33,6 +33,7 @@ Android/KMM operational docs are indexed in [docs/README.md](docs/README.md).
     - `android/marathon/README.md`
     - `android/gradle/README.md`
 - Benchmark docs:
+    - `android/docs/network-benchmarking.md`
     - `android/docs/database-benchmarking.md`
     - `android/docs/database-research-log.md`
     - `android/docs/database-research-log-template.md`

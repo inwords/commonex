@@ -47,6 +47,7 @@ Use this index as the Android and iOS operational doc map. Keep detailed guidanc
 
 ## Benchmarking And Research
 
+- [`network-benchmarking.md`](network-benchmarking.md) - Cronet response-path A/B microbenchmark, run commands, and current provisional results.
 - [`database-benchmarking.md`](database-benchmarking.md) - Canonical Room benchmark workflow and correctness policy.
 - [`database-research-log.md`](database-research-log.md) - Current benchmark conclusions and artifact references.
 - [`database-research-log-template.md`](database-research-log-template.md) - Template for new database benchmark entries.
