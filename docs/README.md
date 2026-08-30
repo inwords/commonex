@@ -5,6 +5,8 @@ Use these docs as the primary starting points for repo-wide knowledge:
 - [domain.md](domain.md) - Product model, core entities, domain rules, and client/domain alignment notes.
 - [network-contracts.md](network-contracts.md) - Shared HTTP and transport behavior across backend, web, and mobile clients.
 - [agent-workflows.md](agent-workflows.md) - The default Architect -> Plan -> Code -> Evaluate -> Review -> Refine -> Report workflow for non-trivial tasks.
+- [../infra/CONTEXT.md](../infra/CONTEXT.md) - Canonical production-delivery language for releases, activations, retained releases, and deployments.
+- [adr/0001-use-namespaced-production-host-layout.md](adr/0001-use-namespaced-production-host-layout.md) - Accepted ownership and lifecycle layout for production-host files.
 
 ## Documentation Topology
 
@@ -18,5 +20,6 @@ Project-specific operational docs:
 - Android/KMM: [../android/AGENTS.md](../android/AGENTS.md) and [../android/docs/README.md](../android/docs/README.md)
 - Backend: [../backend/AGENTS.md](../backend/AGENTS.md)
 - Web: [../web/AGENTS.md](../web/AGENTS.md)
+- Infrastructure delivery: [../infra/deploy/README.md](../infra/deploy/README.md) and [../infra/deploy/HOST_LAYOUT_MIGRATION.md](../infra/deploy/HOST_LAYOUT_MIGRATION.md)
 
 Prefer linking back to these canonical docs instead of duplicating the same guidance in multiple AGENTS or README files.

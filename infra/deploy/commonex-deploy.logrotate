@@ -1,0 +1,10 @@
+/var/log/commonex/deploy.log {
+    daily
+    rotate 90
+    missingok
+    notifempty
+    compress
+    delaycompress
+    create 0600 root root
+    su root root
+}

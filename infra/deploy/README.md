@@ -10,8 +10,10 @@ The merged wrapper **must be installed and validated before approving the first 
 
 ```bash
 install -d -o root -g root -m 0755 /etc/commonex/app
-install -d -o root -g root -m 0755 /etc/commonex/rollback
-install -d -o root -g root -m 0700 /var/lib/commonex-releases
+install -d -o root -g root -m 0700 /var/lib/commonex
+install -d -o root -g root -m 0700 /var/lib/commonex/rollback
+install -d -o root -g root -m 0755 /var/log/commonex
+install -d -o root -g root -m 0755 /run/commonex
 
 test -f /etc/commonex/app/docker-compose-prod.yml
 test -f /etc/commonex/app/.env
@@ -21,9 +23,18 @@ chown root:root /etc/commonex/app/docker-compose-prod.yml /etc/commonex/app/.env
 chmod 0644 /etc/commonex/app/docker-compose-prod.yml
 chmod 0600 /etc/commonex/app/.env
 
-test ! -e /usr/local/sbin/commonex-deploy || \
-  cp -a /usr/local/sbin/commonex-deploy /usr/local/sbin/commonex-deploy.previous
-install -o root -g root -m 0755 infra/deploy/commonex_deploy.py /usr/local/sbin/commonex-deploy
+python3 infra/deploy/install_commonex_deploy.py install \
+  --bundle <prepared-deployment-tool-bundle> \
+  --tool-git-sha <repository-git-sha>
+python3 infra/deploy/install_commonex_deploy.py install \
+  --bundle <prepared-deployment-tool-bundle> \
+  --tool-git-sha <repository-git-sha> \
+  --apply
+
+install -o root -g root -m 0644 \
+  infra/deploy/commonex-deploy.logrotate \
+  /etc/logrotate.d/commonex-deploy
+logrotate --debug /etc/logrotate.d/commonex-deploy
 
 cd /etc/commonex/app
 docker compose --env-file .env -f docker-compose-prod.yml config --quiet
@@ -32,7 +43,7 @@ docker compose up --help | grep -F -- '--remove-orphans'
 
 Install the restricted SSH key and sudo policy below, then test that the forced command rejects an invalid command. Also test `ssh commonex-production "current-images"`: on a host with no activation history it must fail with `commonex-deploy: no immutable activation history exists; bootstrap required`; after the first activation it must print four image-reference lines. Before printing, it verifies that the active Compose and environment files exactly match the release recorded at the front of activation history. This output is not secret-bearing, but it remains limited to the forced command scope.
 
-If the merged wrapper itself must be rolled back before the first immutable deploy, stop pending workflow approvals, restore `/usr/local/sbin/commonex-deploy.previous` to `/usr/local/sbin/commonex-deploy` with `install -o root -g root -m 0755`, test the restored wrapper and Compose render, then investigate before enabling deployments again. Do not use this wrapper rollback as a substitute for a release rollback after immutable activations have begun.
+The installer stages the tool under `/opt/commonex/deploy/versions/<repository-git-sha>`, verifies the complete immutable version, retains the previous stable entrypoint and `current` target, then switches them atomically. If the tool itself must be rolled back before the first immutable deploy, stop pending workflow approvals and use the rollback directory printed by the installer. Test the restored forced command and Compose render before enabling deployments again. Do not use a tool rollback as a substitute for a release rollback after immutable activations have begun.
 
 The script intentionally uses `/usr/bin/python3`; verify that it is Python 3.9 or newer with `/usr/bin/python3 --version`.
 
@@ -49,17 +60,19 @@ Every push to `main` builds and SHA-tags all four custom images, with each servi
 
 ## Host paths and restricted command
 
-- Source: `infra/deploy/commonex_deploy.py`
+- Source: `infra/deploy/commonex_deploy.py` and `infra/deploy/commonex_host/`
 - Installed executable: `/usr/local/sbin/commonex-deploy`, owned by `root:root`, mode `0755`
-- Releases: `/var/lib/commonex-releases`, owned by `root:root`, mode `0700`
-- Activation state: `/var/lib/commonex-releases/activation-state.json`, owned by `root:root`, mode `0600`; it records the replay-protection `last_successful_run` and a most-recently-used history of up to three distinct release SHAs.
-- Activation intent: `/var/lib/commonex-releases/activation-intent.json`, owned by `root:root`, mode `0600`; it identifies the previous and candidate releases plus the configuration backup while an activation is in progress. Its presence blocks further wrapper commands until manual reconciliation.
-- Legacy last successful workflow run: `/var/lib/commonex-releases/last-successful-run`, owned by `root:root`, mode `0600`; it is read only when no activation-state file exists.
-- Deployment log: `/var/log/commonex-deploy.log`, owned by `root:root`, mode `0600`
-- Per-activation configuration rollback: `/etc/commonex/rollback/deploy-<sha>-<timestamp>`
+- Versioned tool: `/opt/commonex/deploy/versions/<repository-git-sha>/`, selected by `/opt/commonex/deploy/current`
+- Releases: `/var/lib/commonex`, owned by `root:root`, mode `0700`
+- Activation state: `/var/lib/commonex/activation-state.json`, owned by `root:root`, mode `0600`; it records the replay-protection `last_successful_run` and a most-recently-used history of up to three distinct release SHAs.
+- Activation intent: `/var/lib/commonex/activation-intent.json`, owned by `root:root`, mode `0600`; it identifies the previous and candidate releases plus the configuration backup while an activation is in progress. Its presence blocks further wrapper commands until manual reconciliation.
+- Legacy last successful workflow run: `/var/lib/commonex/last-successful-run`, owned by `root:root`, mode `0600`; it is read only when no activation-state file exists.
+- Deployment log: `/var/log/commonex/deploy.log`, owned by `root:root`, mode `0600`, rotated by `/etc/logrotate.d/commonex-deploy`
+- Per-activation configuration rollback: `/var/lib/commonex/rollback/deploy-<sha>-<timestamp>`
+- Operation lock: `/run/commonex/deploy.lock`; the boot-scoped parent is owned by `root:root`, mode `0755`
 - Active configuration: `/etc/commonex/app/docker-compose-prod.yml` (`0644`) and `/etc/commonex/app/.env` (`0600`), both owned by `root:root`
 
-The activation history and eligible rollback targets are capped at three distinct SHAs. Cleanup attempts to remove staged directories not represented by that history, but extra directories can remain if cleanup fails; inspect `/var/log/commonex-deploy.log` for `RESULT cleanup status=FAILED`. A staged release that is not in the history is not a rollback target; operators may only roll back to one of the listed retained SHAs.
+The activation history and eligible rollback targets are capped at three distinct SHAs. Cleanup attempts to remove staged directories not represented by that history, but extra directories can remain if cleanup fails; inspect `/var/log/commonex/deploy.log` for `RESULT cleanup status=FAILED`. A staged release that is not in the history is not a rollback target; operators may only roll back to one of the listed retained SHAs.
 
 The `commonex-deploy` user is not a member of the Docker group. Its authorized key must use:
 
@@ -88,6 +101,30 @@ Grafana dashboards and datasource provisioning remain host-managed and are outsi
 
 ## Validation
 
+### Phase 0 host inventory
+
+Before changing production paths or installing the multi-file deployment tool, run the read-only inventory collector from a trusted root session on the host. Do not expose it through the restricted deployment key and do not add it to the forced-command grammar.
+
+```bash
+install -o root -g root -m 0700 \
+  infra/deploy/inventory_commonex_host.py \
+  /root/inventory_commonex_host.py
+/usr/bin/python3 /root/inventory_commonex_host.py \
+  > /root/commonex-host-inventory.json
+inventory_status=$?
+chmod 0600 /root/commonex-host-inventory.json
+```
+
+The JSON contains path metadata, whole-file hashes, allowlisted immutable image references, environment key names, validated activation identifiers, and a redacted check that the deployment account's complete effective sudo grant list contains only the forced deployment command. It never contains environment values, key material, comments from authorized keys, arbitrary audit lines, or subprocess output. Treat the report as operationally sensitive despite this redaction.
+
+- Exit `0`: collection is complete and no migration blocker was detected.
+- Exit `1`: collection is incomplete or failed; do not migrate.
+- Exit `2`: collection completed but migration is blocked; inspect `blockers` and do not migrate.
+
+The collector creates no paths and holds an existing deployment lock in shared mode while reading. A successful report is evidence for Phase 0 planning, not authorization to migrate. Review it against the architecture plan, verify production approvals are stopped, and prepare the separate recoverable migration procedure first.
+
+Use the approval-gated, dry-run-first procedure in [HOST_LAYOUT_MIGRATION.md](HOST_LAYOUT_MIGRATION.md) to reconcile an inventoried legacy host. That procedure copies and verifies state and audit data before changing tool authority, keeps the legacy inputs intact, and provides a guarded rollback rehearsal. It never enables permanent fallback reads from old paths.
+
 The production host currently runs Python 3.9, so the wrapper must remain compatible with that version. Run its dependency-free regression suite with:
 
 ```bash
@@ -100,10 +137,10 @@ Before enabling deployments, confirm the restricted SSH key reaches only the for
 
 Rollback is manual-only. It is never initiated automatically by the wrapper or workflow. To activate a retained release:
 
-1. Inspect `/var/lib/commonex-releases/activation-state.json` as root and choose one of its listed retained 40-character SHAs. Do not select a directory or SHA outside that history.
+1. Inspect `/var/lib/commonex/activation-state.json` as root and choose one of its listed retained 40-character SHAs. Do not select a directory or SHA outside that history.
 2. In GitHub Actions, run the existing workflow from the `main` ref with the `release_sha` input set to that SHA. The workflow validates the lowercase 40-character form, checks out `main`, and sends only `rollback <release_sha> <GITHUB_RUN_NUMBER>` through the restricted SSH command.
 3. Obtain the `production` environment approval. The rollback shares the `commonex-production` concurrency group with deploys, so it waits for any in-progress production activation rather than running concurrently.
-4. Inspect the workflow result and the matching `/var/log/commonex-deploy.log` audit records. A successful rollback writes `RESULT rollback target=<sha> ... status=PASS` and moves that SHA to the front of the MRU history.
+4. Inspect the workflow result and the matching `/var/log/commonex/deploy.log` audit records. A successful rollback writes `RESULT rollback target=<sha> ... status=PASS` and moves that SHA to the front of the MRU history.
 5. On the host, run `docker compose --env-file .env -f docker-compose-prod.yml ps` in `/etc/commonex/app`, then verify service health before resuming deployments.
 
 During activation the wrapper pulls the staged digest-pinned images, saves the current allowlisted configuration, durably records its activation intent, installs the selected release, reconciles Compose with `up -d --pull always --remove-orphans --wait --wait-timeout 120`, records the new run number and history, and finally clears the intent. A normal failure before commit restores and reconciles the previous configuration, then clears the intent without advancing the activation history or successful-run state. Because Compose may already have changed containers, still perform the checks below.

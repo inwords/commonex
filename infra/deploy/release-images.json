@@ -1,0 +1,26 @@
+[
+  {
+    "service": "backend",
+    "environment_key": "COMMONEX_BACKEND_IMAGE",
+    "repository": "ruggedbl/commonex-nest-backend",
+    "workflow_build_identity": "./backend"
+  },
+  {
+    "service": "frontend",
+    "environment_key": "COMMONEX_FRONTEND_IMAGE",
+    "repository": "ruggedbl/commonex-next-web",
+    "workflow_build_identity": "./web"
+  },
+  {
+    "service": "nginx",
+    "environment_key": "COMMONEX_NGINX_IMAGE",
+    "repository": "ruggedbl/nginx-http3",
+    "workflow_build_identity": "./infra/nginx"
+  },
+  {
+    "service": "otel-collector",
+    "environment_key": "COMMONEX_OTEL_COLLECTOR_IMAGE",
+    "repository": "ruggedbl/opentelemetry-collector-custom",
+    "workflow_build_identity": "./infra/otel-collector"
+  }
+]

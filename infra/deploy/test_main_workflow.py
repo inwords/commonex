@@ -14,15 +14,15 @@ class MainWorkflowContractTest(unittest.TestCase):
 
     def test_main_push_builds_all_services_for_each_surviving_run(self) -> None:
         self.assertIn(
-            "MAIN_SERVICES: '[\"backend\",\"frontend\",\"otel-collector\",\"nginx\"]'",
-            self.workflow,
-        )
-        self.assertIn(
             'if [[ "$GITHUB_EVENT_NAME" == "push" && '
             '"$GITHUB_REF" == "refs/heads/main" ]]; then',
             self.workflow,
         )
-        self.assertIn('changed_services="$MAIN_SERVICES"', self.workflow)
+        self.assertIn(
+            "changed_services=\"$(jq -c '[.[].service]' "
+            'infra/deploy/release-images.json)"',
+            self.workflow,
+        )
         self.assertIn(
             "changed_services='${{ steps.filter.outputs.changes }}'",
             self.workflow,
@@ -36,110 +36,78 @@ class MainWorkflowContractTest(unittest.TestCase):
         self.assertIn("cancel-in-progress: false", self.workflow)
         self.assertNotIn("queue:", self.workflow)
 
-    def test_deploy_confirms_active_images_after_activation(self) -> None:
-        deploy_command = (
-            'ssh commonex-production "deploy $GITHUB_SHA $GITHUB_RUN_NUMBER"'
-        )
-        verification_command = (
-            'ssh commonex-production "current-images" > active-images.env'
-        )
-
-        self.assertIn(verification_command, self.workflow)
-        self.assertLess(
-            self.workflow.index(deploy_command),
-            self.workflow.index(verification_command),
-        )
+    def test_build_matrix_uses_the_canonical_release_image_catalog(self) -> None:
         self.assertIn(
-            "sort release-images.env > expected-images.sorted", self.workflow
+            "infra/deploy/release-images.json > services.json",
+            self.workflow,
         )
-        self.assertIn("sort active-images.env > active-images.sorted", self.workflow)
-        self.assertIn(
-            "cmp -s expected-images.sorted active-images.sorted", self.workflow
-        )
+        self.assertIn("name: .service", self.workflow)
+        self.assertIn("context: .workflow_build_identity", self.workflow)
+        self.assertIn("image_env: .environment_key", self.workflow)
+        self.assertIn("repository: .repository", self.workflow)
+        self.assertNotIn('"ruggedbl/commonex-nest-backend"', self.workflow)
 
-    def test_deploy_runs_public_service_verifier_after_activation(self) -> None:
-        deploy_job = self.workflow.split("\n  rollback:", maxsplit=1)[0]
-        deploy_command = (
-            'ssh commonex-production "deploy $GITHUB_SHA $GITHUB_RUN_NUMBER"'
-        )
-        verification_command = "python3 infra/deploy/verify_public_services.py"
-
-        self.assertIn(verification_command, deploy_job)
-        self.assertIn(
-            "if: always() && steps.deploy_activation.outcome == 'success'",
-            deploy_job,
-        )
-        self.assertLess(
-            deploy_job.index(deploy_command),
-            deploy_job.index(verification_command),
-        )
-
-    def test_deploy_verifies_committed_exit_two_before_preserving_failure(self) -> None:
+    def test_deploy_delegates_imperative_protocol_to_orchestrator(self) -> None:
         deploy_job = self.workflow.split("\n  rollback:", maxsplit=1)[0]
 
-        self.assertIn("id: deploy_activation", deploy_job)
         self.assertIn(
-            'ssh commonex-production "deploy $GITHUB_SHA $GITHUB_RUN_NUMBER" '
-            "|| activation_status=$?",
-            deploy_job,
-        )
-        self.assertIn('echo "status=$activation_status" >> "$GITHUB_OUTPUT"', deploy_job)
-        self.assertIn(
-            'if [[ "$activation_status" -ne 0 && "$activation_status" -ne 2 ]]',
+            "python3 infra/deploy/production_delivery.py deploy",
             deploy_job,
         )
         self.assertIn(
-            "if: always() && steps.deploy_activation.outputs.status == '2'",
+            "CHANGED_SERVICES: ${{ needs.containers_matrix_prep.outputs.changed-services }}",
             deploy_job,
         )
+        self.assertNotIn('ssh commonex-production "stage ', deploy_job)
+        self.assertNotIn('ssh commonex-production "validate ', deploy_job)
+        self.assertNotIn('ssh commonex-production "deploy ', deploy_job)
+        self.assertNotIn('ssh commonex-production "current-images"', deploy_job)
+        self.assertNotIn("infra/deploy/verify_public_services.py", deploy_job)
+        self.assertNotIn("tar -C release", deploy_job)
 
-    def test_rollback_verifies_active_images_and_public_service_health(self) -> None:
+    def test_rollback_delegates_imperative_protocol_to_orchestrator(self) -> None:
         rollback_job = self.workflow.split("\n  rollback:", maxsplit=1)[1]
-        rollback_command = (
-            'ssh commonex-production "rollback $RELEASE_SHA $GITHUB_RUN_NUMBER"'
-        )
-        verification_command = (
-            'ssh commonex-production "current-images" > active-images.env'
-        )
 
-        self.assertIn(verification_command, rollback_job)
-        self.assertLess(
-            rollback_job.index(rollback_command),
-            rollback_job.index(verification_command),
-        )
-        health_verification = "python3 infra/deploy/verify_public_services.py"
-        self.assertIn(health_verification, rollback_job)
         self.assertIn(
-            "if: always() && steps.rollback_activation.outcome == 'success'",
+            "python3 infra/deploy/production_delivery.py rollback",
             rollback_job,
         )
-        self.assertLess(
-            rollback_job.index(verification_command),
-            rollback_job.index(health_verification),
-        )
+        self.assertNotIn('ssh commonex-production "rollback ', rollback_job)
+        self.assertNotIn('ssh commonex-production "current-images"', rollback_job)
+        self.assertNotIn("infra/deploy/verify_public_services.py", rollback_job)
 
-    def test_rollback_verifies_committed_exit_two_before_preserving_failure(
+    def test_github_keeps_production_controls_visible(self) -> None:
+        self.assertIn("permissions:\n  contents: read", self.workflow)
+        self.assertIn("on:\n  workflow_dispatch:", self.workflow)
+        self.assertIn("  push:\n    branches:\n      - main", self.workflow)
+        self.assertIn("  pull_request:\n    branches:\n      - main", self.workflow)
+
+        deploy_job = self.workflow.split("\n  deploy:", maxsplit=1)[1].split(
+            "\n  rollback:", maxsplit=1
+        )[0]
+        rollback_job = self.workflow.split("\n  rollback:", maxsplit=1)[1]
+        for job in (deploy_job, rollback_job):
+            self.assertIn("environment: production", job)
+            self.assertIn("group: commonex-production", job)
+            self.assertIn("cancel-in-progress: false", job)
+            self.assertIn("runs-on: ubuntu-latest", job)
+
+        self.assertIn("github.event_name != 'workflow_dispatch'", deploy_job)
+        self.assertIn("github.ref == 'refs/heads/main'", deploy_job)
+        self.assertIn("github.event_name == 'workflow_dispatch'", rollback_job)
+        self.assertIn("github.ref == 'refs/heads/main'", rollback_job)
+
+    def test_workflow_keeps_secret_materialization_outside_command_arguments(
         self,
     ) -> None:
-        rollback_job = self.workflow.split("\n  rollback:", maxsplit=1)[1]
+        deploy_job = self.workflow.split("\n  rollback:", maxsplit=1)[0]
+        orchestrator_command = deploy_job.split(
+            "python3 infra/deploy/production_delivery.py deploy", maxsplit=1
+        )[1]
 
-        self.assertIn("id: rollback_activation", rollback_job)
-        self.assertIn(
-            'ssh commonex-production "rollback $RELEASE_SHA $GITHUB_RUN_NUMBER" '
-            "|| activation_status=$?",
-            rollback_job,
-        )
-        self.assertIn(
-            'echo "status=$activation_status" >> "$GITHUB_OUTPUT"', rollback_job
-        )
-        self.assertIn(
-            'if [[ "$activation_status" -ne 0 && "$activation_status" -ne 2 ]]',
-            rollback_job,
-        )
-        self.assertIn(
-            "if: always() && steps.rollback_activation.outputs.status == '2'",
-            rollback_job,
-        )
+        self.assertIn("install -m 600 /dev/null release/.env", deploy_job)
+        self.assertIn("${{ secrets.POSTGRES_PASSWORD }}", deploy_job)
+        self.assertNotIn("${{ secrets.", orchestrator_command)
 
 
 if __name__ == "__main__":

@@ -5,6 +5,7 @@ from pathlib import Path
 import subprocess
 import tempfile
 import unittest
+from unittest import mock
 
 from infra.deploy import resolve_release_images as resolver
 
@@ -251,6 +252,24 @@ class ResolveReleaseImagesTest(unittest.TestCase):
                     ),
                 )
 
+    def test_registry_failure_is_not_retried_with_latest(self) -> None:
+        inspected_tags = []
+
+        def inspect(tag: str) -> str:
+            inspected_tags.append(tag)
+            raise subprocess.CalledProcessError(1, ["docker", "buildx"])
+
+        with self.assertRaises(subprocess.CalledProcessError):
+            resolver.resolve_release_images(
+                '["backend"]', GIT_SHA, current_images(), inspect
+            )
+
+        self.assertEqual(
+            inspected_tags,
+            [f"ruggedbl/commonex-nest-backend:{GIT_SHA}"],
+        )
+        self.assertNotIn("latest", inspected_tags)
+
     def test_git_sha_is_strictly_validated_before_inspection(self) -> None:
         for value in ["a" * 39, "A" * 40, "g" * 40, GIT_SHA + "1"]:
             with self.subTest(value=value), self.assertRaisesRegex(
@@ -293,6 +312,26 @@ class ResolveReleaseImagesTest(unittest.TestCase):
         )
         self.assertNotIn("database-secret", stderr.getvalue())
         self.assertNotIn("registry-secret", stderr.getvalue())
+
+    def test_cli_reports_catalog_failure_with_existing_generic_diagnostic(self) -> None:
+        stderr = io.StringIO()
+
+        with mock.patch.object(
+            resolver,
+            "load_release_image_catalog",
+            side_effect=ValueError("catalog-secret"),
+        ), contextlib.redirect_stderr(stderr):
+            status = resolver.run_cli(
+                ['["backend", "frontend", "nginx", "otel-collector"]', GIT_SHA],
+                lambda _tag: self.fail("image inspection must not run"),
+            )
+
+        self.assertEqual(status, 1)
+        self.assertEqual(
+            stderr.getvalue(),
+            "resolve-release-images: unable to resolve release images\n",
+        )
+        self.assertNotIn("catalog-secret", stderr.getvalue())
 
 
 if __name__ == "__main__":

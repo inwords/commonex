@@ -4,6 +4,7 @@ import gzip
 import io
 import json
 import os
+import stat
 import subprocess
 import sys
 import tarfile
@@ -103,6 +104,17 @@ def regular_member(name: str, content: bytes) -> tuple[tarfile.TarInfo, bytes]:
 
 
 class DeployScriptTest(unittest.TestCase):
+    def test_default_config_uses_namespaced_host_layout(self) -> None:
+        self.assertEqual(deploy.DEFAULT_CONFIG.app_dir, Path("/etc/commonex/app"))
+        self.assertEqual(deploy.DEFAULT_CONFIG.release_root, Path("/var/lib/commonex"))
+        self.assertEqual(
+            deploy.DEFAULT_CONFIG.rollback_root, Path("/var/lib/commonex/rollback")
+        )
+        self.assertEqual(
+            deploy.DEFAULT_CONFIG.log_path, Path("/var/log/commonex/deploy.log")
+        )
+        self.assertEqual(deploy.DEFAULT_CONFIG.lock_path, Path("/run/commonex/deploy.lock"))
+
     def setUp(self) -> None:
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
@@ -112,7 +124,7 @@ class DeployScriptTest(unittest.TestCase):
             release_root=self.root / "releases",
             rollback_root=self.root / "rollback",
             log_path=self.root / "logs" / "deploy.log",
-            lock_path=self.root / "deploy.lock",
+            lock_path=self.root / "runtime" / "deploy.lock",
             enforce_root_ownership=False,
         )
 
@@ -123,6 +135,7 @@ class DeployScriptTest(unittest.TestCase):
             f"services:\n  {marker}:\n    image: busybox\n".encode()
         )
         (self.config.app_dir / ".env").write_bytes(valid_environment(marker))
+        (self.config.app_dir / ".env").chmod(0o600)
 
     def prepare_two_activation_history(self) -> tuple[bytes, bytes]:
         self.prepare_active_configuration()
@@ -1201,6 +1214,7 @@ class DeployScriptTest(unittest.TestCase):
         old_environment = valid_environment("old")
         (self.config.app_dir / "docker-compose-prod.yml").write_bytes(old_compose)
         (self.config.app_dir / ".env").write_bytes(old_environment)
+        (self.config.app_dir / ".env").chmod(0o600)
         deploy.stage(
             RELEASE_ID,
             self.config,
@@ -1241,6 +1255,7 @@ class DeployScriptTest(unittest.TestCase):
         old_environment = valid_environment("old")
         (self.config.app_dir / "docker-compose-prod.yml").write_bytes(old_compose)
         (self.config.app_dir / ".env").write_bytes(old_environment)
+        (self.config.app_dir / ".env").chmod(0o600)
         deploy.stage(RELEASE_ID, self.config, release_archive())
 
         real_atomic_install = deploy.atomic_install
@@ -1285,6 +1300,7 @@ class DeployScriptTest(unittest.TestCase):
             b"services:\n  old:\n    image: busybox\n"
         )
         (self.config.app_dir / ".env").write_bytes(valid_environment("old"))
+        (self.config.app_dir / ".env").chmod(0o600)
         deploy.stage(
             RELEASE_ID,
             self.config,
@@ -1358,6 +1374,7 @@ class DeployScriptTest(unittest.TestCase):
             b"services:\n  old:\n    image: busybox\n"
         )
         (self.config.app_dir / ".env").write_bytes(valid_environment("old"))
+        (self.config.app_dir / ".env").chmod(0o600)
         deploy.stage(RELEASE_ID, self.config, release_archive())
 
         def run_command(command: list[str], _cwd: Path) -> None:
@@ -1378,6 +1395,96 @@ class DeployScriptTest(unittest.TestCase):
         log = self.config.log_path.read_text(encoding="utf-8")
         self.assertIn("configuration_restored=FAILED", log)
         self.assertIn("runtime_may_have_changed=true", log)
+
+    @unittest.skipUnless(os.name == "posix", "fcntl locking is POSIX-only")
+    def test_operation_lock_rejects_an_unsafe_runtime_directory(self) -> None:
+        for unsafe_mode in (0o775, 0o777):
+            with self.subTest(mode=oct(unsafe_mode)):
+                runtime = self.config.lock_path.parent
+                runtime.mkdir(mode=0o755, exist_ok=True)
+                runtime.chmod(unsafe_mode)
+
+                with self.assertRaisesRegex(PermissionError, "unsafe mode"):
+                    with deploy.operation_lock(self.config):
+                        self.fail("unsafe runtime directory acquired the operation lock")
+
+                self.assertFalse(self.config.lock_path.exists())
+
+    @unittest.skipUnless(os.name == "posix", "fcntl locking is POSIX-only")
+    def test_operation_lock_rejects_a_symlinked_runtime_directory(self) -> None:
+        real_runtime = self.root / "real-runtime"
+        real_runtime.mkdir(mode=0o755)
+        try:
+            self.config.lock_path.parent.symlink_to(
+                real_runtime,
+                target_is_directory=True,
+            )
+        except OSError as error:
+            self.skipTest(f"directory symlinks are unavailable: {error}")
+
+        with self.assertRaisesRegex(PermissionError, "not a directory"):
+            with deploy.operation_lock(self.config):
+                self.fail("symlinked runtime directory acquired the operation lock")
+
+    @unittest.skipUnless(os.name == "posix", "fcntl locking is POSIX-only")
+    def test_operation_lock_normalizes_new_runtime_under_restrictive_umask(self) -> None:
+        previous_umask = os.umask(0o077)
+        try:
+            with deploy.operation_lock(self.config):
+                self.assertEqual(
+                    stat.S_IMODE(self.config.lock_path.parent.stat().st_mode),
+                    0o755,
+                )
+                self.assertEqual(
+                    stat.S_IMODE(self.config.lock_path.stat().st_mode),
+                    0o600,
+                )
+        finally:
+            os.umask(previous_umask)
+
+    @unittest.skipUnless(os.name == "posix", "fcntl locking is POSIX-only")
+    def test_operation_lock_rejects_an_unsafe_existing_lock_mode(self) -> None:
+        runtime = self.config.lock_path.parent
+        runtime.mkdir(mode=0o755)
+        self.config.lock_path.write_bytes(b"")
+        self.config.lock_path.chmod(0o644)
+
+        with self.assertRaisesRegex(PermissionError, "trusted regular file"):
+            with deploy.operation_lock(self.config):
+                self.fail("unsafe existing lock was acquired")
+
+        self.assertEqual(stat.S_IMODE(self.config.lock_path.stat().st_mode), 0o644)
+
+    @unittest.skipUnless(os.name == "posix", "fcntl locking is POSIX-only")
+    def test_operation_lock_rejects_path_replacement_after_acquisition(self) -> None:
+        real_flock = __import__("fcntl").flock
+
+        def replace_lock(descriptor: int, operation: int) -> None:
+            real_flock(descriptor, operation)
+            self.config.lock_path.unlink()
+            self.config.lock_path.write_bytes(b"")
+            self.config.lock_path.chmod(0o600)
+
+        with (
+            mock.patch("fcntl.flock", side_effect=replace_lock),
+            self.assertRaisesRegex(PermissionError, "changed while it was acquired"),
+        ):
+            with deploy.operation_lock(self.config):
+                self.fail("replaced lock path was accepted")
+
+    @unittest.skipUnless(os.name == "posix", "fcntl locking is POSIX-only")
+    def test_current_images_rejects_unsafe_runtime_before_reading_state(self) -> None:
+        runtime = self.config.lock_path.parent
+        runtime.mkdir(mode=0o755)
+        runtime.chmod(0o777)
+
+        with (
+            mock.patch.object(deploy, "_read_activation_state") as read_state,
+            self.assertRaisesRegex(PermissionError, "unsafe mode"),
+        ):
+            deploy.current_images(self.config)
+
+        read_state.assert_not_called()
 
     @unittest.skipUnless(os.name == "posix", "fcntl locking is POSIX-only")
     def test_operation_lock_serializes_processes(self) -> None:
