@@ -9,40 +9,24 @@ from pathlib import Path
 import re
 import subprocess
 import sys
-from typing import Callable, Optional, Sequence
+from typing import Callable, Mapping, Optional, Sequence
+
+try:
+    from .release_image_catalog import ReleaseImage, load_release_image_catalog
+except ImportError:  # Direct execution from infra/deploy.
+    from release_image_catalog import ReleaseImage, load_release_image_catalog
 
 
-SERVICE_IMAGES = {
-    "backend": (
-        "COMMONEX_BACKEND_IMAGE",
-        "ruggedbl/commonex-nest-backend",
-    ),
-    "frontend": (
-        "COMMONEX_FRONTEND_IMAGE",
-        "ruggedbl/commonex-next-web",
-    ),
-    "nginx": (
-        "COMMONEX_NGINX_IMAGE",
-        "ruggedbl/nginx-http3",
-    ),
-    "otel-collector": (
-        "COMMONEX_OTEL_COLLECTOR_IMAGE",
-        "ruggedbl/opentelemetry-collector-custom",
-    ),
-}
-IMAGES_BY_KEY = {
-    key: (service, repository)
-    for service, (key, repository) in SERVICE_IMAGES.items()
-}
 GIT_SHA_PATTERN = re.compile(r"^[0-9a-f]{40}$")
 DIGEST_PATTERN = re.compile(r"^sha256:[0-9a-f]{64}$")
 
 ManifestDigestResolver = Callable[[str], str]
 ProcessRunner = Callable[..., subprocess.CompletedProcess]
+JsonObject = dict[str, object]
 
 
-def _unique_json_object(pairs):
-    result = {}
+def _unique_json_object(pairs: list[tuple[str, object]]) -> JsonObject:
+    result: JsonObject = {}
     for key, value in pairs:
         if key in result:
             raise ValueError("JSON contains a duplicate key")
@@ -50,7 +34,9 @@ def _unique_json_object(pairs):
     return result
 
 
-def _changed_services(serialized: str) -> set[str]:
+def _changed_services(
+    serialized: str, service_images: Mapping[str, ReleaseImage]
+) -> set[str]:
     try:
         value = json.loads(serialized, object_pairs_hook=_unique_json_object)
     except (json.JSONDecodeError, TypeError, ValueError) as error:
@@ -59,7 +45,7 @@ def _changed_services(serialized: str) -> set[str]:
         not isinstance(value, list)
         or any(not isinstance(service, str) for service in value)
         or len(value) != len(set(value))
-        or any(service not in SERVICE_IMAGES for service in value)
+        or any(service not in service_images for service in value)
     ):
         raise ValueError("changed services are invalid")
     return set(value)
@@ -71,20 +57,21 @@ def _validated_digest(value: object, message: str) -> str:
     return value
 
 
-def _current_images(serialized: str) -> dict[str, str]:
+def _current_images(
+    serialized: str, images_by_key: Mapping[str, ReleaseImage]
+) -> dict[str, str]:
     if not serialized.endswith("\n"):
         raise ValueError("current images are invalid")
     lines = serialized.splitlines()
-    if len(lines) != len(IMAGES_BY_KEY):
+    if len(lines) != len(images_by_key):
         raise ValueError("current images are invalid")
 
-    images = {}
+    images: dict[str, str] = {}
     for line in lines:
         key, separator, reference = line.partition("=")
-        if not separator or key in images or key not in IMAGES_BY_KEY:
+        if not separator or key in images or key not in images_by_key:
             raise ValueError("current images are invalid")
-        _, repository = IMAGES_BY_KEY[key]
-        expected_prefix = f"{repository}@"
+        expected_prefix = f"{images_by_key[key].repository}@"
         if not reference.startswith(expected_prefix):
             raise ValueError("current images are invalid")
         _validated_digest(
@@ -92,7 +79,7 @@ def _current_images(serialized: str) -> dict[str, str]:
         )
         images[key] = reference
 
-    if list(images) != sorted(IMAGES_BY_KEY):
+    if list(images) != sorted(images_by_key):
         raise ValueError("current images are invalid")
     return images
 
@@ -132,28 +119,33 @@ def resolve_release_images(
     changed_services_json: str,
     git_sha: str,
     current_images_text: Optional[str],
-    manifest_digest_resolver: ManifestDigestResolver,
+    manifest_digest_resolver: ManifestDigestResolver = resolve_manifest_digest,
 ) -> str:
     if not GIT_SHA_PATTERN.fullmatch(git_sha):
         raise ValueError("Git SHA is invalid")
-    changed_services = _changed_services(changed_services_json)
+    catalog = load_release_image_catalog()
+    service_images = {image.service: image for image in catalog}
+    images_by_key = {image.environment_key: image for image in catalog}
+    changed_services = _changed_services(changed_services_json, service_images)
     current = (
-        None if current_images_text is None else _current_images(current_images_text)
+        None
+        if current_images_text is None
+        else _current_images(current_images_text, images_by_key)
     )
-    if current is None and changed_services != set(SERVICE_IMAGES):
+    if current is None and changed_services != set(service_images):
         raise ValueError("bootstrap requires all services")
 
-    resolved = {}
-    for key in sorted(IMAGES_BY_KEY):
-        service, repository = IMAGES_BY_KEY[key]
-        if current is not None and service not in changed_services:
+    resolved: dict[str, str] = {}
+    for key in sorted(images_by_key):
+        image = images_by_key[key]
+        if current is not None and image.service not in changed_services:
             resolved[key] = current[key]
             continue
         digest = _validated_digest(
-            manifest_digest_resolver(f"{repository}:{git_sha}"),
+            manifest_digest_resolver(f"{image.repository}:{git_sha}"),
             "resolved image digest is invalid",
         )
-        resolved[key] = f"{repository}@{digest}"
+        resolved[key] = f"{image.repository}@{digest}"
 
     return "".join(f"{key}={resolved[key]}\n" for key in sorted(resolved))
 

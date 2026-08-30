@@ -53,47 +53,26 @@ jobs:
 
       - name: Prepare matrix JSON
         id: matrix-json
-        env:
-          MAIN_SERVICES: '["backend","frontend","otel-collector","nginx"]'
         run: |
           if [[ "$GITHUB_EVENT_NAME" == "push" && "$GITHUB_REF" == "refs/heads/main" ]]; then
             # Every surviving main run is self-contained, even when earlier runs fail
             # or a newer run overtakes one waiting for a service build slot.
-            changed_services="$MAIN_SERVICES"
+            changed_services="$(jq -c '[.[].service]' infra/deploy/release-images.json)"
           else
             # Pull requests stay change-scoped to keep their validation economical.
             changed_services='${{ steps.filter.outputs.changes }}'
           fi
 
-          # Define all available services in a JSON file
-          cat <<EOF > services.json
+          jq '
           [
-            {
-              "name": "backend",
-              "context": "./backend",
-              "image_env": "COMMONEX_BACKEND_IMAGE",
-              "repository": "ruggedbl/commonex-nest-backend"
-            },
-            {
-              "name": "frontend",
-              "context": "./web",
-              "image_env": "COMMONEX_FRONTEND_IMAGE",
-              "repository": "ruggedbl/commonex-next-web"
-            },
-            {
-              "name": "otel-collector",
-              "context": "./infra/otel-collector",
-              "image_env": "COMMONEX_OTEL_COLLECTOR_IMAGE",
-              "repository": "ruggedbl/opentelemetry-collector-custom"
-            },
-            {
-              "name": "nginx",
-              "context": "./infra/nginx",
-              "image_env": "COMMONEX_NGINX_IMAGE",
-              "repository": "ruggedbl/nginx-http3"
+            .[] | {
+              name: .service,
+              context: .workflow_build_identity,
+              image_env: .environment_key,
+              repository: .repository
             }
           ]
-          EOF
+          ' infra/deploy/release-images.json > services.json
 
           matrix=$(jq -c --argjson changed_services "$changed_services" '
           [
@@ -194,33 +173,9 @@ jobs:
             '    UserKnownHostsFile ~/.ssh/known_hosts' > ~/.ssh/config
           chmod 600 ~/.ssh/config
 
-      - name: Resolve immutable release images
-        env:
-          CHANGED_SERVICES: ${{ needs.containers_matrix_prep.outputs.changed-services }}
-        run: |
-          current_images_status=0
-          ssh commonex-production "current-images" \
-            > current-images.env 2> current-images.err || current_images_status=$?
-
-          resolver_arguments=("$CHANGED_SERVICES" "$GITHUB_SHA")
-          if [ "$current_images_status" -eq 0 ]; then
-            resolver_arguments+=("current-images.env")
-          elif printf '%s\n' \
-            'commonex-deploy: no immutable activation history exists; bootstrap required' \
-            | cmp -s - current-images.err; then
-            rm -f current-images.env current-images.err
-          else
-            echo "Unable to read the active immutable image references." >&2
-            exit "$current_images_status"
-          fi
-
-          python3 infra/deploy/resolve_release_images.py \
-            "${resolver_arguments[@]}" > release-images.env
-
-      - name: Prepare validated release archive
+      - name: Materialize release secrets
         run: |
           install -d release
-          install -m 644 infra/docker-compose-prod.yml release/docker-compose-prod.yml
           install -m 600 /dev/null release/.env
           cat >> release/.env << 'ENVEOF'
           POSTGRES_PORT=${{ secrets.POSTGRES_PORT }}
@@ -234,40 +189,17 @@ jobs:
           GF_SECURITY_ADMIN_USER=${{ secrets.GF_SECURITY_ADMIN_USER }}
           GF_SECURITY_ADMIN_PASSWORD=${{ secrets.GF_SECURITY_ADMIN_PASSWORD }}
           ENVEOF
-          cat release-images.env >> release/.env
-          tar -C release -czf commonex-release.tar.gz docker-compose-prod.yml .env
 
-      - name: Stage, validate, and deploy release
-        id: deploy_activation
-        run: |
-          ssh commonex-production "stage $GITHUB_SHA" < commonex-release.tar.gz
-          ssh commonex-production "validate $GITHUB_SHA"
-          activation_status=0
-          ssh commonex-production "deploy $GITHUB_SHA $GITHUB_RUN_NUMBER" || activation_status=$?
-          echo "status=$activation_status" >> "$GITHUB_OUTPUT"
-          if [[ "$activation_status" -ne 0 && "$activation_status" -ne 2 ]]; then
-            exit "$activation_status"
-          fi
-
-      - name: Verify active release images
-        run: |
-          ssh commonex-production "current-images" > active-images.env
-          sort release-images.env > expected-images.sorted
-          sort active-images.env > active-images.sorted
-          if ! cmp -s expected-images.sorted active-images.sorted; then
-            echo "::error::Deployment committed, but active image references do not match the intended release."
-            exit 1
-          fi
-
-      - name: Verify public service health
-        if: always() && steps.deploy_activation.outcome == 'success'
-        run: python3 infra/deploy/verify_public_services.py
-
-      - name: Preserve committed deployment audit failure
-        if: always() && steps.deploy_activation.outputs.status == '2'
-        run: |
-          echo "::error::Deployment committed, but its final audit record failed."
-          exit 2
+      - name: Resolve, activate, and verify release
+        env:
+          CHANGED_SERVICES: ${{ needs.containers_matrix_prep.outputs.changed-services }}
+        run: >-
+          python3 infra/deploy/production_delivery.py deploy
+          "$GITHUB_SHA"
+          "$GITHUB_RUN_NUMBER"
+          "$CHANGED_SERVICES"
+          infra/docker-compose-prod.yml
+          release/.env
 
   rollback:
     if: |
@@ -301,35 +233,10 @@ jobs:
             '    UserKnownHostsFile ~/.ssh/known_hosts' > ~/.ssh/config
           chmod 600 ~/.ssh/config
 
-      - name: Activate retained release
-        id: rollback_activation
+      - name: Activate and verify retained release
         env:
           RELEASE_SHA: ${{ inputs.release_sha }}
-        run: |
-          if [[ ! "$RELEASE_SHA" =~ ^[0-9a-f]{40}$ ]]; then
-            echo "release_sha must be a lowercase 40-character Git SHA" >&2
-            exit 1
-          fi
-          activation_status=0
-          ssh commonex-production "rollback $RELEASE_SHA $GITHUB_RUN_NUMBER" || activation_status=$?
-          echo "status=$activation_status" >> "$GITHUB_OUTPUT"
-          if [[ "$activation_status" -ne 0 && "$activation_status" -ne 2 ]]; then
-            exit "$activation_status"
-          fi
-
-      - name: Verify active rollback images
-        run: |
-          if ! ssh commonex-production "current-images" > active-images.env; then
-            echo "::error::Rollback committed, but active image references could not be read."
-            exit 1
-          fi
-
-      - name: Verify public service health
-        if: always() && steps.rollback_activation.outcome == 'success'
-        run: python3 infra/deploy/verify_public_services.py
-
-      - name: Preserve committed rollback audit failure
-        if: always() && steps.rollback_activation.outputs.status == '2'
-        run: |
-          echo "::error::Rollback committed, but its final audit record failed."
-          exit 2
+        run: >-
+          python3 infra/deploy/production_delivery.py rollback
+          "$RELEASE_SHA"
+          "$GITHUB_RUN_NUMBER"

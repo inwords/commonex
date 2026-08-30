@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import hashlib
-import json
 import os
 import re
 import shlex
@@ -19,6 +18,39 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import BinaryIO, Iterator, Optional, Sequence
+
+try:
+    from infra.deploy.commonex_host.activation import (
+        ActivationCommittedAuditError,
+        _ActivationDependencies,
+        ActivationRequest,
+        ActivationTransaction,
+        AmbiguousActivationCommitError,
+        ConfigurationRestoreError as _ConfigurationRestoreError,
+    )
+    from infra.deploy.commonex_host.trusted_files import (
+        TrustedDurableFiles,
+        _TrustedFileLocations,
+    )
+except ModuleNotFoundError as error:
+    if error.name != "infra":
+        raise
+    from commonex_host.activation import (  # type: ignore[no-redef]
+        ActivationCommittedAuditError,
+        _ActivationDependencies,
+        ActivationRequest,
+        ActivationTransaction,
+        AmbiguousActivationCommitError,
+        ConfigurationRestoreError as _ConfigurationRestoreError,
+    )
+    from commonex_host.trusted_files import (  # type: ignore[no-redef]
+        TrustedDurableFiles,
+        _TrustedFileLocations,
+    )
+
+
+# Preserve the public exception name exposed by the pre-refactor module.
+ConfigurationRestoreError = _ConfigurationRestoreError
 
 
 FILES = {
@@ -53,10 +85,6 @@ ENV_KEY_PATTERN = re.compile(r"^[A-Z][A-Z0-9_]*$")
 IMMUTABLE_IMAGE_REFERENCE_PATTERN = re.compile(
     r"^(?P<repository>[^@]+)@sha256:[0-9a-f]{64}$"
 )
-MANIFEST_LINE_PATTERN = re.compile(r"^([0-9a-f]{64})  (.+)$")
-ROLLBACK_BACKUP_PATTERN = re.compile(
-    r"^deploy-[0-9a-f]{40}-[0-9]{8}T[0-9]{12}Z$"
-)
 COMMANDS = frozenset({"stage", "validate", "deploy", "rollback", "current-images"})
 SAFE_ENVIRONMENT = {
     "HOME": "/root",
@@ -70,27 +98,15 @@ class DeploymentConfig:
     """Filesystem and size boundaries for one deployment environment."""
 
     app_dir: Path = Path("/etc/commonex/app")
-    release_root: Path = Path("/var/lib/commonex-releases")
-    rollback_root: Path = Path("/etc/commonex/rollback")
-    log_path: Path = Path("/var/log/commonex-deploy.log")
-    lock_path: Path = Path("/run/lock/commonex-deploy.lock")
+    release_root: Path = Path("/var/lib/commonex")
+    rollback_root: Path = Path("/var/lib/commonex/rollback")
+    log_path: Path = Path("/var/log/commonex/deploy.log")
+    lock_path: Path = Path("/run/commonex/deploy.lock")
     max_archive_bytes: int = MAX_ARCHIVE_BYTES
     enforce_root_ownership: bool = True
 
 
 DEFAULT_CONFIG = DeploymentConfig()
-
-
-class ConfigurationRestoreError(RuntimeError):
-    """Raised when both deployment and configuration restoration fail."""
-
-
-class AmbiguousActivationCommitError(RuntimeError):
-    """Raised when durable activation-state restoration cannot be confirmed."""
-
-
-class ActivationCommittedAuditError(RuntimeError):
-    """Raised when activation committed but its final audit record failed."""
 
 
 class UnresolvedActivationIntentError(RuntimeError):
@@ -101,46 +117,11 @@ def timestamp() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
-def _open_flags(*flags: int) -> int:
-    result = 0
-    for flag in flags:
-        result |= flag
-    return result
-
-
-def _no_follow_flag() -> int:
-    return getattr(os, "O_NOFOLLOW", 0)
-
-
-def _close_on_exec_flag() -> int:
-    return getattr(os, "O_CLOEXEC", 0)
-
-
 def _verify_owner(
     metadata: os.stat_result, path: Path, config: DeploymentConfig
 ) -> None:
     if config.enforce_root_ownership and (metadata.st_uid != 0 or metadata.st_gid != 0):
         raise PermissionError(f"path is not owned by root: {path}")
-
-
-def _set_open_file_mode(descriptor: int, path: Path, mode: int) -> None:
-    if hasattr(os, "fchmod"):
-        os.fchmod(descriptor, mode)
-    else:
-        path.chmod(mode)
-
-
-def ensure_directory(
-    path: Path,
-    config: DeploymentConfig,
-    *,
-    create_mode: int,
-    exact_mode: Optional[int] = None,
-) -> None:
-    """Create and validate a trusted, non-writable directory path."""
-
-    path.mkdir(mode=create_mode, parents=True, exist_ok=True)
-    verify_directory(path, config, exact_mode=exact_mode)
 
 
 def verify_directory(
@@ -162,46 +143,26 @@ def verify_directory(
         raise PermissionError(f"directory is group/world writable: {path}")
 
 
+def _verify_lock_ancestors(config: DeploymentConfig) -> None:
+    if not config.enforce_root_ownership:
+        return
+    for ancestor in config.lock_path.parent.parents:
+        verify_directory(ancestor, config)
+
+
+def _verify_lock_namespace(config: DeploymentConfig) -> None:
+    _verify_lock_ancestors(config)
+    verify_directory(config.lock_path.parent, config, exact_mode=0o755)
+
+
 def ensure_release_root(config: DeploymentConfig) -> None:
-    ensure_directory(
-        config.release_root,
-        config,
-        create_mode=0o700,
-        exact_mode=0o700,
-    )
+    config.release_root.mkdir(mode=0o700, parents=True, exist_ok=True)
+    verify_directory(config.release_root, config, exact_mode=0o700)
 
 
 def audit(message: str, config: DeploymentConfig = DEFAULT_CONFIG) -> None:
     """Append one trusted, newline-free event to the root-only audit log."""
-
-    if "\n" in message or "\r" in message:
-        raise ValueError("audit message must contain exactly one line")
-
-    ensure_directory(config.log_path.parent, config, create_mode=0o755)
-    flags = _open_flags(
-        os.O_APPEND,
-        os.O_CREAT,
-        os.O_WRONLY,
-        _close_on_exec_flag(),
-        _no_follow_flag(),
-    )
-    descriptor = os.open(config.log_path, flags, 0o600)
-    try:
-        metadata = os.fstat(descriptor)
-        if not stat.S_ISREG(metadata.st_mode):
-            raise PermissionError(
-                f"audit path is not a regular file: {config.log_path}"
-            )
-        _verify_owner(metadata, config.log_path, config)
-        _set_open_file_mode(descriptor, config.log_path, 0o600)
-        with os.fdopen(descriptor, "a", encoding="utf-8", newline="\n") as stream:
-            descriptor = -1
-            stream.write(f"{timestamp()} {message}\n")
-            stream.flush()
-            os.fsync(stream.fileno())
-    finally:
-        if descriptor >= 0:
-            os.close(descriptor)
+    _trusted_files(config).append_audit(message)
 
 
 def _audit_best_effort(message: str, config: DeploymentConfig) -> None:
@@ -256,23 +217,53 @@ def operation_lock(config: DeploymentConfig) -> Iterator[None]:
 
     import fcntl
 
-    config.lock_path.parent.mkdir(mode=0o755, parents=True, exist_ok=True)
-    flags = _open_flags(
-        os.O_CREAT,
-        os.O_RDWR,
-        _close_on_exec_flag(),
-        _no_follow_flag(),
+    runtime = config.lock_path.parent
+    _verify_lock_ancestors(config)
+    runtime_missing = not runtime.exists() and not runtime.is_symlink()
+    runtime.mkdir(mode=0o755, parents=True, exist_ok=True)
+    if runtime_missing:
+        runtime.chmod(0o755)
+    _verify_lock_namespace(config)
+    base_flags = (
+        os.O_RDWR
+        | getattr(os, "O_CLOEXEC", 0)
+        | getattr(os, "O_NOFOLLOW", 0)
     )
-    descriptor = os.open(config.lock_path, flags, 0o600)
+    created = False
+    try:
+        descriptor = os.open(
+            config.lock_path,
+            base_flags | os.O_CREAT | os.O_EXCL,
+            0o600,
+        )
+        created = True
+    except FileExistsError:
+        descriptor = os.open(config.lock_path, base_flags)
     try:
         metadata = os.fstat(descriptor)
-        if not stat.S_ISREG(metadata.st_mode):
+        if (
+            not stat.S_ISREG(metadata.st_mode)
+            or stat.S_IMODE(metadata.st_mode) != 0o600
+        ):
             raise PermissionError(
-                f"lock path is not a regular file: {config.lock_path}"
+                f"lock path is not a trusted regular file: {config.lock_path}"
             )
         _verify_owner(metadata, config.lock_path, config)
-        _set_open_file_mode(descriptor, config.lock_path, 0o600)
+        if created:
+            os.fchmod(descriptor, 0o600)
         fcntl.flock(descriptor, fcntl.LOCK_EX)
+        path_metadata = config.lock_path.lstat()
+        if (
+            not stat.S_ISREG(path_metadata.st_mode)
+            or stat.S_IMODE(path_metadata.st_mode) != 0o600
+            or (path_metadata.st_dev, path_metadata.st_ino)
+            != (metadata.st_dev, metadata.st_ino)
+        ):
+            raise PermissionError(
+                f"lock path changed while it was acquired: {config.lock_path}"
+            )
+        _verify_owner(path_metadata, config.lock_path, config)
+        _verify_lock_namespace(config)
         yield
     finally:
         os.close(descriptor)
@@ -309,16 +300,6 @@ def read_archive(config: DeploymentConfig, input_stream: BinaryIO) -> Path:
     finally:
         if descriptor >= 0:
             os.close(descriptor)
-
-
-def write_manifest(directory: Path) -> None:
-    manifest = directory / "manifest.sha256"
-    with manifest.open("x", encoding="utf-8", newline="\n") as stream:
-        for name in sorted(FILES):
-            stream.write(f"{sha256(directory / name)}  {name}\n")
-        stream.flush()
-        os.fsync(stream.fileno())
-    manifest.chmod(0o600)
 
 
 def _archive_member_name(member: tarfile.TarInfo) -> str:
@@ -384,7 +365,7 @@ def stage(
                 tempfile.mkdtemp(prefix=f".{value}-", dir=config.release_root)
             )
             _extract_archive(archive, temporary, config)
-            write_manifest(temporary)
+            _trusted_files(config).write_release_manifest(temporary)
             temporary.rename(destination)
             temporary = None
             fsync_directory(config.release_root)
@@ -431,88 +412,14 @@ def validate_env(path: Path) -> None:
     _environment_values(path)
 
 
-def _expected_directories() -> set[str]:
-    expected: set[str] = set()
-    for name in FILES:
-        parent = Path(name).parent
-        while parent != Path():
-            expected.add(parent.as_posix())
-            parent = parent.parent
-    return expected
-
-
-def _verify_staged_file(
-    path: Path,
-    expected_mode: int,
-    config: DeploymentConfig,
-) -> None:
-    metadata = path.lstat()
-    if not stat.S_ISREG(metadata.st_mode):
-        raise ValueError(f"release entry is not a regular file: {path.name}")
-    _verify_owner(metadata, path, config)
-    actual_mode = stat.S_IMODE(metadata.st_mode)
-    if os.name == "posix" and actual_mode != expected_mode:
-        raise PermissionError(f"unsafe mode {actual_mode:o} for release file: {path}")
-
-
-def _parse_manifest(path: Path) -> dict[str, str]:
-    manifest: dict[str, str] = {}
-    for line in path.read_text(encoding="utf-8").splitlines():
-        match = MANIFEST_LINE_PATTERN.fullmatch(line)
-        if match is None:
-            raise ValueError("release manifest contains an invalid entry")
-        digest, name = match.groups()
-        if name not in FILES or name in manifest:
-            raise ValueError(
-                "release manifest contains an unexpected or duplicate file"
-            )
-        manifest[name] = digest
-
-    if set(manifest) != set(FILES):
-        raise ValueError("release manifest does not match the expected file set")
-    return manifest
-
-
 def _validate_release_contents(
     value: str,
     config: DeploymentConfig,
 ) -> Path:
-    ensure_release_root(config)
-    directory = config.release_root / value
-    verify_directory(directory, config, exact_mode=0o700)
-    if directory.is_symlink():
-        raise ValueError(f"release is not staged safely: {value}")
-
-    expected_files = set(FILES) | {"manifest.sha256"}
-    actual_files: set[str] = set()
-    actual_directories: set[str] = set()
-    for path in directory.rglob("*"):
-        relative = path.relative_to(directory).as_posix()
-        metadata = path.lstat()
-        if stat.S_ISLNK(metadata.st_mode):
-            raise ValueError("release contains a symlink")
-        if stat.S_ISREG(metadata.st_mode):
-            actual_files.add(relative)
-        elif stat.S_ISDIR(metadata.st_mode):
-            actual_directories.add(relative)
-        else:
-            raise ValueError(f"release contains an unsupported entry: {relative}")
-
-    if actual_files != expected_files or actual_directories != _expected_directories():
-        raise ValueError("release contains missing or unexpected entries")
-
-    for name, mode in FILES.items():
-        _verify_staged_file(directory / name, mode, config)
-    manifest_path = directory / "manifest.sha256"
-    _verify_staged_file(manifest_path, 0o600, config)
-
-    manifest = _parse_manifest(manifest_path)
-    for name in FILES:
-        if manifest[name] != sha256(directory / name):
-            raise ValueError(f"release hash mismatch: {name}")
+    directory = _trusted_files(config).validate_release_documents(value)
 
     validate_env(directory / ".env")
-    run_compose_config(directory)
+    run_command(compose_command(directory, "config", "--quiet"), directory)
     return directory
 
 
@@ -536,10 +443,6 @@ def compose_command(root: Path, *arguments: str) -> list[str]:
         str(root / "docker-compose-prod.yml"),
         *arguments,
     ]
-
-
-def run_compose_config(directory: Path) -> None:
-    run_command(compose_command(directory, "config", "--quiet"), directory)
 
 
 def validate(value: str, config: DeploymentConfig = DEFAULT_CONFIG) -> Path:
@@ -566,28 +469,12 @@ def atomic_install(
     mode: int,
     config: DeploymentConfig,
 ) -> None:
-    destination.parent.mkdir(mode=0o755, parents=True, exist_ok=True)
-    descriptor, temporary_name = tempfile.mkstemp(
-        prefix=f".{destination.name}.",
-        dir=destination.parent,
+    if destination.parent != config.app_dir or FILES.get(destination.name) != mode:
+        raise ValueError("active configuration destination is not allowlisted")
+    _trusted_files(config)._install_active_configuration_file(
+        source,
+        destination.name,
     )
-    temporary = Path(temporary_name)
-    try:
-        with os.fdopen(descriptor, "wb") as output:
-            descriptor = -1
-            with source.open("rb") as input_file:
-                shutil.copyfileobj(input_file, output, length=READ_CHUNK_BYTES)
-            output.flush()
-            os.fsync(output.fileno())
-        if config.enforce_root_ownership:
-            os.chown(temporary, 0, 0)
-        temporary.chmod(mode)
-        temporary.replace(destination)
-        fsync_directory(destination.parent)
-    finally:
-        if descriptor >= 0:
-            os.close(descriptor)
-        temporary.unlink(missing_ok=True)
 
 
 def _verify_current_file(path: Path, config: DeploymentConfig) -> None:
@@ -603,108 +490,21 @@ def _rollback_path(value: str, config: DeploymentConfig) -> Path:
 
 
 def _backup_configuration(rollback: Path, config: DeploymentConfig) -> None:
-    for name in FILES:
-        current = config.app_dir / name
-        _verify_current_file(current, config)
-        backup = rollback / name
-        backup.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
-        with current.open("rb") as source, backup.open("xb") as output:
-            shutil.copyfileobj(source, output, length=READ_CHUNK_BYTES)
-            output.flush()
-            os.fsync(output.fileno())
-        if config.enforce_root_ownership:
-            os.chown(backup, 0, 0)
-        backup.chmod(0o600)
-    fsync_directory(rollback)
+    _trusted_files(config).backup_active_configuration(rollback)
 
 
 def _restore_configuration(rollback: Path, config: DeploymentConfig) -> None:
-    for name, mode in FILES.items():
-        atomic_install(rollback / name, config.app_dir / name, mode, config)
-
-
-def _last_successful_run_path(config: DeploymentConfig) -> Path:
-    return config.release_root / "last-successful-run"
-
-
-def _activation_state_path(config: DeploymentConfig) -> Path:
-    return config.release_root / "activation-state.json"
+    _trusted_files(config).restore_configuration(rollback)
 
 
 def _activation_intent_path(config: DeploymentConfig) -> Path:
     return config.release_root / "activation-intent.json"
 
 
-def _validate_activation_intent(state: object) -> dict[str, object]:
-    expected_keys = {
-        "candidate_release",
-        "operation",
-        "previous_release",
-        "rollback_backup",
-        "run_number",
-    }
-    if not isinstance(state, dict) or set(state) != expected_keys:
-        raise ValueError("activation intent is invalid")
-    candidate = state["candidate_release"]
-    operation = state["operation"]
-    previous = state["previous_release"]
-    rollback_backup = state["rollback_backup"]
-    run_number = state["run_number"]
-    if not isinstance(candidate, str):
-        raise ValueError("activation intent is invalid")
-    release_id(candidate)
-    if operation not in {"deploy", "rollback"}:
-        raise ValueError("activation intent is invalid")
-    if previous is not None:
-        if not isinstance(previous, str):
-            raise ValueError("activation intent is invalid")
-        release_id(previous)
-    if (
-        not isinstance(rollback_backup, str)
-        or ROLLBACK_BACKUP_PATTERN.fullmatch(rollback_backup) is None
-    ):
-        raise ValueError("activation intent is invalid")
-    if isinstance(run_number, bool) or not isinstance(run_number, int):
-        raise ValueError("activation intent is invalid")
-    deployment_run_number(str(run_number))
-    return state
-
-
 def _read_activation_intent(
     config: DeploymentConfig,
 ) -> Optional[dict[str, object]]:
-    ensure_release_root(config)
-    path = _activation_intent_path(config)
-    if path.is_symlink():
-        raise PermissionError(f"activation intent is a symlink: {path}")
-    flags = _open_flags(os.O_RDONLY, _close_on_exec_flag(), _no_follow_flag())
-    try:
-        descriptor = os.open(path, flags)
-    except FileNotFoundError:
-        return None
-
-    try:
-        metadata = os.fstat(descriptor)
-        if not stat.S_ISREG(metadata.st_mode):
-            raise PermissionError(f"activation intent is not a regular file: {path}")
-        _verify_owner(metadata, path, config)
-        mode = stat.S_IMODE(metadata.st_mode)
-        if os.name == "posix" and mode != 0o600:
-            raise PermissionError(f"unsafe mode {mode:o} for activation intent: {path}")
-        with os.fdopen(descriptor, "r", encoding="utf-8", newline="\n") as stream:
-            descriptor = -1
-            serialized = stream.read(4097)
-    finally:
-        if descriptor >= 0:
-            os.close(descriptor)
-
-    if len(serialized) > 4096:
-        raise ValueError("activation intent is too large")
-    try:
-        state = json.loads(serialized, object_pairs_hook=_unique_json_object)
-    except (json.JSONDecodeError, UnicodeError) as error:
-        raise ValueError("activation intent is invalid") from error
-    return _validate_activation_intent(state)
+    return _trusted_files(config).read_activation_intent()
 
 
 def _unresolved_activation_intent(config: DeploymentConfig) -> RuntimeError:
@@ -733,165 +533,42 @@ def _write_activation_intent(
     config: DeploymentConfig,
 ) -> dict[str, object]:
     _ensure_no_activation_intent(config)
-    intent = _validate_activation_intent(
-        {
-            "candidate_release": value,
-            "operation": operation,
-            "previous_release": previous_release,
-            "rollback_backup": rollback_directory.name,
-            "run_number": run_number,
-        }
-    )
-    _persist_activation_intent(intent, config)
+    intent: dict[str, object] = {
+        "candidate_release": value,
+        "operation": operation,
+        "previous_release": previous_release,
+        "rollback_backup": rollback_directory.name,
+        "run_number": run_number,
+    }
+    _trusted_files(config).persist_activation_intent(intent)
     return intent
-
-
-def _persist_activation_intent(
-    intent: dict[str, object], config: DeploymentConfig
-) -> None:
-    intent = _validate_activation_intent(intent)
-    destination = _activation_intent_path(config)
-    descriptor, temporary_name = tempfile.mkstemp(
-        prefix=".activation-intent.", dir=config.release_root
-    )
-    temporary = Path(temporary_name)
-    try:
-        with os.fdopen(descriptor, "w", encoding="utf-8", newline="\n") as stream:
-            descriptor = -1
-            json.dump(intent, stream, separators=(",", ":"), sort_keys=True)
-            stream.write("\n")
-            stream.flush()
-            os.fsync(stream.fileno())
-        if config.enforce_root_ownership:
-            os.chown(temporary, 0, 0)
-        temporary.chmod(0o600)
-        temporary.replace(destination)
-        fsync_directory(config.release_root)
-    finally:
-        if descriptor >= 0:
-            os.close(descriptor)
-        temporary.unlink(missing_ok=True)
 
 
 def _clear_activation_intent(
     expected: dict[str, object], config: DeploymentConfig
 ) -> None:
-    actual = _read_activation_intent(config)
-    if actual != expected:
-        raise RuntimeError("activation intent changed during activation")
-    path = _activation_intent_path(config)
-    try:
-        path.unlink()
-        fsync_directory(config.release_root)
-    except Exception as clear_error:
-        try:
-            if not path.exists() and not path.is_symlink():
-                _persist_activation_intent(expected, config)
-        except Exception as restore_error:
-            raise AmbiguousActivationCommitError(
-                "activation intent removal and restoration could not be durably "
-                "confirmed"
-            ) from restore_error
-        raise clear_error
+    _trusted_files(config).clear_activation_intent(expected)
 
 
-def _read_last_successful_run(config: DeploymentConfig) -> int:
-    ensure_release_root(config)
-    path = _last_successful_run_path(config)
-    flags = _open_flags(os.O_RDONLY, _close_on_exec_flag(), _no_follow_flag())
-    try:
-        descriptor = os.open(path, flags)
-    except FileNotFoundError:
-        return 0
+def _trusted_files(config: DeploymentConfig) -> TrustedDurableFiles:
+    """Build the closed durable-file interface with compatibility callbacks."""
 
-    try:
-        metadata = os.fstat(descriptor)
-        if not stat.S_ISREG(metadata.st_mode):
-            raise PermissionError(f"deployment state is not a regular file: {path}")
-        _verify_owner(metadata, path, config)
-        mode = stat.S_IMODE(metadata.st_mode)
-        if os.name == "posix" and mode != 0o600:
-            raise PermissionError(f"unsafe mode {mode:o} for deployment state: {path}")
-        with os.fdopen(descriptor, "r", encoding="ascii", newline="\n") as stream:
-            descriptor = -1
-            value = stream.read(22)
-    finally:
-        if descriptor >= 0:
-            os.close(descriptor)
-
-    if not value.endswith("\n") or value.count("\n") != 1:
-        raise ValueError("deployment state is invalid")
-    return deployment_run_number(value.removesuffix("\n"))
-
-
-def _validate_activation_state(
-    run_number: object,
-    history: object,
-) -> tuple[int, list[str]]:
-    if isinstance(run_number, bool) or not isinstance(run_number, int):
-        raise ValueError("activation state has an invalid run number")
-    deployment_run_number(str(run_number))
-    if not isinstance(history, list) or len(history) > 3:
-        raise ValueError("activation state has an invalid history")
-    if any(not isinstance(value, str) for value in history):
-        raise ValueError("activation state has an invalid history")
-    validated_history = [release_id(value) for value in history]
-    if len(set(validated_history)) != len(validated_history):
-        raise ValueError("activation state history contains duplicates")
-    return run_number, validated_history
-
-
-def _unique_json_object(pairs: list[tuple[str, object]]) -> dict[str, object]:
-    result: dict[str, object] = {}
-    for key, value in pairs:
-        if key in result:
-            raise ValueError("activation state contains a duplicate JSON key")
-        result[key] = value
-    return result
+    return TrustedDurableFiles(
+        _TrustedFileLocations(
+            release_root=config.release_root,
+            enforce_root_ownership=config.enforce_root_ownership,
+            app_dir=config.app_dir,
+            log_path=config.log_path,
+            rollback_root=config.rollback_root,
+            max_document_bytes=config.max_archive_bytes,
+        ),
+        sync_directory=fsync_directory,
+        clock=timestamp,
+    )
 
 
 def _read_activation_state(config: DeploymentConfig) -> tuple[int, list[str]]:
-    ensure_release_root(config)
-    path = _activation_state_path(config)
-    if path.is_symlink():
-        raise PermissionError(f"deployment state is a symlink: {path}")
-
-    flags = _open_flags(os.O_RDONLY, _close_on_exec_flag(), _no_follow_flag())
-    try:
-        descriptor = os.open(path, flags)
-    except FileNotFoundError:
-        return _read_last_successful_run(config), []
-
-    try:
-        metadata = os.fstat(descriptor)
-        if not stat.S_ISREG(metadata.st_mode):
-            raise PermissionError(f"deployment state is not a regular file: {path}")
-        _verify_owner(metadata, path, config)
-        mode = stat.S_IMODE(metadata.st_mode)
-        if os.name == "posix" and mode != 0o600:
-            raise PermissionError(f"unsafe mode {mode:o} for deployment state: {path}")
-        with os.fdopen(descriptor, "r", encoding="utf-8", newline="\n") as stream:
-            descriptor = -1
-            serialized = stream.read(8193)
-    finally:
-        if descriptor >= 0:
-            os.close(descriptor)
-
-    if len(serialized) > 8192:
-        raise ValueError("activation state is too large")
-    try:
-        state = json.loads(serialized, object_pairs_hook=_unique_json_object)
-    except (json.JSONDecodeError, UnicodeError) as error:
-        raise ValueError("activation state is invalid") from error
-    if not isinstance(state, dict) or set(state) != {
-        "last_successful_run",
-        "history",
-    }:
-        raise ValueError("activation state is invalid")
-    return _validate_activation_state(
-        state["last_successful_run"],
-        state["history"],
-    )
+    return _trusted_files(config).read_activation_state()
 
 
 def _write_activation_state(
@@ -899,96 +576,7 @@ def _write_activation_state(
     history: list[str],
     config: DeploymentConfig,
 ) -> None:
-    run_number, history = _validate_activation_state(run_number, history)
-    ensure_release_root(config)
-    destination = _activation_state_path(config)
-    previous_state: Optional[bytes] = None
-    try:
-        metadata = destination.lstat()
-    except FileNotFoundError:
-        pass
-    else:
-        if stat.S_ISLNK(metadata.st_mode):
-            raise PermissionError(f"deployment state is a symlink: {destination}")
-        if not stat.S_ISREG(metadata.st_mode):
-            raise PermissionError(
-                f"deployment state is not a regular file: {destination}"
-            )
-        _verify_owner(metadata, destination, config)
-        mode = stat.S_IMODE(metadata.st_mode)
-        if os.name == "posix" and mode != 0o600:
-            raise PermissionError(
-                f"unsafe mode {mode:o} for deployment state: {destination}"
-            )
-        previous_state = destination.read_bytes()
-    descriptor, temporary_name = tempfile.mkstemp(
-        prefix=".activation-state.", dir=config.release_root
-    )
-    temporary = Path(temporary_name)
-    replacement_complete = False
-    try:
-        with os.fdopen(descriptor, "w", encoding="utf-8", newline="\n") as stream:
-            descriptor = -1
-            json.dump(
-                {"last_successful_run": run_number, "history": history},
-                stream,
-                separators=(",", ":"),
-                sort_keys=True,
-            )
-            stream.write("\n")
-            stream.flush()
-            os.fsync(stream.fileno())
-        if config.enforce_root_ownership:
-            os.chown(temporary, 0, 0)
-        temporary.chmod(0o600)
-        temporary.replace(destination)
-        replacement_complete = True
-        fsync_directory(config.release_root)
-    except Exception as commit_error:
-        if replacement_complete:
-            try:
-                _restore_activation_state(previous_state, config)
-            except Exception as restore_error:
-                raise AmbiguousActivationCommitError(
-                    "activation state commit is ambiguous because prior state "
-                    "restoration could not be durably confirmed"
-                ) from restore_error
-        raise commit_error
-    finally:
-        if descriptor >= 0:
-            os.close(descriptor)
-        temporary.unlink(missing_ok=True)
-
-
-def _restore_activation_state(
-    previous_state: Optional[bytes],
-    config: DeploymentConfig,
-) -> None:
-    destination = _activation_state_path(config)
-    if previous_state is None:
-        destination.unlink()
-        fsync_directory(config.release_root)
-        return
-
-    descriptor, temporary_name = tempfile.mkstemp(
-        prefix=".activation-state-restore.", dir=config.release_root
-    )
-    temporary = Path(temporary_name)
-    try:
-        with os.fdopen(descriptor, "wb") as stream:
-            descriptor = -1
-            stream.write(previous_state)
-            stream.flush()
-            os.fsync(stream.fileno())
-        if config.enforce_root_ownership:
-            os.chown(temporary, 0, 0)
-        temporary.chmod(0o600)
-        temporary.replace(destination)
-        fsync_directory(config.release_root)
-    finally:
-        if descriptor >= 0:
-            os.close(descriptor)
-        temporary.unlink(missing_ok=True)
+    _trusted_files(config).write_activation_state(run_number, history)
 
 
 def _reconcile_configuration(directory: Path) -> None:
@@ -1031,36 +619,16 @@ def _cleanup_staged_releases(
             )
 
 
-def _activation_identifier(operation: str, value: str) -> str:
-    if operation == "rollback":
-        return f"target={value}"
-    return f"release={value}"
-
-
 def _activate(
     operation: str,
     value: str,
     run_number: int,
-    history: list[str],
     config: DeploymentConfig,
 ) -> None:
-    identifier = _activation_identifier(operation, value)
-    rollback_directory = _rollback_path(value, config)
-    audit(
-        f"ACTION {operation} {identifier} run={run_number} "
-        "consequence=replace_allowlisted_config_and_reconcile_compose "
-        f"rollback={rollback_directory} result=START",
-        config,
-    )
-
-    backups_ready = False
-    installation_started = False
-    compose_started = False
-    activation_intent: Optional[dict[str, object]] = None
-    next_history = [value, *(item for item in history if item != value)][:3]
-    try:
-        directory = _validate_release_contents(value, config)
+    def pull_release(directory: Path) -> None:
         run_command(compose_command(directory, "pull"), directory)
+
+    def prepare_rollback(rollback_directory: Path) -> None:
         verify_directory(config.app_dir, config)
         verify_directory(config.rollback_root, config)
         rollback_directory.mkdir(mode=0o700)
@@ -1068,136 +636,51 @@ def _activate(
             os.chown(rollback_directory, 0, 0)
         fsync_directory(config.rollback_root)
 
-        _backup_configuration(rollback_directory, config)
-        backups_ready = True
-        activation_intent = _write_activation_intent(
-            operation,
-            value,
-            run_number,
-            history[0] if history else None,
-            rollback_directory,
-            config,
-        )
-        installation_started = True
+    def install_release(directory: Path) -> None:
         for name, mode in FILES.items():
             atomic_install(directory / name, config.app_dir / name, mode, config)
 
-        compose_started = True
-        _reconcile_configuration(config.app_dir)
-        _write_activation_state(run_number, next_history, config)
-        try:
-            _clear_activation_intent(activation_intent, config)
-        except Exception as clear_error:
-            raise AmbiguousActivationCommitError(
-                "activation committed but its intent could not be durably cleared; "
-                "manual reconciliation is required"
-            ) from clear_error
-    except AmbiguousActivationCommitError as activation_error:
-        _audit_best_effort(
-            f"RESULT {operation} {identifier} run={run_number} "
-            "status=AMBIGUOUS_COMMIT configuration_restored=NOT_ATTEMPTED "
-            f"error={type(activation_error).__name__}",
-            config,
-        )
-        raise
-    except Exception as activation_error:
-        if backups_ready and installation_started:
-            try:
-                _restore_configuration(rollback_directory, config)
-                _reconcile_configuration(config.app_dir)
-            except Exception as restore_error:
-                failure_prefix = (
-                    f"RESULT rollback {identifier} run={run_number} status=FAILED"
-                    if operation == "rollback"
-                    else f"RESULT deploy {identifier} status=FAILED run={run_number}"
-                )
-                audit(
-                    f"{failure_prefix} configuration_restored=FAILED "
-                    f"runtime_may_have_changed={str(compose_started).lower()} "
-                    f"activation_error={type(activation_error).__name__} "
-                    f"restore_error={type(restore_error).__name__}",
-                    config,
-                )
-                raise ConfigurationRestoreError(
-                    "activation failed and configuration restoration also failed"
-                ) from restore_error
-            restoration = "PASS"
-        else:
-            restoration = "NOT_NEEDED"
-
-        if activation_intent is not None:
-            try:
-                _clear_activation_intent(activation_intent, config)
-            except Exception as clear_error:
-                _audit_best_effort(
-                    f"RESULT {operation} {identifier} run={run_number} "
-                    "status=AMBIGUOUS_COMMIT configuration_restored="
-                    f"{restoration} error={type(clear_error).__name__}",
-                    config,
-                )
-                raise AmbiguousActivationCommitError(
-                    "configuration was restored but its activation intent could "
-                    "not be durably cleared; manual reconciliation is required"
-                ) from clear_error
-
-        failure_prefix = (
-            f"RESULT rollback {identifier} run={run_number} status=FAILED"
-            if operation == "rollback"
-            else f"RESULT deploy {identifier} status=FAILED run={run_number}"
-        )
-        audit(
-            f"{failure_prefix} configuration_restored={restoration} "
-            f"runtime_may_have_changed={str(compose_started).lower()} "
-            f"error={type(activation_error).__name__}",
-            config,
-        )
-        raise
-
-    try:
-        _cleanup_staged_releases(next_history, config)
-    except Exception as cleanup_error:
-        _audit_best_effort(
-            f"RESULT cleanup status=FAILED "
-            f"error={type(cleanup_error).__name__}",
-            config,
-        )
-    try:
-        if operation == "rollback":
-            audit(
-                f"RESULT rollback {identifier} run={run_number} "
-                "configuration_restored=NOT_NEEDED status=PASS "
-                f"rollback={rollback_directory}",
+    dependencies = _ActivationDependencies(
+        ensure_no_intent=lambda: _ensure_no_activation_intent(config),
+        read_state=lambda: _read_activation_state(config),
+        rollback_path=lambda release: _rollback_path(release, config),
+        validate_release=lambda release: _validate_release_contents(release, config),
+        pull_release=pull_release,
+        prepare_rollback=prepare_rollback,
+        backup_configuration=lambda path: _backup_configuration(path, config),
+        write_intent=lambda op, release, run, previous, path: (
+            _write_activation_intent(
+                op,
+                release,
+                run,
+                previous,
+                path,
                 config,
             )
-        else:
-            audit(
-                f"RESULT deploy {identifier} run={run_number} "
-                f"rollback={rollback_directory} status=PASS",
-                config,
-            )
-    except Exception as audit_error:
-        raise ActivationCommittedAuditError(
-            f"activation committed but final audit failed for {operation} "
-            f"{identifier} run={run_number}"
-        ) from audit_error
-
-
-def _reject_non_increasing_run(
-    operation: str,
-    value: str,
-    run_number: int,
-    last_successful_run: int,
-    config: DeploymentConfig,
-) -> None:
-    if run_number > last_successful_run:
-        return
-    audit(
-        f"RESULT {operation} {_activation_identifier(operation, value)} "
-        f"run={run_number} status=REJECTED "
-        f"last_successful_run={last_successful_run}",
-        config,
+        ),
+        install_release=install_release,
+        reconcile_active=lambda: _reconcile_configuration(config.app_dir),
+        write_state=lambda run, next_history: _write_activation_state(
+            run,
+            next_history,
+            config,
+        ),
+        clear_intent=lambda intent: _clear_activation_intent(intent, config),
+        restore_configuration=lambda path: _restore_configuration(path, config),
+        cleanup_releases=lambda next_history: _cleanup_staged_releases(
+            next_history,
+            config,
+        ),
+        audit=lambda message: audit(message, config),
+        audit_best_effort=lambda message: _audit_best_effort(message, config),
     )
-    raise ValueError("activation run is older than or equal to the last success")
+    ActivationTransaction(dependencies).activate(
+        ActivationRequest(
+            operation=operation,
+            release=value,
+            run_number=run_number,
+        )
+    )
 
 
 def deploy(
@@ -1208,12 +691,7 @@ def deploy(
     value = release_id(value)
     run_number = deployment_run_number(str(run_number))
     with operation_lock(config):
-        _ensure_no_activation_intent(config)
-        last_successful_run, history = _read_activation_state(config)
-        _reject_non_increasing_run(
-            "deploy", value, run_number, last_successful_run, config
-        )
-        _activate("deploy", value, run_number, history, config)
+        _activate("deploy", value, run_number, config)
 
 
 def rollback(
@@ -1224,19 +702,7 @@ def rollback(
     value = release_id(value)
     run_number = deployment_run_number(str(run_number))
     with operation_lock(config):
-        _ensure_no_activation_intent(config)
-        last_successful_run, history = _read_activation_state(config)
-        _reject_non_increasing_run(
-            "rollback", value, run_number, last_successful_run, config
-        )
-        if value not in history:
-            audit(
-                f"RESULT rollback target={value} run={run_number} "
-                "status=REJECTED reason=target_not_retained",
-                config,
-            )
-            raise ValueError("rollback target is not retained in activation history")
-        _activate("rollback", value, run_number, history, config)
+        _activate("rollback", value, run_number, config)
 
 
 def current_images(config: DeploymentConfig = DEFAULT_CONFIG) -> None:
