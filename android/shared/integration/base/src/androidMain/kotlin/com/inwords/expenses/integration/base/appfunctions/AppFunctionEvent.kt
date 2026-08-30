@@ -4,16 +4,15 @@ import androidx.appfunctions.AppFunctionSerializable
 
 /**
  * A lightweight event summary exposed to AppFunctions callers.
- *
- * @property id The local event identifier.
- * @property name The event name.
- * @property participantCount The known participant count when available.
- * @property primaryCurrencyCode The event primary currency code when available.
  */
 @AppFunctionSerializable(isDescribedByKDoc = true)
 internal data class AppFunctionEvent(
+    /** The local event identifier. */
     val id: Long,
+    /** The event name. */
     val name: String,
+    /** The known participant count when available. */
     val participantCount: Int?,
+    /** The event primary currency code when available. */
     val primaryCurrencyCode: String?,
 )

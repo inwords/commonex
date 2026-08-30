@@ -86,8 +86,14 @@ Operational implication:
 
 ## AppFunctions
 
-- `App` also implements `AppFunctionConfiguration.Provider`.
-- `createAppFunctionConfiguration()` registers `CommonExAppFunctions` as the enclosing AppFunctions service class.
+- `BaseCommonExAppFunctionService` is the compile-time `@AppFunctionServiceEntryPoint`; KSP generates
+  `CommonExAppFunctionService` and `commonex_app_function_service.xml`.
+- The generated service is declared by the `shared:integration:base` Android manifest. The app manifest registers
+  `app_metadata.xml`, which describes cross-function workflows and constraints to agents.
+- `App` does not participate in AppFunctions registration. AppFunctions methods use the service entry point directly
+  and no longer receive the legacy `AppFunctionContext` parameter.
+- AppFunctions use KDoc for parameter and response descriptions and `@AppFunctionInstruction` for concise workflow
+  guidance.
 - Current AppFunctions cover:
     - listing currencies
     - creating events
@@ -99,8 +105,10 @@ Operational implication:
 Operational constraints:
 
 - AppFunctions delegate into existing event/expense domain logic through `ComponentsMap`.
-- The dedicated device-test command is:
+- The business-behavior device-test command is:
   `./gradlew --quiet :shared:integration:base:connectedAndroidDeviceTest`
+- Generated-service, manifest, and app-metadata registration is covered by:
+  `./gradlew --quiet :app:connectedAutotestAndroidTest "-Dcom.android.tools.r8.disableApiModeling=true" "-Pandroid.testInstrumentationRunnerArguments.class=ru.commonex.AppFunctionRegistrationTest"`
 - `shared:integration:base` uses `execution = "HOST"` for its `androidDeviceTest` source set because orchestrator-based test discovery did not report results correctly for this module.
 
 ## Deep Links

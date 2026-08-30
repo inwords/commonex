@@ -120,8 +120,6 @@ dependencies {
     // network
     implementation(shared.cronet.bundled)
 
-    implementation(shared.androidx.appfunctions.service)
-
     // compose
     val composeBom = platform(shared.compose.bom)
     implementation(composeBom)

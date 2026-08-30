@@ -63,7 +63,6 @@ kotlin {
         androidMain {
             dependencies {
                 implementation(shared.androidx.appfunctions)
-                implementation(shared.androidx.appfunctions.service)
                 implementation(shared.ionspin.kotlin.bignum)
                 // guava: required by kotlinx-coroutines-guava (transitive from appfunctions) for MoreExecutors/Uninterruptibles
                 implementation(shared.guava)
@@ -95,4 +94,16 @@ kotlin {
 
 dependencies {
     kspAndroid(shared.androidx.appfunctions.compiler)
+}
+
+androidComponents {
+    onVariants { variant ->
+        variant.sources.resources?.addStaticSourceDirectory(
+            layout.buildDirectory.dir("generated/ksp/android/androidMain/resources").get().asFile.path,
+        )
+    }
+}
+
+tasks.matching { task -> task.name == "mergeAndroidMainJavaResource" }.configureEach {
+    dependsOn("kspAndroidMain")
 }
