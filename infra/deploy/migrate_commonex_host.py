@@ -744,6 +744,60 @@ def _copy_state(source: Path, destination: Path, preserve_ownership: bool) -> No
     _fsync_tree(destination)
 
 
+def _prepare_activation_rollback_root(
+    state_root: Path, *, enforce_root_ownership: bool
+) -> None:
+    rollback_root = state_root / "rollback"
+    try:
+        rollback_root.mkdir(mode=0o700, exist_ok=True)
+        if os.name == "posix":
+            flags = (
+                os.O_RDONLY
+                | getattr(os, "O_CLOEXEC", 0)
+                | getattr(os, "O_DIRECTORY", 0)
+                | getattr(os, "O_NOFOLLOW", 0)
+            )
+            descriptor = os.open(str(rollback_root), flags)
+            try:
+                metadata = os.fstat(descriptor)
+                if not stat.S_ISDIR(metadata.st_mode):
+                    raise MigrationError(
+                        "canonical activation rollback root is not a trusted directory"
+                    )
+                os.fchmod(descriptor, 0o700)
+                if enforce_root_ownership:
+                    os.fchown(descriptor, 0, 0)
+                metadata = os.fstat(descriptor)
+                os.fsync(descriptor)
+            finally:
+                os.close(descriptor)
+        else:
+            metadata = rollback_root.lstat()
+            if rollback_root.is_symlink() or not stat.S_ISDIR(metadata.st_mode):
+                raise MigrationError(
+                    "canonical activation rollback root is not a trusted directory"
+                )
+    except OSError as error:
+        raise MigrationError(
+            "canonical activation rollback root is not a trusted directory"
+        ) from error
+    if not stat.S_ISDIR(metadata.st_mode):
+        raise MigrationError(
+            "canonical activation rollback root is not a trusted directory"
+        )
+    if os.name == "posix" and (
+        stat.S_IMODE(metadata.st_mode) != 0o700
+        or (
+            enforce_root_ownership
+            and (metadata.st_uid != 0 or metadata.st_gid != 0)
+        )
+    ):
+        raise MigrationError(
+            "canonical activation rollback root is not a trusted directory"
+        )
+    _fsync_directory(state_root)
+
+
 def _mixed_state_sources(
     report: Dict[str, object], source_root: Path
 ) -> List[Tuple[Path, Path]]:
@@ -1176,6 +1230,15 @@ def execute_migration(
                     _copy_state(layout.legacy_state, state_staging, require_root)
                     if _portable_manifest(state_staging) != _portable_manifest(layout.legacy_state):
                         raise MigrationError("copied state failed content and metadata verification")
+                _prepare_activation_rollback_root(
+                    state_staging,
+                    enforce_root_ownership=require_root,
+                )
+            else:
+                _prepare_activation_rollback_root(
+                    layout.canonical_state,
+                    enforce_root_ownership=require_root,
+                )
             if created_audit:
                 _ensure_durable_directory(
                     layout.canonical_audit.parent,
