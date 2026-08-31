@@ -87,7 +87,7 @@ EXPECTED_SECURE_PATH = (
 EXPECTED_SUDO_POLICY = (
     "Defaults:commonex-deploy env_reset",
     EXPECTED_SECURE_PATH,
-    'Defaults:commonex-deploy env_keep += "SSH_ORIGINAL_COMMAND"',
+    'Defaults:commonex-deploy env_keep = "SSH_ORIGINAL_COMMAND"',
     "commonex-deploy ALL=(root) NOPASSWD: " + EXPECTED_SUDO_COMMAND,
 )
 EXPECTED_SUDO_POLICY_TEXT = "\n".join(EXPECTED_SUDO_POLICY) + "\n"

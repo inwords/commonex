@@ -85,7 +85,7 @@ The only sudo policy is:
 ```text
 Defaults:commonex-deploy env_reset
 Defaults:commonex-deploy secure_path="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
-Defaults:commonex-deploy env_keep += "SSH_ORIGINAL_COMMAND"
+Defaults:commonex-deploy env_keep = "SSH_ORIGINAL_COMMAND"
 commonex-deploy ALL=(root) NOPASSWD: /usr/local/sbin/commonex-deploy forced
 ```
 

@@ -28,9 +28,11 @@ CANONICAL_EFFECTIVE_DEFAULTS = (
     "mail_badpass",
     "secure_path=/usr/local/sbin\\:/usr/local/bin\\:/usr/sbin\\:/usr/bin\\:/sbin\\:/bin\\:/snap/bin",
     "use_pty",
+    'env_keep="COLORS DISPLAY HOSTNAME HISTSIZE KDEDIR LS_COLORS"',
+    'env_keep+="MAIL PS1 PS2 QTDIR USERNAME LANG LC_ALL LANGUAGE XAUTHORITY"',
     "env_reset",
     "secure_path=/usr/local/sbin\\:/usr/local/bin\\:/usr/sbin\\:/usr/bin\\:/sbin\\:/bin",
-    "env_keep+=SSH_ORIGINAL_COMMAND",
+    "env_keep=SSH_ORIGINAL_COMMAND",
 )
 
 
@@ -718,7 +720,7 @@ class InventoryCommonExHostTest(unittest.TestCase):
         sudo_policy.write_text(
             "Defaults:commonex-deploy env_reset\n"
             f"{inventory.EXPECTED_SECURE_PATH}\n"
-            'Defaults:commonex-deploy env_keep += "SSH_ORIGINAL_COMMAND"\n'
+            'Defaults:commonex-deploy env_keep = "SSH_ORIGINAL_COMMAND"\n'
             "commonex-deploy ALL=(root) NOPASSWD: "
             "/usr/local/sbin/commonex-deploy forced\n"
             "commonex-deploy ALL=(root) NOPASSWD: /bin/echo sudo-secret\n",
