@@ -20,6 +20,6 @@ Project-specific operational docs:
 - Android/KMM: [../android/AGENTS.md](../android/AGENTS.md) and [../android/docs/README.md](../android/docs/README.md)
 - Backend: [../backend/AGENTS.md](../backend/AGENTS.md)
 - Web: [../web/AGENTS.md](../web/AGENTS.md)
-- Infrastructure delivery: [../infra/deploy/README.md](../infra/deploy/README.md) and [../infra/deploy/HOST_LAYOUT_MIGRATION.md](../infra/deploy/HOST_LAYOUT_MIGRATION.md)
+- Infrastructure delivery: [../infra/deploy/README.md](../infra/deploy/README.md)
 
 Prefer linking back to these canonical docs instead of duplicating the same guidance in multiple AGENTS or README files.

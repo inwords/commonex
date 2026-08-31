@@ -101,30 +101,6 @@ Grafana dashboards and datasource provisioning remain host-managed and are outsi
 
 ## Validation
 
-### Phase 0 host inventory
-
-Before changing production paths or installing the multi-file deployment tool, run the read-only inventory collector from a trusted root session on the host. Do not expose it through the restricted deployment key and do not add it to the forced-command grammar.
-
-```bash
-install -o root -g root -m 0700 \
-  infra/deploy/inventory_commonex_host.py \
-  /root/inventory_commonex_host.py
-/usr/bin/python3 /root/inventory_commonex_host.py \
-  > /root/commonex-host-inventory.json
-inventory_status=$?
-chmod 0600 /root/commonex-host-inventory.json
-```
-
-The JSON contains path metadata, whole-file hashes, allowlisted immutable image references, environment key names, validated activation identifiers, and a redacted check that the deployment account's complete effective sudo grant list contains only the forced deployment command. It never contains environment values, key material, comments from authorized keys, arbitrary audit lines, or subprocess output. Treat the report as operationally sensitive despite this redaction.
-
-- Exit `0`: collection is complete and no migration blocker was detected.
-- Exit `1`: collection is incomplete or failed; do not migrate.
-- Exit `2`: collection completed but migration is blocked; inspect `blockers` and do not migrate.
-
-The collector creates no paths and holds an existing deployment lock in shared mode while reading. A successful report is evidence for Phase 0 planning, not authorization to migrate. Review it against the architecture plan, verify production approvals are stopped, and prepare the separate recoverable migration procedure first.
-
-Use the approval-gated, dry-run-first procedure in [HOST_LAYOUT_MIGRATION.md](HOST_LAYOUT_MIGRATION.md) to reconcile an inventoried legacy host. That procedure copies and verifies state and audit data before changing tool authority, keeps the legacy inputs intact, and provides a guarded rollback rehearsal. It never enables permanent fallback reads from old paths.
-
 The production host currently runs Python 3.9, so the wrapper must remain compatible with that version. Run its dependency-free regression suite with:
 
 ```bash
