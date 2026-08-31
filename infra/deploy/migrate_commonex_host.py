@@ -410,6 +410,7 @@ def _audit_preserves_migrated_prefix(path: Path, receipt: Dict[str, object]) -> 
 def _assert_metadata(path: Path, record: Dict[str, object], label: str) -> None:
     try:
         metadata = path.lstat()
+        link_target = os.readlink(path) if stat.S_ISLNK(metadata.st_mode) else None
     except OSError as error:
         raise MigrationError(label + " changed since inventory") from error
     if _kind(metadata) != record.get("kind"):
@@ -424,6 +425,8 @@ def _assert_metadata(path: Path, record: Dict[str, object], label: str) -> None:
     if stat.S_ISREG(metadata.st_mode):
         if record.get("hash_status") != "hashed" or record.get("sha256") != _sha256(path):
             raise MigrationError(label + " changed since inventory")
+    if stat.S_ISLNK(metadata.st_mode) and record.get("link_target") != link_target:
+        raise MigrationError(label + " changed since inventory")
 
 
 def _verify_created_lock(
@@ -581,6 +584,7 @@ def _verify_snapshot(
     target: Dict[str, object],
     label: str,
     *,
+    allow_symlinks: bool = False,
     locked_files: Optional[Mapping[Path, Tuple[int, int]]] = None,
     enforce_root_ownership: bool = True,
 ) -> None:
@@ -684,7 +688,9 @@ def _verify_snapshot(
         raise MigrationError(label + " changed since inventory")
     for relative, record in expected.items():
         _assert_metadata(actual[relative], record, label)
-        if record.get("kind") in {"symlink", "special"}:
+        if record.get("kind") == "special" or (
+            record.get("kind") == "symlink" and not allow_symlinks
+        ):
             raise MigrationError(label + " contains an unsafe entry")
 
 
@@ -970,6 +976,7 @@ def _verify_inventory_snapshot(
             Path(path),
             target,
             "inventory target " + name,
+            allow_symlinks=name == "configuration",
             locked_files=locked_files,
             enforce_root_ownership=enforce_root_ownership,
         )

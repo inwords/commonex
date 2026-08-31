@@ -38,7 +38,19 @@ def directory_target(name: str, path: Path) -> dict:
     for child in sorted(path.rglob("*")):
         relative = child.relative_to(path).as_posix()
         child_metadata = child.lstat()
-        if child.is_dir():
+        if child.is_symlink():
+            entries.append(
+                {
+                    "path": relative,
+                    "kind": "symlink",
+                    "mode": f"{stat.S_IMODE(child_metadata.st_mode):04o}",
+                    "uid": child_metadata.st_uid,
+                    "gid": child_metadata.st_gid,
+                    "size": child_metadata.st_size,
+                    "link_target": os.readlink(child),
+                }
+            )
+        elif child.is_dir():
             entries.append(
                 {
                     "path": relative,
@@ -441,6 +453,101 @@ class MigrateCommonExHostTest(unittest.TestCase):
         with self.assertRaisesRegex(
             migration.MigrationError, "changed since inventory"
         ):
+            migration.execute_migration(
+                report,
+                self.bundle,
+                TOOL_SHA,
+                self.layout,
+                apply=False,
+                require_root=False,
+            )
+
+    def test_unchanged_symlink_in_non_migration_target_is_allowed(self) -> None:
+        configuration = self.root / "configuration"
+        configuration.mkdir()
+        certificate = self.root / "certificate.pem"
+        certificate.write_text("certificate\n", encoding="utf-8")
+        certificate_link = configuration / "certificate.pem"
+        try:
+            certificate_link.symlink_to(certificate)
+        except OSError as error:
+            self.skipTest(f"file symlinks are unavailable: {error}")
+        report = self.report()
+        report["targets"].append(directory_target("configuration", configuration))
+
+        result = migration.execute_migration(
+            report,
+            self.bundle,
+            TOOL_SHA,
+            self.layout,
+            apply=False,
+            require_root=False,
+        )
+
+        self.assertEqual(result["status"], "planned")
+
+    def test_changed_symlink_target_after_inventory_is_rejected(self) -> None:
+        configuration = self.root / "configuration"
+        configuration.mkdir()
+        original = self.root / "original.pem"
+        replacement = self.root / "replacement.pem"
+        original.write_text("original\n", encoding="utf-8")
+        replacement.write_text("replacement\n", encoding="utf-8")
+        certificate_link = configuration / "certificate.pem"
+        try:
+            certificate_link.symlink_to(original)
+        except OSError as error:
+            self.skipTest(f"file symlinks are unavailable: {error}")
+        report = self.report()
+        report["targets"].append(directory_target("configuration", configuration))
+        certificate_link.unlink()
+        certificate_link.symlink_to(replacement)
+
+        with self.assertRaisesRegex(
+            migration.MigrationError, "changed since inventory"
+        ):
+            migration.execute_migration(
+                report,
+                self.bundle,
+                TOOL_SHA,
+                self.layout,
+                apply=False,
+                require_root=False,
+            )
+
+    def test_symlink_read_failure_is_reported_as_inventory_change(self) -> None:
+        target = self.root / "target"
+        target.write_text("target\n", encoding="utf-8")
+        linked = self.root / "linked"
+        try:
+            linked.symlink_to(target)
+        except OSError as error:
+            self.skipTest(f"file symlinks are unavailable: {error}")
+        record = {
+            "kind": "symlink",
+            "mode": f"{stat.S_IMODE(linked.lstat().st_mode):04o}",
+            "uid": linked.lstat().st_uid,
+            "gid": linked.lstat().st_gid,
+            "link_target": os.readlink(linked),
+        }
+
+        with (
+            mock.patch.object(migration.os, "readlink", side_effect=OSError("gone")),
+            self.assertRaisesRegex(migration.MigrationError, "changed since inventory"),
+        ):
+            migration._assert_metadata(linked, record, "configuration")
+
+    def test_symlink_in_migrated_state_is_rejected_during_dry_run(self) -> None:
+        external = self.root / "external-state"
+        external.write_text("external\n", encoding="utf-8")
+        linked_state = self.legacy_state / "linked-state"
+        try:
+            linked_state.symlink_to(external)
+        except OSError as error:
+            self.skipTest(f"file symlinks are unavailable: {error}")
+        report = self.report()
+
+        with self.assertRaisesRegex(migration.MigrationError, "unsafe entry"):
             migration.execute_migration(
                 report,
                 self.bundle,
