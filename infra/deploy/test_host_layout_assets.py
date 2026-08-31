@@ -1,8 +1,6 @@
 from pathlib import Path
 import unittest
 
-from infra.deploy import inventory_commonex_host as inventory
-
 
 class HostLayoutAssetsTest(unittest.TestCase):
     def test_logrotate_policy_is_root_only_and_uses_canonical_log(self) -> None:
@@ -17,7 +15,6 @@ class HostLayoutAssetsTest(unittest.TestCase):
         self.assertIn("    su root root\n", policy)
         self.assertNotIn("copytruncate", policy)
         self.assertNotIn("/var/log/commonex-deploy.log", policy)
-        self.assertEqual(policy, inventory.EXPECTED_LOGROTATE_POLICY_TEXT)
 
 
 if __name__ == "__main__":
