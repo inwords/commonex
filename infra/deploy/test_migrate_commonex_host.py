@@ -882,6 +882,73 @@ class MigrateCommonExHostTest(unittest.TestCase):
         self.assertEqual(receipt["tool_git_sha"], TOOL_SHA)
         self.assertEqual(receipt["status"], "applied")
 
+    def test_apply_creates_activation_rollback_root_when_legacy_state_has_none(
+        self,
+    ) -> None:
+        migration.execute_migration(
+            self.report(),
+            self.bundle,
+            TOOL_SHA,
+            self.layout,
+            apply=True,
+            require_root=False,
+        )
+
+        rollback_root = self.layout.canonical_state / "rollback"
+        self.assertTrue(rollback_root.is_dir())
+        self.assertFalse(rollback_root.is_symlink())
+        if os.name == "posix":
+            self.assertEqual(stat.S_IMODE(rollback_root.stat().st_mode), 0o700)
+
+    def test_apply_prepares_rollback_root_for_existing_canonical_state(self) -> None:
+        report = self.report()
+        self.legacy_state.rename(self.layout.canonical_state)
+        report["targets"][0] = {
+            "name": "legacy_release_state",
+            "path": str(self.legacy_state),
+            "exists": False,
+        }
+        report["targets"][1] = directory_target(
+            "canonical_release_state", self.layout.canonical_state
+        )
+        report["activation_states"][0]["path"] = str(
+            self.layout.canonical_state / "activation-state.json"
+        )
+        report["activation_intents"][0]["path"] = str(
+            self.layout.canonical_state / "activation-intent.json"
+        )
+
+        migration.execute_migration(
+            report,
+            self.bundle,
+            TOOL_SHA,
+            self.layout,
+            apply=True,
+            require_root=False,
+        )
+
+        rollback_root = self.layout.canonical_state / "rollback"
+        self.assertTrue(rollback_root.is_dir())
+        self.assertFalse(rollback_root.is_symlink())
+        if os.name == "posix":
+            self.assertEqual(stat.S_IMODE(rollback_root.stat().st_mode), 0o700)
+
+    def test_apply_rejects_a_non_directory_activation_rollback_root(self) -> None:
+        (self.legacy_state / "rollback").write_text("not a directory\n")
+
+        with self.assertRaisesRegex(
+            migration.MigrationError,
+            "activation rollback root is not a trusted directory",
+        ):
+            migration.execute_migration(
+                self.report(),
+                self.bundle,
+                TOOL_SHA,
+                self.layout,
+                apply=True,
+                require_root=False,
+            )
+
     def test_existing_canonical_state_requires_manual_reconciliation(self) -> None:
         self.layout.canonical_state.mkdir()
         report = self.report()
@@ -946,6 +1013,7 @@ class MigrateCommonExHostTest(unittest.TestCase):
         )
         rollback = mixed / "rollback"
         rollback.mkdir()
+        os.chmod(rollback, 0o755)
         (rollback / "saved.env").write_text("safe=true\n")
         mixed_audit = mixed / "deploy.log"
         mixed_audit.write_text("status=PASS\n")
@@ -999,6 +1067,11 @@ class MigrateCommonExHostTest(unittest.TestCase):
         self.assertFalse((layout.canonical_state / ("b" * 40)).exists())
         self.assertTrue(abandoned_release.is_dir())
         self.assertTrue((layout.canonical_state / "rollback" / "saved.env").is_file())
+        if os.name == "posix":
+            self.assertEqual(
+                stat.S_IMODE((layout.canonical_state / "rollback").stat().st_mode),
+                0o700,
+            )
         self.assertFalse((layout.canonical_state / "app").exists())
         self.assertTrue((mixed / "app" / "docker-compose-prod.yml").is_file())
         self.assertEqual(layout.canonical_audit.read_bytes(), mixed_audit.read_bytes())
