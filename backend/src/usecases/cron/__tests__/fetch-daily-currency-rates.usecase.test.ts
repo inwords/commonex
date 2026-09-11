@@ -76,12 +76,12 @@ describe('FetchDailyCurrencyRatesUseCase', () => {
   testCases.forEach((testCase) => {
     it(testCase.name, async () => {
       (getCurrentDateWithoutTimeUTC as jest.Mock).mockReturnValue(testCase.mockDate);
-      jest.spyOn(sharedUseCase, 'execute').mockResolvedValue(testCase.mockSharedUseCase.execute);
+      const executeSpy = jest.spyOn(sharedUseCase, 'execute').mockResolvedValue(testCase.mockSharedUseCase.execute);
 
       await useCase.execute();
 
       expect(getCurrentDateWithoutTimeUTC).toHaveBeenCalled();
-      expect(sharedUseCase.execute).toHaveBeenCalledWith({date: testCase.mockDate});
+      expect(executeSpy).toHaveBeenCalledWith({date: testCase.mockDate});
     });
   });
 });

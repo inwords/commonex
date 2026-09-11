@@ -28,7 +28,7 @@ type InputCore = Omit<IExpense, 'createdAt' | 'id' | 'updatedAt' | 'isCustomRate
   };
 
 type Input = InputCore & {
-  idempotencyKey?: string;
+  idempotencyKey?: string | undefined;
   url: string;
 };
 type Output = Result<

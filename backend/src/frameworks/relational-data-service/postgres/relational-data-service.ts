@@ -67,11 +67,11 @@ export class RelationalDataService implements RelationalDataServiceAbstract {
     await this.dataSource.query('SELECT 1');
   }
 
-  private async setupSearchPathAndValidate(): Promise<void | never> {
+  private async setupSearchPathAndValidate(): Promise<void> {
     const user = this.dbConfig.user;
     const schema = this.dbConfig.schema;
 
-    const [{current_schema: currentSchema}] = await this.dataSource.query(`SELECT current_schema();`);
+    const [{current_schema: currentSchema}] = await this.dataSource.query<[{current_schema: string}]>(`SELECT current_schema();`);
     if (currentSchema !== schema) {
       throw new Error(`Invalid connection schema for user "${user}". Expected "${schema}", got "${currentSchema}";`);
     }

@@ -150,7 +150,7 @@ export const validateFinalRelationalState = async ({
         const result = await value.findAll(rDataService);
         const expected = expectedState[key] ?? [];
         expect(result).toHaveLength(expected.length);
-        expect(result).toEqual(expect.arrayContaining(expected.map((x) => expect.objectContaining(x))));
+        expect(result).toEqual(expect.arrayContaining(expected.map((x) => expect.objectContaining(x) as unknown)));
       } catch (error) {
         throw new Error(`Ошибка при проверке finalRelationalState: ${key}\n\n${(error as Error).message}`, {
           cause: error,

@@ -78,12 +78,12 @@ describe('FetchCurrencyRateUseCase', () => {
 
   testCases.forEach((testCase) => {
     it(testCase.name, async () => {
-      jest.spyOn(sharedUseCase, 'execute').mockResolvedValue(testCase.mockSharedUseCase.execute);
+      const executeSpy = jest.spyOn(sharedUseCase, 'execute').mockResolvedValue(testCase.mockSharedUseCase.execute);
 
       const result = await useCase.execute(testCase.input);
 
       expect(result).toEqual(testCase.output);
-      expect(sharedUseCase.execute).toHaveBeenCalledWith({date: testCase.input.date});
+      expect(executeSpy).toHaveBeenCalledWith({date: testCase.input.date});
     });
   });
 });

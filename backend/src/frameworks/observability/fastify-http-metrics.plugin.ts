@@ -178,7 +178,7 @@ const fastifyHttpMetricsPluginImpl: FastifyPluginCallback<FastifyHttpMetricsPlug
   const stateByRequest = new WeakMap<FastifyRequest, RequestState>();
   const resolveRoute = createRouteResolver(instance);
 
-  const finish = (request: FastifyRequest, kind: FinishKind, statusCode?: number | undefined): void => {
+  const finish = (request: FastifyRequest, kind: FinishKind, statusCode?: number): void => {
     const state = stateByRequest.get(request);
     if (state == null) return;
 
@@ -187,7 +187,7 @@ const fastifyHttpMetricsPluginImpl: FastifyPluginCallback<FastifyHttpMetricsPlug
 
     // Always detach close listener if installed.
     state.detachCloseListener?.();
-    state.detachCloseListener = undefined;
+    delete state.detachCloseListener;
 
     // Always decrement active_requests for any terminal/cleanup path.
     activeRequests.add(-1, state.baseAttrs);

@@ -60,7 +60,7 @@ export class GetEventInfoRequestV2Dto {
     example: '1234',
     required: false,
   })
-  @ValidateIf((o) => !o.token)
+  @ValidateIf((o: GetEventInfoRequestV2Dto) => !o.token)
   @IsString()
   @Length(4, 4)
   pinCode?: string;
@@ -70,7 +70,7 @@ export class GetEventInfoRequestV2Dto {
     example: 'abc123def456',
     required: false,
   })
-  @ValidateIf((o) => !o.pinCode)
+  @ValidateIf((o: GetEventInfoRequestV2Dto) => !o.pinCode)
   @IsString()
   token?: string;
 }

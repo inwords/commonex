@@ -11,7 +11,7 @@ import {EventNotFoundError, EventDeletedError, InvalidPinCodeError} from '#domai
 import {IdempotencySharedUseCase} from '#usecases/shared/idempotency.usecase';
 
 type InputCore = {users: Array<Omit<IUserInfo, 'id' | 'eventId'>>} & {pinCode: IEvent['pinCode']; eventId: IEvent['id']};
-type Input = InputCore & {idempotencyKey?: string; url: string};
+type Input = InputCore & {idempotencyKey?: string | undefined; url: string};
 type Output = Result<Array<IUserInfo>, EventNotFoundError | EventDeletedError | InvalidPinCodeError>;
 
 @Injectable()

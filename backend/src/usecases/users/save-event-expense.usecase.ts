@@ -13,7 +13,7 @@ import {EventNotFoundError, EventDeletedError, CurrencyNotFoundError, CurrencyRa
 import {IdempotencySharedUseCase} from '#usecases/shared/idempotency.usecase';
 
 type InputCore = Omit<IExpense, 'createdAt' | 'id' | 'updatedAt'> & Partial<Pick<IExpense, 'createdAt'>>;
-type Input = InputCore & {idempotencyKey?: string; url: string};
+type Input = InputCore & {idempotencyKey?: string | undefined; url: string};
 type Output = Result<IExpense, EventNotFoundError | EventDeletedError | CurrencyNotFoundError | CurrencyRateNotFoundError>;
 
 @Injectable()
