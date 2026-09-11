@@ -21,7 +21,6 @@ class SharedKmmLibraryPlugin : Plugin<Project> {
                 extraWarnings.set(true)
                 freeCompilerArgs.addAll(
                     "-Xreturn-value-checker=check",
-                    "-Xexplicit-backing-fields",
                 )
             }
         }

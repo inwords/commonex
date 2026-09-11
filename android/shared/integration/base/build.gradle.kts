@@ -17,6 +17,12 @@ kotlin {
             enable = true
         }
 
+        // Kotlin 2.4 defaults the module name to "{group}:{project}". The AppFunctions KSP compiler
+        // derives a class name from it and rejects the ':', so keep the pre-2.4 project-name default.
+        compilerOptions {
+            moduleName.set(project.name)
+        }
+
         withDeviceTest {
             animationsDisabled = true
             // AppFunctions classes in this module break orchestrator-based test discovery on device.
@@ -80,10 +86,7 @@ kotlin {
 
     compilerOptions {
         // Common compiler options applied to all Kotlin source sets
-        freeCompilerArgs.addAll(
-            "-Xcontext-parameters",
-            "-Xexpect-actual-classes"
-        )
+        freeCompilerArgs.add("-Xexpect-actual-classes")
     }
 
     targets.withType<KotlinNativeTarget>().configureEach {

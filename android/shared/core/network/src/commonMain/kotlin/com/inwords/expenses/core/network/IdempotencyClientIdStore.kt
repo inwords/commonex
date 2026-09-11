@@ -8,7 +8,6 @@ import kotlinx.coroutines.withContext
 import okio.FileSystem
 import okio.Path
 import kotlin.concurrent.Volatile
-import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 internal class IdempotencyClientIdStore(
@@ -53,7 +52,6 @@ internal class IdempotencyClientIdStore(
         }
     }
 
-    @OptIn(ExperimentalUuidApi::class)
     private fun generateClientUuid(): String = Uuid.random().toString()
 }
 
