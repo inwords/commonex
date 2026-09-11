@@ -119,10 +119,20 @@ npm run test
 npm run test:cov
 ```
 
-For PowerShell-specific test setups (local DB, Docker DB), see [`docs/troubleshooting.md`](docs/troubleshooting.md).
+Tests need a live PostgreSQL. `docker-compose.test.yml` starts one that reuses the production `db` service definition
+from `infra/docker-compose-prod.yml` and reads credentials from `.env` (`cp example.env .env`):
 
-CI (`.github/workflows/main.yml`, job `backend-checks`) runs `typecheck`, `lint:check`, `db:migrate` and `test` against a
-Postgres service container on every pull request or push that touches `backend/`; production deploys wait for it.
+```bash
+docker compose -f docker-compose.test.yml up --wait db
+npm run db:migrate
+npm run test
+docker compose -f docker-compose.test.yml down -v
+```
+
+For PowerShell-specific notes, see [`docs/troubleshooting.md`](docs/troubleshooting.md).
+
+CI (`.github/workflows/main.yml`, job `backend-checks`) runs the same sequence plus `typecheck` and `lint:check` on every
+pull request or push that touches `backend/`; production deploys wait for it.
 
 ## Deployment
 

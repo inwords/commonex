@@ -37,7 +37,8 @@ and OpenTelemetry Collector for observability. Supports blue-green deployment fo
 ### Docker Compose
 
 - **Production**: `docker-compose-prod.yml` - production deployment with blue-green backend and an internal-only
-  PostgreSQL network (DB port not published to host by default)
+  PostgreSQL network (DB port not published to host by default). `backend/docker-compose.test.yml` extends its `db`
+  service for local and CI test runs, so changes to `db` also affect backend tests.
 
 ## Essential Commands
 

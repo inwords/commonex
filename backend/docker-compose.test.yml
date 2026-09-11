@@ -1,0 +1,23 @@
+# Throwaway PostgreSQL for local and CI test runs.
+#
+# Reuses the production `db` service definition (image, credentials wiring, healthcheck) so tests run
+# against the same database the deployment uses. Credentials come from `.env` next to this file;
+# `cp example.env .env` is enough.
+#
+#   docker compose -f docker-compose.test.yml up --wait db
+#   npm run db:migrate && npm test
+#   docker compose -f docker-compose.test.yml down -v
+
+services:
+  db:
+    extends:
+      file: ../infra/docker-compose-prod.yml
+      service: db
+    ports:
+      - '${POSTGRES_PORT}:5432'
+
+volumes:
+  postgres_data:
+
+networks:
+  db-network:
