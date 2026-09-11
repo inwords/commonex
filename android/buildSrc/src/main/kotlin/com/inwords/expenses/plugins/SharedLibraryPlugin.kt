@@ -36,7 +36,6 @@ class SharedLibraryPlugin : Plugin<Project> {
             jvmTarget.set(JvmTarget.JVM_17)
             freeCompilerArgs.addAll(
                 "-Xreturn-value-checker=check",
-                "-Xexplicit-backing-fields",
             )
         }
     }

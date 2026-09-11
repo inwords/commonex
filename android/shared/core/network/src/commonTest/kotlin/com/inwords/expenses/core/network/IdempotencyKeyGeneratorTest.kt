@@ -9,7 +9,7 @@ import kotlin.test.assertTrue
 internal class IdempotencyKeyGeneratorTest {
 
     @Test
-    fun `mobileIdempotencyKey includes stored client id, operation, and parts`() = runTest {
+    fun `mobileIdempotencyKey includes stored client id and operation and parts`() = runTest {
         val generator = IdempotencyKeyGenerator(
             idempotencyClientIdProvider = FakeIdempotencyClientIdProvider("client-id"),
         )

@@ -14,9 +14,7 @@ kotlin {
         jvmTarget.set(JvmTarget.JVM_17)
 
         freeCompilerArgs.addAll(
-            "-Xcontext-parameters",
             "-Xreturn-value-checker=check",
-            "-Xexplicit-backing-fields",
         )
         extraWarnings.set(true)
     }
