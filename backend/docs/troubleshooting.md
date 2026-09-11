@@ -19,24 +19,14 @@ npm run test
 
 ### Temporary Docker DB-backed runs (PowerShell, no local PostgreSQL)
 
-```powershell
-docker run --rm -d --name commonex-backend-test-db `
-  -e POSTGRES_PASSWORD='postgres' `
-  -e POSTGRES_USER='postgres' `
-  -e POSTGRES_DB='postgres' `
-  -p 55432:5432 postgres:16-alpine
+`docker-compose.test.yml` reuses the production `db` service and reads credentials from `.env`:
 
-$env:POSTGRES_HOST='127.0.0.1'
-$env:POSTGRES_PORT='55432'
-$env:POSTGRES_USER_NAME='postgres'
-$env:POSTGRES_PASSWORD='postgres'
-$env:POSTGRES_DATABASE='postgres'
-$env:POSTGRES_SCHEMA='public'
-$env:OPEN_EXCHANGE_RATES_API_ID='test'
-$env:DEVTOOLS_SECRET='test-secret'
+```powershell
+Copy-Item example.env .env
+docker compose -f docker-compose.test.yml up --wait db
 node node_modules/ts-node/dist/bin.js --transpile-only scripts/migrate.ts
 node node_modules/jest/bin/jest.js --runInBand
-docker stop commonex-backend-test-db
+docker compose -f docker-compose.test.yml down -v
 ```
 
 ### PowerShell Script-Policy Issues
