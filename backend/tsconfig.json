@@ -7,13 +7,15 @@
     "experimentalDecorators": true,
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "target": "ES2021",
     "sourceMap": true,
     "outDir": "./dist",
+    "rootDir": "./",
     "lib": ["ESNext"],
     "incremental": true,
     "skipLibCheck": true,
+    "types": ["node", "jest"],
     "forceConsistentCasingInFileNames": false,
     "strict": true /* Enable all strict type-checking options. */,
     "noImplicitAny": true /* Enable error reporting for expressions and declarations with an implied 'any' type. */,
@@ -33,13 +35,12 @@
     "noPropertyAccessFromIndexSignature": true /* Enforces using indexed accessors for keys declared using an indexed type. */,
     "allowUnusedLabels": false /* Disable error reporting for unused labels. */,
     "allowUnreachableCode": false,
-    "baseUrl": "./" /* Specify the base directory to resolve non-relative module names. */,
     "paths": {
-      "#api/*": ["src/api/*"],
-      "#domain/*": ["src/domain/*"],
-      "#usecases/*": ["src/usecases/*"],
-      "#frameworks/*": ["src/frameworks/*"],
-      "#packages/*": ["src/packages/*"]
+      "#api/*": ["./src/api/*"],
+      "#domain/*": ["./src/domain/*"],
+      "#usecases/*": ["./src/usecases/*"],
+      "#frameworks/*": ["./src/frameworks/*"],
+      "#packages/*": ["./src/packages/*"]
     }
   },
   "include": ["src", "scripts", "migrations"]
