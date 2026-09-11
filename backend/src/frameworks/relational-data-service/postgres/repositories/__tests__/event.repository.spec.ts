@@ -3,7 +3,7 @@ import {appDbConfig} from '#frameworks/relational-data-service/postgres/config';
 import {IEvent} from '#domain/entities/event.entity';
 import {IQueryDetails} from '#domain/abstracts/relational-data-service/types';
 import {EventOperationConflictError} from '#domain/errors/errors';
-import {EntityManager, QueryFailedError} from 'typeorm';
+import {QueryFailedError} from 'typeorm';
 
 describe('EventRepository', () => {
   let relationalDataService: RelationalDataService;
@@ -184,7 +184,7 @@ describe('EventRepository', () => {
       try {
         await expect(
           relationalDataService.transaction(async (ctx) => {
-            await (ctx as EntityManager).query("SET LOCAL lock_timeout = '1ms'");
+            await ctx.query("SET LOCAL lock_timeout = '1ms'");
             return relationalDataService.event.findById('event-1', {
               ctx,
               lock: 'pessimistic_write',

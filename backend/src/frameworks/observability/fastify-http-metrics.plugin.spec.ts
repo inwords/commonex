@@ -177,7 +177,7 @@ describe('fastifyHttpMetricsPlugin', () => {
 
     try {
       await app.register(fastifyHttpMetricsPlugin);
-      app.get('/users/:id', async () => ({ok: true}));
+      app.get('/users/:id', () => ({ok: true}));
 
       const serverAddress = await app.listen({host: '127.0.0.1', port: 0});
       const url = new URL(serverAddress);
@@ -216,7 +216,7 @@ describe('fastifyHttpMetricsPlugin', () => {
 
     try {
       await app.register(fastifyHttpMetricsPlugin);
-      app.get('/users/:id', async () => ({ok: true}));
+      app.get('/users/:id', () => ({ok: true}));
 
       const response = await app.inject({
         method: 'GET',
@@ -256,7 +256,7 @@ describe('fastifyHttpMetricsPlugin', () => {
       await app.register(fastifyHttpMetricsPlugin, {
         applicationRoot: '/api',
       });
-      app.get('/users/:id', async () => ({ok: true}));
+      app.get('/users/:id', () => ({ok: true}));
 
       const response = await app.inject({
         method: 'GET',
@@ -288,7 +288,7 @@ describe('fastifyHttpMetricsPlugin', () => {
 
     try {
       await app.register(fastifyHttpMetricsPlugin);
-      app.get('/boom', async () => {
+      app.get('/boom', () => {
         throw new Error('boom');
       });
       app.get('/not-found', async (_request, reply) => {
@@ -368,7 +368,7 @@ describe('fastifyHttpMetricsPlugin', () => {
 
     try {
       await app.register(fastifyHttpMetricsPlugin);
-      app.post('/upload', async () => ({ok: true}));
+      app.post('/upload', () => ({ok: true}));
 
       const serverAddress = await app.listen({host: '127.0.0.1', port: 0});
       const url = new URL(serverAddress);
