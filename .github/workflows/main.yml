@@ -129,7 +129,10 @@ jobs:
     needs: containers_matrix_prep
     if: |
       github.event_name != 'workflow_dispatch' &&
-      needs.containers_matrix_prep.outputs.has-backend-changes == 'true'
+      (
+        needs.containers_matrix_prep.outputs.has-backend-changes == 'true' ||
+        needs.containers_matrix_prep.outputs.has-infra-changes == 'true'
+      )
     defaults:
       run:
         working-directory: backend
