@@ -132,7 +132,8 @@ docker compose -f docker-compose.test.yml down -v
 For PowerShell-specific notes, see [`docs/troubleshooting.md`](docs/troubleshooting.md).
 
 CI (`.github/workflows/main.yml`, job `backend-checks`) runs the same sequence plus `typecheck` and `lint:check` on every
-pull request or push that touches `backend/`; production deploys wait for it.
+pull request or push that touches `backend/` or `infra/` (the test database extends the production compose file);
+production deploys wait for it.
 
 ## Deployment
 
