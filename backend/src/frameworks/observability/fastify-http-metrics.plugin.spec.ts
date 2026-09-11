@@ -61,7 +61,7 @@ const sendHttp2Get = (port: number, path: string): Promise<number> => {
       reject(new Error(`Timed out while requesting ${path}`));
     }, 5_000);
 
-    client.once('error', (error) => {
+    client.once('error', (error: Error) => {
       clearTimeout(timeout);
       request.close();
       client.close();
@@ -76,7 +76,7 @@ const sendHttp2Get = (port: number, path: string): Promise<number> => {
       // Consume response body to allow stream completion.
     });
 
-    request.once('error', (error) => {
+    request.once('error', (error: Error) => {
       clearTimeout(timeout);
       client.close();
       reject(error);

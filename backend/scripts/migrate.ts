@@ -1,15 +1,9 @@
-/* eslint-disable import/order */
-/* eslint-disable import/first */
-
-require('tsconfig-paths/register');
-
-import * as dotenv from 'dotenv';
-dotenv.config();
+import 'tsconfig-paths/register';
 
 import {RelationalDataService} from '#frameworks/relational-data-service/postgres/relational-data-service';
 import {appDbConfig} from '#frameworks/relational-data-service/postgres/config';
 
-void (async () => {
+void (async (): Promise<void> => {
   const dataService = new RelationalDataService({
     showQueryDetails: false,
     dbConfig: {
