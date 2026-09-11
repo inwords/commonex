@@ -4,6 +4,13 @@ import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-s
 import {IdempotencyKeyValueObject} from '#domain/value-objects/idempotency-key.value-object';
 import {IdempotencyHashMismatchError} from '#domain/errors/errors';
 
+/**
+ * Request fields every idempotent use case receives from the transport layer.
+ * `idempotencyKey` is optional *and* `undefined`-able on purpose: controllers forward a possibly missing
+ * header as an explicit `undefined`, while other callers omit the key entirely.
+ */
+export type IdempotentInput = {idempotencyKey?: string | undefined; url: string};
+
 @Injectable()
 export class IdempotencySharedUseCase {
   constructor(private readonly rDataService: RelationalDataServiceAbstract) {}

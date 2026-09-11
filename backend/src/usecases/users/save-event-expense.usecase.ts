@@ -10,10 +10,10 @@ import {IExpense, ISplitInfo} from '#domain/entities/expense.entity';
 import {ExpenseValueObject} from '#domain/value-objects/expense.value-object';
 import {Result, success, error, isError} from '#packages/result';
 import {EventNotFoundError, EventDeletedError, CurrencyNotFoundError, CurrencyRateNotFoundError} from '#domain/errors/errors';
-import {IdempotencySharedUseCase} from '#usecases/shared/idempotency.usecase';
+import {IdempotencySharedUseCase, IdempotentInput} from '#usecases/shared/idempotency.usecase';
 
 type InputCore = Omit<IExpense, 'createdAt' | 'id' | 'updatedAt'> & Partial<Pick<IExpense, 'createdAt'>>;
-type Input = InputCore & {idempotencyKey?: string | undefined; url: string};
+type Input = InputCore & IdempotentInput;
 type Output = Result<IExpense, EventNotFoundError | EventDeletedError | CurrencyNotFoundError | CurrencyRateNotFoundError>;
 
 @Injectable()

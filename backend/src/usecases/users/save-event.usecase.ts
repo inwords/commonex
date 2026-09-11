@@ -8,10 +8,10 @@ import {UserInfoValueObject} from '#domain/value-objects/user-info.value-object'
 import {Injectable} from '@nestjs/common';
 import {Result, success, error} from '#packages/result';
 import {CurrencyNotFoundError} from '#domain/errors/errors';
-import {IdempotencySharedUseCase} from '#usecases/shared/idempotency.usecase';
+import {IdempotencySharedUseCase, IdempotentInput} from '#usecases/shared/idempotency.usecase';
 
 type InputCore = {users: Array<Omit<IUserInfo, 'id' | 'eventId'>>; event: Pick<IEvent, 'name' | 'currencyId' | 'pinCode'>};
-type Input = InputCore & {idempotencyKey?: string | undefined; url: string};
+type Input = InputCore & IdempotentInput;
 type Output = Result<IEvent & {users: IUserInfo[]}, CurrencyNotFoundError>;
 
 @Injectable()

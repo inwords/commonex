@@ -6,7 +6,7 @@ import {getCurrentDateWithoutTimeUTC, getDateWithoutTimeUTC} from '#packages/dat
 import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-service/relational-data-service';
 import {EventServiceAbstract} from '#domain/abstracts/event-service/event-service';
 import {SupportedCurrencyServiceAbstract} from '#domain/abstracts/supported-currency-service/supported-currency-service';
-import {IdempotencySharedUseCase} from '#usecases/shared/idempotency.usecase';
+import {IdempotencySharedUseCase, IdempotentInput} from '#usecases/shared/idempotency.usecase';
 import {IExpense, ISplitInfo} from '#domain/entities/expense.entity';
 import {ExpenseValueObject} from '#domain/value-objects/expense.value-object';
 import {Result, success, error, isError} from '#packages/result';
@@ -27,10 +27,7 @@ type InputCore = Omit<IExpense, 'createdAt' | 'id' | 'updatedAt' | 'isCustomRate
     pinCode: string;
   };
 
-type Input = InputCore & {
-  idempotencyKey?: string | undefined;
-  url: string;
-};
+type Input = InputCore & IdempotentInput;
 type Output = Result<
   IExpense,
   | EventNotFoundError
