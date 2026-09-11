@@ -1,13 +1,17 @@
-import {RelationalDataService} from '#frameworks/relational-data-service/postgres/relational-data-service';
-import {appDbConfig} from '#frameworks/relational-data-service/postgres/config';
-import {SaveUsersToEventV2UseCase} from '#usecases/users/v2';
+import {Result, error, success} from '#packages/result';
+
 import {EventServiceAbstract} from '#domain/abstracts/event-service/event-service';
-import {prepareInitRelationalState, TestCase, validateRelationalStateChanges} from '../../../__tests__/test-helpers';
-import {error, Result, success} from '#packages/result';
-import {EventDeletedError, EventNotFoundError, InvalidPinCodeError} from '#domain/errors/errors';
 import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-service/relational-data-service';
-import {EventService} from '#frameworks/event-service/event-service';
+import {EventDeletedError, EventNotFoundError, InvalidPinCodeError} from '#domain/errors/errors';
+
 import {IdempotencySharedUseCase} from '#usecases/shared/idempotency.usecase';
+import {SaveUsersToEventV2UseCase} from '#usecases/users/v2';
+
+import {EventService} from '#frameworks/event-service/event-service';
+import {appDbConfig} from '#frameworks/relational-data-service/postgres/config';
+import {RelationalDataService} from '#frameworks/relational-data-service/postgres/relational-data-service';
+
+import {TestCase, prepareInitRelationalState, validateRelationalStateChanges} from '../../../__tests__/test-helpers';
 
 type SaveUsersToEventV2TestCase = TestCase<SaveUsersToEventV2UseCase> & {
   mockEventService: {
@@ -137,15 +141,33 @@ describe('SaveUsersToEventV2UseCase', () => {
       input: {
         eventId: 'event-1',
         pinCode: '1234',
-        users: [{name: 'John Doe', createdAt: new Date('2023-01-01T00:00:00Z'), updatedAt: new Date('2023-01-01T00:00:00Z')}],
+        users: [
+          {name: 'John Doe', createdAt: new Date('2023-01-01T00:00:00Z'), updatedAt: new Date('2023-01-01T00:00:00Z')},
+        ],
         idempotencyKey: 'idempotency-key-1',
         url: SAVE_USERS_V2_URL,
       },
-      output: success([{id: 'cached-user-id', eventId: 'event-1', name: 'John Doe', createdAt: new Date('2026-01-01T00:00:00.000Z'), updatedAt: new Date('2026-01-01T00:00:00.000Z')}]),
+      output: success([
+        {
+          id: 'cached-user-id',
+          eventId: 'event-1',
+          name: 'John Doe',
+          createdAt: new Date('2026-01-01T00:00:00.000Z'),
+          updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+        },
+      ]),
       relationalStateChanges: {},
       mockEventService: {isValidEvent: success(true)},
       mockIdempotencyUseCase: {
-        execute: success([{id: 'cached-user-id', eventId: 'event-1', name: 'John Doe', createdAt: new Date('2026-01-01T00:00:00.000Z'), updatedAt: new Date('2026-01-01T00:00:00.000Z')}]),
+        execute: success([
+          {
+            id: 'cached-user-id',
+            eventId: 'event-1',
+            name: 'John Doe',
+            createdAt: new Date('2026-01-01T00:00:00.000Z'),
+            updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+          },
+        ]),
       },
     },
     {

@@ -2,17 +2,21 @@
 // Side-effect imports are not reordered by the import sorter, so this stays first.
 import './otel';
 
-import {fastifyOtelInstrumentation} from './otel';
-import {HttpAdapterHost, NestFactory} from '@nestjs/core';
-import {FastifyAdapter, NestFastifyApplication} from '@nestjs/platform-fastify';
-import {AppModule} from './app.module';
-import {ValidationPipe} from '@nestjs/common';
-import {DocumentBuilder, SwaggerModule} from '@nestjs/swagger';
-import {MicroserviceOptions, Transport} from '@nestjs/microservices';
 import {join} from 'path';
+
+import {ValidationPipe} from '@nestjs/common';
+import {HttpAdapterHost, NestFactory} from '@nestjs/core';
+import {MicroserviceOptions, Transport} from '@nestjs/microservices';
+import {FastifyAdapter, NestFastifyApplication} from '@nestjs/platform-fastify';
+import {DocumentBuilder, SwaggerModule} from '@nestjs/swagger';
+
+import {fastifyHttpMetricsPlugin} from '#frameworks/observability/fastify-http-metrics.plugin';
+
 import {BusinessErrorFilter} from '#api/http/filters/business-error.filter';
 import {ValidationExceptionFilter} from '#api/http/filters/validation-exception.filter';
-import {fastifyHttpMetricsPlugin} from '#frameworks/observability/fastify-http-metrics.plugin';
+
+import {AppModule} from './app.module';
+import {fastifyOtelInstrumentation} from './otel';
 
 async function bootstrap(): Promise<void> {
   const fastifyAdapter = new FastifyAdapter({http2: true});

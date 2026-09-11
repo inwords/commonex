@@ -1,16 +1,20 @@
 import {createHash} from 'crypto';
-import {RelationalDataService} from '#frameworks/relational-data-service/postgres/relational-data-service';
-import {appDbConfig} from '#frameworks/relational-data-service/postgres/config';
+
 import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-service/relational-data-service';
-import {IdempotencySharedUseCase} from '../idempotency.usecase';
 import {IdempotencyHashMismatchError} from '#domain/errors/errors';
+
 import {
-  prepareInitRelationalState,
   RelationalState,
   RelationalStateChanges,
+  prepareInitRelationalState,
   useFakeTimers,
   validateRelationalStateChanges,
 } from '#usecases/__tests__/test-helpers';
+
+import {appDbConfig} from '#frameworks/relational-data-service/postgres/config';
+import {RelationalDataService} from '#frameworks/relational-data-service/postgres/relational-data-service';
+
+import {IdempotencySharedUseCase} from '../idempotency.usecase';
 
 const KEY = '01JQKP8G0000000000000000AA';
 const URL = '/v2/user/event/event-1/expense';
@@ -18,7 +22,8 @@ const BODY = {amount: 100};
 const FN_RESULT = {id: 'expense-1', amount: 100};
 const TTL_MS = 24 * 60 * 60 * 1000;
 
-const computeHash = (url: string, body: object): string => createHash('sha256').update(JSON.stringify({url, body})).digest('hex');
+const computeHash = (url: string, body: object): string =>
+  createHash('sha256').update(JSON.stringify({url, body})).digest('hex');
 
 type IdempotencyTestCase = {
   name: string;
@@ -147,7 +152,9 @@ describe('IdempotencySharedUseCase', () => {
       const fn = jest.fn().mockResolvedValue(testCase.mockFn.result);
 
       if (testCase.expectError) {
-        await expect(useCase.execute(testCase.input.key, URL, testCase.input.body, fn)).rejects.toBeInstanceOf(testCase.expectError);
+        await expect(useCase.execute(testCase.input.key, URL, testCase.input.body, fn)).rejects.toBeInstanceOf(
+          testCase.expectError,
+        );
       } else {
         const result = await useCase.execute(testCase.input.key, URL, testCase.input.body, fn);
         expect(result).toEqual(testCase.output);

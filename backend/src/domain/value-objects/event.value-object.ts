@@ -1,7 +1,9 @@
-import {ValueObject} from '#domain/value-objects/value-object';
-import {IEvent} from '#domain/entities/event.entity';
-import {PartialByKeys} from '#packages/types';
 import {ulid} from 'ulid';
+
+import {PartialByKeys} from '#packages/types';
+
+import {IEvent} from '#domain/entities/event.entity';
+import {ValueObject} from '#domain/value-objects/value-object';
 
 export type TEventDefaultKeys = keyof Pick<IEvent, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'>;
 

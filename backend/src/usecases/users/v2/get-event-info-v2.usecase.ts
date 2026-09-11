@@ -1,14 +1,15 @@
+import {Injectable} from '@nestjs/common';
+
+import {Result, error, isError, success} from '#packages/result';
 import {UseCase} from '#packages/use-case';
 
-import {IEvent} from '#domain/entities/event.entity';
-import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-service/relational-data-service';
 import {EventServiceAbstract} from '#domain/abstracts/event-service/event-service';
+import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-service/relational-data-service';
+import {IEvent} from '#domain/entities/event.entity';
 import {IUserInfo} from '#domain/entities/user-info.entity';
-import {Injectable} from '@nestjs/common';
-import {Result, success, error, isError} from '#packages/result';
 import {
-  EventNotFoundError,
   EventDeletedError,
+  EventNotFoundError,
   InvalidPinCodeError,
   InvalidTokenError,
   TokenExpiredError,

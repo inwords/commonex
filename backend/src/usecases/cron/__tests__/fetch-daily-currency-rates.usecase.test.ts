@@ -1,18 +1,21 @@
-import {RelationalDataService} from '#frameworks/relational-data-service/postgres/relational-data-service';
-import {appDbConfig} from '#frameworks/relational-data-service/postgres/config';
-import {FetchDailyCurrencyRatesUseCase} from '../fetch-daily-currency-rates.usecase';
-import {FetchAndSaveCurrencyRateSharedUseCase} from '../../shared/fetch-and-save-currency-rate.usecase';
-import {CurrencyRateService} from '#frameworks/currency-rate-service/currency-rate-service';
-import {TestCase} from '../../__tests__/test-helpers';
-import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-service/relational-data-service';
 import {HttpService} from '@nestjs/axios';
+
+import {getCurrentDateWithoutTimeUTC} from '#packages/date-utils';
+
+import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-service/relational-data-service';
 import {ICurrencyRate} from '#domain/entities/currency-rate.entity';
+
+import {CurrencyRateService} from '#frameworks/currency-rate-service/currency-rate-service';
+import {appDbConfig} from '#frameworks/relational-data-service/postgres/config';
+import {RelationalDataService} from '#frameworks/relational-data-service/postgres/relational-data-service';
+
+import {TestCase} from '../../__tests__/test-helpers';
+import {FetchAndSaveCurrencyRateSharedUseCase} from '../../shared/fetch-and-save-currency-rate.usecase';
+import {FetchDailyCurrencyRatesUseCase} from '../fetch-daily-currency-rates.usecase';
 
 jest.mock('#packages/date-utils', () => ({
   getCurrentDateWithoutTimeUTC: jest.fn(),
 }));
-
-import {getCurrentDateWithoutTimeUTC} from '#packages/date-utils';
 
 type FetchDailyCurrencyRatesTestCase = TestCase<FetchDailyCurrencyRatesUseCase> & {
   mockDate: string;

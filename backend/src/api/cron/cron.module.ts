@@ -1,6 +1,8 @@
 import {Module} from '@nestjs/common';
-import {CurrencyRateSchedulerController} from './currency-rate-scheduler.controller';
+
 import {UseCasesModule} from '#usecases/usecases.layer';
+
+import {CurrencyRateSchedulerController} from './currency-rate-scheduler.controller';
 
 @Module({
   imports: [UseCasesModule],

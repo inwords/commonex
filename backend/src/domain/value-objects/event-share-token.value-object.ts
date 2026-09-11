@@ -1,7 +1,9 @@
-import {ValueObject} from '#domain/value-objects/value-object';
-import {IEventShareToken} from '#domain/entities/event-share-token.entity';
-import {PartialByKeys} from '#packages/types';
 import {randomBytes} from 'crypto';
+
+import {PartialByKeys} from '#packages/types';
+
+import {IEventShareToken} from '#domain/entities/event-share-token.entity';
+import {ValueObject} from '#domain/value-objects/value-object';
 
 const TOKEN_LENGTH_BYTES = 32;
 const DEFAULT_EXPIRATION_DAYS = 14;

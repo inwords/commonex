@@ -1,6 +1,8 @@
 import {Controller, Get} from '@nestjs/common';
-import {HealthCheck, HealthCheckService, HealthCheckResult, HealthIndicatorResult} from '@nestjs/terminus';
+import {HealthCheck, HealthCheckResult, HealthCheckService, HealthIndicatorResult} from '@nestjs/terminus';
+
 import {HealthCheckUseCase} from '#usecases/health/health-check.usecase';
+
 import {HealthRoutes} from './health.constants';
 
 @Controller(HealthRoutes.root)

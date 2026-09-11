@@ -1,6 +1,7 @@
-import {ValueObject} from '#domain/value-objects/value-object';
-import {ICurrencyRate} from '#domain/entities/currency-rate.entity';
 import {PartialByKeys} from '#packages/types';
+
+import {ICurrencyRate} from '#domain/entities/currency-rate.entity';
+import {ValueObject} from '#domain/value-objects/value-object';
 
 export type TCurrencyRateDefaultKeys = keyof Pick<ICurrencyRate, 'createdAt' | 'updatedAt'>;
 

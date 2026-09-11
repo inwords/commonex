@@ -1,20 +1,29 @@
 import {Injectable} from '@nestjs/common';
-import {UseCase} from '#packages/use-case';
 
 import {getCurrentDateWithoutTimeUTC, getDateWithoutTimeUTC} from '#packages/date-utils';
+import {Result, error, isError, success} from '#packages/result';
+import {UseCase} from '#packages/use-case';
 
-import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-service/relational-data-service';
 import {EventServiceAbstract} from '#domain/abstracts/event-service/event-service';
+import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-service/relational-data-service';
 import {SupportedCurrencyServiceAbstract} from '#domain/abstracts/supported-currency-service/supported-currency-service';
 import {IExpense, ISplitInfo} from '#domain/entities/expense.entity';
+import {
+  CurrencyNotFoundError,
+  CurrencyRateNotFoundError,
+  EventDeletedError,
+  EventNotFoundError,
+} from '#domain/errors/errors';
 import {ExpenseValueObject} from '#domain/value-objects/expense.value-object';
-import {Result, success, error, isError} from '#packages/result';
-import {EventNotFoundError, EventDeletedError, CurrencyNotFoundError, CurrencyRateNotFoundError} from '#domain/errors/errors';
+
 import {IdempotencySharedUseCase, IdempotentInput} from '#usecases/shared/idempotency.usecase';
 
 type InputCore = Omit<IExpense, 'createdAt' | 'id' | 'updatedAt'> & Partial<Pick<IExpense, 'createdAt'>>;
 type Input = InputCore & IdempotentInput;
-type Output = Result<IExpense, EventNotFoundError | EventDeletedError | CurrencyNotFoundError | CurrencyRateNotFoundError>;
+type Output = Result<
+  IExpense,
+  EventNotFoundError | EventDeletedError | CurrencyNotFoundError | CurrencyRateNotFoundError
+>;
 
 @Injectable()
 export class SaveEventExpenseUseCase implements UseCase<Input, Output> {
@@ -71,7 +80,9 @@ export class SaveEventExpenseUseCase implements UseCase<Input, Output> {
           return error(new CurrencyNotFoundError());
         }
 
-        const getDateForExchangeRate = input.createdAt ? getDateWithoutTimeUTC(new Date(input.createdAt)) : getCurrentDateWithoutTimeUTC();
+        const getDateForExchangeRate = input.createdAt
+          ? getDateWithoutTimeUTC(new Date(input.createdAt))
+          : getCurrentDateWithoutTimeUTC();
 
         const currencyRate = await this.supportedCurrencyService.findRateByDate(getDateForExchangeRate, {ctx});
 

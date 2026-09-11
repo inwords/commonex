@@ -1,3 +1,7 @@
+import {request as httpRequest} from 'http';
+import {connect} from 'http2';
+import {createConnection} from 'net';
+
 import {metrics} from '@opentelemetry/api';
 import {
   AggregationTemporality,
@@ -9,11 +13,9 @@ import {
   PeriodicExportingMetricReader,
   ResourceMetrics,
 } from '@opentelemetry/sdk-metrics';
-import {connect} from 'http2';
-import {request as httpRequest} from 'http';
-import {createConnection} from 'net';
 import fastify from 'fastify';
-import {fastifyHttpMetricsPlugin, HTTP_SERVER_REQUEST_DURATION} from './fastify-http-metrics.plugin';
+
+import {HTTP_SERVER_REQUEST_DURATION, fastifyHttpMetricsPlugin} from './fastify-http-metrics.plugin';
 
 const findHistogramMetricByName = (resourceMetrics: ResourceMetrics[], name: string): HistogramMetricData | null => {
   for (const resourceMetric of resourceMetrics) {

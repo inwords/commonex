@@ -1,7 +1,7 @@
 import 'tsconfig-paths/register';
 
-import {RelationalDataService} from '#frameworks/relational-data-service/postgres/relational-data-service';
 import {appDbConfig} from '#frameworks/relational-data-service/postgres/config';
+import {RelationalDataService} from '#frameworks/relational-data-service/postgres/relational-data-service';
 
 void (async (): Promise<void> => {
   const dataService = new RelationalDataService({

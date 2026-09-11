@@ -1,15 +1,19 @@
-import {RelationalDataService} from '#frameworks/relational-data-service/postgres/relational-data-service';
-import {appDbConfig} from '#frameworks/relational-data-service/postgres/config';
-import {prepareInitRelationalState, TestCase} from '../../../__tests__/test-helpers';
+import {getCurrentDateWithoutTimeUTC} from '#packages/date-utils';
+import {error, isSuccess, success} from '#packages/result';
+
 import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-service/relational-data-service';
 import {ICurrencyRate} from '#domain/entities/currency-rate.entity';
 import {CurrencyCode} from '#domain/entities/currency.entity';
 import {CurrencyRateNotFoundError} from '#domain/errors';
-import {error, isSuccess, success} from '#packages/result';
-import {buildCurrenciesV3Version, buildCurrenciesV3WeakEtag} from '../currencies-v3-cache';
-import {getCurrentDateWithoutTimeUTC} from '#packages/date-utils';
+
 import {GetAllCurrenciesWithRatesUseCaseV3, GetCurrenciesV3VersionUseCase} from '#usecases/users/v3';
+
+import {appDbConfig} from '#frameworks/relational-data-service/postgres/config';
+import {RelationalDataService} from '#frameworks/relational-data-service/postgres/relational-data-service';
 import {SupportedCurrencyService} from '#frameworks/supported-currency-service/supported-currency-service';
+
+import {TestCase, prepareInitRelationalState} from '../../../__tests__/test-helpers';
+import {buildCurrenciesV3Version, buildCurrenciesV3WeakEtag} from '../currencies-v3-cache';
 
 jest.mock('#packages/date-utils', () => ({
   getCurrentDateWithoutTimeUTC: jest.fn(),
@@ -152,7 +156,9 @@ describe('GetCurrenciesV3VersionUseCase', () => {
         }
 
         expect(fullResult.value.version).toEqual(versionResult.value);
-        expect(buildCurrenciesV3WeakEtag(fullResult.value.version)).toBe(buildCurrenciesV3WeakEtag(versionResult.value));
+        expect(buildCurrenciesV3WeakEtag(fullResult.value.version)).toBe(
+          buildCurrenciesV3WeakEtag(versionResult.value),
+        );
       }
     });
   });

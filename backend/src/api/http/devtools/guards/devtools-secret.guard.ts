@@ -1,5 +1,7 @@
-import {CanActivate, ExecutionContext, Injectable, UnauthorizedException} from '@nestjs/common';
 import {IncomingHttpHeaders} from 'http';
+
+import {CanActivate, ExecutionContext, Injectable, UnauthorizedException} from '@nestjs/common';
+
 import {env} from '../../../../config';
 
 type RequestWithHeaders = {

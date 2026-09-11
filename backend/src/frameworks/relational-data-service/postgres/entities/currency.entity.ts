@@ -1,4 +1,5 @@
-import {Entity, Column, PrimaryColumn} from 'typeorm';
+import {Column, Entity, PrimaryColumn} from 'typeorm';
+
 import {type ICurrency} from '#domain/entities/currency.entity';
 
 @Entity({name: 'currency'})

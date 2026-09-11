@@ -1,4 +1,5 @@
 import {ICurrency} from '#domain/entities/currency.entity';
+
 import {SUPPORTED_CURRENCY_CODES} from '../../../../constants';
 
 export const createSupportedCurrencyCodesFilter = (

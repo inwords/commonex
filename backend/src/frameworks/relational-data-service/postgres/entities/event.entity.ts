@@ -1,4 +1,5 @@
 import {Column, Entity, PrimaryColumn} from 'typeorm';
+
 import {type IEvent} from '#domain/entities/event.entity';
 
 @Entity({name: 'event'})

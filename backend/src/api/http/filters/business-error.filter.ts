@@ -1,11 +1,12 @@
 import {ArgumentsHost, Catch, ExceptionFilter} from '@nestjs/common';
 import {AbstractHttpAdapter} from '@nestjs/core';
+
 import {
   CurrencyNotFoundError,
   CurrencyRateNotFoundError,
   EventDeletedError,
-  EventOperationConflictError,
   EventNotFoundError,
+  EventOperationConflictError,
   IdempotencyHashMismatchError,
   InconsistentExchangedAmountError,
   InvalidPinCodeError,

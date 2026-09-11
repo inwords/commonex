@@ -2,8 +2,9 @@ import {ArgumentsHost, HttpStatus} from '@nestjs/common';
 import {FILTER_CATCH_EXCEPTIONS} from '@nestjs/common/constants';
 import {AbstractHttpAdapter} from '@nestjs/core';
 
-import {BusinessErrorFilter} from '#api/http/filters/business-error.filter';
 import {EventOperationConflictError} from '#domain/errors/errors';
+
+import {BusinessErrorFilter} from '#api/http/filters/business-error.filter';
 
 describe('BusinessErrorFilter', () => {
   it('should return the normalized conflict response for concurrent event operations', () => {

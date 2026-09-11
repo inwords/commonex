@@ -1,7 +1,9 @@
-import {ICurrencyRate} from '#domain/entities/currency-rate.entity';
-import {CurrencyRateServiceAbstract} from '#domain/abstracts/currency-rate-service/currency-rate-service';
 import {HttpService} from '@nestjs/axios';
 import retry from 'async-retry';
+
+import {CurrencyRateServiceAbstract} from '#domain/abstracts/currency-rate-service/currency-rate-service';
+import {ICurrencyRate} from '#domain/entities/currency-rate.entity';
+
 import {env} from '../../config';
 
 export class CurrencyRateService implements CurrencyRateServiceAbstract {

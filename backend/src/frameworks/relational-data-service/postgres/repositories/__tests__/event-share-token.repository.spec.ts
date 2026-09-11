@@ -1,6 +1,7 @@
-import {RelationalDataService} from '#frameworks/relational-data-service/postgres/relational-data-service';
-import {appDbConfig} from '#frameworks/relational-data-service/postgres/config';
 import {useFakeTimers} from '#usecases/__tests__/test-helpers';
+
+import {appDbConfig} from '#frameworks/relational-data-service/postgres/config';
+import {RelationalDataService} from '#frameworks/relational-data-service/postgres/relational-data-service';
 
 describe('EventShareTokenRepository', () => {
   let relationalDataService: RelationalDataService;

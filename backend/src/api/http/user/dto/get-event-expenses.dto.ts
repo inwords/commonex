@@ -1,5 +1,6 @@
 import {ApiProperty} from '@nestjs/swagger';
 import {IsString, Length} from 'class-validator';
+
 import {ExpenseType} from '#domain/entities/expense.entity';
 
 class SplitInfo {

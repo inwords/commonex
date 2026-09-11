@@ -1,12 +1,22 @@
-import {RelationalDataService} from '#frameworks/relational-data-service/postgres/relational-data-service';
-import {appDbConfig} from '#frameworks/relational-data-service/postgres/config';
-import {GetEventInfoV2UseCase} from '#usecases/users/v2';
+import {Result, error, success} from '#packages/result';
+
 import {EventServiceAbstract} from '#domain/abstracts/event-service/event-service';
-import {prepareInitRelationalState, TestCase, useFakeTimers} from '../../../__tests__/test-helpers';
-import {error, Result, success} from '#packages/result';
-import {EventDeletedError, EventNotFoundError, InvalidPinCodeError, InvalidTokenError, TokenExpiredError,} from '#domain/errors/errors';
 import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-service/relational-data-service';
+import {
+  EventDeletedError,
+  EventNotFoundError,
+  InvalidPinCodeError,
+  InvalidTokenError,
+  TokenExpiredError,
+} from '#domain/errors/errors';
+
+import {GetEventInfoV2UseCase} from '#usecases/users/v2';
+
 import {EventService} from '#frameworks/event-service/event-service';
+import {appDbConfig} from '#frameworks/relational-data-service/postgres/config';
+import {RelationalDataService} from '#frameworks/relational-data-service/postgres/relational-data-service';
+
+import {TestCase, prepareInitRelationalState, useFakeTimers} from '../../../__tests__/test-helpers';
 
 type GetEventInfoV2TestCase = TestCase<GetEventInfoV2UseCase> & {
   mockEventService?: {

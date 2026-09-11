@@ -1,5 +1,5 @@
-import {IEventShareToken} from '#domain/entities/event-share-token.entity';
 import {IQueryDetails, ITransaction} from '#domain/abstracts/relational-data-service/types';
+import {IEventShareToken} from '#domain/entities/event-share-token.entity';
 
 export abstract class EventShareTokenRepositoryAbstract {
   abstract findByToken: (

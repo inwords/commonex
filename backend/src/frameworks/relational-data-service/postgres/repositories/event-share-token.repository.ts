@@ -1,9 +1,12 @@
-import {BaseRepository} from './base.repository';
-import {EventShareTokenRepositoryAbstract} from '#domain/abstracts/relational-data-service/repositories/event-share-token.repository';
 import {DataSource, EntityManager, Repository} from 'typeorm';
-import {IEventShareToken} from '#domain/entities/event-share-token.entity';
+
+import {EventShareTokenRepositoryAbstract} from '#domain/abstracts/relational-data-service/repositories/event-share-token.repository';
 import {IQueryDetails} from '#domain/abstracts/relational-data-service/types';
+import {IEventShareToken} from '#domain/entities/event-share-token.entity';
+
 import {EventShareTokenEntity} from '#frameworks/relational-data-service/postgres/entities/event-share-token.entity';
+
+import {BaseRepository} from './base.repository';
 
 export class EventShareTokenRepository extends BaseRepository implements EventShareTokenRepositoryAbstract {
   readonly dataSource: DataSource;

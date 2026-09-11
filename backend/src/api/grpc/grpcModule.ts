@@ -1,6 +1,8 @@
 import {Module} from '@nestjs/common';
-import {UserController} from '#api/grpc/user/user.controller';
+
 import {UseCasesModule} from '#usecases/usecases.layer';
+
+import {UserController} from '#api/grpc/user/user.controller';
 
 @Module({
   imports: [UseCasesModule],

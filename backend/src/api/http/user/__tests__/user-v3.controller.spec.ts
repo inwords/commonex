@@ -1,9 +1,12 @@
-import {UserV3Controller} from '../user-v3.controller';
-import {GetAllCurrenciesWithRatesResponseDto} from '../dto/get-all-currencies.dto';
-import {GetAllCurrenciesWithRatesUseCaseV3, GetCurrenciesV3VersionUseCase} from '#usecases/users/v3';
 import {success} from '#packages/result';
+
 import {CurrencyCode} from '#domain/entities/currency.entity';
+
+import {GetAllCurrenciesWithRatesUseCaseV3, GetCurrenciesV3VersionUseCase} from '#usecases/users/v3';
 import {buildCurrenciesV3WeakEtag} from '#usecases/users/v3/currencies-v3-cache';
+
+import {GetAllCurrenciesWithRatesResponseDto} from '../dto/get-all-currencies.dto';
+import {UserV3Controller} from '../user-v3.controller';
 
 type RouteReply = {
   code: jest.MockedFunction<(statusCode: number) => RouteReply>;
@@ -60,7 +63,10 @@ describe('UserV3Controller', () => {
     useCase = {
       execute: jest.fn().mockResolvedValue(result),
     };
-    controller = new UserV3Controller(versionUseCase as unknown as GetCurrenciesV3VersionUseCase, useCase as unknown as GetAllCurrenciesWithRatesUseCaseV3);
+    controller = new UserV3Controller(
+      versionUseCase as unknown as GetCurrenciesV3VersionUseCase,
+      useCase as unknown as GetAllCurrenciesWithRatesUseCaseV3,
+    );
   });
 
   it('returns currencies payload with weak etag and cache control', async () => {

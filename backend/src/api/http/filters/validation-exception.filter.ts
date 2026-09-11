@@ -1,5 +1,6 @@
 import {ArgumentsHost, BadRequestException, Catch, ExceptionFilter, HttpStatus} from '@nestjs/common';
 import {AbstractHttpAdapter} from '@nestjs/core';
+
 import {ErrorCode} from '#domain/errors/error-codes.enum';
 
 @Catch(BadRequestException)

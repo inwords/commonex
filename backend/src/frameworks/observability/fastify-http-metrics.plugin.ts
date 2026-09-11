@@ -1,6 +1,6 @@
+import {IncomingMessage} from 'node:http';
+
 import {Attributes, metrics} from '@opentelemetry/api';
-import type {FastifyInstance, FastifyPluginCallback, FastifyReply, FastifyRequest, RouteHandlerMethod} from 'fastify';
-import fastifyPlugin from 'fastify-plugin';
 import {
   ATTR_ERROR_TYPE,
   ATTR_HTTP_REQUEST_METHOD,
@@ -11,7 +11,8 @@ import {
   ATTR_URL_SCHEME,
   HTTP_REQUEST_METHOD_VALUE_OTHER,
 } from '@opentelemetry/semantic-conventions';
-import {IncomingMessage} from 'node:http';
+import type {FastifyInstance, FastifyPluginCallback, FastifyReply, FastifyRequest, RouteHandlerMethod} from 'fastify';
+import fastifyPlugin from 'fastify-plugin';
 
 /**
  * Fastify HTTP server metrics (OTel semconv).

@@ -1,5 +1,5 @@
-import {RelationalDataService} from '#frameworks/relational-data-service/postgres/relational-data-service';
 import {appDbConfig} from '#frameworks/relational-data-service/postgres/config';
+import {RelationalDataService} from '#frameworks/relational-data-service/postgres/relational-data-service';
 
 describe('CurrencyRateRepository', () => {
   let relationalDataService: RelationalDataService;

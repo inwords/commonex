@@ -1,4 +1,5 @@
 import {Column, Entity, Index, PrimaryColumn} from 'typeorm';
+
 import {type IIdempotencyKey} from '#domain/entities/idempotency-key.entity';
 
 @Entity('idempotency_keys')

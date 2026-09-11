@@ -1,5 +1,7 @@
 import {Column, Entity, PrimaryColumn} from 'typeorm';
+
 import {type DateWithoutTime} from '#packages/date-utils';
+
 import {type ICurrencyRate} from '#domain/entities/currency-rate.entity';
 
 @Entity('currency_rate')

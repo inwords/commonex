@@ -1,7 +1,9 @@
 import {Injectable} from '@nestjs/common';
+
 import {UseCase} from '#packages/use-case';
-import {ICurrencyRate} from '#domain/entities/currency-rate.entity';
+
 import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-service/relational-data-service';
+import {ICurrencyRate} from '#domain/entities/currency-rate.entity';
 
 type Input = {
   date: string;

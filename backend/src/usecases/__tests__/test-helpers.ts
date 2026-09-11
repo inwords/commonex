@@ -1,12 +1,13 @@
-import {IEvent} from '#domain/entities/event.entity';
-import {IUserInfo} from '#domain/entities/user-info.entity';
-import {IEventShareToken} from '#domain/entities/event-share-token.entity';
-import {ICurrency} from '#domain/entities/currency.entity';
+import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-service/relational-data-service';
 import {ICurrencyRate} from '#domain/entities/currency-rate.entity';
+import {ICurrency} from '#domain/entities/currency.entity';
+import {IEventShareToken} from '#domain/entities/event-share-token.entity';
+import {IEvent} from '#domain/entities/event.entity';
 import {IExpense} from '#domain/entities/expense.entity';
 import {IIdempotencyKey} from '#domain/entities/idempotency-key.entity';
-import {applyChanges, type StateChanges} from './utils-apply-changes-to-state';
-import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-service/relational-data-service';
+import {IUserInfo} from '#domain/entities/user-info.entity';
+
+import {type StateChanges, applyChanges} from './utils-apply-changes-to-state';
 
 interface RelationalEntities {
   events: IEvent;

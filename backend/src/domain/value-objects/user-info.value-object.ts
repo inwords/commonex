@@ -1,7 +1,9 @@
-import {ValueObject} from '#domain/value-objects/value-object';
-import {PartialByKeys} from '#packages/types';
-import {IUserInfo} from '#domain/entities/user-info.entity';
 import {ulid} from 'ulid';
+
+import {PartialByKeys} from '#packages/types';
+
+import {IUserInfo} from '#domain/entities/user-info.entity';
+import {ValueObject} from '#domain/value-objects/value-object';
 
 export type TUserInfoDefaultKeys = keyof Pick<IUserInfo, 'id' | 'createdAt' | 'updatedAt'>;
 

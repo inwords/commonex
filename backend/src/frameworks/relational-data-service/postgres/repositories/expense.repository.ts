@@ -1,9 +1,11 @@
-import {BaseRepository} from '#frameworks/relational-data-service/postgres/repositories/base.repository';
-import {ExpenseRepositoryAbstract} from '#domain/abstracts/relational-data-service/repositories/expense.repository';
 import {DataSource, EntityManager, Repository} from 'typeorm';
+
+import {ExpenseRepositoryAbstract} from '#domain/abstracts/relational-data-service/repositories/expense.repository';
 import {IQueryDetails} from '#domain/abstracts/relational-data-service/types';
 import {IExpense} from '#domain/entities/expense.entity';
+
 import {ExpenseEntity} from '#frameworks/relational-data-service/postgres/entities/expense.entity';
+import {BaseRepository} from '#frameworks/relational-data-service/postgres/repositories/base.repository';
 
 export class ExpenseRepository extends BaseRepository implements ExpenseRepositoryAbstract {
   readonly dataSource: DataSource;

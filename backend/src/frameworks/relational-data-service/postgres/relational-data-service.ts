@@ -1,13 +1,16 @@
-import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-service/relational-data-service';
 import {DataSource} from 'typeorm';
-import {createTypeormConfigDefault, DbConfig} from './config';
-import {EventRepository} from '#frameworks/relational-data-service/postgres/repositories/event.repository';
-import {UserInfoRepository} from '#frameworks/relational-data-service/postgres/repositories/user-info.repository';
-import {CurrencyRepository} from '#frameworks/relational-data-service/postgres/repositories/currency.repository';
-import {ExpenseRepository} from '#frameworks/relational-data-service/postgres/repositories/expense.repository';
+
+import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-service/relational-data-service';
+
 import {CurrencyRateRepository} from '#frameworks/relational-data-service/postgres/repositories/currency-rate.repository';
+import {CurrencyRepository} from '#frameworks/relational-data-service/postgres/repositories/currency.repository';
 import {EventShareTokenRepository} from '#frameworks/relational-data-service/postgres/repositories/event-share-token.repository';
+import {EventRepository} from '#frameworks/relational-data-service/postgres/repositories/event.repository';
+import {ExpenseRepository} from '#frameworks/relational-data-service/postgres/repositories/expense.repository';
 import {IdempotencyKeyRepository} from '#frameworks/relational-data-service/postgres/repositories/idempotency-key.repository';
+import {UserInfoRepository} from '#frameworks/relational-data-service/postgres/repositories/user-info.repository';
+
+import {DbConfig, createTypeormConfigDefault} from './config';
 
 export class RelationalDataService implements RelationalDataServiceAbstract {
   readonly dbConfig: DbConfig;
@@ -71,7 +74,8 @@ export class RelationalDataService implements RelationalDataServiceAbstract {
     const user = this.dbConfig.user;
     const schema = this.dbConfig.schema;
 
-    const [{current_schema: currentSchema}] = await this.dataSource.query<[{current_schema: string}]>(`SELECT current_schema();`);
+    const [{current_schema: currentSchema}] =
+      await this.dataSource.query<[{current_schema: string}]>(`SELECT current_schema();`);
     if (currentSchema !== schema) {
       throw new Error(`Invalid connection schema for user "${user}". Expected "${schema}", got "${currentSchema}";`);
     }

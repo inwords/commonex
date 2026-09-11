@@ -1,9 +1,10 @@
-import {NodeSDK} from '@opentelemetry/sdk-node';
-import {getNodeAutoInstrumentations} from '@opentelemetry/auto-instrumentations-node';
-import {OTLPTraceExporter} from '@opentelemetry/exporter-trace-otlp-grpc';
-import {OTLPMetricExporter} from '@opentelemetry/exporter-metrics-otlp-grpc';
-import {AggregationType, InstrumentType, PeriodicExportingMetricReader} from '@opentelemetry/sdk-metrics';
 import FastifyOtelInstrumentation from '@fastify/otel';
+import {getNodeAutoInstrumentations} from '@opentelemetry/auto-instrumentations-node';
+import {OTLPMetricExporter} from '@opentelemetry/exporter-metrics-otlp-grpc';
+import {OTLPTraceExporter} from '@opentelemetry/exporter-trace-otlp-grpc';
+import {AggregationType, InstrumentType, PeriodicExportingMetricReader} from '@opentelemetry/sdk-metrics';
+import {NodeSDK} from '@opentelemetry/sdk-node';
+
 import {env} from './config';
 
 const traceExporter = new OTLPTraceExporter({
