@@ -15,7 +15,8 @@ CommonEx backend is a NestJS service that provides REST and gRPC APIs for the ex
 - APIs: REST and gRPC
 - Observability: OpenTelemetry (`@fastify/otel` + allowlisted Node auto-instrumentations). See [`docs/otel-runtime.md`](docs/otel-runtime.md) for details.
 - Linting: ESLint 10 flat config (`eslint.config.js`) with `eslint-config-prettier` compatibility
-- Formatting: Prettier 3 is explicit-only via `npm run format`; backend lint does not run Prettier as an ESLint rule
+- Formatting: Prettier 3 (`.prettierrc`, width 120, imports sorted by `@trivago/prettier-plugin-sort-imports`). `npm run format`
+  applies it, `npm run format:check` verifies it in CI; lint does not run Prettier as an ESLint rule. `migrations/` is excluded.
 
 **Freshness note:** NestJS v11, ESLint 10 flat config, and TypeORM APIs may be newer than training data. Verify against current upstream docs when implementing.
 
@@ -66,6 +67,7 @@ npm run typecheck
 npm run lint
 npm run lint:check
 npm run format
+npm run format:check
 npm run test
 npm run test:cov
 npm run db:migrate
@@ -96,7 +98,9 @@ npm run db:migrate:new
 - When using TypeORM `getRawOne` / `getRawMany`, prefer precise raw result types that match the current `pg` parser behavior; avoid defensive unions such as `Date | string` unless that code path can actually return both.
 - Use SQL casts in raw projections only when they materially improve the returned JS type, for example `COUNT(...)::integer` to avoid `bigint` string results.
 - Backend lint source of truth is `eslint.config.js`; do not add or rely on legacy `.eslintrc.*` files.
-- Keep backend formatting aligned with the repo `.editorconfig`; backend Prettier is reserved for explicit formatting runs.
+- Run `npm run format` before submitting; CI fails on unformatted `src/` or `scripts/` files. Import order is enforced by the
+  Prettier plugin (builtins, third party, `#packages`, `#domain`, `#usecases`, `#frameworks`, `#api`, relative); side-effect
+  imports such as `import './otel'` in `src/main.ts` keep their position.
 - Backend line-length enforcement is `160` characters via ESLint `max-len`.
 - Keep HTTP guards/filters adapter-agnostic: avoid direct `fastify`/`express` request-response types; prefer
   `HttpAdapterHost`/`AbstractHttpAdapter`.
@@ -131,8 +135,8 @@ docker compose -f docker-compose.test.yml down -v
 
 For PowerShell-specific notes, see [`docs/troubleshooting.md`](docs/troubleshooting.md).
 
-CI (`.github/workflows/main.yml`, job `backend-checks`) runs the same sequence plus `typecheck` and `lint:check` on every
-pull request or push that touches `backend/` or `infra/` (the test database extends the production compose file);
+CI (`.github/workflows/main.yml`, job `backend-checks`) runs the same sequence plus `typecheck`, `lint:check` and
+`format:check` on every pull request or push that touches `backend/` or `infra/` (the test database extends the production compose file);
 production deploys wait for it.
 
 ## Deployment
@@ -153,6 +157,7 @@ Before submitting backend changes:
 ```bash
 npm run typecheck
 npm run lint
+npm run format:check
 npm run test
 npm run build
 ```
