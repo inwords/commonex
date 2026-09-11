@@ -112,13 +112,19 @@ export type RelationalStateChanges = {
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type TestCase<UseCase extends {execute: (...args: any[]) => any}> = {
+export interface TestCase<UseCase extends {execute: (...args: any[]) => any}> {
   name: string;
   initRelationalState: RelationalState;
   input: Parameters<UseCase['execute']>[0];
   output: Awaited<ReturnType<UseCase['execute']>>;
   relationalStateChanges?: RelationalStateChanges;
-};
+}
+
+const insertEntities = <K extends keyof RelationalEntities>(
+  rDataService: RelationalDataServiceAbstract,
+  key: K,
+  values: RelationalEntities[K][],
+): Promise<void> => entityOperations[key].insert(rDataService, values);
 
 export const prepareInitRelationalState = async ({
   rDataService,
@@ -128,12 +134,9 @@ export const prepareInitRelationalState = async ({
   initState: RelationalState;
 }): Promise<void> => {
   await Promise.all(
-    Object.entries(initState).map(
-      async <T extends keyof RelationalEntities>([_key, value]: [string, RelationalEntities[T][]]) => {
-        const key = _key as T;
-        await entityOperations[key].insert(rDataService, value);
-      },
-    ),
+    Object.entries(initState).map(async ([_key, value]) => {
+      await insertEntities(rDataService, _key as keyof RelationalEntities, value);
+    }),
   );
 };
 

@@ -21,7 +21,7 @@ const findHistogramMetricByName = (resourceMetrics: ResourceMetrics[], name: str
   for (const resourceMetric of resourceMetrics) {
     for (const scopeMetric of resourceMetric.scopeMetrics) {
       const metric: MetricData | undefined = scopeMetric.metrics.find(({descriptor}) => descriptor.name === name);
-      if (metric != null && metric.dataPointType === DataPointType.HISTOGRAM) {
+      if (metric?.dataPointType === DataPointType.HISTOGRAM) {
         return metric;
       }
     }
@@ -71,7 +71,7 @@ const sendHttp2Get = (port: number, path: string): Promise<number> => {
     });
 
     request.once('response', (headers) => {
-      statusCode = Number(headers[':status'] ?? 0);
+      statusCode = headers[':status'] ?? 0;
     });
 
     request.on('data', () => {
@@ -111,7 +111,9 @@ const sendHttp1Get = (port: number, path: string): Promise<void> => {
       },
     );
 
-    request.once('error', () => resolve());
+    request.once('error', () => {
+      resolve();
+    });
     request.end();
   });
 };
@@ -168,9 +170,7 @@ describe('fastifyHttpMetricsPlugin', () => {
   });
 
   afterEach(async () => {
-    if (meterProvider != null) {
-      await meterProvider.shutdown();
-    }
+    await meterProvider.shutdown();
     metrics.disable();
   });
 

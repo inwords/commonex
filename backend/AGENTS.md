@@ -14,7 +14,9 @@ CommonEx backend is a NestJS service that provides REST and gRPC APIs for the ex
 - Database: PostgreSQL with TypeORM
 - APIs: REST and gRPC
 - Observability: OpenTelemetry (`@fastify/otel` + allowlisted Node auto-instrumentations). See [`docs/otel-runtime.md`](docs/otel-runtime.md) for details.
-- Linting: ESLint 10 flat config (`eslint.config.js`) with `eslint-config-prettier` compatibility
+- Linting: ESLint 10 flat config (`eslint.config.js`) running typescript-eslint `strict-type-checked` and
+  `stylistic-type-checked`; the few scoped exceptions (domain errors, DTO spreads in controllers, jest matchers) are
+  documented inline in the config
 - Formatting: Prettier 3 (`.prettierrc`, width 120, imports sorted by `@trivago/prettier-plugin-sort-imports`). `npm run format`
   applies it, `npm run format:check` verifies it in CI; lint does not run Prettier as an ESLint rule. `migrations/` is excluded.
 

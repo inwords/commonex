@@ -9,7 +9,7 @@ import {IExpense} from '#domain/entities/expense.entity';
 import {EventDeletedError, EventNotFoundError} from '#domain/errors/errors';
 
 type Input = Pick<IExpense, 'eventId'>;
-type Output = Result<Array<IExpense>, EventNotFoundError | EventDeletedError>;
+type Output = Result<IExpense[], EventNotFoundError | EventDeletedError>;
 
 @Injectable()
 export class GetEventExpensesUseCase implements UseCase<Input, Output> {

@@ -9,8 +9,11 @@ import {IEvent} from '#domain/entities/event.entity';
 import {IUserInfo} from '#domain/entities/user-info.entity';
 import {EventDeletedError, EventNotFoundError, InvalidPinCodeError} from '#domain/errors/errors';
 
-type Input = {eventId: string; pinCode: string};
-type Output = Result<IEvent & {users: Array<IUserInfo>}, EventNotFoundError | EventDeletedError | InvalidPinCodeError>;
+interface Input {
+  eventId: string;
+  pinCode: string;
+}
+type Output = Result<IEvent & {users: IUserInfo[]}, EventNotFoundError | EventDeletedError | InvalidPinCodeError>;
 
 @Injectable()
 export class GetEventInfoUseCase implements UseCase<Input, Output> {

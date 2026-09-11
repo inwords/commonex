@@ -56,7 +56,7 @@ export class CreateExpenseRequestV1Dto {
   @ApiProperty({isArray: true, type: SplitInfoDto})
   @ValidateNested()
   @Type(() => SplitInfoDto)
-  splitInformation!: Array<SplitInfoDto>;
+  splitInformation!: SplitInfoDto[];
 
   @ApiProperty({required: false, description: 'ISO String'})
   @IsOptional()

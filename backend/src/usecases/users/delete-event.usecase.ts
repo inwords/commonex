@@ -8,10 +8,10 @@ import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-s
 import {IEvent} from '#domain/entities/event.entity';
 import {EventDeletedError, EventNotFoundError, InvalidPinCodeError} from '#domain/errors';
 
-type Input = {
+interface Input {
   eventId: IEvent['id'];
   pinCode: string;
-};
+}
 
 type Output = Result<
   {

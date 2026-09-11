@@ -15,7 +15,7 @@ export abstract class CurrencyRateRepositoryAbstract {
     [
       result: {
         rateUpdatedAt: ICurrencyRate['updatedAt'];
-        currenciesUpdatedAt: Array<ICurrency['updatedAt']>;
+        currenciesUpdatedAt: ICurrency['updatedAt'][];
       } | null,
       queryDetails: IQueryDetails,
     ]

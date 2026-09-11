@@ -48,7 +48,7 @@ describe('GetAllCurrenciesWithRatesUseCaseV3', () => {
     jest.clearAllMocks();
   });
 
-  const testCurrencies: ICurrency[] = [
+  const testCurrencies: [ICurrency, ICurrency, ICurrency] = [
     {
       id: 'currency-1',
       code: CurrencyCode.EUR,
@@ -80,7 +80,7 @@ describe('GetAllCurrenciesWithRatesUseCaseV3', () => {
     createdAt: new Date('2026-01-06T00:00:00Z'),
     updatedAt: new Date('2026-01-06T00:00:00Z'),
   };
-  const shuffledTestCurrencies: ICurrency[] = [testCurrencies[1]!, testCurrencies[2]!, testCurrencies[0]!];
+  const shuffledTestCurrencies: ICurrency[] = [testCurrencies[1], testCurrencies[2], testCurrencies[0]];
   const unsupportedCurrency: ICurrency = {
     id: 'currency-zzz',
     code: 'ZZZ' as CurrencyCode,

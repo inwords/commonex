@@ -25,7 +25,7 @@ const TTL_MS = 24 * 60 * 60 * 1000;
 const computeHash = (url: string, body: object): string =>
   createHash('sha256').update(JSON.stringify({url, body})).digest('hex');
 
-type IdempotencyTestCase = {
+interface IdempotencyTestCase {
   name: string;
   initRelationalState: RelationalState;
   input: {key: string | undefined; body: object};
@@ -34,7 +34,7 @@ type IdempotencyTestCase = {
   mockFn: {result: unknown};
   expectedFnCallCount: number;
   relationalStateChanges?: RelationalStateChanges;
-};
+}
 
 describe('IdempotencySharedUseCase', () => {
   let relationalDataService: RelationalDataServiceAbstract;

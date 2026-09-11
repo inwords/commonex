@@ -15,11 +15,11 @@ type SupportedExchangeRateMap = Partial<Record<CurrencyCode, number>>;
 type Output = Result<
   {
     response: {
-      currencies: Array<{
+      currencies: {
         id: string;
         code: CurrencyCode;
         updatedAt: Date;
-      }>;
+      }[];
       exchangeRate: SupportedExchangeRateMap;
     };
     version: CurrenciesV3Version;

@@ -5,9 +5,9 @@ import {UseCase} from '#packages/use-case';
 import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-service/relational-data-service';
 import {ICurrencyRate} from '#domain/entities/currency-rate.entity';
 
-type Input = {
+interface Input {
   date: string;
-};
+}
 type Output = ICurrencyRate | null;
 
 @Injectable()

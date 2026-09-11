@@ -20,7 +20,7 @@ export class AddUsersToEventRequestDto {
   @ApiProperty({isArray: true, type: UserDto})
   @ValidateNested()
   @Type(() => UserDto)
-  users!: Array<Omit<IUserInfo, 'id' | 'eventId'>>;
+  users!: Omit<IUserInfo, 'id' | 'eventId'>[];
 
   @ApiProperty({type: String})
   @IsString()
