@@ -157,4 +157,8 @@ npm run test
 npm run build
 ```
 
+`typecheck` is the only step that type-checks test files: `nest build` excludes them and ts-jest runs in transpile-only mode
+because `isolatedModules` is enabled, so a type error in a test does not fail `npm run test`. `lint` and `lint:check` cover
+`src/`, `scripts/` and `migrations/`.
+
 For troubleshooting, see [`docs/troubleshooting.md`](docs/troubleshooting.md).
