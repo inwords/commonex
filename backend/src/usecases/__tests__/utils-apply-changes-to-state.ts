@@ -1,24 +1,24 @@
 import _ from 'lodash';
 
 export interface StateChanges<T extends object> {
-  inserted?: Array<T>;
-  updated?: Array<{
+  inserted?: T[];
+  updated?: {
     where: Partial<T>;
     newData: Partial<T>;
-  }>;
-  deleted?: Array<{
+  }[];
+  deleted?: {
     where: Partial<T>;
-  }>;
+  }[];
 }
 
 export const applyChanges = <T extends object>(state: T[], changes: StateChanges<T>): T[] => {
   let newState = [...state];
 
-  for (const {where} of changes?.deleted ?? []) {
+  for (const {where} of changes.deleted ?? []) {
     newState = newState.filter((item) => !_.isMatch(item, where));
   }
 
-  for (const {where, newData} of changes?.updated ?? []) {
+  for (const {where, newData} of changes.updated ?? []) {
     newState = newState.map((item) => {
       if (_.isMatch(item, where)) {
         return {
@@ -31,5 +31,5 @@ export const applyChanges = <T extends object>(state: T[], changes: StateChanges
     });
   }
 
-  return [...newState, ...(changes?.inserted ?? [])];
+  return [...newState, ...(changes.inserted ?? [])];
 };

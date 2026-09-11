@@ -11,16 +11,19 @@ import {IdempotencyKeyValueObject} from '#domain/value-objects/idempotency-key.v
  * `idempotencyKey` is optional *and* `undefined`-able on purpose: controllers forward a possibly missing
  * header as an explicit `undefined`, while other callers omit the key entirely.
  */
-export type IdempotentInput = {idempotencyKey?: string | undefined; url: string};
+export interface IdempotentInput {
+  idempotencyKey?: string | undefined;
+  url: string;
+}
 
 @Injectable()
 export class IdempotencySharedUseCase {
   constructor(private readonly rDataService: RelationalDataServiceAbstract) {}
 
-  async execute<TResult, TBody extends object>(
+  async execute<TResult>(
     key: string | undefined,
     url: string,
-    body: TBody,
+    body: object,
     fn: () => Promise<TResult>,
   ): Promise<TResult> {
     if (!key) {

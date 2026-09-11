@@ -8,11 +8,11 @@ import {buildCurrenciesV3WeakEtag} from '#usecases/users/v3/currencies-v3-cache'
 import {GetAllCurrenciesWithRatesResponseDto} from '../dto/get-all-currencies.dto';
 import {UserV3Controller} from '../user-v3.controller';
 
-type RouteReply = {
+interface RouteReply {
   code: jest.MockedFunction<(statusCode: number) => RouteReply>;
   header: jest.MockedFunction<(name: string, value: string) => void>;
   send: jest.MockedFunction<(payload?: GetAllCurrenciesWithRatesResponseDto) => void>;
-};
+}
 
 const createReplyMock = (): RouteReply => {
   const reply = {} as RouteReply;

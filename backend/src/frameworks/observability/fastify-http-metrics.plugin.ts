@@ -151,10 +151,10 @@ const createRouteResolver = (instance: FastifyInstance) => {
   });
 
   return (request: FastifyRequest): string | undefined => {
-    const direct = request.routeOptions?.url;
+    const direct = request.routeOptions.url;
     if (direct && direct.length > 0) return direct;
 
-    const mapped = handlerToRoute.get(request.routeOptions?.handler);
+    const mapped = handlerToRoute.get(request.routeOptions.handler);
     if (mapped && mapped.length > 0) return mapped;
 
     return undefined;

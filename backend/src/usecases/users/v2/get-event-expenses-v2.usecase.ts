@@ -8,8 +8,11 @@ import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-s
 import {IExpense} from '#domain/entities/expense.entity';
 import {EventDeletedError, EventNotFoundError, InvalidPinCodeError} from '#domain/errors/errors';
 
-type Input = {eventId: string; pinCode: string};
-type Output = Result<Array<IExpense>, EventNotFoundError | EventDeletedError | InvalidPinCodeError>;
+interface Input {
+  eventId: string;
+  pinCode: string;
+}
+type Output = Result<IExpense[], EventNotFoundError | EventDeletedError | InvalidPinCodeError>;
 
 @Injectable()
 export class GetEventExpensesV2UseCase implements UseCase<Input, Output> {

@@ -5,11 +5,8 @@ import {UseCase} from '#packages/use-case';
 
 import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-service/relational-data-service';
 
-type Input = void;
-type Output = void;
-
 @Injectable()
-export class CleanupIdempotencyKeysUseCase implements UseCase<Input, Output> {
+export class CleanupIdempotencyKeysUseCase implements UseCase<void> {
   constructor(private readonly rDataService: RelationalDataServiceAbstract) {}
 
   public async execute(): Promise<void> {

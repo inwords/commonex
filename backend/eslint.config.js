@@ -9,7 +9,7 @@ module.exports = defineConfig([
   },
   {
     files: ['**/*.ts'],
-    extends: [tsPlugin.configs['flat/recommended-type-checked'], prettier],
+    extends: [tsPlugin.configs['flat/strict-type-checked'], tsPlugin.configs['flat/stylistic-type-checked'], prettier],
 
     languageOptions: {
       sourceType: 'module',
@@ -29,6 +29,10 @@ module.exports = defineConfig([
       '@typescript-eslint/explicit-function-return-type': 'error',
       '@typescript-eslint/explicit-module-boundary-types': 'error',
       '@typescript-eslint/no-explicit-any': 'error',
+      // strict-type-checked forbids numbers in template literals; they format predictably, so allow them.
+      '@typescript-eslint/restrict-template-expressions': ['error', {allowNumber: true}],
+      // Nest modules are decorated classes with no members.
+      '@typescript-eslint/no-extraneous-class': ['error', {allowWithDecorator: true}],
 
       // Domain errors are plain classes mapped by exception filters; they intentionally do not extend Error.
       '@typescript-eslint/only-throw-error': [
@@ -64,6 +68,14 @@ module.exports = defineConfig([
           ignoreRegExpLiterals: true,
         },
       ],
+    },
+  },
+  {
+    files: ['src/api/**/*.controller.ts'],
+
+    rules: {
+      // DTOs are data-only classes; spreading them into use case inputs is the intended mapping.
+      '@typescript-eslint/no-misused-spread': 'off',
     },
   },
   {

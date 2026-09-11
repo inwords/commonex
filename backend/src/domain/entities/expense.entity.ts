@@ -10,7 +10,7 @@ export interface IExpense {
   currencyId: string;
   eventId: string;
   expenseType: ExpenseType;
-  splitInformation: Array<ISplitInfo>;
+  splitInformation: ISplitInfo[];
   isCustomRate: boolean;
   createdAt: Date;
   updatedAt: Date;

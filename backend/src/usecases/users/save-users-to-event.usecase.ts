@@ -12,12 +12,12 @@ import {UserInfoValueObject} from '#domain/value-objects/user-info.value-object'
 
 import {IdempotencySharedUseCase, IdempotentInput} from '#usecases/shared/idempotency.usecase';
 
-type InputCore = {users: Array<Omit<IUserInfo, 'id' | 'eventId'>>} & {
+type InputCore = {users: Omit<IUserInfo, 'id' | 'eventId'>[]} & {
   pinCode: IEvent['pinCode'];
   eventId: IEvent['id'];
 };
 type Input = InputCore & IdempotentInput;
-type Output = Result<Array<IUserInfo>, EventNotFoundError | EventDeletedError | InvalidPinCodeError>;
+type Output = Result<IUserInfo[], EventNotFoundError | EventDeletedError | InvalidPinCodeError>;
 
 @Injectable()
 export class SaveUsersToEventUseCase implements UseCase<Input, Output> {

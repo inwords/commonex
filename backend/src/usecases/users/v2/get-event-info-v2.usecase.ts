@@ -15,9 +15,13 @@ import {
   TokenExpiredError,
 } from '#domain/errors/errors';
 
-type Input = {eventId: string; pinCode?: string | undefined; token?: string | undefined};
+interface Input {
+  eventId: string;
+  pinCode?: string | undefined;
+  token?: string | undefined;
+}
 type Output = Result<
-  IEvent & {users: Array<IUserInfo>},
+  IEvent & {users: IUserInfo[]},
   EventNotFoundError | EventDeletedError | InvalidPinCodeError | InvalidTokenError | TokenExpiredError
 >;
 

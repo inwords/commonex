@@ -7,9 +7,9 @@ import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-s
 import {ICurrencyRate} from '#domain/entities/currency-rate.entity';
 import {CurrencyRateValueObject} from '#domain/value-objects/currency-rate.value-object';
 
-type Input = {
+interface Input {
   date: string;
-};
+}
 type Output = ICurrencyRate;
 
 @Injectable()

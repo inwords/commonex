@@ -5,7 +5,7 @@ import {ICurrency} from '#domain/entities/currency.entity';
 
 export interface CurrenciesV3Version {
   rateUpdatedAt: ICurrencyRate['updatedAt'];
-  currenciesUpdatedAt: Array<ICurrency['updatedAt']>;
+  currenciesUpdatedAt: ICurrency['updatedAt'][];
 }
 
 interface CacheHeadersReply {
@@ -31,7 +31,7 @@ export const buildCurrenciesV3VersionFromResponse = ({
   currencies,
 }: {
   rateUpdatedAt: ICurrencyRate['updatedAt'];
-  currencies: Array<Pick<ICurrency, 'updatedAt'>>;
+  currencies: Pick<ICurrency, 'updatedAt'>[];
 }): CurrenciesV3Version => {
   return buildCurrenciesV3Version({
     rateUpdatedAt,

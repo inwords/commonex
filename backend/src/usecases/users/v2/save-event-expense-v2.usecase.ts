@@ -24,7 +24,7 @@ type SplitInfoInput = Omit<ISplitInfo, 'exchangedAmount'> & Partial<Pick<ISplitI
 
 type InputCore = Omit<IExpense, 'createdAt' | 'id' | 'updatedAt' | 'isCustomRate' | 'splitInformation'> &
   Partial<Pick<IExpense, 'createdAt'>> & {
-    splitInformation: Array<SplitInfoInput>;
+    splitInformation: SplitInfoInput[];
     pinCode: string;
   };
 
@@ -150,7 +150,7 @@ export class SaveEventExpenseV2UseCase implements UseCase<Input, Output> {
           for (const splitInfo of input.splitInformation) {
             splitInformation.push({
               ...splitInfo,
-              exchangedAmount: Number(Number(splitInfo.amount * exchangeRate).toFixed(2)),
+              exchangedAmount: Number((splitInfo.amount * exchangeRate).toFixed(2)),
             });
           }
 

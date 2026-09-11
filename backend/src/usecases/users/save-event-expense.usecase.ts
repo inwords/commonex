@@ -104,7 +104,7 @@ export class SaveEventExpenseUseCase implements UseCase<Input, Output> {
         for (const splitInfo of input.splitInformation) {
           splitInformation.push({
             ...splitInfo,
-            exchangedAmount: Number(Number(splitInfo.amount * exchangeRate).toFixed(2)),
+            exchangedAmount: Number((splitInfo.amount * exchangeRate).toFixed(2)),
           });
         }
 

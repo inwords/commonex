@@ -4,7 +4,7 @@ import {ICurrency} from '#domain/entities/currency.entity';
 
 export interface SupportedCurrenciesVersion {
   rateUpdatedAt: ICurrencyRate['updatedAt'];
-  currenciesUpdatedAt: Array<ICurrency['updatedAt']>;
+  currenciesUpdatedAt: ICurrency['updatedAt'][];
 }
 
 export abstract class SupportedCurrencyServiceAbstract {

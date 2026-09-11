@@ -4,9 +4,9 @@ import {CanActivate, ExecutionContext, Injectable, UnauthorizedException} from '
 
 import {env} from '../../../../config';
 
-type RequestWithHeaders = {
+interface RequestWithHeaders {
   headers: IncomingHttpHeaders;
-};
+}
 
 @Injectable()
 export class DevtoolsSecretGuard implements CanActivate {

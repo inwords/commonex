@@ -62,7 +62,7 @@ export class RelationalDataService implements RelationalDataServiceAbstract {
   }
 
   async healthCheck(): Promise<void> {
-    if (!this.dataSource || !this.dataSource.isInitialized) {
+    if (!this.dataSource.isInitialized) {
       throw new Error('Database is not initialized');
     }
 

@@ -8,7 +8,10 @@ import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-s
 import {EventDeletedError, EventNotFoundError, InvalidPinCodeError} from '#domain/errors/errors';
 import {EventShareTokenValueObject} from '#domain/value-objects/event-share-token.value-object';
 
-type Input = {eventId: string; pinCode: string};
+interface Input {
+  eventId: string;
+  pinCode: string;
+}
 type Output = Result<{token: string; expiresAt: string}, EventNotFoundError | EventDeletedError | InvalidPinCodeError>;
 
 @Injectable()
