@@ -62,7 +62,9 @@ Always run commands from `backend/`.
 ```bash
 npm run start:dev
 npm run build
+npm run typecheck
 npm run lint
+npm run lint:check
 npm run format
 npm run test
 npm run test:cov
@@ -119,6 +121,9 @@ npm run test:cov
 
 For PowerShell-specific test setups (local DB, Docker DB), see [`docs/troubleshooting.md`](docs/troubleshooting.md).
 
+CI (`.github/workflows/main.yml`, job `backend-checks`) runs `typecheck`, `lint:check`, `db:migrate` and `test` against a
+Postgres service container on every pull request or push that touches `backend/`; production deploys wait for it.
+
 ## Deployment
 
 - Backend container runs migrations before app start (`db:migrate:docker_prod` then `start:prod`).
@@ -135,6 +140,7 @@ For PowerShell-specific test setups (local DB, Docker DB), see [`docs/troublesho
 Before submitting backend changes:
 
 ```bash
+npm run typecheck
 npm run lint
 npm run test
 npm run build
