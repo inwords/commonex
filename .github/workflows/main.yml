@@ -162,6 +162,9 @@ jobs:
       - name: Lint
         run: npm run lint:check
 
+      - name: Check formatting
+        run: npm run format:check
+
       - name: Apply migrations
         run: npm run db:migrate
 
