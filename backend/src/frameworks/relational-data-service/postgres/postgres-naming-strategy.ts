@@ -1,4 +1,4 @@
-import {type Table, type NamingStrategyInterface} from 'typeorm';
+import {type NamingStrategyInterface, type Table} from 'typeorm';
 import {SnakeNamingStrategy} from 'typeorm-naming-strategies';
 
 export class PostgresNamingStrategy extends SnakeNamingStrategy implements NamingStrategyInterface {

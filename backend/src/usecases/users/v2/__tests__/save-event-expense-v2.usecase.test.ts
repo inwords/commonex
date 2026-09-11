@@ -1,23 +1,32 @@
-import {RelationalDataService} from '#frameworks/relational-data-service/postgres/relational-data-service';
-import {appDbConfig} from '#frameworks/relational-data-service/postgres/config';
-import {SaveEventExpenseV2UseCase} from '#usecases/users/v2';
-import {EventServiceAbstract} from '#domain/abstracts/event-service/event-service';
-import {TestCase, prepareInitRelationalState, validateRelationalStateChanges, useFakeTimers} from '../../../__tests__/test-helpers';
 import {Result, error, success} from '#packages/result';
-import {
-  EventNotFoundError,
-  EventDeletedError,
-  InvalidPinCodeError,
-  CurrencyNotFoundError,
-  CurrencyRateNotFoundError,
-  InconsistentExchangedAmountError,
-} from '#domain/errors/errors';
+
+import {EventServiceAbstract} from '#domain/abstracts/event-service/event-service';
 import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-service/relational-data-service';
-import {EventService} from '#frameworks/event-service/event-service';
 import {CurrencyCode} from '#domain/entities/currency.entity';
 import {ExpenseType} from '#domain/entities/expense.entity';
-import {SupportedCurrencyService} from '#frameworks/supported-currency-service/supported-currency-service';
+import {
+  CurrencyNotFoundError,
+  CurrencyRateNotFoundError,
+  EventDeletedError,
+  EventNotFoundError,
+  InconsistentExchangedAmountError,
+  InvalidPinCodeError,
+} from '#domain/errors/errors';
+
 import {IdempotencySharedUseCase} from '#usecases/shared/idempotency.usecase';
+import {SaveEventExpenseV2UseCase} from '#usecases/users/v2';
+
+import {EventService} from '#frameworks/event-service/event-service';
+import {appDbConfig} from '#frameworks/relational-data-service/postgres/config';
+import {RelationalDataService} from '#frameworks/relational-data-service/postgres/relational-data-service';
+import {SupportedCurrencyService} from '#frameworks/supported-currency-service/supported-currency-service';
+
+import {
+  TestCase,
+  prepareInitRelationalState,
+  useFakeTimers,
+  validateRelationalStateChanges,
+} from '../../../__tests__/test-helpers';
 
 type SaveEventExpenseV2TestCase = TestCase<SaveEventExpenseV2UseCase> & {
   mockEventService: {
@@ -44,7 +53,12 @@ describe('SaveEventExpenseV2UseCase', () => {
 
     eventService = new EventService();
     idempotencySharedUseCase = new IdempotencySharedUseCase(relationalDataService);
-    useCase = new SaveEventExpenseV2UseCase(relationalDataService, eventService, new SupportedCurrencyService(relationalDataService), idempotencySharedUseCase);
+    useCase = new SaveEventExpenseV2UseCase(
+      relationalDataService,
+      eventService,
+      new SupportedCurrencyService(relationalDataService),
+      idempotencySharedUseCase,
+    );
 
     await relationalDataService.initialize();
 

@@ -1,5 +1,5 @@
-import {IUserInfo} from '#domain/entities/user-info.entity';
 import {IQueryDetails, ITransaction, ITransactionWithLock} from '#domain/abstracts/relational-data-service/types';
+import {IUserInfo} from '#domain/entities/user-info.entity';
 
 export abstract class UserInfoRepositoryAbstract {
   abstract findByEventId: (

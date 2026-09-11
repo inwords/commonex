@@ -1,4 +1,5 @@
 import {Column, Entity, PrimaryColumn} from 'typeorm';
+
 import {type IExpense} from '#domain/entities/expense.entity';
 
 @Entity('expense')

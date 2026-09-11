@@ -1,16 +1,21 @@
+import {Injectable} from '@nestjs/common';
+
+import {Result, isError, success} from '#packages/result';
 import {UseCase} from '#packages/use-case';
 
-import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-service/relational-data-service';
 import {EventServiceAbstract} from '#domain/abstracts/event-service/event-service';
+import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-service/relational-data-service';
 import {IEvent} from '#domain/entities/event.entity';
 import {IUserInfo} from '#domain/entities/user-info.entity';
+import {EventDeletedError, EventNotFoundError, InvalidPinCodeError} from '#domain/errors/errors';
 import {UserInfoValueObject} from '#domain/value-objects/user-info.value-object';
-import {Injectable} from '@nestjs/common';
-import {Result, success, isError} from '#packages/result';
-import {EventNotFoundError, EventDeletedError, InvalidPinCodeError} from '#domain/errors/errors';
+
 import {IdempotencySharedUseCase, IdempotentInput} from '#usecases/shared/idempotency.usecase';
 
-type InputCore = {users: Array<Omit<IUserInfo, 'id' | 'eventId'>>} & {pinCode: IEvent['pinCode']; eventId: IEvent['id']};
+type InputCore = {users: Array<Omit<IUserInfo, 'id' | 'eventId'>>} & {
+  pinCode: IEvent['pinCode'];
+  eventId: IEvent['id'];
+};
 type Input = InputCore & IdempotentInput;
 type Output = Result<Array<IUserInfo>, EventNotFoundError | EventDeletedError | InvalidPinCodeError>;
 

@@ -1,7 +1,9 @@
 import {DataSource, EntityManager, Repository} from 'typeorm';
-import {BaseRepository} from '#frameworks/relational-data-service/postgres/repositories/base.repository';
+
 import {IdempotencyKeyRepositoryAbstract} from '#domain/abstracts/relational-data-service/repositories/idempotency-key.repository';
+
 import {IdempotencyKeyEntity} from '#frameworks/relational-data-service/postgres/entities/idempotency-key.entity';
+import {BaseRepository} from '#frameworks/relational-data-service/postgres/repositories/base.repository';
 
 export class IdempotencyKeyRepository extends BaseRepository implements IdempotencyKeyRepositoryAbstract {
   readonly dataSource: DataSource;
@@ -29,9 +31,7 @@ export class IdempotencyKeyRepository extends BaseRepository implements Idempote
   readonly findAll: IdempotencyKeyRepositoryAbstract['findAll'] = async ({limit}, trx) => {
     const ctx = trx?.ctx instanceof EntityManager ? trx.ctx : undefined;
 
-    const query = this.getRepository(ctx)
-      .createQueryBuilder(this.queryName)
-      .limit(limit);
+    const query = this.getRepository(ctx).createQueryBuilder(this.queryName).limit(limit);
 
     const queryDetails = this.getQueryDetails(query);
     const result = await query.getMany();
@@ -59,6 +59,8 @@ export class IdempotencyKeyRepository extends BaseRepository implements Idempote
   };
 
   private readonly getRepository = (manager?: EntityManager): Repository<IdempotencyKeyEntity> => {
-    return manager != null ? manager.getRepository(IdempotencyKeyEntity) : this.dataSource.getRepository(IdempotencyKeyEntity);
+    return manager != null
+      ? manager.getRepository(IdempotencyKeyEntity)
+      : this.dataSource.getRepository(IdempotencyKeyEntity);
   };
 }

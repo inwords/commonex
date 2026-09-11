@@ -1,12 +1,13 @@
+import {Injectable} from '@nestjs/common';
+
+import {Result, error, isError, success} from '#packages/result';
 import {UseCase} from '#packages/use-case';
 
-import {IEvent} from '#domain/entities/event.entity';
-import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-service/relational-data-service';
-import {IUserInfo} from '#domain/entities/user-info.entity';
-import {Injectable} from '@nestjs/common';
 import {EventServiceAbstract} from '#domain/abstracts/event-service/event-service';
-import {Result, success, error, isError} from '#packages/result';
-import {EventNotFoundError, EventDeletedError, InvalidPinCodeError} from '#domain/errors/errors';
+import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-service/relational-data-service';
+import {IEvent} from '#domain/entities/event.entity';
+import {IUserInfo} from '#domain/entities/user-info.entity';
+import {EventDeletedError, EventNotFoundError, InvalidPinCodeError} from '#domain/errors/errors';
 
 type Input = {eventId: string; pinCode: string};
 type Output = Result<IEvent & {users: Array<IUserInfo>}, EventNotFoundError | EventDeletedError | InvalidPinCodeError>;

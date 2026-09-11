@@ -1,23 +1,24 @@
 import {Injectable} from '@nestjs/common';
-import {UseCase} from '#packages/use-case';
 
 import {getCurrentDateWithoutTimeUTC, getDateWithoutTimeUTC} from '#packages/date-utils';
+import {Result, error, isError, success} from '#packages/result';
+import {UseCase} from '#packages/use-case';
 
-import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-service/relational-data-service';
 import {EventServiceAbstract} from '#domain/abstracts/event-service/event-service';
+import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-service/relational-data-service';
 import {SupportedCurrencyServiceAbstract} from '#domain/abstracts/supported-currency-service/supported-currency-service';
-import {IdempotencySharedUseCase, IdempotentInput} from '#usecases/shared/idempotency.usecase';
 import {IExpense, ISplitInfo} from '#domain/entities/expense.entity';
-import {ExpenseValueObject} from '#domain/value-objects/expense.value-object';
-import {Result, success, error, isError} from '#packages/result';
 import {
-  EventNotFoundError,
-  EventDeletedError,
-  InvalidPinCodeError,
   CurrencyNotFoundError,
   CurrencyRateNotFoundError,
+  EventDeletedError,
+  EventNotFoundError,
   InconsistentExchangedAmountError,
+  InvalidPinCodeError,
 } from '#domain/errors/errors';
+import {ExpenseValueObject} from '#domain/value-objects/expense.value-object';
+
+import {IdempotencySharedUseCase, IdempotentInput} from '#usecases/shared/idempotency.usecase';
 
 type SplitInfoInput = Omit<ISplitInfo, 'exchangedAmount'> & Partial<Pick<ISplitInfo, 'exchangedAmount'>>;
 
@@ -163,4 +164,3 @@ export class SaveEventExpenseV2UseCase implements UseCase<Input, Output> {
     });
   }
 }
-

@@ -1,4 +1,5 @@
 import {HttpStatus} from '@nestjs/common';
+
 import {ErrorCode} from './error-codes.enum';
 
 export class EventNotFoundError {

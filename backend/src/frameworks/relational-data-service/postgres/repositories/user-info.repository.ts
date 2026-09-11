@@ -1,9 +1,11 @@
-import {BaseRepository} from '#frameworks/relational-data-service/postgres/repositories/base.repository';
-import {UserInfoRepositoryAbstract} from '#domain/abstracts/relational-data-service/repositories/user-info.repository';
 import {DataSource, EntityManager, Repository} from 'typeorm';
+
+import {UserInfoRepositoryAbstract} from '#domain/abstracts/relational-data-service/repositories/user-info.repository';
 import {IQueryDetails} from '#domain/abstracts/relational-data-service/types';
 import {IUserInfo} from '#domain/entities/user-info.entity';
+
 import {UserInfoEntity} from '#frameworks/relational-data-service/postgres/entities/user-info.entity';
+import {BaseRepository} from '#frameworks/relational-data-service/postgres/repositories/base.repository';
 
 export class UserInfoRepository extends BaseRepository implements UserInfoRepositoryAbstract {
   readonly dataSource: DataSource;

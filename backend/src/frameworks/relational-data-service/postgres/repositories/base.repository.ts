@@ -1,4 +1,5 @@
 import type {QueryBuilder} from 'typeorm';
+
 import {IQueryDetails} from '#domain/abstracts/relational-data-service/types';
 
 export class BaseRepository {

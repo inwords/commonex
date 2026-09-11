@@ -1,11 +1,17 @@
 import {Controller, Get, Headers, HttpStatus, Res} from '@nestjs/common';
-import {UserV3Routes} from './user.constants';
 import {ApiResponse, ApiTags} from '@nestjs/swagger';
 
-import {GetAllCurrenciesWithRatesResponseDto} from './dto/get-all-currencies.dto';
 import {isError} from '#packages/result';
+
 import {GetAllCurrenciesWithRatesUseCaseV3, GetCurrenciesV3VersionUseCase} from '#usecases/users/v3';
-import {CurrenciesV3Version, isCurrenciesV3NotModified, setCurrenciesV3CacheHeaders} from '#usecases/users/v3/currencies-v3-cache';
+import {
+  CurrenciesV3Version,
+  isCurrenciesV3NotModified,
+  setCurrenciesV3CacheHeaders,
+} from '#usecases/users/v3/currencies-v3-cache';
+
+import {GetAllCurrenciesWithRatesResponseDto} from './dto/get-all-currencies.dto';
+import {UserV3Routes} from './user.constants';
 
 interface RouteReply {
   code: (statusCode: number) => RouteReply;
@@ -33,7 +39,10 @@ export class UserV3Controller {
   @Get(UserV3Routes.getAllCurrencies)
   @ApiResponse({status: HttpStatus.OK, type: GetAllCurrenciesWithRatesResponseDto})
   @ApiResponse({status: HttpStatus.NOT_MODIFIED, description: 'Currencies not modified'})
-  async getAllCurrencies(@Headers('if-none-match') ifNoneMatchHeader: string | string[] | undefined, @Res() response: RouteReply): Promise<void> {
+  async getAllCurrencies(
+    @Headers('if-none-match') ifNoneMatchHeader: string | string[] | undefined,
+    @Res() response: RouteReply,
+  ): Promise<void> {
     const ifNoneMatch = normalizeIfNoneMatchHeader(ifNoneMatchHeader);
     let payload: GetAllCurrenciesRouteData | null = null;
     let version: CurrenciesV3Version;

@@ -1,7 +1,9 @@
 import {Injectable} from '@nestjs/common';
-import {UseCase} from '#packages/use-case';
-import {FetchAndSaveCurrencyRateSharedUseCase} from '#usecases/shared/fetch-and-save-currency-rate.usecase';
+
 import {getCurrentDateWithoutTimeUTC} from '#packages/date-utils';
+import {UseCase} from '#packages/use-case';
+
+import {FetchAndSaveCurrencyRateSharedUseCase} from '#usecases/shared/fetch-and-save-currency-rate.usecase';
 
 type Input = void;
 type Output = void;

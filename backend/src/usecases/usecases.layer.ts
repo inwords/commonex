@@ -1,10 +1,12 @@
 import {Module, Provider} from '@nestjs/common';
+
 import {FrameworksLayer} from '#frameworks/frameworks.layer';
-import {allUsersUseCases} from './users';
+
 import {allCronUseCases} from './cron';
-import {allHealthUseCases} from './health';
 import {allDevtoolsUseCases} from './devtools';
+import {allHealthUseCases} from './health';
 import {allSharedUseCases} from './shared';
+import {allUsersUseCases} from './users';
 
 const allUseCases: Provider[] = [
   ...allUsersUseCases,

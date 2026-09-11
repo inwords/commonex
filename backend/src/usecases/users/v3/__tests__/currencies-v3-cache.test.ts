@@ -1,4 +1,8 @@
-import {buildCurrenciesV3VersionFromResponse, buildCurrenciesV3WeakEtag, isCurrenciesV3NotModified} from '../currencies-v3-cache';
+import {
+  buildCurrenciesV3VersionFromResponse,
+  buildCurrenciesV3WeakEtag,
+  isCurrenciesV3NotModified,
+} from '../currencies-v3-cache';
 
 describe('currencies-v3-cache', () => {
   it('builds a version from the ordered public currency snapshot', () => {

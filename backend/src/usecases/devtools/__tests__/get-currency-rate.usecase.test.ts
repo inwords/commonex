@@ -1,8 +1,10 @@
-import {RelationalDataService} from '#frameworks/relational-data-service/postgres/relational-data-service';
-import {appDbConfig} from '#frameworks/relational-data-service/postgres/config';
-import {GetCurrencyRateUseCase} from '../get-currency-rate.usecase';
-import {TestCase, prepareInitRelationalState} from '../../__tests__/test-helpers';
 import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-service/relational-data-service';
+
+import {appDbConfig} from '#frameworks/relational-data-service/postgres/config';
+import {RelationalDataService} from '#frameworks/relational-data-service/postgres/relational-data-service';
+
+import {TestCase, prepareInitRelationalState} from '../../__tests__/test-helpers';
+import {GetCurrencyRateUseCase} from '../get-currency-rate.usecase';
 
 type GetCurrencyRateTestCase = TestCase<GetCurrencyRateUseCase>;
 

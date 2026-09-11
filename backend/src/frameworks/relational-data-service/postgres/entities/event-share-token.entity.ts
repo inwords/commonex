@@ -1,4 +1,5 @@
 import {Column, Entity, Index, PrimaryColumn} from 'typeorm';
+
 import {type IEventShareToken} from '#domain/entities/event-share-token.entity';
 
 @Entity({name: 'event_share_token'})

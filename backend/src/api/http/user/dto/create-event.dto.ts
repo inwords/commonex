@@ -1,6 +1,7 @@
 import {ApiProperty} from '@nestjs/swagger';
-import {IsString, Length, ValidateNested} from 'class-validator';
 import {Type} from 'class-transformer';
+import {IsString, Length, ValidateNested} from 'class-validator';
+
 import {IUserInfo} from '#domain/entities/user-info.entity';
 
 class UserDto {

@@ -1,4 +1,5 @@
 import {ApiProperty} from '@nestjs/swagger';
+
 import {CurrencyCode} from '#domain/entities/currency.entity';
 
 export class CurrencyV3ResponseDto {

@@ -1,7 +1,9 @@
-import {ValueObject} from '#domain/value-objects/value-object';
-import {PartialByKeys} from '#packages/types';
-import {IExpense} from '#domain/entities/expense.entity';
 import {ulid} from 'ulid';
+
+import {PartialByKeys} from '#packages/types';
+
+import {IExpense} from '#domain/entities/expense.entity';
+import {ValueObject} from '#domain/value-objects/value-object';
 
 export type TExpenseDefaultKeys = keyof Pick<IExpense, 'id' | 'createdAt' | 'updatedAt'>;
 

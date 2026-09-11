@@ -2,8 +2,14 @@ import {IQueryDetails, ITransaction, ITransactionWithLock} from '#domain/abstrac
 import {ICurrency} from '#domain/entities/currency.entity';
 
 export abstract class CurrencyRepositoryAbstract {
-  abstract findById: (currencyId: ICurrency['id'], trx?: ITransactionWithLock) => Promise<[result: ICurrency | null, queryDetails: IQueryDetails]>;
-  abstract findSupportedById: (currencyId: ICurrency['id'], trx?: ITransactionWithLock) => Promise<[result: ICurrency | null, queryDetails: IQueryDetails]>;
+  abstract findById: (
+    currencyId: ICurrency['id'],
+    trx?: ITransactionWithLock,
+  ) => Promise<[result: ICurrency | null, queryDetails: IQueryDetails]>;
+  abstract findSupportedById: (
+    currencyId: ICurrency['id'],
+    trx?: ITransactionWithLock,
+  ) => Promise<[result: ICurrency | null, queryDetails: IQueryDetails]>;
   abstract findAll: (
     input: {
       limit?: number | undefined;
@@ -21,5 +27,8 @@ export abstract class CurrencyRepositoryAbstract {
     },
     trx?: ITransaction,
   ) => Promise<[result: ICurrency[], queryDetails: IQueryDetails]>;
-  abstract insert: (user: ICurrency | ICurrency[], trx?: ITransaction) => Promise<[result: undefined, queryDetails: IQueryDetails]>;
+  abstract insert: (
+    user: ICurrency | ICurrency[],
+    trx?: ITransaction,
+  ) => Promise<[result: undefined, queryDetails: IQueryDetails]>;
 }

@@ -1,9 +1,12 @@
-import {BaseRepository} from '#frameworks/relational-data-service/postgres/repositories/base.repository';
 import {DataSource, EntityManager, Repository} from 'typeorm';
-import {IQueryDetails} from '#domain/abstracts/relational-data-service/types';
+
 import {CurrencyRepositoryAbstract} from '#domain/abstracts/relational-data-service/repositories/currency.repository';
+import {IQueryDetails} from '#domain/abstracts/relational-data-service/types';
 import {ICurrency} from '#domain/entities/currency.entity';
+
 import {CurrencyEntity} from '#frameworks/relational-data-service/postgres/entities/currency.entity';
+import {BaseRepository} from '#frameworks/relational-data-service/postgres/repositories/base.repository';
+
 import {createSupportedCurrencyCodesFilter} from './supported-currency-codes-filter';
 
 export class CurrencyRepository extends BaseRepository implements CurrencyRepositoryAbstract {
@@ -40,7 +43,9 @@ export class CurrencyRepository extends BaseRepository implements CurrencyReposi
 
     let query = this.getRepository(ctx).createQueryBuilder(this.queryName);
 
-    query = query.where(`${this.queryName}.id = :id`, {id}).andWhere(supportedCurrencyFilter.condition, supportedCurrencyFilter.parameters);
+    query = query
+      .where(`${this.queryName}.id = :id`, {id})
+      .andWhere(supportedCurrencyFilter.condition, supportedCurrencyFilter.parameters);
 
     const queryDetails = this.getQueryDetails(query);
     const result = await query.getOne();

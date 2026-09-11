@@ -1,8 +1,10 @@
 import {Injectable} from '@nestjs/common';
+
+import {Result, error, isError, success} from '#packages/result';
+
 import {EventServiceAbstract} from '#domain/abstracts/event-service/event-service';
 import {IEvent} from '#domain/entities/event.entity';
-import {Result, success, error, isError} from '#packages/result';
-import {EventNotFoundError, EventDeletedError, InvalidPinCodeError} from '#domain/errors/errors';
+import {EventDeletedError, EventNotFoundError, InvalidPinCodeError} from '#domain/errors/errors';
 
 @Injectable()
 export class EventService implements EventServiceAbstract {

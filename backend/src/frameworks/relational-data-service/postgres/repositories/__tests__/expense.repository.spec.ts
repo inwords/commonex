@@ -1,6 +1,7 @@
-import {RelationalDataService} from '#frameworks/relational-data-service/postgres/relational-data-service';
-import {appDbConfig} from '#frameworks/relational-data-service/postgres/config';
 import {ExpenseType} from '#domain/entities/expense.entity';
+
+import {appDbConfig} from '#frameworks/relational-data-service/postgres/config';
+import {RelationalDataService} from '#frameworks/relational-data-service/postgres/relational-data-service';
 
 describe('ExpenseRepository', () => {
   let relationalDataService: RelationalDataService;

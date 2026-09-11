@@ -1,9 +1,11 @@
-import {RelationalDataService} from '#frameworks/relational-data-service/postgres/relational-data-service';
-import {appDbConfig} from '#frameworks/relational-data-service/postgres/config';
-import {IEvent} from '#domain/entities/event.entity';
-import {IQueryDetails} from '#domain/abstracts/relational-data-service/types';
-import {EventOperationConflictError} from '#domain/errors/errors';
 import {QueryFailedError} from 'typeorm';
+
+import {IQueryDetails} from '#domain/abstracts/relational-data-service/types';
+import {IEvent} from '#domain/entities/event.entity';
+import {EventOperationConflictError} from '#domain/errors/errors';
+
+import {appDbConfig} from '#frameworks/relational-data-service/postgres/config';
+import {RelationalDataService} from '#frameworks/relational-data-service/postgres/relational-data-service';
 
 describe('EventRepository', () => {
   let relationalDataService: RelationalDataService;

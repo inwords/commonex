@@ -1,12 +1,20 @@
-import {RelationalDataService} from '#frameworks/relational-data-service/postgres/relational-data-service';
-import {appDbConfig} from '#frameworks/relational-data-service/postgres/config';
-import {DeleteEventUseCase} from '../delete-event.usecase';
+import {Result, error, success} from '#packages/result';
+
 import {EventServiceAbstract} from '#domain/abstracts/event-service/event-service';
-import {prepareInitRelationalState, TestCase, useFakeTimers, validateRelationalStateChanges,} from '../../__tests__/test-helpers';
-import {error, Result, success} from '#packages/result';
-import {EventDeletedError, EventNotFoundError, InvalidPinCodeError} from '#domain/errors/errors';
 import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-service/relational-data-service';
+import {EventDeletedError, EventNotFoundError, InvalidPinCodeError} from '#domain/errors/errors';
+
 import {EventService} from '#frameworks/event-service/event-service';
+import {appDbConfig} from '#frameworks/relational-data-service/postgres/config';
+import {RelationalDataService} from '#frameworks/relational-data-service/postgres/relational-data-service';
+
+import {
+  TestCase,
+  prepareInitRelationalState,
+  useFakeTimers,
+  validateRelationalStateChanges,
+} from '../../__tests__/test-helpers';
+import {DeleteEventUseCase} from '../delete-event.usecase';
 
 type DeleteEventTestCase = TestCase<DeleteEventUseCase> & {
   mockEventService: {

@@ -1,6 +1,7 @@
-import {IEvent} from '#domain/entities/event.entity';
 import {Result} from '#packages/result';
-import {EventNotFoundError, EventDeletedError, InvalidPinCodeError} from '#domain/errors/errors';
+
+import {IEvent} from '#domain/entities/event.entity';
+import {EventDeletedError, EventNotFoundError, InvalidPinCodeError} from '#domain/errors/errors';
 
 export abstract class EventServiceAbstract {
   abstract isValidEvent(

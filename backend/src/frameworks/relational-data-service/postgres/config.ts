@@ -1,7 +1,9 @@
 import {join} from 'path';
+
 import {DataSourceOptions} from 'typeorm';
-import {allEntities} from './entities';
+
 import {env} from '../../../config';
+import {allEntities} from './entities';
 import {PostgresNamingStrategy} from './postgres-naming-strategy';
 
 interface DbConnectionStringConfig {

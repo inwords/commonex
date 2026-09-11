@@ -1,10 +1,12 @@
 import {Injectable} from '@nestjs/common';
+
+import {Result, error, isError, success} from '#packages/result';
 import {UseCase} from '#packages/use-case';
-import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-service/relational-data-service';
+
 import {EventServiceAbstract} from '#domain/abstracts/event-service/event-service';
+import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-service/relational-data-service';
 import {IExpense} from '#domain/entities/expense.entity';
-import {Result, success, error, isError} from '#packages/result';
-import {EventNotFoundError, EventDeletedError} from '#domain/errors/errors';
+import {EventDeletedError, EventNotFoundError} from '#domain/errors/errors';
 
 type Input = Pick<IExpense, 'eventId'>;
 type Output = Result<Array<IExpense>, EventNotFoundError | EventDeletedError>;

@@ -1,10 +1,12 @@
-import {UseCase} from '#packages/use-case';
-import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-service/relational-data-service';
-import {EventServiceAbstract} from '#domain/abstracts/event-service/event-service';
 import {Injectable} from '@nestjs/common';
+
+import {Result, isError, success} from '#packages/result';
+import {UseCase} from '#packages/use-case';
+
+import {EventServiceAbstract} from '#domain/abstracts/event-service/event-service';
+import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-service/relational-data-service';
+import {EventDeletedError, EventNotFoundError, InvalidPinCodeError} from '#domain/errors/errors';
 import {EventShareTokenValueObject} from '#domain/value-objects/event-share-token.value-object';
-import {Result, success, isError} from '#packages/result';
-import {EventNotFoundError, EventDeletedError, InvalidPinCodeError} from '#domain/errors/errors';
 
 type Input = {eventId: string; pinCode: string};
 type Output = Result<{token: string; expiresAt: string}, EventNotFoundError | EventDeletedError | InvalidPinCodeError>;

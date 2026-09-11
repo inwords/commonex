@@ -1,6 +1,7 @@
 import {createHash} from 'node:crypto';
-import {ICurrency} from '#domain/entities/currency.entity';
+
 import {ICurrencyRate} from '#domain/entities/currency-rate.entity';
+import {ICurrency} from '#domain/entities/currency.entity';
 
 export interface CurrenciesV3Version {
   rateUpdatedAt: ICurrencyRate['updatedAt'];
@@ -15,14 +16,20 @@ const normalizeEtag = (etag: string): string => {
   return etag.trim().replace(/^W\//, '');
 };
 
-export const buildCurrenciesV3Version = ({rateUpdatedAt, currenciesUpdatedAt}: CurrenciesV3Version): CurrenciesV3Version => {
+export const buildCurrenciesV3Version = ({
+  rateUpdatedAt,
+  currenciesUpdatedAt,
+}: CurrenciesV3Version): CurrenciesV3Version => {
   return {
     rateUpdatedAt,
     currenciesUpdatedAt,
   };
 };
 
-export const buildCurrenciesV3VersionFromResponse = ({rateUpdatedAt, currencies}: {
+export const buildCurrenciesV3VersionFromResponse = ({
+  rateUpdatedAt,
+  currencies,
+}: {
   rateUpdatedAt: ICurrencyRate['updatedAt'];
   currencies: Array<Pick<ICurrency, 'updatedAt'>>;
 }): CurrenciesV3Version => {

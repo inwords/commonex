@@ -1,9 +1,11 @@
 import {Injectable} from '@nestjs/common';
+
+import {Result, isError, success} from '#packages/result';
 import {UseCase} from '#packages/use-case';
-import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-service/relational-data-service';
+
 import {EventServiceAbstract} from '#domain/abstracts/event-service/event-service';
+import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-service/relational-data-service';
 import {IEvent} from '#domain/entities/event.entity';
-import {isError, Result, success} from '#packages/result';
 import {EventDeletedError, EventNotFoundError, InvalidPinCodeError} from '#domain/errors';
 
 type Input = {

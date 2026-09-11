@@ -1,14 +1,18 @@
-import {RelationalDataService} from '#frameworks/relational-data-service/postgres/relational-data-service';
-import {appDbConfig} from '#frameworks/relational-data-service/postgres/config';
-import {GetAllCurrenciesWithRatesUseCaseV3} from '#usecases/users/v3';
-import {prepareInitRelationalState, TestCase} from '../../../__tests__/test-helpers';
-import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-service/relational-data-service';
-import {CurrencyCode, ICurrency} from '#domain/entities/currency.entity';
-import {ICurrencyRate} from '#domain/entities/currency-rate.entity';
-import {CurrencyRateNotFoundError} from '#domain/errors';
-import {error, isSuccess, success} from '#packages/result';
 import {getCurrentDateWithoutTimeUTC} from '#packages/date-utils';
+import {error, isSuccess, success} from '#packages/result';
+
+import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-service/relational-data-service';
+import {ICurrencyRate} from '#domain/entities/currency-rate.entity';
+import {CurrencyCode, ICurrency} from '#domain/entities/currency.entity';
+import {CurrencyRateNotFoundError} from '#domain/errors';
+
+import {GetAllCurrenciesWithRatesUseCaseV3} from '#usecases/users/v3';
+
+import {appDbConfig} from '#frameworks/relational-data-service/postgres/config';
+import {RelationalDataService} from '#frameworks/relational-data-service/postgres/relational-data-service';
 import {SupportedCurrencyService} from '#frameworks/supported-currency-service/supported-currency-service';
+
+import {TestCase, prepareInitRelationalState} from '../../../__tests__/test-helpers';
 import {buildCurrenciesV3Version} from '../currencies-v3-cache';
 
 jest.mock('#packages/date-utils', () => ({

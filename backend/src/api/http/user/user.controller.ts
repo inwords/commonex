@@ -1,26 +1,27 @@
 import {Body, Controller, Delete, Get, Headers, HttpCode, HttpStatus, Param, Post, Query, Req} from '@nestjs/common';
-import {FastifyRequest} from 'fastify';
-import {UserRoutes} from './user.constants';
 import {ApiResponse, ApiTags} from '@nestjs/swagger';
+import {FastifyRequest} from 'fastify';
 
-import {CreateEventRequestDto, CreateEventResponseDto} from './dto/create-event.dto';
-import {GetEventInfoParamsDto, GetEventInfoRequestV1Dto, GetEventInfoResponseDto} from './dto/get-event-info.dto';
-import {DeleteEventParamsDto, DeleteEventRequestDto, DeleteEventResponseDto} from './dto/delete-event.dto';
+import {isError} from '#packages/result';
+
+import {DeleteEventUseCase} from '#usecases/users/delete-event.usecase';
+import {GetEventExpensesUseCase} from '#usecases/users/get-event-expenses.usecase';
+import {GetEventInfoUseCase} from '#usecases/users/get-event-info.usecase';
+import {SaveEventExpenseUseCase} from '#usecases/users/save-event-expense.usecase';
+import {SaveEventUseCase} from '#usecases/users/save-event.usecase';
+import {SaveUsersToEventUseCase} from '#usecases/users/save-users-to-event.usecase';
+
 import {
   AddUsersToEventParamsDto,
   AddUsersToEventRequestDto,
   AddUsersToEventResponseDto,
 } from './dto/add-users-to-event.dto';
-import {GetEventExpensesParamsDto, GetEventExpensesResponseDto} from './dto/get-event-expenses.dto';
+import {CreateEventRequestDto, CreateEventResponseDto} from './dto/create-event.dto';
 import {CreateExpenseParamsDto, CreateExpenseRequestV1Dto, CreateExpenseResponseDto} from './dto/create-expense.dto';
-
-import {GetEventExpensesUseCase} from '#usecases/users/get-event-expenses.usecase';
-import {SaveEventExpenseUseCase} from '#usecases/users/save-event-expense.usecase';
-import {SaveEventUseCase} from '#usecases/users/save-event.usecase';
-import {GetEventInfoUseCase} from '#usecases/users/get-event-info.usecase';
-import {SaveUsersToEventUseCase} from '#usecases/users/save-users-to-event.usecase';
-import {DeleteEventUseCase} from '#usecases/users/delete-event.usecase';
-import {isError} from '#packages/result';
+import {DeleteEventParamsDto, DeleteEventRequestDto, DeleteEventResponseDto} from './dto/delete-event.dto';
+import {GetEventExpensesParamsDto, GetEventExpensesResponseDto} from './dto/get-event-expenses.dto';
+import {GetEventInfoParamsDto, GetEventInfoRequestV1Dto, GetEventInfoResponseDto} from './dto/get-event-info.dto';
+import {UserRoutes} from './user.constants';
 
 @Controller(UserRoutes.root)
 @ApiTags('User')

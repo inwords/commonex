@@ -1,10 +1,13 @@
-import {BaseRepository} from './base.repository';
-import {EventRepositoryAbstract} from '#domain/abstracts/relational-data-service/repositories/event.repository';
 import {DataSource, EntityManager, QueryFailedError, Repository} from 'typeorm';
-import {IEvent} from '#domain/entities/event.entity';
+
+import {EventRepositoryAbstract} from '#domain/abstracts/relational-data-service/repositories/event.repository';
 import {IQueryDetails} from '#domain/abstracts/relational-data-service/types';
-import {EventEntity} from '#frameworks/relational-data-service/postgres/entities/event.entity';
+import {IEvent} from '#domain/entities/event.entity';
 import {EventOperationConflictError} from '#domain/errors/errors';
+
+import {EventEntity} from '#frameworks/relational-data-service/postgres/entities/event.entity';
+
+import {BaseRepository} from './base.repository';
 
 const POSTGRES_LOCK_NOT_AVAILABLE_ERROR_CODE = '55P03';
 

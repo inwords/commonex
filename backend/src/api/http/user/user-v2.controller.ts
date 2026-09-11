@@ -1,34 +1,35 @@
 import {Body, Controller, Headers, HttpCode, HttpStatus, Param, Post, Req} from '@nestjs/common';
-import {FastifyRequest} from 'fastify';
-import {UserV2Routes} from './user.constants';
 import {ApiResponse, ApiTags} from '@nestjs/swagger';
+import {FastifyRequest} from 'fastify';
 
-import {GetEventInfoParamsDto, GetEventInfoRequestV2Dto, GetEventInfoResponseDto} from './dto/get-event-info.dto';
+import {isError} from '#packages/result';
+
+import {
+  CreateEventShareTokenV2UseCase,
+  GetEventExpensesV2UseCase,
+  GetEventInfoV2UseCase,
+  SaveEventExpenseV2UseCase,
+  SaveUsersToEventV2UseCase,
+} from '#usecases/users/v2';
+
 import {
   AddUsersToEventParamsDto,
   AddUsersToEventRequestDto,
   AddUsersToEventResponseDto,
 } from './dto/add-users-to-event.dto';
 import {
-  GetEventExpensesParamsDto,
-  GetEventExpensesRequestV2Dto,
-  GetEventExpensesResponseDto,
-} from './dto/get-event-expenses.dto';
-import {CreateExpenseParamsDto, CreateExpenseRequestV2Dto, CreateExpenseResponseDto} from './dto/create-expense.dto';
-import {
   CreateEventShareTokenParamsDto,
   CreateEventShareTokenRequestDto,
   CreateEventShareTokenResponseDto,
 } from './dto/create-event-share-token.dto';
-
+import {CreateExpenseParamsDto, CreateExpenseRequestV2Dto, CreateExpenseResponseDto} from './dto/create-expense.dto';
 import {
-  GetEventInfoV2UseCase,
-  SaveUsersToEventV2UseCase,
-  SaveEventExpenseV2UseCase,
-  GetEventExpensesV2UseCase,
-  CreateEventShareTokenV2UseCase,
-} from '#usecases/users/v2';
-import {isError} from '#packages/result';
+  GetEventExpensesParamsDto,
+  GetEventExpensesRequestV2Dto,
+  GetEventExpensesResponseDto,
+} from './dto/get-event-expenses.dto';
+import {GetEventInfoParamsDto, GetEventInfoRequestV2Dto, GetEventInfoResponseDto} from './dto/get-event-info.dto';
+import {UserV2Routes} from './user.constants';
 
 @Controller(UserV2Routes.root)
 @ApiTags('User V2')
@@ -97,7 +98,12 @@ export class UserV2Controller {
     @Headers('idempotency-key') idempotencyKey: string | undefined,
     @Req() request: FastifyRequest,
   ): Promise<CreateExpenseResponseDto> {
-    const result = await this.saveEventExpenseV2UseCase.execute({...expense, eventId, idempotencyKey, url: request.url});
+    const result = await this.saveEventExpenseV2UseCase.execute({
+      ...expense,
+      eventId,
+      idempotencyKey,
+      url: request.url,
+    });
 
     if (isError(result)) {
       throw result.error;

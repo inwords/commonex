@@ -1,13 +1,17 @@
-import {RelationalDataService} from '#frameworks/relational-data-service/postgres/relational-data-service';
-import {appDbConfig} from '#frameworks/relational-data-service/postgres/config';
-import {SaveEventUseCase} from '../save-event.usecase';
-import {TestCase, prepareInitRelationalState, validateRelationalStateChanges} from '../../__tests__/test-helpers';
 import {error, success} from '#packages/result';
-import {CurrencyNotFoundError} from '#domain/errors/errors';
+
 import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-service/relational-data-service';
 import {CurrencyCode} from '#domain/entities/currency.entity';
-import {SupportedCurrencyService} from '#frameworks/supported-currency-service/supported-currency-service';
+import {CurrencyNotFoundError} from '#domain/errors/errors';
+
 import {IdempotencySharedUseCase} from '#usecases/shared/idempotency.usecase';
+
+import {appDbConfig} from '#frameworks/relational-data-service/postgres/config';
+import {RelationalDataService} from '#frameworks/relational-data-service/postgres/relational-data-service';
+import {SupportedCurrencyService} from '#frameworks/supported-currency-service/supported-currency-service';
+
+import {TestCase, prepareInitRelationalState, validateRelationalStateChanges} from '../../__tests__/test-helpers';
+import {SaveEventUseCase} from '../save-event.usecase';
 
 type SaveEventTestCase = TestCase<SaveEventUseCase> & {
   mockIdempotencyUseCase?: {execute: Awaited<ReturnType<SaveEventUseCase['execute']>>};
@@ -27,7 +31,11 @@ describe('SaveEventUseCase', () => {
     });
 
     idempotencySharedUseCase = new IdempotencySharedUseCase(relationalDataService);
-    useCase = new SaveEventUseCase(relationalDataService, new SupportedCurrencyService(relationalDataService), idempotencySharedUseCase);
+    useCase = new SaveEventUseCase(
+      relationalDataService,
+      new SupportedCurrencyService(relationalDataService),
+      idempotencySharedUseCase,
+    );
 
     await relationalDataService.initialize();
   });
@@ -138,7 +146,9 @@ describe('SaveEventUseCase', () => {
       initRelationalState: {},
       input: {
         event: {name: 'New Event', currencyId: 'currency-usd', pinCode: '1234'},
-        users: [{name: 'John Doe', createdAt: new Date('2023-01-01T00:00:00Z'), updatedAt: new Date('2023-01-01T00:00:00Z')}],
+        users: [
+          {name: 'John Doe', createdAt: new Date('2023-01-01T00:00:00Z'), updatedAt: new Date('2023-01-01T00:00:00Z')},
+        ],
         idempotencyKey: 'idempotency-key-1',
         url: SAVE_EVENT_URL,
       },

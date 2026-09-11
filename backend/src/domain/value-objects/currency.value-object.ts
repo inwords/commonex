@@ -1,7 +1,9 @@
-import {ValueObject} from '#domain/value-objects/value-object';
-import {ICurrency} from '#domain/entities/currency.entity';
-import {PartialByKeys} from '#packages/types';
 import {ulid} from 'ulid';
+
+import {PartialByKeys} from '#packages/types';
+
+import {ICurrency} from '#domain/entities/currency.entity';
+import {ValueObject} from '#domain/value-objects/value-object';
 
 export type TCurrencyDefaultKeys = keyof Pick<ICurrency, 'id' | 'createdAt' | 'updatedAt'>;
 

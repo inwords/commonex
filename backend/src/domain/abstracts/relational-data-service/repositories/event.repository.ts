@@ -1,5 +1,5 @@
-import {IEvent} from '#domain/entities/event.entity';
 import {IQueryDetails, ITransaction, ITransactionWithLock} from '#domain/abstracts/relational-data-service/types';
+import {IEvent} from '#domain/entities/event.entity';
 
 export abstract class EventRepositoryAbstract {
   abstract findById: (

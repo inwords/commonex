@@ -1,4 +1,5 @@
 import {Column, Entity, PrimaryColumn} from 'typeorm';
+
 import {type IUserInfo} from '#domain/entities/user-info.entity';
 
 @Entity('user_info')

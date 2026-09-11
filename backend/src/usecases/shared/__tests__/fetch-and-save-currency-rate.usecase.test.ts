@@ -1,10 +1,13 @@
-import {RelationalDataService} from '#frameworks/relational-data-service/postgres/relational-data-service';
-import {appDbConfig} from '#frameworks/relational-data-service/postgres/config';
-import {FetchAndSaveCurrencyRateSharedUseCase} from '../fetch-and-save-currency-rate.usecase';
-import {CurrencyRateService} from '#frameworks/currency-rate-service/currency-rate-service';
-import {TestCase, prepareInitRelationalState, validateRelationalStateChanges} from '../../__tests__/test-helpers';
-import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-service/relational-data-service';
 import {HttpService} from '@nestjs/axios';
+
+import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-service/relational-data-service';
+
+import {CurrencyRateService} from '#frameworks/currency-rate-service/currency-rate-service';
+import {appDbConfig} from '#frameworks/relational-data-service/postgres/config';
+import {RelationalDataService} from '#frameworks/relational-data-service/postgres/relational-data-service';
+
+import {TestCase, prepareInitRelationalState, validateRelationalStateChanges} from '../../__tests__/test-helpers';
+import {FetchAndSaveCurrencyRateSharedUseCase} from '../fetch-and-save-currency-rate.usecase';
 
 type FetchAndSaveCurrencyRateTestCase = TestCase<FetchAndSaveCurrencyRateSharedUseCase> & {
   mockCurrencyRateService: {

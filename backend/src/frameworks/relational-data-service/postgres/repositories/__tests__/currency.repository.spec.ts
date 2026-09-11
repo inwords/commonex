@@ -1,6 +1,7 @@
 import {CurrencyCode} from '#domain/entities/currency.entity';
-import {RelationalDataService} from '#frameworks/relational-data-service/postgres/relational-data-service';
+
 import {appDbConfig} from '#frameworks/relational-data-service/postgres/config';
+import {RelationalDataService} from '#frameworks/relational-data-service/postgres/relational-data-service';
 
 describe('CurrencyRepository', () => {
   let relationalDataService: RelationalDataService;
