@@ -1,3 +1,7 @@
+// The OpenTelemetry SDK starts on import and must patch Fastify and Nest before they are loaded.
+// Side-effect imports are not reordered by the import sorter, so this stays first.
+import './otel';
+
 import {fastifyOtelInstrumentation} from './otel';
 import {HttpAdapterHost, NestFactory} from '@nestjs/core';
 import {FastifyAdapter, NestFastifyApplication} from '@nestjs/platform-fastify';

@@ -7,7 +7,8 @@
   "license": "UNLICENSED",
   "scripts": {
     "build": "nest build",
-    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
+    "format": "prettier --write \"{src,scripts}/**/*.ts\"",
+    "format:check": "prettier --check \"{src,scripts}/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
@@ -68,6 +69,7 @@
     "@nestjs/cli": "11.0.24",
     "@nestjs/schematics": "11.1.0",
     "@nestjs/testing": "11.2.1",
+    "@trivago/prettier-plugin-sort-imports": "6.0.2",
     "@types/async-retry": "1.4.9",
     "@types/bcrypt": "6.0.0",
     "@types/jest": "30.0.0",
