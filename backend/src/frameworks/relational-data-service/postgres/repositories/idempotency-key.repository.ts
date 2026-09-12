@@ -53,9 +53,13 @@ export class IdempotencyKeyRepository extends BaseRepository implements Idempote
   readonly delete: IdempotencyKeyRepositoryAbstract['delete'] = async (criteria, trx) => {
     const ctx = trx?.ctx instanceof EntityManager ? trx.ctx : undefined;
 
-    await this.getRepository(ctx).delete(criteria);
+    const query = this.getRepository(ctx).createQueryBuilder().delete().where(criteria);
 
-    return [undefined, {queryString: undefined, queryParameters: undefined}];
+    const queryDetails = this.getQueryDetails(query);
+
+    await query.execute();
+
+    return [undefined, queryDetails];
   };
 
   private readonly getRepository = (manager?: EntityManager): Repository<IdempotencyKeyEntity> => {

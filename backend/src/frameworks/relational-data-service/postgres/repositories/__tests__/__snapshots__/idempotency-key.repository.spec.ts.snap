@@ -1,5 +1,14 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
+exports[`IdempotencyKeyRepository deletes only the keys matching the criteria 1`] = `
+{
+  "queryParameters": {
+    "orm_param_0": 2026-01-01T00:00:00.000Z,
+  },
+  "queryString": "DELETE FROM "idempotency_keys" WHERE "expires_at" < :orm_param_0",
+}
+`;
+
 exports[`IdempotencyKeyRepository inserts a key and finds it by key 1`] = `
 {
   "queryParameters": {

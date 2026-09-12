@@ -69,9 +69,12 @@ describe('IdempotencyKeyRepository', () => {
       buildKey({key: 'valid', expiresAt: new Date('2026-12-31T00:00:00Z')}),
     );
 
-    await relationalDataService.idempotencyKey.delete({expiresAt: LessThan(new Date('2026-01-01T00:00:00Z'))});
+    const [, details] = await relationalDataService.idempotencyKey.delete({
+      expiresAt: LessThan(new Date('2026-01-01T00:00:00Z')),
+    });
     const [remaining] = await relationalDataService.idempotencyKey.findAll({limit: 10});
 
     expect(remaining.map((record) => record.key)).toEqual(['valid']);
+    expect(details).toMatchSnapshot();
   });
 });

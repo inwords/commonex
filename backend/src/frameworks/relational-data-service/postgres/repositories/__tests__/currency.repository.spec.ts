@@ -143,11 +143,16 @@ describe('CurrencyRepository', () => {
         },
       ]);
 
-      const [descending] = await relationalDataService.currency.findAll({orderBy: 'code', orderDirection: 'DESC'});
-      const [ascending] = await relationalDataService.currency.findAll({orderBy: 'code'});
+      const [descending, descendingDetails] = await relationalDataService.currency.findAll({
+        orderBy: 'code',
+        orderDirection: 'DESC',
+      });
+      const [ascending, ascendingDetails] = await relationalDataService.currency.findAll({orderBy: 'code'});
 
       expect(descending.map((currency) => currency.code)).toEqual(['USD', 'RUB', 'EUR']);
       expect(ascending.map((currency) => currency.code)).toEqual(['EUR', 'RUB', 'USD']);
+      expect(descendingDetails).toMatchSnapshot();
+      expect(ascendingDetails).toMatchSnapshot();
     });
 
     it('returns nothing when the codes filter is empty', async () => {
@@ -158,9 +163,10 @@ describe('CurrencyRepository', () => {
         updatedAt: new Date(),
       });
 
-      const [found] = await relationalDataService.currency.findAll({codes: []});
+      const [found, details] = await relationalDataService.currency.findAll({codes: []});
 
       expect(found).toEqual([]);
+      expect(details).toMatchSnapshot();
     });
   });
 
@@ -171,19 +177,21 @@ describe('CurrencyRepository', () => {
     it('excludes codes outside SUPPORTED_CURRENCY_CODES from findAllSupported', async () => {
       await relationalDataService.currency.insert([usd, unsupported]);
 
-      const [found] = await relationalDataService.currency.findAllSupported();
+      const [found, details] = await relationalDataService.currency.findAllSupported();
 
       expect(found.map((currency) => currency.id)).toEqual(['c-usd']);
+      expect(details).toMatchSnapshot();
     });
 
     it('returns null from findSupportedById for an unsupported code', async () => {
       await relationalDataService.currency.insert([usd, unsupported]);
 
-      const [found] = await relationalDataService.currency.findSupportedById('c-xxx');
+      const [found, details] = await relationalDataService.currency.findSupportedById('c-xxx');
       const [foundUsd] = await relationalDataService.currency.findSupportedById('c-usd');
 
       expect(found).toBeNull();
       expect(foundUsd).toMatchObject({id: 'c-usd'});
+      expect(details).toMatchSnapshot();
     });
   });
 });
