@@ -8,6 +8,7 @@ service UserService {
   rpc AddUsersToEvent (AddUsersToEventRequest) returns (AddUsersToEventResponse);
   rpc GetAllEventExpenses (EventIdRequest) returns (ExpensesResponse);
   rpc CreateExpense (CreateExpenseRequest) returns (ExpenseResponse);
+  rpc DeleteEvent (DeleteEventRequest) returns (DeleteEventResponse);
 
   rpc GetEventInfoV2 (GetEventInfoRequest) returns (EventInfoResponse);
   rpc AddUsersToEventV2 (AddUsersToEventRequest) returns (AddUsersToEventResponse);
@@ -66,6 +67,16 @@ message EventInfoResponse {
   string currencyId = 3;
   repeated UserResponse users = 4;
   string pinCode = 5;
+}
+
+message DeleteEventRequest {
+  string eventId = 1;
+  string pinCode = 2;
+}
+
+message DeleteEventResponse {
+  string id = 1;
+  string deletedAt = 2;
 }
 
 message AddUsersToEventRequest {
