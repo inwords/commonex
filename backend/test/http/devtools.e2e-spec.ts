@@ -45,7 +45,7 @@ describe('HTTP /devtools', () => {
     });
 
     expect(response.statusCode).toBe(200);
-    expect(response.body).toBe('');
+    expect(response.body).toBe('null');
   });
 
   it('fetches, stores and returns the rate for a date', async () => {
