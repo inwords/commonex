@@ -145,7 +145,7 @@ describe('GetAllCurrenciesWithRatesUseCaseV3', () => {
       mockDate: '2026-01-06',
     },
     {
-      name: 'works when there are no currencies in the database',
+      name: 'returns an empty currency list with the exchange rate when the database has no currencies',
       initRelationalState: {
         currencies: [],
         currencyRates: [testCurrencyRate],
