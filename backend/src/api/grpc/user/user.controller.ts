@@ -27,17 +27,15 @@ import {createValidationPipe} from '#api/validation-pipe';
 
 import {GrpcBusinessErrorFilter} from '../filters/grpc-business-error.filter';
 import {GrpcValidationErrorFilter} from '../filters/grpc-validation-error.filter';
+import {AddUsersToEventGrpcRequestDto} from './dto/add-users-to-event-grpc-request.dto';
+import {CreateEventShareTokenGrpcRequestDto} from './dto/create-event-share-token-grpc-request.dto';
+import {CreateExpenseGrpcRequestDto, CreateExpenseV2GrpcRequestDto} from './dto/create-expense-grpc-request.dto';
+import {DeleteEventGrpcRequestDto} from './dto/delete-event-grpc-request.dto';
 import {
-  AddUsersToEventGrpcRequestDto,
-  CreateEventShareTokenGrpcRequestDto,
-  CreateExpenseGrpcRequestDto,
-  CreateExpenseV2GrpcRequestDto,
-  DeleteEventGrpcRequestDto,
   GetEventExpensesGrpcRequestDto,
   GetEventExpensesV2GrpcRequestDto,
-  GetEventInfoGrpcRequestDto,
-  GetEventInfoV2GrpcRequestDto,
-} from './dto/user-grpc-request.dto';
+} from './dto/get-event-expenses-grpc-request.dto';
+import {GetEventInfoGrpcRequestDto, GetEventInfoV2GrpcRequestDto} from './dto/get-event-info-grpc-request.dto';
 import {ExpenseGrpcResponseDto, ExpensesGrpcResponseDto, toExpenseGrpcResponse} from './dto/user-grpc-response.dto';
 
 // The controller-scoped validation pipe runs on every decorated parameter, and it rejects a `Metadata` instance because
