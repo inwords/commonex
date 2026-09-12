@@ -21,7 +21,6 @@ import {
 import {AddUsersToEventResponseWithUsersDto} from '#api/http/user/dto/add-users-to-event.dto';
 import {CreateEventShareTokenResponseDto} from '#api/http/user/dto/create-event-share-token.dto';
 import {CreateEventRequestDto, CreateEventResponseDto} from '#api/http/user/dto/create-event.dto';
-import {DeleteEventResponseDto} from '#api/http/user/dto/delete-event.dto';
 import {GetEventInfoResponseDto} from '#api/http/user/dto/get-event-info.dto';
 import {createValidationPipe} from '#api/validation-pipe';
 
@@ -36,7 +35,13 @@ import {
   GetEventExpensesV2GrpcRequestDto,
 } from './dto/get-event-expenses-grpc-request.dto';
 import {GetEventInfoGrpcRequestDto, GetEventInfoV2GrpcRequestDto} from './dto/get-event-info-grpc-request.dto';
-import {ExpenseGrpcResponseDto, ExpensesGrpcResponseDto, toExpenseGrpcResponse} from './dto/user-grpc-response.dto';
+import {
+  DeleteEventGrpcResponseDto,
+  ExpenseGrpcResponseDto,
+  ExpensesGrpcResponseDto,
+  toDeleteEventGrpcResponse,
+  toExpenseGrpcResponse,
+} from './dto/user-grpc-response.dto';
 
 // The controller-scoped validation pipe runs on every decorated parameter, and it rejects a `Metadata` instance because
 // that class declares no validation rules. Typing the context as `unknown` keeps its metatype `Object`, which the pipe
@@ -100,7 +105,7 @@ export class UserController {
   }
 
   @GrpcMethod('UserService', 'DeleteEvent')
-  async deleteEvent(@Body() body: DeleteEventGrpcRequestDto): Promise<DeleteEventResponseDto> {
+  async deleteEvent(@Body() body: DeleteEventGrpcRequestDto): Promise<DeleteEventGrpcResponseDto> {
     const {eventId, pinCode} = body;
     const result = await this.deleteEventUseCase.execute({eventId, pinCode});
 
@@ -108,7 +113,7 @@ export class UserController {
       throw result.error;
     }
 
-    return result.value;
+    return toDeleteEventGrpcResponse(result.value);
   }
 
   @GrpcMethod('UserService', 'AddUsersToEvent')

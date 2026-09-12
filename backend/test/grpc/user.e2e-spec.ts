@@ -76,6 +76,22 @@ describe('gRPC UserService', () => {
     expect(error).toEqual({code: status.NOT_FOUND, details: 'Event not found', errorCode: 'B4001'});
   });
 
+  it('deletes an event and then reports it as deleted', async () => {
+    const event = await createEvent(testApp.app, {currencyId: usdId});
+
+    const response = await callUnary<{id: string; deletedAt: string}>(client, 'DeleteEvent', {
+      eventId: event.id,
+      pinCode: '1234',
+    });
+
+    expect(response.id).toBe(event.id);
+    expect(new Date(response.deletedAt).toISOString()).toBe(response.deletedAt);
+
+    const error = await expectGrpcError(callUnary(client, 'GetEventInfo', {eventId: event.id, pinCode: '1234'}));
+
+    expect(error).toEqual({code: status.FAILED_PRECONDITION, details: 'Event is deleted', errorCode: 'B4002'});
+  });
+
   it('validates the request and maps violations to INVALID_ARGUMENT', async () => {
     const error = await expectGrpcError(
       callUnary(client, 'CreateEvent', {name: 'Trip', currencyId: usdId, pinCode: '12', users: []}),
