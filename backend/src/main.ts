@@ -4,17 +4,12 @@ import './otel';
 
 import {join} from 'path';
 
-import {ValidationPipe} from '@nestjs/common';
-import {HttpAdapterHost, NestFactory} from '@nestjs/core';
-import {MicroserviceOptions, Transport} from '@nestjs/microservices';
+import {NestFactory} from '@nestjs/core';
 import {FastifyAdapter, NestFastifyApplication} from '@nestjs/platform-fastify';
-import {DocumentBuilder, SwaggerModule} from '@nestjs/swagger';
 
 import {fastifyHttpMetricsPlugin} from '#frameworks/observability/fastify-http-metrics.plugin';
 
-import {BusinessErrorFilter} from '#api/http/filters/business-error.filter';
-import {ValidationExceptionFilter} from '#api/http/filters/validation-exception.filter';
-
+import {configureHttpApp, createGrpcOptions} from './app.factory';
 import {AppModule} from './app.module';
 import {fastifyOtelInstrumentation} from './otel';
 
@@ -28,48 +23,9 @@ async function bootstrap(): Promise<void> {
   await fastifyInstance.register(fastifyOtelInstrumentation.plugin());
 
   const app = await NestFactory.create<NestFastifyApplication>(AppModule, fastifyAdapter);
-  const {httpAdapter} = app.get(HttpAdapterHost);
 
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      transform: true,
-      transformOptions: {
-        enableImplicitConversion: true,
-      },
-    }),
-  );
-
-  app.useGlobalFilters(new ValidationExceptionFilter(httpAdapter), new BusinessErrorFilter(httpAdapter));
-
-  const config = new DocumentBuilder()
-    .setTitle('Expenses Swagger')
-    .setVersion('0.0.1')
-    .addServer('/api', 'API Server')
-    .addApiKey(
-      {
-        type: 'apiKey',
-        name: 'x-devtools-secret',
-        in: 'header',
-        description: 'Devtools secret for accessing devtools endpoints',
-      },
-      'devtools-secret',
-    )
-    .build();
-  const document = SwaggerModule.createDocument(app, config);
-
-  SwaggerModule.setup('swagger/api', app, document);
-  app.enableCors({origin: '*'});
-
-  app.connectMicroservice<MicroserviceOptions>({
-    transport: Transport.GRPC,
-    options: {
-      package: 'user', // This should match the gRPC service package name
-      protoPath: join(__dirname, '../expenses.proto'), // Path to your .proto file
-      url: '0.0.0.0:5000',
-    },
-  });
+  configureHttpApp(app);
+  app.connectMicroservice(createGrpcOptions({url: '0.0.0.0:5000', protoPath: join(__dirname, '../expenses.proto')}));
 
   await app.startAllMicroservices();
   await app.listen(3001, '0.0.0.0');
