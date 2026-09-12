@@ -77,4 +77,13 @@ describe('IdempotencyKeyRepository', () => {
     expect(remaining.map((record) => record.key)).toEqual(['valid']);
     expect(details).toMatchSnapshot();
   });
+
+  it('rejects empty criteria instead of deleting every key', async () => {
+    await relationalDataService.idempotencyKey.insert(buildKey({key: 'kept'}));
+
+    await expect(relationalDataService.idempotencyKey.delete({})).rejects.toThrow('Empty criteria');
+    const [remaining] = await relationalDataService.idempotencyKey.findAll({limit: 10});
+
+    expect(remaining.map((record) => record.key)).toEqual(['kept']);
+  });
 });
