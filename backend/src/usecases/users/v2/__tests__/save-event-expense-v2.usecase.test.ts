@@ -389,9 +389,18 @@ describe('SaveEventExpenseV2UseCase', () => {
       relationalStateChanges: {
         expenses: {
           inserted: [
-            expect.objectContaining({
+            {
+              id: expect.any(String),
+              eventId: 'event-1',
+              currencyId: 'currency-eur',
+              description: 'Old dinner',
+              userWhoPaidId: 'user-1',
+              expenseType: ExpenseType.Expense,
               splitInformation: [{userId: 'user-1', amount: 10, exchangedAmount: 20}],
-            }),
+              isCustomRate: false,
+              createdAt: new Date('2025-12-15T18:00:00Z'),
+              updatedAt: expect.any(Date),
+            },
           ],
         },
       },
