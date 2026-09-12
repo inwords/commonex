@@ -72,8 +72,9 @@ one hash-mismatch test per idempotent use case.
 - `src/expenses.proto` fixes: `UserResponse.eventId` becomes `string`, `SplitInfo.amount` and
   `SplitInfo.exchangedAmount` become `double`, `CreateEventShareTokenResponse.expiresAt` becomes `string`.
 - Proto loader options are set explicitly on the server (`enums: String`, `defaults: false`, `arrays: true`,
-  `objects: true`, `oneofs: true`, `longs: String`, `keepCase: false`) so enum values arrive as the domain strings and
-  unset optional fields arrive as `undefined`.
+  `objects: true`, `oneofs: false`, `longs: String`, `keepCase: false`) so enum values arrive as the domain strings and
+  unset optional fields arrive as `undefined`. `oneofs` stays off because the synthetic oneof of a proto3 `optional`
+  field adds `_pinCode`-style keys the request DTOs do not declare and `forbidNonWhitelisted` rejects.
 - Expense responses map `Date` fields to ISO strings before serialization.
 
 ### Status code mapping for gRPC
