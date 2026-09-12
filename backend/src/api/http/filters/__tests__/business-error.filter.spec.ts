@@ -2,33 +2,51 @@ import {ArgumentsHost, HttpStatus} from '@nestjs/common';
 import {FILTER_CATCH_EXCEPTIONS} from '@nestjs/common/constants';
 import {AbstractHttpAdapter} from '@nestjs/core';
 
-import {EventOperationConflictError} from '#domain/errors/errors';
+import {
+  CurrencyNotFoundError,
+  CurrencyRateNotFoundError,
+  EventDeletedError,
+  EventNotFoundError,
+  EventOperationConflictError,
+  IdempotencyHashMismatchError,
+  InconsistentExchangedAmountError,
+  InvalidPinCodeError,
+  InvalidTokenError,
+  TokenExpiredError,
+} from '#domain/errors/errors';
 
 import {BusinessErrorFilter} from '#api/http/filters/business-error.filter';
 
 describe('BusinessErrorFilter', () => {
-  it('should return the normalized conflict response for concurrent event operations', () => {
+  it.each([
+    [EventNotFoundError, HttpStatus.NOT_FOUND, 'B4001', 'Event not found'],
+    [EventDeletedError, HttpStatus.GONE, 'B4002', 'Event is deleted'],
+    [InvalidPinCodeError, HttpStatus.FORBIDDEN, 'B4003', 'Invalid pin code'],
+    [CurrencyNotFoundError, HttpStatus.NOT_FOUND, 'B4004', 'Currency not found'],
+    [CurrencyRateNotFoundError, HttpStatus.NOT_FOUND, 'B4005', 'Currency rate not found'],
+    [InvalidTokenError, HttpStatus.UNAUTHORIZED, 'B4008', 'Invalid token'],
+    [TokenExpiredError, HttpStatus.UNAUTHORIZED, 'B4009', 'Token has expired'],
+    [
+      InconsistentExchangedAmountError,
+      HttpStatus.BAD_REQUEST,
+      'B4010',
+      'All splitInfo must have exchangedAmount when custom rate is used',
+    ],
+    [
+      IdempotencyHashMismatchError,
+      HttpStatus.UNPROCESSABLE_ENTITY,
+      'B4011',
+      'Idempotency key reused with different request body',
+    ],
+    [EventOperationConflictError, HttpStatus.CONFLICT, 'B4015', 'Another operation is in progress for this event'],
+  ])('maps %p to its status, code and message', (ErrorClass, statusCode, code, message) => {
     const reply = jest.fn();
     const response = {};
-    const httpAdapter = {reply} as unknown as AbstractHttpAdapter;
-    const host = {
-      switchToHttp: () => ({
-        getResponse: (): object => response,
-      }),
-    } as ArgumentsHost;
-    const exception = new EventOperationConflictError();
+    const host = {switchToHttp: () => ({getResponse: (): object => response})} as ArgumentsHost;
 
-    new BusinessErrorFilter(httpAdapter).catch(exception, host);
+    new BusinessErrorFilter({reply} as unknown as AbstractHttpAdapter).catch(new ErrorClass(), host);
 
-    expect(Reflect.getMetadata(FILTER_CATCH_EXCEPTIONS, BusinessErrorFilter)).toContain(EventOperationConflictError);
-    expect(reply).toHaveBeenCalledWith(
-      response,
-      {
-        statusCode: HttpStatus.CONFLICT,
-        code: 'B4015',
-        message: 'Another operation is in progress for this event',
-      },
-      HttpStatus.CONFLICT,
-    );
+    expect(Reflect.getMetadata(FILTER_CATCH_EXCEPTIONS, BusinessErrorFilter)).toContain(ErrorClass);
+    expect(reply).toHaveBeenCalledWith(response, {statusCode, code, message}, statusCode);
   });
 });

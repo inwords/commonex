@@ -17,7 +17,9 @@ const envSchema = z.object({
   OTEL_SERVICE_NAME: z.string().default('commonex-backend'),
 });
 
-const validatedEnv = envSchema.parse(process.env);
+export const parseEnv = (raw: NodeJS.ProcessEnv): z.infer<typeof envSchema> => envSchema.parse(raw);
+
+const validatedEnv = parseEnv(process.env);
 
 export const config = (): {
   POSTGRES_PORT: string;
