@@ -32,7 +32,9 @@ export const createUserServiceClient = (url: string): UserServiceClient => {
     defaults: false,
     arrays: true,
     objects: true,
-    oneofs: true,
+    // Mirrors the server loader options: synthetic oneofs of proto3 optional fields would add `_exchangedAmount`-style
+    // keys to decoded responses.
+    oneofs: false,
   });
   const proto = loadPackageDefinition(definition) as unknown as {user: {UserService: ServiceClientConstructor}};
 

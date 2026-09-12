@@ -2,8 +2,6 @@ syntax = "proto3";
 
 package user;
 
-import "google/protobuf/timestamp.proto";
-
 service UserService {
   rpc CreateEvent (CreateEventRequest) returns (EventResponse);
   rpc GetEventInfo (GetEventInfoRequest) returns (EventInfoResponse);
@@ -45,7 +43,7 @@ message User {
 message UserResponse {
   string name = 1;
    string id = 2;
-   int32 eventId = 3;
+   string eventId = 3;
 }
 
 message EventResponse {
@@ -98,8 +96,8 @@ message Expense {
 
 message SplitInfo {
   string userId = 1;
-  int32 amount = 2;
-  optional int32 exchangedAmount = 3;
+  double amount = 2;
+  optional double exchangedAmount = 3;
 }
 
 enum ExpenseType {
@@ -156,5 +154,5 @@ message CreateEventShareTokenRequest {
 
 message CreateEventShareTokenResponse {
   string token = 1;
-  google.protobuf.Timestamp expiresAt = 2;
+  string expiresAt = 2;
 }

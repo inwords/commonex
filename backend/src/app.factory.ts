@@ -41,5 +41,16 @@ export const createGrpcOptions = ({url, protoPath}: {url: string; protoPath: str
     package: GRPC_PACKAGE,
     protoPath,
     url,
+    loader: {
+      keepCase: false,
+      longs: String,
+      enums: String,
+      defaults: false,
+      arrays: true,
+      objects: true,
+      // Synthetic oneofs of proto3 optional fields would add `_pinCode`-style keys the request DTOs do not declare,
+      // and the validation pipe rejects undeclared properties.
+      oneofs: false,
+    },
   },
 });

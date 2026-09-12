@@ -55,6 +55,7 @@
     "fastify-plugin": "6.0.0",
     "pg": "8.23.0",
     "reflect-metadata": "0.2.2",
+    "rxjs": "7.8.2",
     "tsconfig-paths": "4.2.0",
     "typeorm": "0.3.28",
     "typeorm-naming-strategies": "4.1.0",
