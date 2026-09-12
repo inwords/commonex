@@ -12,7 +12,7 @@ describe('UserInfoRepository', () => {
       showQueryDetails: true,
     });
     await relationalDataService.initialize();
-    // Очищаем базу данных перед запуском тестов
+    // Clear the database before running the tests
     await truncateAllTables(relationalDataService.dataSource);
   });
 
@@ -69,7 +69,7 @@ describe('UserInfoRepository', () => {
 
   describe('findByEventId', () => {
     it('should find user infos by event id', async () => {
-      // Сначала вставляем тестовые данные
+      // First insert test data
       const userInfos = [
         {
           id: 'user-info-1',
@@ -89,7 +89,7 @@ describe('UserInfoRepository', () => {
 
       await relationalDataService.userInfo.insert(userInfos);
 
-      // Теперь ищем информацию о пользователях по event id
+      // Now look up user info by event id
       const [result, queryDetails] = await relationalDataService.userInfo.findByEventId('event-1');
 
       expect(result).toMatchObject(userInfos);

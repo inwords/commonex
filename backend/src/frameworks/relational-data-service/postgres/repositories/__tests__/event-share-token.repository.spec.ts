@@ -15,7 +15,7 @@ describe('EventShareTokenRepository', () => {
       showQueryDetails: true,
     });
     await relationalDataService.initialize();
-    // Очищаем базу данных перед запуском тестов
+    // Clear the database before running the tests
     await truncateAllTables(relationalDataService.dataSource);
   });
 

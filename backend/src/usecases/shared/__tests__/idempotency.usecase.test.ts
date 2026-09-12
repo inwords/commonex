@@ -68,7 +68,7 @@ describe('IdempotencySharedUseCase', () => {
 
   const testCases: IdempotencyTestCase[] = [
     {
-      name: 'без ключа — вызывает fn() и возвращает результат',
+      name: 'calls fn() and returns the result when no key is given',
       initRelationalState: {},
       input: {key: undefined, body: BODY},
       output: FN_RESULT,
@@ -77,7 +77,7 @@ describe('IdempotencySharedUseCase', () => {
       relationalStateChanges: {},
     },
     {
-      name: 'новый ключ — вызывает fn(), сохраняет запись в БД, возвращает результат',
+      name: 'calls fn(), stores a DB record and returns the result for a new key',
       initRelationalState: {},
       input: {key: KEY, body: BODY},
       output: FN_RESULT,
@@ -109,7 +109,7 @@ describe('IdempotencySharedUseCase', () => {
       relationalStateChanges: {},
     },
     {
-      name: 'повторный ключ с тем же хэшем — возвращает кэш, fn() не вызывается',
+      name: 'returns the cached response without calling fn() for a repeated key with the same hash',
       initRelationalState: {
         idempotencyKeys: [
           {
@@ -130,7 +130,7 @@ describe('IdempotencySharedUseCase', () => {
       relationalStateChanges: {},
     },
     {
-      name: 'повторный ключ с другим хэшем — бросает IdempotencyHashMismatchError',
+      name: 'throws IdempotencyHashMismatchError for a repeated key with a different hash',
       initRelationalState: {
         idempotencyKeys: [
           {

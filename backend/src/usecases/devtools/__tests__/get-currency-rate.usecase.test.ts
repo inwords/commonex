@@ -33,7 +33,7 @@ describe('GetCurrencyRateUseCase', () => {
 
   const testCases: GetCurrencyRateTestCase[] = [
     {
-      name: 'должен вернуть курс валюты по дате',
+      name: 'returns the currency rate for the date',
       initRelationalState: {
         currencyRates: [
           {
@@ -63,7 +63,7 @@ describe('GetCurrencyRateUseCase', () => {
       },
     },
     {
-      name: 'должен вернуть null когда курс валюты не найден',
+      name: 'returns null when no rate exists for the date',
       initRelationalState: {},
       input: {
         date: '2026-01-01',

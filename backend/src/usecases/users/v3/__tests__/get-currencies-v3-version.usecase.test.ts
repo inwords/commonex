@@ -65,7 +65,7 @@ describe('GetCurrenciesV3VersionUseCase', () => {
 
   const testCases: GetCurrenciesV3VersionTestCase[] = [
     {
-      name: 'должен вернуть версию по updatedAt поддерживаемых валют и совпасть с полной выдачей',
+      name: 'returns a version built from supported currencies updatedAt matching the full response',
       initRelationalState: {
         currencies: [
           {
@@ -109,7 +109,7 @@ describe('GetCurrenciesV3VersionUseCase', () => {
       mockDate: '2026-01-06',
     },
     {
-      name: 'должен вернуть пустой список updatedAt когда таблица валют пуста',
+      name: 'returns an empty updatedAt list when the currencies table is empty',
       initRelationalState: {
         currencies: [],
         currencyRates: [testCurrencyRate],
@@ -124,7 +124,7 @@ describe('GetCurrenciesV3VersionUseCase', () => {
       mockDate: '2026-01-06',
     },
     {
-      name: 'должен вернуть ошибку если курс на текущую дату не найден',
+      name: 'returns CurrencyRateNotFoundError when no rate exists for the current date',
       initRelationalState: {
         currencies: [],
         currencyRates: [],

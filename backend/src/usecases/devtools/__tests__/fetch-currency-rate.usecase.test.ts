@@ -50,7 +50,7 @@ describe('FetchCurrencyRateUseCase', () => {
 
   const testCases: FetchCurrencyRateTestCase[] = [
     {
-      name: 'должен успешно получить курс валюты через shared use case',
+      name: 'fetches the currency rate through the shared use case',
       initRelationalState: {},
       input: {
         date: '2026-01-01',

@@ -18,7 +18,7 @@ describe('EventRepository', () => {
       showQueryDetails: true,
     });
     await relationalDataService.initialize();
-    // Очищаем базу данных перед запуском тестов
+    // Clear the database before running the tests
     await truncateAllTables(relationalDataService.dataSource);
   });
 
@@ -52,7 +52,7 @@ describe('EventRepository', () => {
 
   describe('findById', () => {
     it('should find event by id', async () => {
-      // Сначала вставляем тестовые данные
+      // First insert test data
       const event = {
         id: 'event-1',
         name: 'Test Event',
@@ -65,7 +65,7 @@ describe('EventRepository', () => {
 
       await relationalDataService.event.insert(event);
 
-      // Теперь ищем эти данные
+      // Now look up that data
       const [result, queryDetails] = await relationalDataService.event.findById('event-1');
 
       expect(result).toMatchObject(event);
@@ -80,7 +80,7 @@ describe('EventRepository', () => {
     });
 
     it('should find event by id with pessimistic_write lock', async () => {
-      // Сначала вставляем тестовые данные
+      // First insert test data
       const event = {
         id: 'event-1',
         name: 'Test Event',
@@ -93,7 +93,7 @@ describe('EventRepository', () => {
 
       await relationalDataService.event.insert(event);
 
-      // Ищем с блокировкой в транзакции
+      // Look it up with a lock inside a transaction
       const result: {result: IEvent | null; queryDetails: IQueryDetails} = await relationalDataService.transaction(
         async (ctx) => {
           const [foundEvent, queryDetails] = await relationalDataService.event.findById('event-1', {
@@ -204,7 +204,7 @@ describe('EventRepository', () => {
 
   describe('update', () => {
     it('should update event correctly', async () => {
-      // Сначала вставляем тестовые данные
+      // First insert test data
       const event = {
         id: 'event-1',
         name: 'Test Event',
@@ -217,7 +217,7 @@ describe('EventRepository', () => {
 
       await relationalDataService.event.insert(event);
 
-      // Обновляем событие
+      // Update the event
       const newDeletedAt = new Date('2023-01-02T00:00:00Z');
       const newUpdatedAt = new Date('2023-01-02T00:00:00Z');
 
@@ -226,7 +226,7 @@ describe('EventRepository', () => {
         updatedAt: newUpdatedAt,
       });
 
-      // Проверяем что данные действительно обновились
+      // Verify the data was actually updated
       const [updatedEvent] = await relationalDataService.event.findById('event-1');
 
       expect(updatedEvent).toMatchObject({
@@ -238,7 +238,7 @@ describe('EventRepository', () => {
     });
 
     it('should work within transaction', async () => {
-      // Сначала вставляем тестовые данные
+      // First insert test data
       const event = {
         id: 'event-1',
         name: 'Test Event',
@@ -254,7 +254,7 @@ describe('EventRepository', () => {
       const newDeletedAt = new Date('2023-01-02T00:00:00Z');
       const newUpdatedAt = new Date('2023-01-02T00:00:00Z');
 
-      // Обновляем в транзакции
+      // Update inside a transaction
       await relationalDataService.transaction(async (ctx) => {
         const [, queryDetails] = await relationalDataService.event.update(
           'event-1',
@@ -268,7 +268,7 @@ describe('EventRepository', () => {
         expect(queryDetails.queryString).toContain('UPDATE');
       });
 
-      // Проверяем что изменения применились
+      // Verify the changes were applied
       const [updatedEvent] = await relationalDataService.event.findById('event-1');
       expect(updatedEvent).toMatchObject({
         ...event,
