@@ -1,7 +1,7 @@
 import {error, success} from '#packages/result';
 
 import {CurrencyCode} from '#domain/entities/currency.entity';
-import {CurrencyNotFoundError} from '#domain/errors/errors';
+import {CurrencyNotFoundError, IdempotencyHashMismatchError} from '#domain/errors/errors';
 
 import {IdempotencySharedUseCase} from '#usecases/shared/idempotency.usecase';
 
@@ -14,11 +14,7 @@ import {TestCase, prepareInitRelationalState, validateRelationalStateChanges} fr
 
 import {SaveEventUseCase} from '../save-event.usecase';
 
-type SaveEventTestCase = TestCase<SaveEventUseCase> & {
-  mockIdempotencyUseCase?: {execute: Awaited<ReturnType<SaveEventUseCase['execute']>>};
-};
-
-const SAVE_EVENT_URL = '/v1/user/event';
+type SaveEventTestCase = TestCase<SaveEventUseCase>;
 
 describe('SaveEventUseCase', () => {
   let relationalDataService: RelationalDataService;
@@ -52,7 +48,7 @@ describe('SaveEventUseCase', () => {
 
   const testCases: SaveEventTestCase[] = [
     {
-      name: 'должен успешно создать событие с пользователями',
+      name: 'creates an event with users',
       initRelationalState: {
         currencies: [
           {
@@ -143,42 +139,7 @@ describe('SaveEventUseCase', () => {
       },
     },
     {
-      name: 'повторный запрос с тем же idempotencyKey — возвращает кэш без создания события',
-      initRelationalState: {},
-      input: {
-        event: {name: 'New Event', currencyId: 'currency-usd', pinCode: '1234'},
-        users: [
-          {name: 'John Doe', createdAt: new Date('2023-01-01T00:00:00Z'), updatedAt: new Date('2023-01-01T00:00:00Z')},
-        ],
-        idempotencyKey: 'idempotency-key-1',
-        url: SAVE_EVENT_URL,
-      },
-      output: success({
-        id: 'cached-event-id',
-        name: 'New Event',
-        currencyId: 'currency-usd',
-        pinCode: '1234',
-        createdAt: new Date('2026-01-01T00:00:00.000Z'),
-        updatedAt: new Date('2026-01-01T00:00:00.000Z'),
-        deletedAt: null,
-        users: [],
-      }),
-      relationalStateChanges: {},
-      mockIdempotencyUseCase: {
-        execute: success({
-          id: 'cached-event-id',
-          name: 'New Event',
-          currencyId: 'currency-usd',
-          pinCode: '1234',
-          createdAt: new Date('2026-01-01T00:00:00.000Z'),
-          updatedAt: new Date('2026-01-01T00:00:00.000Z'),
-          deletedAt: null,
-          users: [],
-        }),
-      },
-    },
-    {
-      name: 'должен вернуть ошибку когда валюта не найдена',
+      name: 'returns CurrencyNotFoundError when the currency does not exist',
       initRelationalState: {},
       input: {
         event: {
@@ -199,7 +160,7 @@ describe('SaveEventUseCase', () => {
       relationalStateChanges: {},
     },
     {
-      name: 'должен вернуть ошибку когда валюта существует в базе, но еще не поддерживается',
+      name: 'returns CurrencyNotFoundError when the currency exists but is not yet supported',
       initRelationalState: {
         currencies: [
           {
@@ -237,11 +198,6 @@ describe('SaveEventUseCase', () => {
         initState: testCase.initRelationalState,
       });
 
-      if (testCase.mockIdempotencyUseCase) {
-        const {execute} = testCase.mockIdempotencyUseCase;
-        jest.spyOn(idempotencySharedUseCase, 'execute').mockReturnValue(Promise.resolve(execute));
-      }
-
       const result = await useCase.execute(testCase.input);
 
       expect(result).toEqual(testCase.output);
@@ -253,6 +209,47 @@ describe('SaveEventUseCase', () => {
           stateChanges: testCase.relationalStateChanges,
         });
       }
+    });
+  });
+
+  describe('idempotency', () => {
+    const input = {
+      event: {name: 'Trip', currencyId: 'currency-usd', pinCode: '1234'},
+      users: [
+        {name: 'Alice', createdAt: new Date('2023-01-01T00:00:00Z'), updatedAt: new Date('2023-01-01T00:00:00Z')},
+      ],
+      idempotencyKey: 'key-1',
+      url: '/user/event',
+    };
+    const currencies = [
+      {
+        id: 'currency-usd',
+        code: CurrencyCode.USD,
+        createdAt: new Date('2023-01-01T00:00:00Z'),
+        updatedAt: new Date('2023-01-01T00:00:00Z'),
+      },
+    ];
+
+    it('replays the stored response and inserts nothing on a repeated key', async () => {
+      await prepareInitRelationalState({rDataService: relationalDataService, initState: {currencies}});
+
+      const first = await useCase.execute(input);
+      const second = await useCase.execute(input);
+      const [events] = await relationalDataService.event.findAll({limit: 10});
+      const [keys] = await relationalDataService.idempotencyKey.findAll({limit: 10});
+
+      expect(second).toEqual(JSON.parse(JSON.stringify(first)));
+      expect(events).toHaveLength(1);
+      expect(keys).toEqual([expect.objectContaining({key: 'key-1', url: '/user/event', statusCode: 200})]);
+    });
+
+    it('rejects a repeated key with a different body', async () => {
+      await prepareInitRelationalState({rDataService: relationalDataService, initState: {currencies}});
+      await useCase.execute(input);
+
+      await expect(useCase.execute({...input, event: {...input.event, name: 'Other'}})).rejects.toBeInstanceOf(
+        IdempotencyHashMismatchError,
+      );
     });
   });
 });

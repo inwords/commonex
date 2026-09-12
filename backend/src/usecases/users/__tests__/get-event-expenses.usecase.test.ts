@@ -1,4 +1,4 @@
-import {Result, error, success} from '#packages/result';
+import {error, success} from '#packages/result';
 
 import {EventServiceAbstract} from '#domain/abstracts/event-service/event-service';
 import {ExpenseType} from '#domain/entities/expense.entity';
@@ -13,12 +13,7 @@ import {TestCase, prepareInitRelationalState} from '#test-support/relational-sta
 
 import {GetEventExpensesUseCase} from '../get-event-expenses.usecase';
 
-type GetEventExpensesTestCase = TestCase<GetEventExpensesUseCase> & {
-  mockEventService?: {
-    isEventExists?: boolean;
-    isEventNotDeleted?: Result<boolean, EventDeletedError>;
-  };
-};
+type GetEventExpensesTestCase = TestCase<GetEventExpensesUseCase>;
 
 describe('GetEventExpensesUseCase', () => {
   let relationalDataService: RelationalDataService;
@@ -48,7 +43,7 @@ describe('GetEventExpensesUseCase', () => {
 
   const testCases: GetEventExpensesTestCase[] = [
     {
-      name: 'должен вернуть расходы события',
+      name: "returns the event's expenses",
       initRelationalState: {
         events: [
           {
@@ -129,13 +124,9 @@ describe('GetEventExpensesUseCase', () => {
           updatedAt: new Date('2023-01-03T00:00:00Z'),
         },
       ]),
-      mockEventService: {
-        isEventExists: true,
-        isEventNotDeleted: success(true),
-      },
     },
     {
-      name: 'должен вернуть пустой массив когда расходов нет',
+      name: 'returns an empty array when there are no expenses',
       initRelationalState: {
         events: [
           {
@@ -153,24 +144,17 @@ describe('GetEventExpensesUseCase', () => {
         eventId: 'event-1',
       },
       output: success([]),
-      mockEventService: {
-        isEventExists: true,
-        isEventNotDeleted: success(true),
-      },
     },
     {
-      name: 'должен вернуть ошибку когда события не существует',
+      name: 'returns EventNotFoundError when the event does not exist',
       initRelationalState: {},
       input: {
         eventId: 'non-existent',
       },
       output: error(new EventNotFoundError()),
-      mockEventService: {
-        isEventExists: false,
-      },
     },
     {
-      name: 'должен вернуть ошибку когда событие удалено',
+      name: 'returns EventDeletedError when the event is deleted',
       initRelationalState: {
         events: [
           {
@@ -188,10 +172,6 @@ describe('GetEventExpensesUseCase', () => {
         eventId: 'event-1',
       },
       output: error(new EventDeletedError()),
-      mockEventService: {
-        isEventExists: true,
-        isEventNotDeleted: error(new EventDeletedError()),
-      },
     },
   ];
 
@@ -201,15 +181,6 @@ describe('GetEventExpensesUseCase', () => {
         rDataService: relationalDataService,
         initState: testCase.initRelationalState,
       });
-
-      if (testCase.mockEventService) {
-        if (testCase.mockEventService.isEventExists !== undefined) {
-          jest.spyOn(eventService, 'isEventExists').mockReturnValue(testCase.mockEventService.isEventExists);
-        }
-        if (testCase.mockEventService.isEventNotDeleted) {
-          jest.spyOn(eventService, 'isEventNotDeleted').mockReturnValue(testCase.mockEventService.isEventNotDeleted);
-        }
-      }
 
       const result = await useCase.execute(testCase.input);
 

@@ -1,4 +1,4 @@
-import {Result, error, success} from '#packages/result';
+import {error, success} from '#packages/result';
 
 import {EventServiceAbstract} from '#domain/abstracts/event-service/event-service';
 import {CurrencyCode} from '#domain/entities/currency.entity';
@@ -8,6 +8,7 @@ import {
   CurrencyRateNotFoundError,
   EventDeletedError,
   EventNotFoundError,
+  IdempotencyHashMismatchError,
 } from '#domain/errors/errors';
 
 import {IdempotencySharedUseCase} from '#usecases/shared/idempotency.usecase';
@@ -27,15 +28,7 @@ import {
 
 import {SaveEventExpenseUseCase} from '../save-event-expense.usecase';
 
-type SaveEventExpenseTestCase = TestCase<SaveEventExpenseUseCase> & {
-  mockEventService?: {
-    isEventExists?: boolean;
-    isEventNotDeleted?: Result<boolean, EventDeletedError>;
-  };
-  mockIdempotencyUseCase?: {execute: Awaited<ReturnType<SaveEventExpenseUseCase['execute']>>};
-};
-
-const SAVE_EXPENSE_URL = '/v1/user/event/event-1/expense';
+type SaveEventExpenseTestCase = TestCase<SaveEventExpenseUseCase>;
 
 describe('SaveEventExpenseUseCase', () => {
   let relationalDataService: RelationalDataService;
@@ -77,7 +70,7 @@ describe('SaveEventExpenseUseCase', () => {
 
   const testCases: SaveEventExpenseTestCase[] = [
     {
-      name: 'должен успешно сохранить расход когда валюта события и расхода одинаковая',
+      name: 'saves the expense without conversion when the currencies match',
       initRelationalState: {
         events: [
           {
@@ -148,13 +141,9 @@ describe('SaveEventExpenseUseCase', () => {
           ],
         },
       },
-      mockEventService: {
-        isEventExists: true,
-        isEventNotDeleted: success(true),
-      },
     },
     {
-      name: 'должен успешно сохранить расход с конвертацией валюты',
+      name: 'saves the expense with currency conversion',
       initRelationalState: {
         events: [
           {
@@ -242,55 +231,9 @@ describe('SaveEventExpenseUseCase', () => {
           ],
         },
       },
-      mockEventService: {
-        isEventExists: true,
-        isEventNotDeleted: success(true),
-      },
     },
     {
-      name: 'повторный запрос с тем же idempotencyKey — возвращает кэш без создания расхода',
-      initRelationalState: {},
-      input: {
-        eventId: 'event-1',
-        currencyId: 'currency-usd',
-        description: 'Lunch at restaurant',
-        userWhoPaidId: 'user-1',
-        expenseType: ExpenseType.Expense,
-        isCustomRate: false,
-        splitInformation: [{userId: 'user-1', amount: 100, exchangedAmount: 100}],
-        idempotencyKey: 'idempotency-key-1',
-        url: SAVE_EXPENSE_URL,
-      },
-      output: success({
-        id: 'cached-expense-id',
-        eventId: 'event-1',
-        currencyId: 'currency-usd',
-        description: 'Lunch at restaurant',
-        userWhoPaidId: 'user-1',
-        expenseType: ExpenseType.Expense,
-        isCustomRate: false,
-        splitInformation: [{userId: 'user-1', amount: 100, exchangedAmount: 100}],
-        createdAt: mockNow,
-        updatedAt: mockNow,
-      }),
-      relationalStateChanges: {},
-      mockIdempotencyUseCase: {
-        execute: success({
-          id: 'cached-expense-id',
-          eventId: 'event-1',
-          currencyId: 'currency-usd',
-          description: 'Lunch at restaurant',
-          userWhoPaidId: 'user-1',
-          expenseType: ExpenseType.Expense,
-          isCustomRate: false,
-          splitInformation: [{userId: 'user-1', amount: 100, exchangedAmount: 100}],
-          createdAt: mockNow,
-          updatedAt: mockNow,
-        }),
-      },
-    },
-    {
-      name: 'должен вернуть ошибку когда события не существует',
+      name: 'returns EventNotFoundError when the event does not exist',
       initRelationalState: {},
       input: {
         eventId: 'non-existent',
@@ -304,12 +247,9 @@ describe('SaveEventExpenseUseCase', () => {
       },
       output: error(new EventNotFoundError()),
       relationalStateChanges: {},
-      mockEventService: {
-        isEventExists: false,
-      },
     },
     {
-      name: 'должен вернуть ошибку когда событие удалено',
+      name: 'returns EventDeletedError when the event is deleted',
       initRelationalState: {
         events: [
           {
@@ -335,13 +275,9 @@ describe('SaveEventExpenseUseCase', () => {
       },
       output: error(new EventDeletedError()),
       relationalStateChanges: {},
-      mockEventService: {
-        isEventExists: true,
-        isEventNotDeleted: error(new EventDeletedError()),
-      },
     },
     {
-      name: 'должен вернуть ошибку когда валюта не найдена',
+      name: 'returns CurrencyNotFoundError when the currency does not exist',
       initRelationalState: {
         events: [
           {
@@ -375,13 +311,9 @@ describe('SaveEventExpenseUseCase', () => {
       },
       output: error(new CurrencyNotFoundError()),
       relationalStateChanges: {},
-      mockEventService: {
-        isEventExists: true,
-        isEventNotDeleted: success(true),
-      },
     },
     {
-      name: 'должен вернуть ошибку когда курс валюты не найден',
+      name: 'returns CurrencyRateNotFoundError when no rate exists for the date',
       initRelationalState: {
         events: [
           {
@@ -421,10 +353,6 @@ describe('SaveEventExpenseUseCase', () => {
       },
       output: error(new CurrencyRateNotFoundError()),
       relationalStateChanges: {},
-      mockEventService: {
-        isEventExists: true,
-        isEventNotDeleted: success(true),
-      },
     },
   ];
 
@@ -434,20 +362,6 @@ describe('SaveEventExpenseUseCase', () => {
         rDataService: relationalDataService,
         initState: testCase.initRelationalState,
       });
-
-      if (testCase.mockEventService) {
-        if (testCase.mockEventService.isEventExists !== undefined) {
-          jest.spyOn(eventService, 'isEventExists').mockReturnValue(testCase.mockEventService.isEventExists);
-        }
-        if (testCase.mockEventService.isEventNotDeleted) {
-          jest.spyOn(eventService, 'isEventNotDeleted').mockReturnValue(testCase.mockEventService.isEventNotDeleted);
-        }
-      }
-
-      if (testCase.mockIdempotencyUseCase) {
-        const {execute} = testCase.mockIdempotencyUseCase;
-        jest.spyOn(idempotencySharedUseCase, 'execute').mockReturnValue(Promise.resolve(execute));
-      }
 
       const result = await useCase.execute(testCase.input);
 
@@ -460,6 +374,66 @@ describe('SaveEventExpenseUseCase', () => {
           stateChanges: testCase.relationalStateChanges,
         });
       }
+    });
+  });
+
+  describe('idempotency', () => {
+    const events = [
+      {
+        id: 'event-1',
+        name: 'Test Event',
+        currencyId: 'currency-usd',
+        pinCode: '1234',
+        createdAt: new Date('2023-01-01T00:00:00Z'),
+        updatedAt: new Date('2023-01-01T00:00:00Z'),
+        deletedAt: null,
+      },
+    ];
+    const currencies = [
+      {
+        id: 'currency-usd',
+        code: CurrencyCode.USD,
+        createdAt: new Date('2023-01-01T00:00:00Z'),
+        updatedAt: new Date('2023-01-01T00:00:00Z'),
+      },
+    ];
+    const input = {
+      eventId: 'event-1',
+      currencyId: 'currency-usd',
+      description: 'Lunch at restaurant',
+      userWhoPaidId: 'user-1',
+      expenseType: ExpenseType.Expense,
+      isCustomRate: false,
+      splitInformation: [
+        {userId: 'user-1', amount: 40, exchangedAmount: 0},
+        {userId: 'user-2', amount: 60, exchangedAmount: 0},
+      ],
+      idempotencyKey: 'key-1',
+      url: '/user/event/event-1/expense',
+    };
+
+    it('replays the stored response and inserts nothing on a repeated key', async () => {
+      await prepareInitRelationalState({rDataService: relationalDataService, initState: {events, currencies}});
+
+      const first = await useCase.execute(input);
+      const second = await useCase.execute(input);
+      const [expenses] = await relationalDataService.expense.findAll({limit: 10});
+      const [keys] = await relationalDataService.idempotencyKey.findAll({limit: 10});
+
+      expect(second).toEqual(JSON.parse(JSON.stringify(first)));
+      expect(expenses).toHaveLength(1);
+      expect(keys).toEqual([
+        expect.objectContaining({key: 'key-1', url: '/user/event/event-1/expense', statusCode: 200}),
+      ]);
+    });
+
+    it('rejects a repeated key with a different body', async () => {
+      await prepareInitRelationalState({rDataService: relationalDataService, initState: {events, currencies}});
+      await useCase.execute(input);
+
+      await expect(useCase.execute({...input, description: 'Dinner'})).rejects.toBeInstanceOf(
+        IdempotencyHashMismatchError,
+      );
     });
   });
 });
