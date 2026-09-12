@@ -1,4 +1,4 @@
-import {Result, error, success} from '#packages/result';
+import {error, success} from '#packages/result';
 
 import {EventServiceAbstract} from '#domain/abstracts/event-service/event-service';
 import {CurrencyCode} from '#domain/entities/currency.entity';
@@ -8,6 +8,7 @@ import {
   CurrencyRateNotFoundError,
   EventDeletedError,
   EventNotFoundError,
+  IdempotencyHashMismatchError,
   InconsistentExchangedAmountError,
   InvalidPinCodeError,
 } from '#domain/errors/errors';
@@ -28,12 +29,7 @@ import {
   validateRelationalStateChanges,
 } from '#test-support/relational-state';
 
-type SaveEventExpenseV2TestCase = TestCase<SaveEventExpenseV2UseCase> & {
-  mockEventService: {
-    isValidEvent: Result<boolean, EventNotFoundError | EventDeletedError | InvalidPinCodeError>;
-  };
-  mockIdempotencyUseCase?: {execute: Awaited<ReturnType<SaveEventExpenseV2UseCase['execute']>>};
-};
+type SaveEventExpenseV2TestCase = TestCase<SaveEventExpenseV2UseCase>;
 
 const SAVE_EXPENSE_V2_URL = '/v2/user/event/event-1/expense';
 
@@ -77,7 +73,7 @@ describe('SaveEventExpenseV2UseCase', () => {
 
   const testCases: SaveEventExpenseV2TestCase[] = [
     {
-      name: 'должен успешно сохранить расход когда валюта события и расхода одинаковая',
+      name: 'saves the expense without conversion when the currencies match',
       initRelationalState: {
         events: [
           {
@@ -148,12 +144,9 @@ describe('SaveEventExpenseV2UseCase', () => {
           ],
         },
       },
-      mockEventService: {
-        isValidEvent: success(true),
-      },
     },
     {
-      name: 'должен успешно сохранить расход с конвертацией валюты',
+      name: 'saves the expense with currency conversion',
       initRelationalState: {
         events: [
           {
@@ -241,12 +234,9 @@ describe('SaveEventExpenseV2UseCase', () => {
           ],
         },
       },
-      mockEventService: {
-        isValidEvent: success(true),
-      },
     },
     {
-      name: 'должен успешно сохранить расход с кастомным курсом валюты',
+      name: 'saves the expense with a custom exchange rate',
       initRelationalState: {
         events: [
           {
@@ -292,7 +282,8 @@ describe('SaveEventExpenseV2UseCase', () => {
         userWhoPaidId: 'user-1',
         expenseType: ExpenseType.Expense,
         splitInformation: [
-          {userId: 'user-1', amount: 40, exchangedAmount: 50}, // Кастомный курс: 1.25 вместо автоматического 1.176
+          // Custom rate: 1.25 instead of the automatic 1.176
+          {userId: 'user-1', amount: 40, exchangedAmount: 50},
           {userId: 'user-2', amount: 60, exchangedAmount: 75},
         ],
         pinCode: '1234',
@@ -334,12 +325,79 @@ describe('SaveEventExpenseV2UseCase', () => {
           ],
         },
       },
-      mockEventService: {
-        isValidEvent: success(true),
+    },
+    {
+      name: 'uses the rate of the createdAt date instead of today',
+      initRelationalState: {
+        events: [
+          {
+            id: 'event-1',
+            name: 'Test Event',
+            currencyId: 'currency-usd',
+            pinCode: '1234',
+            createdAt: new Date('2023-01-01T00:00:00Z'),
+            updatedAt: new Date('2023-01-01T00:00:00Z'),
+            deletedAt: null,
+          },
+        ],
+        currencies: [
+          {
+            id: 'currency-usd',
+            code: CurrencyCode.USD,
+            createdAt: new Date('2023-01-01T00:00:00Z'),
+            updatedAt: new Date('2023-01-01T00:00:00Z'),
+          },
+          {
+            id: 'currency-eur',
+            code: CurrencyCode.EUR,
+            createdAt: new Date('2023-01-01T00:00:00Z'),
+            updatedAt: new Date('2023-01-01T00:00:00Z'),
+          },
+        ],
+        currencyRates: [
+          {
+            date: '2026-01-01',
+            rate: {USD: 1, EUR: 0.85},
+            createdAt: new Date('2026-01-01T00:00:00Z'),
+            updatedAt: new Date('2026-01-01T00:00:00Z'),
+          },
+          {
+            date: '2025-12-15',
+            rate: {USD: 1, EUR: 0.5},
+            createdAt: new Date('2025-12-15T00:00:00Z'),
+            updatedAt: new Date('2025-12-15T00:00:00Z'),
+          },
+        ],
+      },
+      input: {
+        eventId: 'event-1',
+        currencyId: 'currency-eur',
+        description: 'Old dinner',
+        userWhoPaidId: 'user-1',
+        expenseType: ExpenseType.Expense,
+        splitInformation: [{userId: 'user-1', amount: 10}],
+        pinCode: '1234',
+        createdAt: new Date('2025-12-15T18:00:00Z'),
+        url: 'url',
+      },
+      output: success(
+        expect.objectContaining({
+          createdAt: new Date('2025-12-15T18:00:00Z'),
+          splitInformation: [{userId: 'user-1', amount: 10, exchangedAmount: 20}],
+        }),
+      ),
+      relationalStateChanges: {
+        expenses: {
+          inserted: [
+            expect.objectContaining({
+              splitInformation: [{userId: 'user-1', amount: 10, exchangedAmount: 20}],
+            }),
+          ],
+        },
       },
     },
     {
-      name: 'должен вернуть ошибку когда exchangedAmount указан не во всех splitInfo',
+      name: 'returns InconsistentExchangedAmountError when exchangedAmount is set for only some splits',
       initRelationalState: {
         events: [
           {
@@ -374,63 +432,19 @@ describe('SaveEventExpenseV2UseCase', () => {
         userWhoPaidId: 'user-1',
         expenseType: ExpenseType.Expense,
         splitInformation: [
-          {userId: 'user-1', amount: 40, exchangedAmount: 50}, // есть exchangedAmount
-          {userId: 'user-2', amount: 60}, // нет exchangedAmount (undefined)
+          // has exchangedAmount
+          {userId: 'user-1', amount: 40, exchangedAmount: 50},
+          // missing exchangedAmount (undefined)
+          {userId: 'user-2', amount: 60},
         ],
         pinCode: '1234',
         url: 'url',
       },
       output: error(new InconsistentExchangedAmountError()),
       relationalStateChanges: {},
-      mockEventService: {
-        isValidEvent: success(true),
-      },
     },
     {
-      name: 'повторный запрос с тем же idempotencyKey — возвращает кэш без создания расхода',
-      initRelationalState: {},
-      input: {
-        eventId: 'event-1',
-        currencyId: 'currency-usd',
-        description: 'Lunch at restaurant',
-        userWhoPaidId: 'user-1',
-        expenseType: ExpenseType.Expense,
-        splitInformation: [{userId: 'user-1', amount: 100}],
-        pinCode: '1234',
-        idempotencyKey: 'idempotency-key-1',
-        url: SAVE_EXPENSE_V2_URL,
-      },
-      output: success({
-        id: 'cached-expense-id',
-        eventId: 'event-1',
-        currencyId: 'currency-usd',
-        description: 'Lunch at restaurant',
-        userWhoPaidId: 'user-1',
-        expenseType: ExpenseType.Expense,
-        isCustomRate: false,
-        splitInformation: [{userId: 'user-1', amount: 100, exchangedAmount: 100}],
-        createdAt: mockNow,
-        updatedAt: mockNow,
-      }),
-      relationalStateChanges: {},
-      mockEventService: {isValidEvent: success(true)},
-      mockIdempotencyUseCase: {
-        execute: success({
-          id: 'cached-expense-id',
-          eventId: 'event-1',
-          currencyId: 'currency-usd',
-          description: 'Lunch at restaurant',
-          userWhoPaidId: 'user-1',
-          expenseType: ExpenseType.Expense,
-          isCustomRate: false,
-          splitInformation: [{userId: 'user-1', amount: 100, exchangedAmount: 100}],
-          createdAt: mockNow,
-          updatedAt: mockNow,
-        }),
-      },
-    },
-    {
-      name: 'должен вернуть ошибку когда события не существует',
+      name: 'returns EventNotFoundError when the event does not exist',
       initRelationalState: {},
       input: {
         eventId: 'non-existent',
@@ -444,12 +458,9 @@ describe('SaveEventExpenseV2UseCase', () => {
       },
       output: error(new EventNotFoundError()),
       relationalStateChanges: {},
-      mockEventService: {
-        isValidEvent: error(new EventNotFoundError()),
-      },
     },
     {
-      name: 'должен вернуть ошибку когда событие удалено',
+      name: 'returns EventDeletedError when the event is deleted',
       initRelationalState: {
         events: [
           {
@@ -475,12 +486,9 @@ describe('SaveEventExpenseV2UseCase', () => {
       },
       output: error(new EventDeletedError()),
       relationalStateChanges: {},
-      mockEventService: {
-        isValidEvent: error(new EventDeletedError()),
-      },
     },
     {
-      name: 'должен вернуть ошибку когда pin код неверный',
+      name: 'returns InvalidPinCodeError when the pin code is wrong',
       initRelationalState: {
         events: [
           {
@@ -506,12 +514,9 @@ describe('SaveEventExpenseV2UseCase', () => {
       },
       output: error(new InvalidPinCodeError()),
       relationalStateChanges: {},
-      mockEventService: {
-        isValidEvent: error(new InvalidPinCodeError()),
-      },
     },
     {
-      name: 'должен вернуть ошибку когда валюта не найдена',
+      name: 'returns CurrencyNotFoundError when the currency does not exist',
       initRelationalState: {
         events: [
           {
@@ -545,12 +550,9 @@ describe('SaveEventExpenseV2UseCase', () => {
       },
       output: error(new CurrencyNotFoundError()),
       relationalStateChanges: {},
-      mockEventService: {
-        isValidEvent: success(true),
-      },
     },
     {
-      name: 'должен вернуть ошибку когда курс валюты не найден',
+      name: 'returns CurrencyRateNotFoundError when no rate exists for the date',
       initRelationalState: {
         events: [
           {
@@ -590,9 +592,6 @@ describe('SaveEventExpenseV2UseCase', () => {
       },
       output: error(new CurrencyRateNotFoundError()),
       relationalStateChanges: {},
-      mockEventService: {
-        isValidEvent: success(true),
-      },
     },
   ];
 
@@ -602,13 +601,6 @@ describe('SaveEventExpenseV2UseCase', () => {
         rDataService: relationalDataService,
         initState: testCase.initRelationalState,
       });
-
-      jest.spyOn(eventService, 'isValidEvent').mockReturnValue(testCase.mockEventService.isValidEvent);
-
-      if (testCase.mockIdempotencyUseCase) {
-        const {execute} = testCase.mockIdempotencyUseCase;
-        jest.spyOn(idempotencySharedUseCase, 'execute').mockReturnValue(Promise.resolve(execute));
-      }
 
       const result = await useCase.execute(testCase.input);
 
@@ -621,6 +613,64 @@ describe('SaveEventExpenseV2UseCase', () => {
           stateChanges: testCase.relationalStateChanges,
         });
       }
+    });
+  });
+
+  describe('idempotency', () => {
+    const events = [
+      {
+        id: 'event-1',
+        name: 'Test Event',
+        currencyId: 'currency-usd',
+        pinCode: '1234',
+        createdAt: new Date('2023-01-01T00:00:00Z'),
+        updatedAt: new Date('2023-01-01T00:00:00Z'),
+        deletedAt: null,
+      },
+    ];
+    const currencies = [
+      {
+        id: 'currency-usd',
+        code: CurrencyCode.USD,
+        createdAt: new Date('2023-01-01T00:00:00Z'),
+        updatedAt: new Date('2023-01-01T00:00:00Z'),
+      },
+    ];
+    const input = {
+      eventId: 'event-1',
+      currencyId: 'currency-usd',
+      description: 'Lunch at restaurant',
+      userWhoPaidId: 'user-1',
+      expenseType: ExpenseType.Expense,
+      splitInformation: [
+        {userId: 'user-1', amount: 40},
+        {userId: 'user-2', amount: 60},
+      ],
+      pinCode: '1234',
+      idempotencyKey: 'key-1',
+      url: SAVE_EXPENSE_V2_URL,
+    };
+
+    it('replays the stored response and inserts nothing on a repeated key', async () => {
+      await prepareInitRelationalState({rDataService: relationalDataService, initState: {events, currencies}});
+
+      const first = await useCase.execute(input);
+      const second = await useCase.execute(input);
+      const [expenses] = await relationalDataService.expense.findAll({limit: 10});
+      const [keys] = await relationalDataService.idempotencyKey.findAll({limit: 10});
+
+      expect(second).toEqual(JSON.parse(JSON.stringify(first)));
+      expect(expenses).toHaveLength(1);
+      expect(keys).toEqual([expect.objectContaining({key: 'key-1', url: SAVE_EXPENSE_V2_URL, statusCode: 200})]);
+    });
+
+    it('rejects a repeated key with a different body', async () => {
+      await prepareInitRelationalState({rDataService: relationalDataService, initState: {events, currencies}});
+      await useCase.execute(input);
+
+      await expect(useCase.execute({...input, description: 'Dinner'})).rejects.toBeInstanceOf(
+        IdempotencyHashMismatchError,
+      );
     });
   });
 });

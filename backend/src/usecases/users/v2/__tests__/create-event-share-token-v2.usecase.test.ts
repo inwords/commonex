@@ -1,4 +1,4 @@
-import {Result, error, success} from '#packages/result';
+import {error, success} from '#packages/result';
 
 import {EventServiceAbstract} from '#domain/abstracts/event-service/event-service';
 import {EventDeletedError, EventNotFoundError, InvalidPinCodeError} from '#domain/errors/errors';
@@ -17,11 +17,7 @@ import {
 
 import {CreateEventShareTokenV2UseCase} from '../create-event-share-token-v2.usecase';
 
-type CreateEventShareTokenV2TestCase = TestCase<CreateEventShareTokenV2UseCase> & {
-  mockEventService: {
-    isValidEvent: Result<boolean, EventNotFoundError | EventDeletedError | InvalidPinCodeError>;
-  };
-};
+type CreateEventShareTokenV2TestCase = TestCase<CreateEventShareTokenV2UseCase>;
 
 describe('CreateEventShareTokenV2UseCase', () => {
   let relationalDataService: RelationalDataService;
@@ -57,7 +53,7 @@ describe('CreateEventShareTokenV2UseCase', () => {
 
   const testCases: CreateEventShareTokenV2TestCase[] = [
     {
-      name: 'должен создать новый токен когда активного токена нет',
+      name: 'creates a new token when there is no active token',
       initRelationalState: {
         events: [
           {
@@ -91,12 +87,9 @@ describe('CreateEventShareTokenV2UseCase', () => {
           ],
         },
       },
-      mockEventService: {
-        isValidEvent: success(true),
-      },
     },
     {
-      name: 'должен переиспользовать существующий активный токен',
+      name: 'reuses an existing active token',
       initRelationalState: {
         events: [
           {
@@ -127,25 +120,19 @@ describe('CreateEventShareTokenV2UseCase', () => {
         expiresAt: '2026-12-31T00:00:00.000Z',
       }),
       relationalStateChanges: {},
-      mockEventService: {
-        isValidEvent: success(true),
-      },
     },
     {
-      name: 'должен вернуть ошибку когда события не существует',
+      name: 'returns EventNotFoundError when the event does not exist',
       initRelationalState: {},
       input: {
         eventId: 'non-existent',
         pinCode: '1234',
       },
       output: error(new EventNotFoundError()),
-      mockEventService: {
-        isValidEvent: error(new EventNotFoundError()),
-      },
       relationalStateChanges: {},
     },
     {
-      name: 'должен вернуть ошибку когда pin код неверный',
+      name: 'returns InvalidPinCodeError when the pin code is wrong',
       initRelationalState: {
         events: [
           {
@@ -164,13 +151,10 @@ describe('CreateEventShareTokenV2UseCase', () => {
         pinCode: 'wrong',
       },
       output: error(new InvalidPinCodeError()),
-      mockEventService: {
-        isValidEvent: error(new InvalidPinCodeError()),
-      },
       relationalStateChanges: {},
     },
     {
-      name: 'должен вернуть ошибку когда событие удалено',
+      name: 'returns EventDeletedError when the event is deleted',
       initRelationalState: {
         events: [
           {
@@ -189,9 +173,6 @@ describe('CreateEventShareTokenV2UseCase', () => {
         pinCode: '1234',
       },
       output: error(new EventDeletedError()),
-      mockEventService: {
-        isValidEvent: error(new EventDeletedError()),
-      },
       relationalStateChanges: {},
     },
   ];
@@ -202,8 +183,6 @@ describe('CreateEventShareTokenV2UseCase', () => {
         rDataService: relationalDataService,
         initState: testCase.initRelationalState,
       });
-
-      jest.spyOn(eventService, 'isValidEvent').mockReturnValue(testCase.mockEventService.isValidEvent);
 
       const result = await useCase.execute(testCase.input);
 

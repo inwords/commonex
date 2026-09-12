@@ -1,7 +1,12 @@
-import {Result, error, success} from '#packages/result';
+import {error, success} from '#packages/result';
 
 import {EventServiceAbstract} from '#domain/abstracts/event-service/event-service';
-import {EventDeletedError, EventNotFoundError, InvalidPinCodeError} from '#domain/errors/errors';
+import {
+  EventDeletedError,
+  EventNotFoundError,
+  IdempotencyHashMismatchError,
+  InvalidPinCodeError,
+} from '#domain/errors/errors';
 
 import {IdempotencySharedUseCase} from '#usecases/shared/idempotency.usecase';
 import {SaveUsersToEventV2UseCase} from '#usecases/users/v2';
@@ -13,12 +18,7 @@ import {RelationalDataService} from '#frameworks/relational-data-service/postgre
 import {truncateAllTables} from '#test-support/db';
 import {TestCase, prepareInitRelationalState, validateRelationalStateChanges} from '#test-support/relational-state';
 
-type SaveUsersToEventV2TestCase = TestCase<SaveUsersToEventV2UseCase> & {
-  mockEventService: {
-    isValidEvent: Result<boolean, EventNotFoundError | EventDeletedError | InvalidPinCodeError>;
-  };
-  mockIdempotencyUseCase?: {execute: Awaited<ReturnType<SaveUsersToEventV2UseCase['execute']>>};
-};
+type SaveUsersToEventV2TestCase = TestCase<SaveUsersToEventV2UseCase>;
 
 const SAVE_USERS_V2_URL = '/v2/user/event/event-1/users';
 
@@ -52,7 +52,7 @@ describe('SaveUsersToEventV2UseCase', () => {
 
   const testCases: SaveUsersToEventV2TestCase[] = [
     {
-      name: 'должен успешно сохранить пользователей в событие',
+      name: 'saves users to the event',
       initRelationalState: {
         events: [
           {
@@ -119,59 +119,9 @@ describe('SaveUsersToEventV2UseCase', () => {
           ],
         },
       },
-      mockEventService: {
-        isValidEvent: success(true),
-      },
     },
     {
-      name: 'повторный запрос с тем же idempotencyKey — возвращает кэш без добавления пользователей',
-      initRelationalState: {
-        events: [
-          {
-            id: 'event-1',
-            name: 'Test Event',
-            currencyId: 'currency-1',
-            pinCode: '1234',
-            createdAt: new Date('2023-01-01T00:00:00Z'),
-            updatedAt: new Date('2023-01-01T00:00:00Z'),
-            deletedAt: null,
-          },
-        ],
-      },
-      input: {
-        eventId: 'event-1',
-        pinCode: '1234',
-        users: [
-          {name: 'John Doe', createdAt: new Date('2023-01-01T00:00:00Z'), updatedAt: new Date('2023-01-01T00:00:00Z')},
-        ],
-        idempotencyKey: 'idempotency-key-1',
-        url: SAVE_USERS_V2_URL,
-      },
-      output: success([
-        {
-          id: 'cached-user-id',
-          eventId: 'event-1',
-          name: 'John Doe',
-          createdAt: new Date('2026-01-01T00:00:00.000Z'),
-          updatedAt: new Date('2026-01-01T00:00:00.000Z'),
-        },
-      ]),
-      relationalStateChanges: {},
-      mockEventService: {isValidEvent: success(true)},
-      mockIdempotencyUseCase: {
-        execute: success([
-          {
-            id: 'cached-user-id',
-            eventId: 'event-1',
-            name: 'John Doe',
-            createdAt: new Date('2026-01-01T00:00:00.000Z'),
-            updatedAt: new Date('2026-01-01T00:00:00.000Z'),
-          },
-        ]),
-      },
-    },
-    {
-      name: 'должен вернуть ошибку когда события не существует',
+      name: 'returns EventNotFoundError when the event does not exist',
       initRelationalState: {},
       input: {
         eventId: 'non-existent',
@@ -187,12 +137,9 @@ describe('SaveUsersToEventV2UseCase', () => {
       },
       output: error(new EventNotFoundError()),
       relationalStateChanges: {},
-      mockEventService: {
-        isValidEvent: error(new EventNotFoundError()),
-      },
     },
     {
-      name: 'должен вернуть ошибку когда событие удалено',
+      name: 'returns EventDeletedError when the event is deleted',
       initRelationalState: {
         events: [
           {
@@ -220,12 +167,9 @@ describe('SaveUsersToEventV2UseCase', () => {
       },
       output: error(new EventDeletedError()),
       relationalStateChanges: {},
-      mockEventService: {
-        isValidEvent: error(new EventDeletedError()),
-      },
     },
     {
-      name: 'должен вернуть ошибку когда pin код неверный',
+      name: 'returns InvalidPinCodeError when the pin code is wrong',
       initRelationalState: {
         events: [
           {
@@ -253,9 +197,6 @@ describe('SaveUsersToEventV2UseCase', () => {
       },
       output: error(new InvalidPinCodeError()),
       relationalStateChanges: {},
-      mockEventService: {
-        isValidEvent: error(new InvalidPinCodeError()),
-      },
     },
   ];
 
@@ -265,13 +206,6 @@ describe('SaveUsersToEventV2UseCase', () => {
         rDataService: relationalDataService,
         initState: testCase.initRelationalState,
       });
-
-      jest.spyOn(eventService, 'isValidEvent').mockReturnValue(testCase.mockEventService.isValidEvent);
-
-      if (testCase.mockIdempotencyUseCase) {
-        const {execute} = testCase.mockIdempotencyUseCase;
-        jest.spyOn(idempotencySharedUseCase, 'execute').mockReturnValue(Promise.resolve(execute));
-      }
 
       const result = await useCase.execute(testCase.input);
 
@@ -284,6 +218,53 @@ describe('SaveUsersToEventV2UseCase', () => {
           stateChanges: testCase.relationalStateChanges,
         });
       }
+    });
+  });
+
+  describe('idempotency', () => {
+    const events = [
+      {
+        id: 'event-1',
+        name: 'Test Event',
+        currencyId: 'currency-1',
+        pinCode: '1234',
+        createdAt: new Date('2023-01-01T00:00:00Z'),
+        updatedAt: new Date('2023-01-01T00:00:00Z'),
+        deletedAt: null,
+      },
+    ];
+    const input = {
+      eventId: 'event-1',
+      pinCode: '1234',
+      users: [
+        {name: 'Alice', createdAt: new Date('2023-01-01T00:00:00Z'), updatedAt: new Date('2023-01-01T00:00:00Z')},
+      ],
+      idempotencyKey: 'key-1',
+      url: SAVE_USERS_V2_URL,
+    };
+
+    it('replays the stored response and inserts nothing on a repeated key', async () => {
+      await prepareInitRelationalState({rDataService: relationalDataService, initState: {events}});
+
+      const first = await useCase.execute(input);
+      const second = await useCase.execute(input);
+      const [userInfos] = await relationalDataService.userInfo.findAll({limit: 10});
+      const [keys] = await relationalDataService.idempotencyKey.findAll({limit: 10});
+
+      expect(second).toEqual(JSON.parse(JSON.stringify(first)));
+      expect(userInfos).toHaveLength(1);
+      expect(keys).toEqual([expect.objectContaining({key: 'key-1', url: SAVE_USERS_V2_URL, statusCode: 200})]);
+    });
+
+    it('rejects a repeated key with a different body', async () => {
+      await prepareInitRelationalState({rDataService: relationalDataService, initState: {events}});
+      await useCase.execute(input);
+
+      const otherUsers = [
+        {name: 'Bob', createdAt: new Date('2023-01-01T00:00:00Z'), updatedAt: new Date('2023-01-01T00:00:00Z')},
+      ];
+
+      await expect(useCase.execute({...input, users: otherUsers})).rejects.toBeInstanceOf(IdempotencyHashMismatchError);
     });
   });
 });
