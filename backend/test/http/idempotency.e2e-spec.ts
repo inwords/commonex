@@ -62,6 +62,25 @@ describe('HTTP idempotency-key header', () => {
     expect(response.json()).toMatchObject({code: 'B4011'});
   });
 
+  it('re-runs a request whose first attempt failed instead of replaying the error', async () => {
+    const request = {
+      method: 'POST' as const,
+      url: '/user/event/missing-id/users',
+      headers: {'idempotency-key': 'key-4'},
+      payload: {pinCode: '1234', users: [{name: 'Bob'}]},
+    };
+
+    const first = await testApp.app.inject(request);
+    const second = await testApp.app.inject(request);
+    const [idempotencyKeys] = await testApp.rDataService.idempotencyKey.findAll({limit: 10});
+
+    expect(first.statusCode).toBe(404);
+    expect(first.json()).toMatchObject({code: 'B4001'});
+    expect(second.statusCode).toBe(404);
+    expect(second.json()).toMatchObject({code: 'B4001'});
+    expect(idempotencyKeys).toEqual([]);
+  });
+
   it('treats the same key on a different route as a different request', async () => {
     const create = await testApp.app.inject({
       method: 'POST',

@@ -20,6 +20,7 @@ const KEY = '01JQKP8G0000000000000000AA';
 const URL = '/v2/user/event/event-1/expense';
 const BODY = {amount: 100};
 const FN_RESULT = {id: 'expense-1', amount: 100};
+const FAILED_RESULT = {result: 'error', error: {name: 'EventNotFoundError'}};
 const TTL_MS = 24 * 60 * 60 * 1000;
 
 const computeHash = (url: string, body: object): string =>
@@ -97,6 +98,15 @@ describe('IdempotencySharedUseCase', () => {
           ],
         },
       },
+    },
+    {
+      name: 'does not store a failed Result so a retry re-runs the operation',
+      initRelationalState: {},
+      input: {key: KEY, body: BODY},
+      output: FAILED_RESULT,
+      mockFn: {result: FAILED_RESULT},
+      expectedFnCallCount: 1,
+      relationalStateChanges: {},
     },
     {
       name: 'повторный ключ с тем же хэшем — возвращает кэш, fn() не вызывается',

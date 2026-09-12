@@ -42,6 +42,12 @@ export class IdempotencySharedUseCase {
 
     const result = await fn();
 
+    // Failed results are not replayed: storing one would hand the retry a plain JSONB copy of the domain error, which
+    // no longer matches `instanceof` in the error filters, so the caller would see a 500 instead of the business error.
+    if (this.isFailedResult(result)) {
+      return result;
+    }
+
     const record = new IdempotencyKeyValueObject({
       key,
       url,
@@ -53,6 +59,10 @@ export class IdempotencySharedUseCase {
     await this.rDataService.idempotencyKey.insert(record);
 
     return result;
+  }
+
+  private isFailedResult(result: unknown): boolean {
+    return typeof result === 'object' && result !== null && 'result' in result && result.result === 'error';
   }
 
   private computeHash(url: string, body: object): string {
