@@ -1,5 +1,7 @@
 import {UserV3Controller} from '#api/http/user/user-v3.controller';
 
+import {createTestRelationalDataService, truncateAllTables} from '#test-support/db';
+
 import {CURRENCIES_LIST} from '../src/constants';
 import {TestApp, createTestApp} from './support/test-app';
 
@@ -36,12 +38,25 @@ describe('application bootstrap', () => {
     expect(response.statusCode).toBe(200);
     expect(response.json<{paths: Record<string, unknown>}>().paths).toHaveProperty('/user/event');
   });
+});
 
-  it('seeds every supported currency on startup', async () => {
-    await testApp.reset();
+describe('application bootstrap against an empty database', () => {
+  it('seeds every supported currency while starting up', async () => {
+    // Truncate before boot so the assertion can only pass if the startup path itself seeds the currencies;
+    // reset() would mask a broken startup because it calls the seeding function directly.
+    const bare = createTestRelationalDataService();
+    await bare.initialize();
+    await truncateAllTables(bare.dataSource);
+    await bare.destroy();
 
-    const [currencies] = await testApp.rDataService.currency.findAllSupported({orderBy: 'code'});
+    const testApp = await createTestApp();
 
-    expect(currencies.map((currency) => currency.code)).toEqual(CURRENCIES_LIST.map(({code}) => code).sort());
+    try {
+      const [currencies] = await testApp.rDataService.currency.findAllSupported({orderBy: 'code'});
+
+      expect(currencies.map((currency) => currency.code)).toEqual(CURRENCIES_LIST.map(({code}) => code).sort());
+    } finally {
+      await testApp.close();
+    }
   });
 });
