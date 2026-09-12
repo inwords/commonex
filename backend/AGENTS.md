@@ -90,6 +90,8 @@ npm run db:migrate:new
     - run `npm run db:migrate:new`
     - review migration in `migrations/default/`
     - apply via `npm run db:migrate`
+    - `schema-drift.spec.ts` fails when the entities and the applied migrations disagree; generate a migration with
+      `npm run db:migrate:new` instead of editing the test
 3. Keep API and domain contracts aligned; do not leak transport/persistence details into domain models.
 
 ## Coding Standards
