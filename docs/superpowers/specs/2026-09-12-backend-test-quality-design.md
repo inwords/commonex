@@ -10,7 +10,9 @@ repository tests with SQL snapshots stay and are strengthened.
 ## Scope
 
 - `backend/` only. Android, web, and infra are untouched except the `backend-checks` CI job.
-- No behaviour change for HTTP clients. The gRPC surface changes because it is not used by any client yet and is
+- No behaviour change for HTTP clients, with one approved exception: `POST /v2/user/event/:eventId` and
+  `POST /v2/user/event/:eventId/expenses` return `200` instead of `201`, matching their documented `@ApiResponse`;
+  both clients accept any 2xx. The gRPC surface changes because it is not used by any client yet and is
   currently broken in ways the new tests expose.
 - Test names are English and start with a verb in third person ("returns", "rejects", "saves").
 
