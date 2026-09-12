@@ -100,8 +100,8 @@ npm run db:migrate:new
 - When using TypeORM `getRawOne` / `getRawMany`, prefer precise raw result types that match the current `pg` parser behavior; avoid defensive unions such as `Date | string` unless that code path can actually return both.
 - Use SQL casts in raw projections only when they materially improve the returned JS type, for example `COUNT(...)::integer` to avoid `bigint` string results.
 - Backend lint source of truth is `eslint.config.js`; do not add or rely on legacy `.eslintrc.*` files.
-- Run `npm run format` before submitting; CI fails on unformatted `src/` or `scripts/` files. Import order is enforced by the
-  Prettier plugin (builtins, third party, `#packages`, `#domain`, `#usecases`, `#frameworks`, `#api`, relative); side-effect
+- Run `npm run format` before submitting; CI fails on unformatted `src/`, `scripts/` or `test/` files. Import order is enforced by the
+  Prettier plugin (builtins, third party, `#packages`, `#domain`, `#usecases`, `#frameworks`, `#api`, `#test-support`, relative); side-effect
   imports such as `import './otel'` in `src/main.ts` keep their position.
 - Backend line-length enforcement is `160` characters via ESLint `max-len`.
 - Keep HTTP guards/filters adapter-agnostic: avoid direct `fastify`/`express` request-response types; prefer
@@ -189,6 +189,6 @@ npm run build
 
 `typecheck` is the only step that type-checks test files: `nest build` excludes them and ts-jest runs in transpile-only mode
 because `isolatedModules` is enabled, so a type error in a test does not fail `npm run test`. `lint` and `lint:check` cover
-`src/`, `scripts/` and `migrations/`.
+`src/`, `scripts/`, `migrations/` and `test/`; `format` and `format:check` cover `src/`, `scripts/` and `test/`.
 
 For troubleshooting, see [`docs/troubleshooting.md`](docs/troubleshooting.md).
