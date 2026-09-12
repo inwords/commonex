@@ -56,9 +56,8 @@ describe('CleanupIdempotencyKeysUseCase', () => {
     it(testCase.name, async () => {
       await prepareInitRelationalState({rDataService: relationalDataService, initState: testCase.initRelationalState});
 
-      const result = await useCase.execute();
+      await expect(useCase.execute()).resolves.toEqual(testCase.output);
 
-      expect(result).toEqual(testCase.output);
       await validateRelationalStateChanges({
         rDataService: relationalDataService,
         initState: testCase.initRelationalState,
