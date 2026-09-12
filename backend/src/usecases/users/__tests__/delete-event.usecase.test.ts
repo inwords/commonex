@@ -1,4 +1,4 @@
-import {Result, error, success} from '#packages/result';
+import {error, success} from '#packages/result';
 
 import {EventServiceAbstract} from '#domain/abstracts/event-service/event-service';
 import {EventDeletedError, EventNotFoundError, InvalidPinCodeError} from '#domain/errors/errors';
@@ -17,11 +17,7 @@ import {
 
 import {DeleteEventUseCase} from '../delete-event.usecase';
 
-type DeleteEventTestCase = TestCase<DeleteEventUseCase> & {
-  mockEventService: {
-    isValidEvent: Result<boolean, EventNotFoundError | EventDeletedError | InvalidPinCodeError>;
-  };
-};
+type DeleteEventTestCase = TestCase<DeleteEventUseCase>;
 
 describe('DeleteEventUseCase', () => {
   let relationalDataService: RelationalDataService;
@@ -56,7 +52,7 @@ describe('DeleteEventUseCase', () => {
 
   const testCases: DeleteEventTestCase[] = [
     {
-      name: 'должен успешно удалить событие',
+      name: 'deletes the event and sets deletedAt',
       initRelationalState: {
         events: [
           {
@@ -91,12 +87,9 @@ describe('DeleteEventUseCase', () => {
           ],
         },
       },
-      mockEventService: {
-        isValidEvent: success(true),
-      },
     },
     {
-      name: 'должен вернуть ошибку когда события не существует',
+      name: 'returns EventNotFoundError when the event does not exist',
       initRelationalState: {},
       input: {
         eventId: 'non-existent',
@@ -104,12 +97,9 @@ describe('DeleteEventUseCase', () => {
       },
       output: error(new EventNotFoundError()),
       relationalStateChanges: {},
-      mockEventService: {
-        isValidEvent: error(new EventNotFoundError()),
-      },
     },
     {
-      name: 'должен вернуть ошибку когда событие уже удалено',
+      name: 'returns EventDeletedError when the event is already deleted',
       initRelationalState: {
         events: [
           {
@@ -129,12 +119,9 @@ describe('DeleteEventUseCase', () => {
       },
       output: error(new EventDeletedError()),
       relationalStateChanges: {},
-      mockEventService: {
-        isValidEvent: error(new EventDeletedError()),
-      },
     },
     {
-      name: 'должен вернуть ошибку когда pin код неверный',
+      name: 'returns InvalidPinCodeError when the pin code is wrong',
       initRelationalState: {
         events: [
           {
@@ -154,9 +141,6 @@ describe('DeleteEventUseCase', () => {
       },
       output: error(new InvalidPinCodeError()),
       relationalStateChanges: {},
-      mockEventService: {
-        isValidEvent: error(new InvalidPinCodeError()),
-      },
     },
   ];
 
@@ -166,8 +150,6 @@ describe('DeleteEventUseCase', () => {
         rDataService: relationalDataService,
         initState: testCase.initRelationalState,
       });
-
-      jest.spyOn(eventService, 'isValidEvent').mockReturnValue(testCase.mockEventService.isValidEvent);
 
       const result = await useCase.execute(testCase.input);
 
