@@ -1,5 +1,28 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
+exports[`CurrencyRepository findAll orders by the requested column and direction 1`] = `
+{
+  "queryParameters": {},
+  "queryString": "SELECT "currency"."id" AS "currency_id", "currency"."code" AS "currency_code", "currency"."created_at" AS "currency_created_at", "currency"."updated_at" AS "currency_updated_at" FROM "currency" "currency" ORDER BY "currency"."code" DESC",
+}
+`;
+
+exports[`CurrencyRepository findAll orders by the requested column and direction 2`] = `
+{
+  "queryParameters": {},
+  "queryString": "SELECT "currency"."id" AS "currency_id", "currency"."code" AS "currency_code", "currency"."created_at" AS "currency_created_at", "currency"."updated_at" AS "currency_updated_at" FROM "currency" "currency" ORDER BY "currency"."code" ASC",
+}
+`;
+
+exports[`CurrencyRepository findAll returns nothing when the codes filter is empty 1`] = `
+{
+  "queryParameters": {
+    "codes": [],
+  },
+  "queryString": "SELECT "currency"."id" AS "currency_id", "currency"."code" AS "currency_code", "currency"."created_at" AS "currency_created_at", "currency"."updated_at" AS "currency_updated_at" FROM "currency" "currency" WHERE 1 = 0",
+}
+`;
+
 exports[`CurrencyRepository findAll should find all currencies with limit 1`] = `
 {
   "queryParameters": {},
@@ -57,5 +80,38 @@ exports[`CurrencyRepository insert should insert single currency correctly 1`] =
     "orm_param_3": 2023-01-01T00:00:00.000Z,
   },
   "queryString": "INSERT INTO "currency" AS "CurrencyEntity"("id", "code", "created_at", "updated_at") VALUES (:orm_param_0, :orm_param_1, :orm_param_2, :orm_param_3)",
+}
+`;
+
+exports[`CurrencyRepository supported currencies excludes codes outside SUPPORTED_CURRENCY_CODES from findAllSupported 1`] = `
+{
+  "queryParameters": {
+    "codes": [
+      "EUR",
+      "USD",
+      "RUB",
+      "JPY",
+      "TRY",
+      "AED",
+    ],
+  },
+  "queryString": "SELECT "currency"."id" AS "currency_id", "currency"."code" AS "currency_code", "currency"."created_at" AS "currency_created_at", "currency"."updated_at" AS "currency_updated_at" FROM "currency" "currency" WHERE "currency"."code" IN (:...codes)",
+}
+`;
+
+exports[`CurrencyRepository supported currencies returns null from findSupportedById for an unsupported code 1`] = `
+{
+  "queryParameters": {
+    "id": "c-xxx",
+    "supportedCurrencyCodes": [
+      "EUR",
+      "USD",
+      "RUB",
+      "JPY",
+      "TRY",
+      "AED",
+    ],
+  },
+  "queryString": "SELECT "currency"."id" AS "currency_id", "currency"."code" AS "currency_code", "currency"."created_at" AS "currency_created_at", "currency"."updated_at" AS "currency_updated_at" FROM "currency" "currency" WHERE "currency"."id" = :id AND "currency"."code" IN (:...supportedCurrencyCodes)",
 }
 `;
