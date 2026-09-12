@@ -30,18 +30,13 @@ import {AddUsersToEventGrpcRequestDto} from './dto/add-users-to-event-grpc-reque
 import {CreateEventShareTokenGrpcRequestDto} from './dto/create-event-share-token-grpc-request.dto';
 import {CreateExpenseGrpcRequestDto, CreateExpenseV2GrpcRequestDto} from './dto/create-expense-grpc-request.dto';
 import {DeleteEventGrpcRequestDto} from './dto/delete-event-grpc-request.dto';
+import {DeleteEventGrpcResponseDto, toDeleteEventGrpcResponse} from './dto/delete-event-grpc-response.dto';
+import {ExpenseGrpcResponseDto, ExpensesGrpcResponseDto, toExpenseGrpcResponse} from './dto/expense-grpc-response.dto';
 import {
   GetEventExpensesGrpcRequestDto,
   GetEventExpensesV2GrpcRequestDto,
 } from './dto/get-event-expenses-grpc-request.dto';
 import {GetEventInfoGrpcRequestDto, GetEventInfoV2GrpcRequestDto} from './dto/get-event-info-grpc-request.dto';
-import {
-  DeleteEventGrpcResponseDto,
-  ExpenseGrpcResponseDto,
-  ExpensesGrpcResponseDto,
-  toDeleteEventGrpcResponse,
-  toExpenseGrpcResponse,
-} from './dto/user-grpc-response.dto';
 
 // The controller-scoped validation pipe runs on every decorated parameter, and it rejects a `Metadata` instance because
 // that class declares no validation rules. Typing the context as `unknown` keeps its metatype `Object`, which the pipe
