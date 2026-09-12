@@ -2,39 +2,11 @@ import {Metadata} from '@grpc/grpc-js';
 import {Catch, RpcExceptionFilter} from '@nestjs/common';
 import {Observable, throwError} from 'rxjs';
 
-import {ErrorCode} from '#domain/errors/error-codes.enum';
-import {
-  CurrencyNotFoundError,
-  CurrencyRateNotFoundError,
-  EventDeletedError,
-  EventNotFoundError,
-  EventOperationConflictError,
-  IdempotencyHashMismatchError,
-  InconsistentExchangedAmountError,
-  InvalidPinCodeError,
-  InvalidTokenError,
-  TokenExpiredError,
-} from '#domain/errors/errors';
+import {BUSINESS_ERROR_CLASSES, BusinessError} from '#domain/errors/errors';
 
 import {ERROR_CODE_METADATA_KEY, GRPC_STATUS_BY_ERROR_CODE} from './grpc-status.map';
 
-interface BusinessError {
-  code: ErrorCode;
-  message: string;
-}
-
-@Catch(
-  EventNotFoundError,
-  EventDeletedError,
-  EventOperationConflictError,
-  InvalidPinCodeError,
-  InvalidTokenError,
-  TokenExpiredError,
-  CurrencyNotFoundError,
-  CurrencyRateNotFoundError,
-  InconsistentExchangedAmountError,
-  IdempotencyHashMismatchError,
-)
+@Catch(...BUSINESS_ERROR_CLASSES)
 export class GrpcBusinessErrorFilter implements RpcExceptionFilter<BusinessError> {
   catch(exception: BusinessError): Observable<never> {
     const metadata = new Metadata();

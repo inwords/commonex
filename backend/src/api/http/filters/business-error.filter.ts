@@ -1,43 +1,9 @@
 import {ArgumentsHost, Catch, ExceptionFilter} from '@nestjs/common';
 import {AbstractHttpAdapter} from '@nestjs/core';
 
-import {
-  CurrencyNotFoundError,
-  CurrencyRateNotFoundError,
-  EventDeletedError,
-  EventNotFoundError,
-  EventOperationConflictError,
-  IdempotencyHashMismatchError,
-  InconsistentExchangedAmountError,
-  InvalidPinCodeError,
-  InvalidTokenError,
-  TokenExpiredError,
-} from '#domain/errors/errors';
+import {BUSINESS_ERROR_CLASSES, BusinessError} from '#domain/errors/errors';
 
-type BusinessError =
-  | EventNotFoundError
-  | EventDeletedError
-  | EventOperationConflictError
-  | InvalidPinCodeError
-  | InvalidTokenError
-  | TokenExpiredError
-  | CurrencyNotFoundError
-  | CurrencyRateNotFoundError
-  | InconsistentExchangedAmountError
-  | IdempotencyHashMismatchError;
-
-@Catch(
-  EventNotFoundError,
-  EventDeletedError,
-  EventOperationConflictError,
-  InvalidPinCodeError,
-  InvalidTokenError,
-  TokenExpiredError,
-  CurrencyNotFoundError,
-  CurrencyRateNotFoundError,
-  InconsistentExchangedAmountError,
-  IdempotencyHashMismatchError,
-)
+@Catch(...BUSINESS_ERROR_CLASSES)
 export class BusinessErrorFilter implements ExceptionFilter {
   constructor(private readonly httpAdapter: AbstractHttpAdapter) {}
 

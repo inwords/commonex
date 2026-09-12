@@ -71,3 +71,19 @@ export class IdempotencyHashMismatchError {
   readonly message = 'Idempotency key reused with different request body';
   readonly httpCode = HttpStatus.UNPROCESSABLE_ENTITY;
 }
+
+/** Every domain error the transport layers translate; both exception filters catch exactly this list. */
+export const BUSINESS_ERROR_CLASSES = [
+  EventNotFoundError,
+  EventDeletedError,
+  EventOperationConflictError,
+  InvalidPinCodeError,
+  InvalidTokenError,
+  TokenExpiredError,
+  CurrencyNotFoundError,
+  CurrencyRateNotFoundError,
+  InconsistentExchangedAmountError,
+  IdempotencyHashMismatchError,
+] as const;
+
+export type BusinessError = InstanceType<(typeof BUSINESS_ERROR_CLASSES)[number]>;
