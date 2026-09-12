@@ -35,22 +35,24 @@ export const configureHttpApp = (app: NestFastifyApplication): void => {
   app.enableCors({origin: '*'});
 };
 
+export const GRPC_PROTO_LOADER_OPTIONS: NonNullable<GrpcOptions['options']['loader']> = {
+  keepCase: false,
+  longs: String,
+  enums: String,
+  defaults: false,
+  arrays: true,
+  objects: true,
+  // Synthetic oneofs of proto3 optional fields would add `_pinCode`-style keys the request DTOs do not declare,
+  // and the validation pipe rejects undeclared properties.
+  oneofs: false,
+};
+
 export const createGrpcOptions = ({url, protoPath}: {url: string; protoPath: string}): GrpcOptions => ({
   transport: Transport.GRPC,
   options: {
     package: GRPC_PACKAGE,
     protoPath,
     url,
-    loader: {
-      keepCase: false,
-      longs: String,
-      enums: String,
-      defaults: false,
-      arrays: true,
-      objects: true,
-      // Synthetic oneofs of proto3 optional fields would add `_pinCode`-style keys the request DTOs do not declare,
-      // and the validation pipe rejects undeclared properties.
-      oneofs: false,
-    },
+    loader: GRPC_PROTO_LOADER_OPTIONS,
   },
 });

@@ -132,4 +132,27 @@ describe('gRPC UserService', () => {
     expect(second.id).toBe(first.id);
     expect(events).toHaveLength(1);
   });
+
+  it('replays CreateExpenseV2 when the idempotency-key metadata repeats', async () => {
+    const event = await createEvent(testApp.app, {currencyId: usdId});
+    const [alice] = event.users;
+    const metadata = new Metadata();
+    metadata.set('idempotency-key', 'grpc-key-2');
+    const request = {
+      eventId: event.id,
+      pinCode: '1234',
+      description: 'Coffee',
+      userWhoPaidId: alice?.id,
+      currencyId: usdId,
+      expenseType: 'expense',
+      splitInformation: [{userId: alice?.id, amount: 10}],
+    };
+
+    const first = await callUnary<ExpenseResponse>(client, 'CreateExpenseV2', request, metadata);
+    const second = await callUnary<ExpenseResponse>(client, 'CreateExpenseV2', request, metadata);
+    const [stored] = await testApp.rDataService.expense.findByEventId(event.id);
+
+    expect(second.id).toBe(first.id);
+    expect(stored).toHaveLength(1);
+  });
 });
