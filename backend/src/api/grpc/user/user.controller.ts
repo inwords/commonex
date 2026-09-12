@@ -45,7 +45,8 @@ import {ExpenseGrpcResponseDto, ExpensesGrpcResponseDto, toExpenseGrpcResponse} 
 // skips, so the metadata is narrowed here instead.
 const getIdempotencyKey = (context: unknown): string | undefined => {
   if (!(context instanceof Metadata)) {
-    return undefined;
+    // A wiring regression here must not silently disable idempotency, so fail loudly instead of returning undefined.
+    throw new Error('Expected gRPC Metadata as the handler context');
   }
 
   const value = context.get('idempotency-key')[0];

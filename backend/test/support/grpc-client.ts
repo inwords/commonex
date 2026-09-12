@@ -1,6 +1,7 @@
 import {Metadata, ServiceClientConstructor, ServiceError, credentials, loadPackageDefinition} from '@grpc/grpc-js';
 import {loadSync} from '@grpc/proto-loader';
 
+import {GRPC_PROTO_LOADER_OPTIONS} from '../../src/app.factory';
 import {PROTO_PATH} from './test-app';
 
 export type UserServiceMethod =
@@ -25,17 +26,7 @@ type UnaryMethod = (
 export type UserServiceClient = Record<UserServiceMethod, UnaryMethod> & {close: () => void};
 
 export const createUserServiceClient = (url: string): UserServiceClient => {
-  const definition = loadSync(PROTO_PATH, {
-    keepCase: false,
-    longs: String,
-    enums: String,
-    defaults: false,
-    arrays: true,
-    objects: true,
-    // Mirrors the server loader options: synthetic oneofs of proto3 optional fields would add `_exchangedAmount`-style
-    // keys to decoded responses.
-    oneofs: false,
-  });
+  const definition = loadSync(PROTO_PATH, GRPC_PROTO_LOADER_OPTIONS);
   const proto = loadPackageDefinition(definition) as unknown as {user: {UserService: ServiceClientConstructor}};
 
   return new proto.user.UserService(url, credentials.createInsecure()) as unknown as UserServiceClient;
@@ -64,6 +55,12 @@ export const expectGrpcError = async (
   try {
     await call;
   } catch (error) {
+    const maybeServiceError = error as {code?: unknown; metadata?: unknown};
+
+    if (typeof maybeServiceError.code !== 'number' || !(maybeServiceError.metadata instanceof Metadata)) {
+      throw error;
+    }
+
     const serviceError = error as ServiceError;
     const errorCode = serviceError.metadata.get('error-code')[0];
 
