@@ -34,6 +34,7 @@ describe('HTTP request validation', () => {
     });
 
     expect(response.statusCode).toBe(400);
+    expect(response.json()).toMatchObject({code: 'B4006'});
     expect(response.json<{message: string}>().message).toContain('pinCode');
   });
 
@@ -41,6 +42,7 @@ describe('HTTP request validation', () => {
     const response = await testApp.app.inject({method: 'POST', url: '/user/event', payload: {}});
 
     expect(response.statusCode).toBe(400);
+    expect(response.json()).toMatchObject({code: 'B4006'});
     expect(response.json<{message: string}>().message.split('; ').length).toBeGreaterThan(1);
   });
 

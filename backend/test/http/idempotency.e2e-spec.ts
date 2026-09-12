@@ -79,5 +79,6 @@ describe('HTTP idempotency-key header', () => {
     });
 
     expect(addUsers.statusCode).toBe(422);
+    expect(addUsers.json()).toMatchObject({code: 'B4011'});
   });
 });

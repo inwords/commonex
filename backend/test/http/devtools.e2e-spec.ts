@@ -25,6 +25,7 @@ describe('HTTP /devtools', () => {
     const response = await testApp.app.inject({method: 'GET', url: '/devtools/currency-rate?date=2026-01-06'});
 
     expect(response.statusCode).toBe(401);
+    expect(response.json()).toMatchObject({message: 'Invalid devtools secret'});
   });
 
   it('rejects a wrong secret with 401', async () => {
@@ -35,6 +36,7 @@ describe('HTTP /devtools', () => {
     });
 
     expect(response.statusCode).toBe(401);
+    expect(response.json()).toMatchObject({message: 'Invalid devtools secret'});
   });
 
   it('returns null when no rate is stored for the date', async () => {
