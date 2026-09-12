@@ -163,5 +163,6 @@ describe('HTTP /v2/user', () => {
     expect(ok.statusCode).toBe(201);
     expect(ok.json()).toEqual([]);
     expect(forbidden.statusCode).toBe(403);
+    expect(forbidden.json()).toMatchObject({code: 'B4003'});
   });
 });
