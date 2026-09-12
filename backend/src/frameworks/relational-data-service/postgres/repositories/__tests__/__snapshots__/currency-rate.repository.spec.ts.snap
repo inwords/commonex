@@ -32,6 +32,23 @@ exports[`CurrencyRateRepository findByDate should return null for non-existent d
 }
 `;
 
+exports[`CurrencyRateRepository findSupportedCurrenciesWithRatesVersionByDate returns the rate timestamp and supported currency timestamps ordered by code 1`] = `
+{
+  "queryParameters": {
+    "date": "2026-01-06",
+    "supportedCurrencyCodesForVersion": [
+      "EUR",
+      "USD",
+      "RUB",
+      "JPY",
+      "TRY",
+      "AED",
+    ],
+  },
+  "queryString": "SELECT "currency_rate"."updated_at" AS "rateUpdatedAt", (SELECT COALESCE(json_agg("currency"."updated_at" ORDER BY "currency"."code" ASC), '[]'::json) FROM "currency" "currency" WHERE "currency"."code" IN (:...supportedCurrencyCodesForVersion)) AS "currenciesUpdatedAt" FROM "currency_rate" "currency_rate" WHERE "currency_rate"."date" = :date",
+}
+`;
+
 exports[`CurrencyRateRepository insert should insert currency rate correctly 1`] = `
 {
   "queryParameters": {

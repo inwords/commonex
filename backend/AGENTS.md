@@ -129,6 +129,11 @@ npm run test:cov
 Application tests boot `AppModule` through `src/app.factory.ts`, the same code `src/main.ts` uses, so pipes, filters and
 Swagger are configured identically in tests and production. Shared test helpers live in `src/test-support/`.
 
+Repository specs assert `queryDetails` with `toMatchSnapshot()`. Those snapshots are the record of the SQL TypeORM
+generates and are the guard for TypeORM upgrades: `npm test` runs with `--ci`, so a changed query fails instead of
+rewriting the snapshot. Update them only on purpose with `npx jest --runInBand -u <spec>` and review the `.snap` diff
+in the same change. Put behavioural assertions next to the snapshot when the SQL shape encodes a rule.
+
 Tests need a live PostgreSQL. `docker-compose.test.yml` starts one that reuses the production `db` service definition
 from `infra/docker-compose-prod.yml` and reads credentials from `.env` (`cp example.env .env`):
 

@@ -276,6 +276,29 @@ describe('EventRepository', () => {
         updatedAt: newUpdatedAt,
       });
     });
+
+    it('discards the update when the transaction throws', async () => {
+      const event = {
+        id: 'event-1',
+        name: 'Test Event',
+        currencyId: 'currency-1',
+        pinCode: '1234',
+        createdAt: new Date('2023-01-01T00:00:00Z'),
+        updatedAt: new Date('2023-01-01T00:00:00Z'),
+        deletedAt: null,
+      };
+      await relationalDataService.event.insert(event);
+
+      await expect(
+        relationalDataService.transaction(async (ctx) => {
+          await relationalDataService.event.update('event-1', {deletedAt: new Date('2023-01-02T00:00:00Z')}, {ctx});
+          throw new Error('boom');
+        }),
+      ).rejects.toThrow('boom');
+      const [found] = await relationalDataService.event.findById('event-1');
+
+      expect(found?.deletedAt).toBeNull();
+    });
   });
 
   describe('findAll', () => {
