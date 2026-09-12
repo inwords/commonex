@@ -1,6 +1,6 @@
 import {Metadata} from '@grpc/grpc-js';
-import {Body, Controller} from '@nestjs/common';
-import {GrpcMethod} from '@nestjs/microservices';
+import {Body, Controller, UseFilters, UsePipes} from '@nestjs/common';
+import {Ctx, GrpcMethod} from '@nestjs/microservices';
 
 import {isError} from '#packages/result';
 
@@ -18,42 +18,44 @@ import {
   SaveUsersToEventV2UseCase,
 } from '#usecases/users/v2';
 
-import {
-  AddUsersToEventParamsDto,
-  AddUsersToEventRequestDto,
-  AddUsersToEventResponseWithUsersDto,
-} from '#api/http/user/dto/add-users-to-event.dto';
-import {
-  CreateEventShareTokenParamsDto,
-  CreateEventShareTokenRequestDto,
-  CreateEventShareTokenResponseDto,
-} from '#api/http/user/dto/create-event-share-token.dto';
+import {AddUsersToEventResponseWithUsersDto} from '#api/http/user/dto/add-users-to-event.dto';
+import {CreateEventShareTokenResponseDto} from '#api/http/user/dto/create-event-share-token.dto';
 import {CreateEventRequestDto, CreateEventResponseDto} from '#api/http/user/dto/create-event.dto';
-import {
-  CreateExpenseParamsDto,
-  CreateExpenseRequestV1Dto,
-  CreateExpenseRequestV2Dto,
-  CreateExpenseResponseDto,
-} from '#api/http/user/dto/create-expense.dto';
-import {DeleteEventParamsDto, DeleteEventRequestDto, DeleteEventResponseDto} from '#api/http/user/dto/delete-event.dto';
-import {
-  GetEventExpensesParamsDto,
-  GetEventExpensesRequestV2Dto,
-  GetEventExpensesResponseWithExpensesDto,
-} from '#api/http/user/dto/get-event-expenses.dto';
-import {
-  GetEventInfoParamsDto,
-  GetEventInfoRequestV1Dto,
-  GetEventInfoRequestV2Dto,
-  GetEventInfoResponseDto,
-} from '#api/http/user/dto/get-event-info.dto';
+import {DeleteEventResponseDto} from '#api/http/user/dto/delete-event.dto';
+import {GetEventInfoResponseDto} from '#api/http/user/dto/get-event-info.dto';
+import {createValidationPipe} from '#api/validation-pipe';
 
-const getIdempotencyKey = (metadata: Metadata): string | undefined => {
-  const value = metadata.get('idempotency-key')[0];
+import {GrpcBusinessErrorFilter} from '../filters/grpc-business-error.filter';
+import {GrpcValidationErrorFilter} from '../filters/grpc-validation-error.filter';
+import {
+  AddUsersToEventGrpcRequestDto,
+  CreateEventShareTokenGrpcRequestDto,
+  CreateExpenseGrpcRequestDto,
+  CreateExpenseV2GrpcRequestDto,
+  DeleteEventGrpcRequestDto,
+  GetEventExpensesGrpcRequestDto,
+  GetEventExpensesV2GrpcRequestDto,
+  GetEventInfoGrpcRequestDto,
+  GetEventInfoV2GrpcRequestDto,
+} from './dto/user-grpc-request.dto';
+import {ExpenseGrpcResponseDto, ExpensesGrpcResponseDto, toExpenseGrpcResponse} from './dto/user-grpc-response.dto';
+
+// The controller-scoped validation pipe runs on every decorated parameter, and it rejects a `Metadata` instance because
+// that class declares no validation rules. Typing the context as `unknown` keeps its metatype `Object`, which the pipe
+// skips, so the metadata is narrowed here instead.
+const getIdempotencyKey = (context: unknown): string | undefined => {
+  if (!(context instanceof Metadata)) {
+    return undefined;
+  }
+
+  const value = context.get('idempotency-key')[0];
+
   return typeof value === 'string' ? value : undefined;
 };
 
 @Controller()
+@UsePipes(createValidationPipe())
+@UseFilters(GrpcValidationErrorFilter, GrpcBusinessErrorFilter)
 export class UserController {
   constructor(
     private readonly getEventExpensesUseCase: GetEventExpensesUseCase,
@@ -70,13 +72,13 @@ export class UserController {
   ) {}
 
   @GrpcMethod('UserService', 'CreateEvent')
-  async createEvent(@Body() body: CreateEventRequestDto, metadata: Metadata): Promise<CreateEventResponseDto> {
+  async createEvent(@Body() body: CreateEventRequestDto, @Ctx() context: unknown): Promise<CreateEventResponseDto> {
     const {users, ...event} = body;
 
     const result = await this.saveEventUseCase.execute({
       users,
       event,
-      idempotencyKey: getIdempotencyKey(metadata),
+      idempotencyKey: getIdempotencyKey(context),
       url: 'grpc:CreateEvent',
     });
 
@@ -88,9 +90,7 @@ export class UserController {
   }
 
   @GrpcMethod('UserService', 'GetEventInfo')
-  async getEventInfo(
-    @Body() {eventId, pinCode}: GetEventInfoParamsDto & GetEventInfoRequestV1Dto,
-  ): Promise<GetEventInfoResponseDto> {
+  async getEventInfo(@Body() {eventId, pinCode}: GetEventInfoGrpcRequestDto): Promise<GetEventInfoResponseDto> {
     const result = await this.getEventInfoUseCase.execute({eventId, pinCode});
 
     if (isError(result)) {
@@ -101,7 +101,7 @@ export class UserController {
   }
 
   @GrpcMethod('UserService', 'DeleteEvent')
-  async deleteEvent(@Body() body: DeleteEventParamsDto & DeleteEventRequestDto): Promise<DeleteEventResponseDto> {
+  async deleteEvent(@Body() body: DeleteEventGrpcRequestDto): Promise<DeleteEventResponseDto> {
     const {eventId, pinCode} = body;
     const result = await this.deleteEventUseCase.execute({eventId, pinCode});
 
@@ -114,15 +114,15 @@ export class UserController {
 
   @GrpcMethod('UserService', 'AddUsersToEvent')
   async addUserToEvent(
-    @Body() body: AddUsersToEventRequestDto & AddUsersToEventParamsDto,
-    metadata: Metadata,
+    @Body() body: AddUsersToEventGrpcRequestDto,
+    @Ctx() context: unknown,
   ): Promise<AddUsersToEventResponseWithUsersDto> {
     const {eventId, ...rest} = body;
 
     const result = await this.saveUsersToEventUseCase.execute({
       eventId,
       ...rest,
-      idempotencyKey: getIdempotencyKey(metadata),
+      idempotencyKey: getIdempotencyKey(context),
       url: 'grpc:AddUsersToEvent',
     });
 
@@ -134,28 +134,26 @@ export class UserController {
   }
 
   @GrpcMethod('UserService', 'GetAllEventExpenses')
-  async getAllEventExpenses(
-    @Body() {eventId}: GetEventExpensesParamsDto,
-  ): Promise<GetEventExpensesResponseWithExpensesDto> {
+  async getAllEventExpenses(@Body() {eventId}: GetEventExpensesGrpcRequestDto): Promise<ExpensesGrpcResponseDto> {
     const result = await this.getEventExpensesUseCase.execute({eventId});
 
     if (isError(result)) {
       throw result.error;
     }
 
-    return {expenses: result.value};
+    return {expenses: result.value.map(toExpenseGrpcResponse)};
   }
 
   @GrpcMethod('UserService', 'CreateExpense')
   async createExpense(
-    @Body() expense: CreateExpenseRequestV1Dto & CreateExpenseParamsDto,
-    metadata: Metadata,
-  ): Promise<CreateExpenseResponseDto> {
+    @Body() expense: CreateExpenseGrpcRequestDto,
+    @Ctx() context: unknown,
+  ): Promise<ExpenseGrpcResponseDto> {
     const result = await this.saveEventExpenseUseCase.execute({
       ...expense,
       isCustomRate: false,
       splitInformation: expense.splitInformation.map(({userId, amount}) => ({userId, amount, exchangedAmount: amount})),
-      idempotencyKey: getIdempotencyKey(metadata),
+      idempotencyKey: getIdempotencyKey(context),
       url: 'grpc:CreateExpense',
     });
 
@@ -163,12 +161,12 @@ export class UserController {
       throw result.error;
     }
 
-    return result.value;
+    return toExpenseGrpcResponse(result.value);
   }
 
   @GrpcMethod('UserService', 'GetEventInfoV2')
   async getEventInfoV2(
-    @Body() {eventId, pinCode, token}: GetEventInfoParamsDto & GetEventInfoRequestV2Dto,
+    @Body() {eventId, pinCode, token}: GetEventInfoV2GrpcRequestDto,
   ): Promise<GetEventInfoResponseDto> {
     const result = await this.getEventInfoV2UseCase.execute({eventId, pinCode, token});
 
@@ -181,15 +179,15 @@ export class UserController {
 
   @GrpcMethod('UserService', 'AddUsersToEventV2')
   async addUserToEventV2(
-    @Body() body: AddUsersToEventRequestDto & AddUsersToEventParamsDto,
-    metadata: Metadata,
+    @Body() body: AddUsersToEventGrpcRequestDto,
+    @Ctx() context: unknown,
   ): Promise<AddUsersToEventResponseWithUsersDto> {
     const {eventId, ...rest} = body;
 
     const result = await this.saveUsersToEventV2UseCase.execute({
       eventId,
       ...rest,
-      idempotencyKey: getIdempotencyKey(metadata),
+      idempotencyKey: getIdempotencyKey(context),
       url: 'grpc:AddUsersToEventV2',
     });
 
@@ -202,25 +200,25 @@ export class UserController {
 
   @GrpcMethod('UserService', 'GetAllEventExpensesV2')
   async getAllEventExpensesV2(
-    @Body() {eventId, pinCode}: GetEventExpensesParamsDto & GetEventExpensesRequestV2Dto,
-  ): Promise<GetEventExpensesResponseWithExpensesDto> {
+    @Body() {eventId, pinCode}: GetEventExpensesV2GrpcRequestDto,
+  ): Promise<ExpensesGrpcResponseDto> {
     const result = await this.getEventExpensesV2UseCase.execute({eventId, pinCode});
 
     if (isError(result)) {
       throw result.error;
     }
 
-    return {expenses: result.value};
+    return {expenses: result.value.map(toExpenseGrpcResponse)};
   }
 
   @GrpcMethod('UserService', 'CreateExpenseV2')
   async createExpenseV2(
-    @Body() expense: CreateExpenseRequestV2Dto & CreateExpenseParamsDto,
-    metadata: Metadata,
-  ): Promise<CreateExpenseResponseDto> {
+    @Body() expense: CreateExpenseV2GrpcRequestDto,
+    @Ctx() context: unknown,
+  ): Promise<ExpenseGrpcResponseDto> {
     const result = await this.saveEventExpenseV2UseCase.execute({
       ...expense,
-      idempotencyKey: getIdempotencyKey(metadata),
+      idempotencyKey: getIdempotencyKey(context),
       url: 'grpc:CreateExpenseV2',
     });
 
@@ -228,12 +226,12 @@ export class UserController {
       throw result.error;
     }
 
-    return result.value;
+    return toExpenseGrpcResponse(result.value);
   }
 
   @GrpcMethod('UserService', 'CreateEventShareTokenV2')
   async createEventShareTokenV2(
-    @Body() {eventId, pinCode}: CreateEventShareTokenParamsDto & CreateEventShareTokenRequestDto,
+    @Body() {eventId, pinCode}: CreateEventShareTokenGrpcRequestDto,
   ): Promise<CreateEventShareTokenResponseDto> {
     const result = await this.createEventShareTokenV2UseCase.execute({eventId, pinCode});
 
