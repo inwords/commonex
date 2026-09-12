@@ -32,7 +32,7 @@ describe('HTTP /v2/user', () => {
       payload: {pinCode: '1234'},
     });
 
-    expect(response.statusCode).toBe(200);
+    expect(response.statusCode).toBe(201);
     expect(response.json()).toMatchObject({id: event.id});
   });
 
@@ -53,7 +53,7 @@ describe('HTTP /v2/user', () => {
 
     expect(tokenResponse.statusCode).toBe(201);
     expect(token).toMatch(/^[0-9a-f]{64}$/);
-    expect(infoResponse.statusCode).toBe(200);
+    expect(infoResponse.statusCode).toBe(201);
     expect(infoResponse.json()).toMatchObject({id: event.id});
   });
 
