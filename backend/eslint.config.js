@@ -79,6 +79,26 @@ module.exports = defineConfig([
     },
   },
   {
+    files: ['src/**/*.ts'],
+    ignores: ['**/*.test.ts', '**/*.spec.ts', '**/__tests__/**/*.ts', 'src/test-support/**/*.ts'],
+
+    rules: {
+      // Test helpers must never reach production code; the build exclude alone does not stop an import.
+      // `regex` is required here: plain string patterns are matched gitignore-style, so a leading `#` would be
+      // read as a comment and the rule would silently never fire. The second pattern closes the relative-path
+      // escape hatch (`../../test-support/db`).
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {regex: '^#test-support/', message: 'Test helpers must not be imported from production code.'},
+            {regex: '(^|/)test-support/', message: 'Test helpers must not be imported from production code.'},
+          ],
+        },
+      ],
+    },
+  },
+  {
     files: ['**/*.test.ts', '**/*.spec.ts', '**/__tests__/**/*.ts', 'test/**/*.ts', 'src/test-support/**/*.ts'],
 
     rules: {
