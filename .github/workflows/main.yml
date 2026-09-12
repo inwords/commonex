@@ -169,7 +169,7 @@ jobs:
         run: npm run db:migrate
 
       - name: Test
-        run: npm test
+        run: npm run test:cov
 
       - name: E2E test
         run: npm run test:e2e

@@ -103,6 +103,14 @@
       "!test-support/**"
     ],
     "coverageReporters": ["text-summary", "lcov"],
+    "coverageThreshold": {
+      "global": {
+        "statements": 0,
+        "branches": 0,
+        "functions": 0,
+        "lines": 0
+      }
+    },
     "restoreMocks": true,
     "clearMocks": true,
     "testTimeout": 20000,
