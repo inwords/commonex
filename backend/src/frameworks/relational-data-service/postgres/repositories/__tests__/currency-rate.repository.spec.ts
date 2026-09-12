@@ -1,3 +1,5 @@
+import {CurrencyCode} from '#domain/entities/currency.entity';
+
 import {appDbConfig} from '#frameworks/relational-data-service/postgres/config';
 import {RelationalDataService} from '#frameworks/relational-data-service/postgres/relational-data-service';
 
@@ -187,6 +189,57 @@ describe('CurrencyRateRepository', () => {
 
       expect(result).toHaveLength(2);
       expect(queryDetails).toMatchSnapshot();
+    });
+  });
+
+  describe('findSupportedCurrenciesWithRatesVersionByDate', () => {
+    it('returns the rate timestamp and supported currency timestamps ordered by code', async () => {
+      await relationalDataService.currency.insert([
+        {
+          id: 'c-usd',
+          code: CurrencyCode.USD,
+          createdAt: new Date('2023-01-02T00:00:00Z'),
+          updatedAt: new Date('2023-01-02T00:00:00Z'),
+        },
+        {
+          id: 'c-eur',
+          code: CurrencyCode.EUR,
+          createdAt: new Date('2023-01-01T00:00:00Z'),
+          updatedAt: new Date('2023-01-01T00:00:00Z'),
+        },
+        {
+          id: 'c-xxx',
+          code: 'XXX' as CurrencyCode,
+          createdAt: new Date('2023-01-03T00:00:00Z'),
+          updatedAt: new Date('2023-01-03T00:00:00Z'),
+        },
+      ]);
+      await relationalDataService.currencyRate.insert({
+        date: '2026-01-06',
+        rate: {USD: 1, EUR: 0.9},
+        createdAt: new Date('2026-01-06T12:00:00Z'),
+        updatedAt: new Date('2026-01-06T12:00:00Z'),
+      });
+
+      const [version, details] = await relationalDataService.currencyRate.findSupportedCurrenciesWithRatesVersionByDate(
+        '2026-01-06',
+        undefined,
+      );
+
+      expect(version).toEqual({
+        rateUpdatedAt: new Date('2026-01-06T12:00:00Z'),
+        currenciesUpdatedAt: [new Date('2023-01-01T00:00:00Z'), new Date('2023-01-02T00:00:00Z')],
+      });
+      expect(details).toMatchSnapshot();
+    });
+
+    it('returns null when no rate exists for the date', async () => {
+      const [version] = await relationalDataService.currencyRate.findSupportedCurrenciesWithRatesVersionByDate(
+        '2026-01-06',
+        undefined,
+      );
+
+      expect(version).toBeNull();
     });
   });
 });

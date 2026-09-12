@@ -1,0 +1,32 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`IdempotencyKeyRepository inserts a key and finds it by key 1`] = `
+{
+  "queryParameters": {
+    "orm_param_0": "key-1",
+    "orm_param_1": "/user/event",
+    "orm_param_2": "hash-1",
+    "orm_param_3": "{"id":"event-1"}",
+    "orm_param_4": 200,
+    "orm_param_5": 2026-01-02T00:00:00.000Z,
+    "orm_param_6": 2026-01-01T00:00:00.000Z,
+  },
+  "queryString": "INSERT INTO "idempotency_keys" AS "IdempotencyKeyEntity"("key", "url", "request_hash", "response", "status_code", "expires_at", "created_at") VALUES (:orm_param_0, :orm_param_1, :orm_param_2, :orm_param_3, :orm_param_4, :orm_param_5, :orm_param_6)",
+}
+`;
+
+exports[`IdempotencyKeyRepository inserts a key and finds it by key 2`] = `
+{
+  "queryParameters": {
+    "key": "key-1",
+  },
+  "queryString": "SELECT "idempotency_key"."key" AS "idempotency_key_key", "idempotency_key"."url" AS "idempotency_key_url", "idempotency_key"."request_hash" AS "idempotency_key_request_hash", "idempotency_key"."response" AS "idempotency_key_response", "idempotency_key"."status_code" AS "idempotency_key_status_code", "idempotency_key"."expires_at" AS "idempotency_key_expires_at", "idempotency_key"."created_at" AS "idempotency_key_created_at" FROM "idempotency_keys" "idempotency_key" WHERE "idempotency_key"."key" = :key",
+}
+`;
+
+exports[`IdempotencyKeyRepository lists keys up to the limit 1`] = `
+{
+  "queryParameters": {},
+  "queryString": "SELECT "idempotency_key"."key" AS "idempotency_key_key", "idempotency_key"."url" AS "idempotency_key_url", "idempotency_key"."request_hash" AS "idempotency_key_request_hash", "idempotency_key"."response" AS "idempotency_key_response", "idempotency_key"."status_code" AS "idempotency_key_status_code", "idempotency_key"."expires_at" AS "idempotency_key_expires_at", "idempotency_key"."created_at" AS "idempotency_key_created_at" FROM "idempotency_keys" "idempotency_key" LIMIT 2",
+}
+`;
