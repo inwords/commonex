@@ -1,15 +1,15 @@
-import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-service/relational-data-service';
-
 import {appDbConfig} from '#frameworks/relational-data-service/postgres/config';
 import {RelationalDataService} from '#frameworks/relational-data-service/postgres/relational-data-service';
 
-import {TestCase, prepareInitRelationalState} from '../../__tests__/test-helpers';
+import {truncateAllTables} from '#test-support/db';
+import {TestCase, prepareInitRelationalState} from '#test-support/relational-state';
+
 import {GetCurrencyRateUseCase} from '../get-currency-rate.usecase';
 
 type GetCurrencyRateTestCase = TestCase<GetCurrencyRateUseCase>;
 
 describe('GetCurrencyRateUseCase', () => {
-  let relationalDataService: RelationalDataServiceAbstract;
+  let relationalDataService: RelationalDataService;
   let useCase: GetCurrencyRateUseCase;
 
   beforeAll(async () => {
@@ -28,7 +28,7 @@ describe('GetCurrencyRateUseCase', () => {
   });
 
   beforeEach(async () => {
-    await relationalDataService.flush();
+    await truncateAllTables(relationalDataService.dataSource);
   });
 
   const testCases: GetCurrencyRateTestCase[] = [

@@ -1,7 +1,6 @@
 import {Result, error, success} from '#packages/result';
 
 import {EventServiceAbstract} from '#domain/abstracts/event-service/event-service';
-import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-service/relational-data-service';
 import {ExpenseType} from '#domain/entities/expense.entity';
 import {EventDeletedError, EventNotFoundError} from '#domain/errors/errors';
 
@@ -9,7 +8,9 @@ import {EventService} from '#frameworks/event-service/event-service';
 import {appDbConfig} from '#frameworks/relational-data-service/postgres/config';
 import {RelationalDataService} from '#frameworks/relational-data-service/postgres/relational-data-service';
 
-import {TestCase, prepareInitRelationalState} from '../../__tests__/test-helpers';
+import {truncateAllTables} from '#test-support/db';
+import {TestCase, prepareInitRelationalState} from '#test-support/relational-state';
+
 import {GetEventExpensesUseCase} from '../get-event-expenses.usecase';
 
 type GetEventExpensesTestCase = TestCase<GetEventExpensesUseCase> & {
@@ -20,7 +21,7 @@ type GetEventExpensesTestCase = TestCase<GetEventExpensesUseCase> & {
 };
 
 describe('GetEventExpensesUseCase', () => {
-  let relationalDataService: RelationalDataServiceAbstract;
+  let relationalDataService: RelationalDataService;
   let useCase: GetEventExpensesUseCase;
   let eventService: EventServiceAbstract;
 
@@ -41,7 +42,7 @@ describe('GetEventExpensesUseCase', () => {
   });
 
   beforeEach(async () => {
-    await relationalDataService.flush();
+    await truncateAllTables(relationalDataService.dataSource);
     jest.clearAllMocks();
   });
 

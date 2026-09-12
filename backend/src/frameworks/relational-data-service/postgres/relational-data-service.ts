@@ -52,15 +52,6 @@ export class RelationalDataService implements RelationalDataServiceAbstract {
     }
   }
 
-  async flush(): Promise<void> {
-    const targetEntities = this.dataSource.entityMetadatas;
-
-    const tableNames = targetEntities.map((t) => t.tableName);
-    const tableNamesJoined = tableNames.join(', ');
-    const truncateSql = `TRUNCATE ${tableNamesJoined} RESTART IDENTITY CASCADE;`;
-    await this.dataSource.query(truncateSql);
-  }
-
   async healthCheck(): Promise<void> {
     if (!this.dataSource.isInitialized) {
       throw new Error('Database is not initialized');

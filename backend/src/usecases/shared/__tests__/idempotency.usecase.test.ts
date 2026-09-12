@@ -1,18 +1,18 @@
 import {createHash} from 'crypto';
 
-import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-service/relational-data-service';
 import {IdempotencyHashMismatchError} from '#domain/errors/errors';
 
+import {appDbConfig} from '#frameworks/relational-data-service/postgres/config';
+import {RelationalDataService} from '#frameworks/relational-data-service/postgres/relational-data-service';
+
+import {truncateAllTables} from '#test-support/db';
 import {
   RelationalState,
   RelationalStateChanges,
   prepareInitRelationalState,
   useFakeTimers,
   validateRelationalStateChanges,
-} from '#usecases/__tests__/test-helpers';
-
-import {appDbConfig} from '#frameworks/relational-data-service/postgres/config';
-import {RelationalDataService} from '#frameworks/relational-data-service/postgres/relational-data-service';
+} from '#test-support/relational-state';
 
 import {IdempotencySharedUseCase} from '../idempotency.usecase';
 
@@ -37,7 +37,7 @@ interface IdempotencyTestCase {
 }
 
 describe('IdempotencySharedUseCase', () => {
-  let relationalDataService: RelationalDataServiceAbstract;
+  let relationalDataService: RelationalDataService;
   let useCase: IdempotencySharedUseCase;
 
   const mockNow = new Date('2026-01-01T00:00:00.000Z');
@@ -61,7 +61,7 @@ describe('IdempotencySharedUseCase', () => {
   });
 
   beforeEach(async () => {
-    await relationalDataService.flush();
+    await truncateAllTables(relationalDataService.dataSource);
     jest.clearAllMocks();
   });
 

@@ -3,6 +3,8 @@ import {ExpenseType} from '#domain/entities/expense.entity';
 import {appDbConfig} from '#frameworks/relational-data-service/postgres/config';
 import {RelationalDataService} from '#frameworks/relational-data-service/postgres/relational-data-service';
 
+import {truncateAllTables} from '#test-support/db';
+
 describe('ExpenseRepository', () => {
   let relationalDataService: RelationalDataService;
 
@@ -13,7 +15,7 @@ describe('ExpenseRepository', () => {
     });
     await relationalDataService.initialize();
     // Очищаем базу данных перед запуском тестов
-    await relationalDataService.flush();
+    await truncateAllTables(relationalDataService.dataSource);
   });
 
   afterAll(async () => {
@@ -21,7 +23,7 @@ describe('ExpenseRepository', () => {
   });
 
   beforeEach(async () => {
-    await relationalDataService.flush();
+    await truncateAllTables(relationalDataService.dataSource);
   });
 
   describe('insert', () => {

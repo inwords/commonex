@@ -7,18 +7,18 @@
   "license": "UNLICENSED",
   "scripts": {
     "build": "nest build",
-    "format": "prettier --write \"{src,scripts}/**/*.ts\"",
-    "format:check": "prettier --check \"{src,scripts}/**/*.ts\"",
+    "format": "prettier --write \"{src,scripts,migrations,test}/**/*.ts\"",
+    "format:check": "prettier --check \"{src,scripts,migrations,test}/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/src/main",
-    "lint": "eslint \"{src,scripts,migrations}/**/*.ts\" --fix",
-    "lint:check": "eslint \"{src,scripts,migrations}/**/*.ts\"",
+    "lint": "eslint \"{src,scripts,migrations,test}/**/*.ts\" --fix",
+    "lint:check": "eslint \"{src,scripts,migrations,test}/**/*.ts\"",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "test": "jest --runInBand",
+    "test": "jest --runInBand --ci",
     "test:watch": "jest --watch --runInBand",
-    "test:cov": "jest --coverage --runInBand",
+    "test:cov": "jest --coverage --runInBand --ci",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "db:drop": "npx typeorm schema:drop -d datasource.js",
@@ -86,19 +86,23 @@
     "fastify": "$fastify"
   },
   "jest": {
-    "moduleFileExtensions": [
-      "js",
-      "json",
-      "ts"
-    ],
+    "moduleFileExtensions": ["js", "json", "ts"],
     "rootDir": "src",
-    "testRegex": ".(test|spec|e2e).ts$",
-    "transform": {
-      "^.+\\.(t|j)s$": "ts-jest"
-    },
+    "testRegex": "\\.(test|spec)\\.ts$",
+    "transform": {"^.+\\.(t|j)s$": "ts-jest"},
     "collectCoverageFrom": [
-      "**/*.(t|j)s"
+      "**/*.ts",
+      "!**/__tests__/**",
+      "!**/*.spec.ts",
+      "!**/*.test.ts",
+      "!**/index.ts",
+      "!main.ts",
+      "!otel.ts",
+      "!test-support/**"
     ],
+    "coverageReporters": ["text-summary", "lcov"],
+    "restoreMocks": true,
+    "clearMocks": true,
     "testTimeout": 20000,
     "coverageDirectory": "../coverage",
     "testEnvironment": "node",
@@ -107,7 +111,8 @@
       "#domain/(.*)": "<rootDir>/domain/$1",
       "#usecases/(.*)": "<rootDir>/usecases/$1",
       "#frameworks/(.*)": "<rootDir>/frameworks/$1",
-      "#packages/(.*)": "<rootDir>/packages/$1"
+      "#packages/(.*)": "<rootDir>/packages/$1",
+      "#test-support/(.*)": "<rootDir>/test-support/$1"
     }
   }
 }

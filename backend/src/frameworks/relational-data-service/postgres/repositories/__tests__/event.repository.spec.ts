@@ -7,6 +7,8 @@ import {EventOperationConflictError} from '#domain/errors/errors';
 import {appDbConfig} from '#frameworks/relational-data-service/postgres/config';
 import {RelationalDataService} from '#frameworks/relational-data-service/postgres/relational-data-service';
 
+import {truncateAllTables} from '#test-support/db';
+
 describe('EventRepository', () => {
   let relationalDataService: RelationalDataService;
 
@@ -17,7 +19,7 @@ describe('EventRepository', () => {
     });
     await relationalDataService.initialize();
     // Очищаем базу данных перед запуском тестов
-    await relationalDataService.flush();
+    await truncateAllTables(relationalDataService.dataSource);
   });
 
   afterAll(async () => {
@@ -25,7 +27,7 @@ describe('EventRepository', () => {
   });
 
   beforeEach(async () => {
-    await relationalDataService.flush();
+    await truncateAllTables(relationalDataService.dataSource);
   });
 
   describe('insert', () => {

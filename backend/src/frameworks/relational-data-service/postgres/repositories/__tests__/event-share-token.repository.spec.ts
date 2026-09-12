@@ -1,7 +1,8 @@
-import {useFakeTimers} from '#usecases/__tests__/test-helpers';
-
 import {appDbConfig} from '#frameworks/relational-data-service/postgres/config';
 import {RelationalDataService} from '#frameworks/relational-data-service/postgres/relational-data-service';
+
+import {truncateAllTables} from '#test-support/db';
+import {useFakeTimers} from '#test-support/relational-state';
 
 describe('EventShareTokenRepository', () => {
   let relationalDataService: RelationalDataService;
@@ -15,7 +16,7 @@ describe('EventShareTokenRepository', () => {
     });
     await relationalDataService.initialize();
     // Очищаем базу данных перед запуском тестов
-    await relationalDataService.flush();
+    await truncateAllTables(relationalDataService.dataSource);
   });
 
   afterAll(async () => {
@@ -24,7 +25,7 @@ describe('EventShareTokenRepository', () => {
   });
 
   beforeEach(async () => {
-    await relationalDataService.flush();
+    await truncateAllTables(relationalDataService.dataSource);
   });
 
   describe('insert', () => {

@@ -1,12 +1,12 @@
 import {HttpService} from '@nestjs/axios';
 
-import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-service/relational-data-service';
-
 import {CurrencyRateService} from '#frameworks/currency-rate-service/currency-rate-service';
 import {appDbConfig} from '#frameworks/relational-data-service/postgres/config';
 import {RelationalDataService} from '#frameworks/relational-data-service/postgres/relational-data-service';
 
-import {TestCase, prepareInitRelationalState, validateRelationalStateChanges} from '../../__tests__/test-helpers';
+import {truncateAllTables} from '#test-support/db';
+import {TestCase, prepareInitRelationalState, validateRelationalStateChanges} from '#test-support/relational-state';
+
 import {FetchAndSaveCurrencyRateSharedUseCase} from '../fetch-and-save-currency-rate.usecase';
 
 type FetchAndSaveCurrencyRateTestCase = TestCase<FetchAndSaveCurrencyRateSharedUseCase> & {
@@ -17,7 +17,7 @@ type FetchAndSaveCurrencyRateTestCase = TestCase<FetchAndSaveCurrencyRateSharedU
 };
 
 describe('FetchAndSaveCurrencyRateSharedUseCase', () => {
-  let relationalDataService: RelationalDataServiceAbstract;
+  let relationalDataService: RelationalDataService;
   let useCase: FetchAndSaveCurrencyRateSharedUseCase;
   let currencyRateService: CurrencyRateService;
   let httpService: HttpService;
@@ -40,7 +40,7 @@ describe('FetchAndSaveCurrencyRateSharedUseCase', () => {
   });
 
   beforeEach(async () => {
-    await relationalDataService.flush();
+    await truncateAllTables(relationalDataService.dataSource);
     jest.clearAllMocks();
   });
 
