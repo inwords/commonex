@@ -35,10 +35,12 @@
 - Full verification for every task, in this order:
 
   ```bash
-  npm run typecheck && npm run lint:check && npm run format:check && npm test && npm run test:e2e
+  npm run typecheck && npm run lint:check && npm run format:check && npm run build && npm test && npm run test:e2e
   ```
 
   `npm run test:e2e` exists from Task 2 onward. Run `npm run format` before `format:check` after writing files.
+  `npm run build` uses `tsconfig.build.json`, which excludes `test/`, `src/test-support/`, `__tests__/` and `*.spec.ts`
+  / `*.test.ts`; anything that imports jest globals must live in one of those locations.
 - Never run jest with `-u` except in the step that creates snapshots for a brand-new spec. Never modify an existing `.snap` entry.
 - Test names are English, start with a verb in third person, and describe the outcome ("returns 304 when the ETag matches").
 - Commit messages follow the existing style: `test(backend): …`, `refactor(backend): …`, `fix(backend): …`, `ci(backend): …`, `docs(backend): …`. Do not add any `Co-Authored-By` trailer.
