@@ -105,10 +105,10 @@
     "coverageReporters": ["text-summary", "lcov"],
     "coverageThreshold": {
       "global": {
-        "statements": 0,
-        "branches": 0,
-        "functions": 0,
-        "lines": 0
+        "statements": 65,
+        "branches": 36,
+        "functions": 75,
+        "lines": 65
       }
     },
     "restoreMocks": true,
