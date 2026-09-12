@@ -895,7 +895,7 @@ describe('HTTP /v2/user', () => {
 });
 ```
 
-Note: `POST /v2/user/event/:id/expenses` has no `@HttpCode`, so Nest returns 201 for a POST. Assert what the server does today; do not change the route.
+Note: `POST /v2/user/event/:id` and `POST /v2/user/event/:id/expenses` originally answered 201 because the handlers had no `@HttpCode`. The product owner approved changing them to 200 to match their `@ApiResponse` (see the spec Scope section), so the assertions expect 200.
 
 - [ ] **Step 4: Write `test/http/user-v3.e2e-spec.ts`**
 
