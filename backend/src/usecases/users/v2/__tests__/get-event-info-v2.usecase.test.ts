@@ -1,4 +1,4 @@
-import {Result, error, success} from '#packages/result';
+import {error, success} from '#packages/result';
 
 import {EventServiceAbstract} from '#domain/abstracts/event-service/event-service';
 import {
@@ -18,13 +18,7 @@ import {RelationalDataService} from '#frameworks/relational-data-service/postgre
 import {truncateAllTables} from '#test-support/db';
 import {TestCase, prepareInitRelationalState, useFakeTimers} from '#test-support/relational-state';
 
-type GetEventInfoV2TestCase = TestCase<GetEventInfoV2UseCase> & {
-  mockEventService?: {
-    isEventExists?: boolean;
-    isEventNotDeleted?: Result<boolean, EventDeletedError>;
-    isValidPinCode?: Result<boolean, InvalidPinCodeError>;
-  };
-};
+type GetEventInfoV2TestCase = TestCase<GetEventInfoV2UseCase>;
 
 describe('GetEventInfoV2UseCase', () => {
   let relationalDataService: RelationalDataService;
@@ -59,7 +53,7 @@ describe('GetEventInfoV2UseCase', () => {
 
   const testCases: GetEventInfoV2TestCase[] = [
     {
-      name: 'должен вернуть информацию о событии с валидным pinCode',
+      name: 'returns the event info with a valid pin code',
       initRelationalState: {
         events: [
           {
@@ -118,14 +112,9 @@ describe('GetEventInfoV2UseCase', () => {
           },
         ],
       }),
-      mockEventService: {
-        isEventExists: true,
-        isEventNotDeleted: success(true),
-        isValidPinCode: success(true),
-      },
     },
     {
-      name: 'должен вернуть информацию о событии с валидным токеном',
+      name: 'returns the event info with a valid token',
       initRelationalState: {
         events: [
           {
@@ -178,25 +167,18 @@ describe('GetEventInfoV2UseCase', () => {
           },
         ],
       }),
-      mockEventService: {
-        isEventExists: true,
-        isEventNotDeleted: success(true),
-      },
     },
     {
-      name: 'должен вернуть ошибку когда события не существует (с pinCode)',
+      name: 'returns EventNotFoundError when the event does not exist (with pin code)',
       initRelationalState: {},
       input: {
         eventId: 'non-existent',
         pinCode: '1234',
       },
       output: error(new EventNotFoundError()),
-      mockEventService: {
-        isEventExists: false,
-      },
     },
     {
-      name: 'должен вернуть ошибку когда событие удалено (с pinCode)',
+      name: 'returns EventDeletedError when the event is deleted (with pin code)',
       initRelationalState: {
         events: [
           {
@@ -215,13 +197,9 @@ describe('GetEventInfoV2UseCase', () => {
         pinCode: '1234',
       },
       output: error(new EventDeletedError()),
-      mockEventService: {
-        isEventExists: true,
-        isEventNotDeleted: error(new EventDeletedError()),
-      },
     },
     {
-      name: 'должен вернуть ошибку когда pin код неверный',
+      name: 'returns InvalidPinCodeError when the pin code is wrong',
       initRelationalState: {
         events: [
           {
@@ -240,14 +218,9 @@ describe('GetEventInfoV2UseCase', () => {
         pinCode: 'wrong',
       },
       output: error(new InvalidPinCodeError()),
-      mockEventService: {
-        isEventExists: true,
-        isEventNotDeleted: success(true),
-        isValidPinCode: error(new InvalidPinCodeError()),
-      },
     },
     {
-      name: 'должен вернуть ошибку когда токен не найден',
+      name: 'returns InvalidTokenError when the token is not found',
       initRelationalState: {
         events: [
           {
@@ -266,13 +239,9 @@ describe('GetEventInfoV2UseCase', () => {
         token: 'invalid-token',
       },
       output: error(new InvalidTokenError()),
-      mockEventService: {
-        isEventExists: true,
-        isEventNotDeleted: success(true),
-      },
     },
     {
-      name: 'должен вернуть ошибку когда токен не совпадает с eventId',
+      name: 'returns InvalidTokenError when the token does not match the eventId',
       initRelationalState: {
         events: [
           {
@@ -299,13 +268,9 @@ describe('GetEventInfoV2UseCase', () => {
         token: 'valid-token-123',
       },
       output: error(new InvalidTokenError()),
-      mockEventService: {
-        isEventExists: true,
-        isEventNotDeleted: success(true),
-      },
     },
     {
-      name: 'должен вернуть ошибку когда токен истек',
+      name: 'returns TokenExpiredError when the token has expired',
       initRelationalState: {
         events: [
           {
@@ -332,25 +297,18 @@ describe('GetEventInfoV2UseCase', () => {
         token: 'expired-token-123',
       },
       output: error(new TokenExpiredError()),
-      mockEventService: {
-        isEventExists: true,
-        isEventNotDeleted: success(true),
-      },
     },
     {
-      name: 'должен вернуть ошибку когда события не существует (с токеном)',
+      name: 'returns EventNotFoundError when the event does not exist (with token)',
       initRelationalState: {},
       input: {
         eventId: 'non-existent',
         token: 'some-token',
       },
       output: error(new EventNotFoundError()),
-      mockEventService: {
-        isEventExists: false,
-      },
     },
     {
-      name: 'должен вернуть ошибку когда событие удалено (с токеном)',
+      name: 'returns EventDeletedError when the event is deleted (with token)',
       initRelationalState: {
         events: [
           {
@@ -377,10 +335,6 @@ describe('GetEventInfoV2UseCase', () => {
         token: 'valid-token-123',
       },
       output: error(new EventDeletedError()),
-      mockEventService: {
-        isEventExists: true,
-        isEventNotDeleted: error(new EventDeletedError()),
-      },
     },
   ];
 
@@ -390,18 +344,6 @@ describe('GetEventInfoV2UseCase', () => {
         rDataService: relationalDataService,
         initState: testCase.initRelationalState,
       });
-
-      if (testCase.mockEventService) {
-        if (testCase.mockEventService.isEventExists !== undefined) {
-          jest.spyOn(eventService, 'isEventExists').mockReturnValue(testCase.mockEventService.isEventExists);
-        }
-        if (testCase.mockEventService.isEventNotDeleted) {
-          jest.spyOn(eventService, 'isEventNotDeleted').mockReturnValue(testCase.mockEventService.isEventNotDeleted);
-        }
-        if (testCase.mockEventService.isValidPinCode) {
-          jest.spyOn(eventService, 'isValidPinCode').mockReturnValue(testCase.mockEventService.isValidPinCode);
-        }
-      }
 
       const result = await useCase.execute(testCase.input);
 
