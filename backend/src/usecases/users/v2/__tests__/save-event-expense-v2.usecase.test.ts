@@ -1,7 +1,6 @@
 import {Result, error, success} from '#packages/result';
 
 import {EventServiceAbstract} from '#domain/abstracts/event-service/event-service';
-import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-service/relational-data-service';
 import {CurrencyCode} from '#domain/entities/currency.entity';
 import {ExpenseType} from '#domain/entities/expense.entity';
 import {
@@ -21,12 +20,13 @@ import {appDbConfig} from '#frameworks/relational-data-service/postgres/config';
 import {RelationalDataService} from '#frameworks/relational-data-service/postgres/relational-data-service';
 import {SupportedCurrencyService} from '#frameworks/supported-currency-service/supported-currency-service';
 
+import {truncateAllTables} from '#test-support/db';
 import {
   TestCase,
   prepareInitRelationalState,
   useFakeTimers,
   validateRelationalStateChanges,
-} from '../../../__tests__/test-helpers';
+} from '#test-support/relational-state';
 
 type SaveEventExpenseV2TestCase = TestCase<SaveEventExpenseV2UseCase> & {
   mockEventService: {
@@ -38,7 +38,7 @@ type SaveEventExpenseV2TestCase = TestCase<SaveEventExpenseV2UseCase> & {
 const SAVE_EXPENSE_V2_URL = '/v2/user/event/event-1/expense';
 
 describe('SaveEventExpenseV2UseCase', () => {
-  let relationalDataService: RelationalDataServiceAbstract;
+  let relationalDataService: RelationalDataService;
   let useCase: SaveEventExpenseV2UseCase;
   let eventService: EventServiceAbstract;
   let idempotencySharedUseCase: IdempotencySharedUseCase;
@@ -71,7 +71,7 @@ describe('SaveEventExpenseV2UseCase', () => {
   });
 
   beforeEach(async () => {
-    await relationalDataService.flush();
+    await truncateAllTables(relationalDataService.dataSource);
     jest.restoreAllMocks();
   });
 

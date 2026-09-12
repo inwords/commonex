@@ -1,6 +1,5 @@
 import {error, success} from '#packages/result';
 
-import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-service/relational-data-service';
 import {CurrencyCode} from '#domain/entities/currency.entity';
 import {CurrencyNotFoundError} from '#domain/errors/errors';
 
@@ -10,7 +9,9 @@ import {appDbConfig} from '#frameworks/relational-data-service/postgres/config';
 import {RelationalDataService} from '#frameworks/relational-data-service/postgres/relational-data-service';
 import {SupportedCurrencyService} from '#frameworks/supported-currency-service/supported-currency-service';
 
-import {TestCase, prepareInitRelationalState, validateRelationalStateChanges} from '../../__tests__/test-helpers';
+import {truncateAllTables} from '#test-support/db';
+import {TestCase, prepareInitRelationalState, validateRelationalStateChanges} from '#test-support/relational-state';
+
 import {SaveEventUseCase} from '../save-event.usecase';
 
 type SaveEventTestCase = TestCase<SaveEventUseCase> & {
@@ -20,7 +21,7 @@ type SaveEventTestCase = TestCase<SaveEventUseCase> & {
 const SAVE_EVENT_URL = '/v1/user/event';
 
 describe('SaveEventUseCase', () => {
-  let relationalDataService: RelationalDataServiceAbstract;
+  let relationalDataService: RelationalDataService;
   let useCase: SaveEventUseCase;
   let idempotencySharedUseCase: IdempotencySharedUseCase;
 
@@ -45,7 +46,7 @@ describe('SaveEventUseCase', () => {
   });
 
   beforeEach(async () => {
-    await relationalDataService.flush();
+    await truncateAllTables(relationalDataService.dataSource);
     jest.restoreAllMocks();
   });
 

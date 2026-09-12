@@ -42,8 +42,9 @@
       "#domain/*": ["./src/domain/*"],
       "#usecases/*": ["./src/usecases/*"],
       "#frameworks/*": ["./src/frameworks/*"],
-      "#packages/*": ["./src/packages/*"]
+      "#packages/*": ["./src/packages/*"],
+      "#test-support/*": ["./src/test-support/*"]
     }
   },
-  "include": ["src", "scripts", "migrations"]
+  "include": ["src", "scripts", "migrations", "test"]
 }

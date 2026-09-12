@@ -79,7 +79,7 @@ module.exports = defineConfig([
     },
   },
   {
-    files: ['**/*.test.ts', '**/*.spec.ts', '**/__tests__/**/*.ts'],
+    files: ['**/*.test.ts', '**/*.spec.ts', '**/__tests__/**/*.ts', 'test/**/*.ts', 'src/test-support/**/*.ts'],
 
     rules: {
       // Jest asymmetric matchers such as expect.any() are typed as any.

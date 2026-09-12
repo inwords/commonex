@@ -1,7 +1,6 @@
 import {getCurrentDateWithoutTimeUTC} from '#packages/date-utils';
 import {error, isSuccess, success} from '#packages/result';
 
-import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-service/relational-data-service';
 import {ICurrencyRate} from '#domain/entities/currency-rate.entity';
 import {CurrencyCode} from '#domain/entities/currency.entity';
 import {CurrencyRateNotFoundError} from '#domain/errors';
@@ -12,7 +11,9 @@ import {appDbConfig} from '#frameworks/relational-data-service/postgres/config';
 import {RelationalDataService} from '#frameworks/relational-data-service/postgres/relational-data-service';
 import {SupportedCurrencyService} from '#frameworks/supported-currency-service/supported-currency-service';
 
-import {TestCase, prepareInitRelationalState} from '../../../__tests__/test-helpers';
+import {truncateAllTables} from '#test-support/db';
+import {TestCase, prepareInitRelationalState} from '#test-support/relational-state';
+
 import {buildCurrenciesV3Version, buildCurrenciesV3WeakEtag} from '../currencies-v3-cache';
 
 jest.mock('#packages/date-utils', () => ({
@@ -24,7 +25,7 @@ type GetCurrenciesV3VersionTestCase = TestCase<GetCurrenciesV3VersionUseCase> & 
 };
 
 describe('GetCurrenciesV3VersionUseCase', () => {
-  let relationalDataService: RelationalDataServiceAbstract;
+  let relationalDataService: RelationalDataService;
   let versionUseCase: GetCurrenciesV3VersionUseCase;
   let fullUseCase: GetAllCurrenciesWithRatesUseCaseV3;
 
@@ -46,7 +47,7 @@ describe('GetCurrenciesV3VersionUseCase', () => {
   });
 
   beforeEach(async () => {
-    await relationalDataService.flush();
+    await truncateAllTables(relationalDataService.dataSource);
     jest.clearAllMocks();
   });
 

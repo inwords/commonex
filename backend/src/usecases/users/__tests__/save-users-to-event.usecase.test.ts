@@ -1,7 +1,6 @@
 import {Result, error, success} from '#packages/result';
 
 import {EventServiceAbstract} from '#domain/abstracts/event-service/event-service';
-import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-service/relational-data-service';
 import {EventDeletedError, EventNotFoundError, InvalidPinCodeError} from '#domain/errors/errors';
 
 import {IdempotencySharedUseCase} from '#usecases/shared/idempotency.usecase';
@@ -10,7 +9,9 @@ import {EventService} from '#frameworks/event-service/event-service';
 import {appDbConfig} from '#frameworks/relational-data-service/postgres/config';
 import {RelationalDataService} from '#frameworks/relational-data-service/postgres/relational-data-service';
 
-import {TestCase, prepareInitRelationalState, validateRelationalStateChanges} from '../../__tests__/test-helpers';
+import {truncateAllTables} from '#test-support/db';
+import {TestCase, prepareInitRelationalState, validateRelationalStateChanges} from '#test-support/relational-state';
+
 import {SaveUsersToEventUseCase} from '../save-users-to-event.usecase';
 
 type SaveUsersToEventTestCase = TestCase<SaveUsersToEventUseCase> & {
@@ -23,7 +24,7 @@ type SaveUsersToEventTestCase = TestCase<SaveUsersToEventUseCase> & {
 const SAVE_USERS_URL = '/v1/user/event/event-1/users';
 
 describe('SaveUsersToEventUseCase', () => {
-  let relationalDataService: RelationalDataServiceAbstract;
+  let relationalDataService: RelationalDataService;
   let useCase: SaveUsersToEventUseCase;
   let eventService: EventServiceAbstract;
   let idempotencySharedUseCase: IdempotencySharedUseCase;
@@ -46,7 +47,7 @@ describe('SaveUsersToEventUseCase', () => {
   });
 
   beforeEach(async () => {
-    await relationalDataService.flush();
+    await truncateAllTables(relationalDataService.dataSource);
     jest.restoreAllMocks();
   });
 

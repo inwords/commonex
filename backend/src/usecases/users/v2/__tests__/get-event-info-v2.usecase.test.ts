@@ -1,7 +1,6 @@
 import {Result, error, success} from '#packages/result';
 
 import {EventServiceAbstract} from '#domain/abstracts/event-service/event-service';
-import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-service/relational-data-service';
 import {
   EventDeletedError,
   EventNotFoundError,
@@ -16,7 +15,8 @@ import {EventService} from '#frameworks/event-service/event-service';
 import {appDbConfig} from '#frameworks/relational-data-service/postgres/config';
 import {RelationalDataService} from '#frameworks/relational-data-service/postgres/relational-data-service';
 
-import {TestCase, prepareInitRelationalState, useFakeTimers} from '../../../__tests__/test-helpers';
+import {truncateAllTables} from '#test-support/db';
+import {TestCase, prepareInitRelationalState, useFakeTimers} from '#test-support/relational-state';
 
 type GetEventInfoV2TestCase = TestCase<GetEventInfoV2UseCase> & {
   mockEventService?: {
@@ -27,7 +27,7 @@ type GetEventInfoV2TestCase = TestCase<GetEventInfoV2UseCase> & {
 };
 
 describe('GetEventInfoV2UseCase', () => {
-  let relationalDataService: RelationalDataServiceAbstract;
+  let relationalDataService: RelationalDataService;
   let useCase: GetEventInfoV2UseCase;
   let eventService: EventServiceAbstract;
 
@@ -53,7 +53,7 @@ describe('GetEventInfoV2UseCase', () => {
   });
 
   beforeEach(async () => {
-    await relationalDataService.flush();
+    await truncateAllTables(relationalDataService.dataSource);
     jest.clearAllMocks();
   });
 

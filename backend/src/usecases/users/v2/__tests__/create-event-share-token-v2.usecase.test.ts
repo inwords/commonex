@@ -1,19 +1,20 @@
 import {Result, error, success} from '#packages/result';
 
 import {EventServiceAbstract} from '#domain/abstracts/event-service/event-service';
-import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-service/relational-data-service';
 import {EventDeletedError, EventNotFoundError, InvalidPinCodeError} from '#domain/errors/errors';
 
 import {EventService} from '#frameworks/event-service/event-service';
 import {appDbConfig} from '#frameworks/relational-data-service/postgres/config';
 import {RelationalDataService} from '#frameworks/relational-data-service/postgres/relational-data-service';
 
+import {truncateAllTables} from '#test-support/db';
 import {
   TestCase,
   prepareInitRelationalState,
   useFakeTimers,
   validateRelationalStateChanges,
-} from '../../../__tests__/test-helpers';
+} from '#test-support/relational-state';
+
 import {CreateEventShareTokenV2UseCase} from '../create-event-share-token-v2.usecase';
 
 type CreateEventShareTokenV2TestCase = TestCase<CreateEventShareTokenV2UseCase> & {
@@ -23,7 +24,7 @@ type CreateEventShareTokenV2TestCase = TestCase<CreateEventShareTokenV2UseCase> 
 };
 
 describe('CreateEventShareTokenV2UseCase', () => {
-  let relationalDataService: RelationalDataServiceAbstract;
+  let relationalDataService: RelationalDataService;
   let useCase: CreateEventShareTokenV2UseCase;
   let eventService: EventServiceAbstract;
 
@@ -50,7 +51,7 @@ describe('CreateEventShareTokenV2UseCase', () => {
   });
 
   beforeEach(async () => {
-    await relationalDataService.flush();
+    await truncateAllTables(relationalDataService.dataSource);
     jest.clearAllMocks();
   });
 

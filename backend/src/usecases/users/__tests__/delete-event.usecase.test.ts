@@ -1,19 +1,20 @@
 import {Result, error, success} from '#packages/result';
 
 import {EventServiceAbstract} from '#domain/abstracts/event-service/event-service';
-import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-service/relational-data-service';
 import {EventDeletedError, EventNotFoundError, InvalidPinCodeError} from '#domain/errors/errors';
 
 import {EventService} from '#frameworks/event-service/event-service';
 import {appDbConfig} from '#frameworks/relational-data-service/postgres/config';
 import {RelationalDataService} from '#frameworks/relational-data-service/postgres/relational-data-service';
 
+import {truncateAllTables} from '#test-support/db';
 import {
   TestCase,
   prepareInitRelationalState,
   useFakeTimers,
   validateRelationalStateChanges,
-} from '../../__tests__/test-helpers';
+} from '#test-support/relational-state';
+
 import {DeleteEventUseCase} from '../delete-event.usecase';
 
 type DeleteEventTestCase = TestCase<DeleteEventUseCase> & {
@@ -23,7 +24,7 @@ type DeleteEventTestCase = TestCase<DeleteEventUseCase> & {
 };
 
 describe('DeleteEventUseCase', () => {
-  let relationalDataService: RelationalDataServiceAbstract;
+  let relationalDataService: RelationalDataService;
   let useCase: DeleteEventUseCase;
   let eventService: EventServiceAbstract;
 
@@ -49,7 +50,7 @@ describe('DeleteEventUseCase', () => {
   });
 
   beforeEach(async () => {
-    await relationalDataService.flush();
+    await truncateAllTables(relationalDataService.dataSource);
     jest.restoreAllMocks();
   });
 

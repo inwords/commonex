@@ -7,7 +7,7 @@ import {IExpense} from '#domain/entities/expense.entity';
 import {IIdempotencyKey} from '#domain/entities/idempotency-key.entity';
 import {IUserInfo} from '#domain/entities/user-info.entity';
 
-import {type StateChanges, applyChanges} from './utils-apply-changes-to-state';
+import {type StateChanges, applyChanges} from './apply-state-changes';
 
 interface RelationalEntities {
   events: IEvent;
@@ -156,9 +156,7 @@ export const validateFinalRelationalState = async ({
         expect(result).toHaveLength(expected.length);
         expect(result).toEqual(expect.arrayContaining(expected.map((x) => expect.objectContaining(x) as unknown)));
       } catch (error) {
-        throw new Error(`Ошибка при проверке finalRelationalState: ${key}\n\n${(error as Error).message}`, {
-          cause: error,
-        });
+        throw new Error(`Final relational state mismatch for "${key}"\n\n${(error as Error).message}`, {cause: error});
       }
     }),
   );

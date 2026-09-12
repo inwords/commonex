@@ -24,6 +24,5 @@ export interface IRelationalDataService {
     ) => Promise<T>);
   /* eslint-enable @typescript-eslint/no-unnecessary-type-parameters */
   destroy: () => Promise<void>;
-  flush: () => unknown;
   healthCheck: () => Promise<void>;
 }
