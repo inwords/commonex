@@ -2,6 +2,8 @@ import {createHash} from 'crypto';
 
 import {Injectable} from '@nestjs/common';
 
+import {Result, isError} from '#packages/result';
+
 import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-service/relational-data-service';
 import {IdempotencyHashMismatchError} from '#domain/errors/errors';
 import {IdempotencyKeyValueObject} from '#domain/value-objects/idempotency-key.value-object';
@@ -20,7 +22,7 @@ export interface IdempotentInput {
 export class IdempotencySharedUseCase {
   constructor(private readonly rDataService: RelationalDataServiceAbstract) {}
 
-  async execute<TResult>(
+  async execute<TResult extends Result<unknown, unknown>>(
     key: string | undefined,
     url: string,
     body: object,
@@ -44,7 +46,7 @@ export class IdempotencySharedUseCase {
 
     // Failed results are not replayed: storing one would hand the retry a plain JSONB copy of the domain error, which
     // no longer matches `instanceof` in the error filters, so the caller would see a 500 instead of the business error.
-    if (this.isFailedResult(result)) {
+    if (isError(result)) {
       return result;
     }
 
@@ -52,17 +54,13 @@ export class IdempotencySharedUseCase {
       key,
       url,
       requestHash,
-      response: result as object,
+      response: result,
       statusCode: 200,
     }).value;
 
     await this.rDataService.idempotencyKey.insert(record);
 
     return result;
-  }
-
-  private isFailedResult(result: unknown): boolean {
-    return typeof result === 'object' && result !== null && 'result' in result && result.result === 'error';
   }
 
   private computeHash(url: string, body: object): string {
