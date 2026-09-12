@@ -12,7 +12,7 @@ describe('CurrencyRateRepository', () => {
       showQueryDetails: true,
     });
     await relationalDataService.initialize();
-    // Очищаем базу данных перед запуском тестов
+    // Clear the database before running the tests
     await truncateAllTables(relationalDataService.dataSource);
   });
 
@@ -85,7 +85,7 @@ describe('CurrencyRateRepository', () => {
 
   describe('findByDate', () => {
     it('should find currency rate by date', async () => {
-      // Сначала вставляем тестовые данные
+      // First insert test data
       const currencyRate = {
         date: '2023-01-01',
         rate: {
@@ -99,7 +99,7 @@ describe('CurrencyRateRepository', () => {
 
       await relationalDataService.currencyRate.insert(currencyRate);
 
-      // Теперь ищем эти данные
+      // Now look up that data
       const [result, queryDetails] = await relationalDataService.currencyRate.findByDate('2023-01-01');
 
       expect(result).toMatchObject(currencyRate);

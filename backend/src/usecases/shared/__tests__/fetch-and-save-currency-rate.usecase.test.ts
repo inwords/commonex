@@ -46,7 +46,7 @@ describe('FetchAndSaveCurrencyRateSharedUseCase', () => {
 
   const testCases: FetchAndSaveCurrencyRateTestCase[] = [
     {
-      name: 'должен успешно получить и сохранить курс валюты',
+      name: 'fetches and saves the currency rate',
       initRelationalState: {},
       input: {
         date: '2026-01-01',
@@ -86,7 +86,7 @@ describe('FetchAndSaveCurrencyRateSharedUseCase', () => {
       },
     },
     {
-      name: 'должен выбросить ошибку когда не удалось получить курсы валют',
+      name: 'throws when fetching the currency rates fails',
       initRelationalState: {},
       input: {
         date: '2026-01-01',

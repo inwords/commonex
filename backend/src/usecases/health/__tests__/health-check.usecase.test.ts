@@ -30,7 +30,7 @@ describe('HealthCheckUseCase', () => {
 
   const testCases: HealthCheckTestCase[] = [
     {
-      name: 'должен вернуть статус up когда база данных работает',
+      name: 'returns status up when the database is reachable',
       initRelationalState: {},
       input: undefined,
       output: {database: {status: 'up'}},

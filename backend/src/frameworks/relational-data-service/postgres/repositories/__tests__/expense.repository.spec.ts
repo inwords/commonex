@@ -14,7 +14,7 @@ describe('ExpenseRepository', () => {
       showQueryDetails: true,
     });
     await relationalDataService.initialize();
-    // Очищаем базу данных перед запуском тестов
+    // Clear the database before running the tests
     await truncateAllTables(relationalDataService.dataSource);
   });
 
@@ -62,7 +62,7 @@ describe('ExpenseRepository', () => {
 
   describe('findByEventId', () => {
     it('should find expenses by event id', async () => {
-      // Сначала вставляем тестовые данные
+      // First insert test data
       const expense = {
         id: 'expense-1',
         description: 'Dinner',
@@ -89,7 +89,7 @@ describe('ExpenseRepository', () => {
 
       await relationalDataService.expense.insert(expense);
 
-      // Теперь ищем расходы по event id
+      // Now look up expenses by event id
       const [result, queryDetails] = await relationalDataService.expense.findByEventId('event-1');
 
       expect(result).toMatchObject([expense]);

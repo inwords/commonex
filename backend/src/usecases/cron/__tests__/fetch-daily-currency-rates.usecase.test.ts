@@ -57,7 +57,7 @@ describe('FetchDailyCurrencyRatesUseCase', () => {
 
   const testCases: FetchDailyCurrencyRatesTestCase[] = [
     {
-      name: 'должен успешно получить курсы валют на текущую дату',
+      name: 'fetches currency rates for the current date',
       initRelationalState: {},
       input: undefined,
       output: undefined,

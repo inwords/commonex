@@ -14,7 +14,7 @@ describe('CurrencyRepository', () => {
       showQueryDetails: true,
     });
     await relationalDataService.initialize();
-    // Очищаем базу данных перед запуском тестов
+    // Clear the database before running the tests
     await truncateAllTables(relationalDataService.dataSource);
   });
 
@@ -68,7 +68,7 @@ describe('CurrencyRepository', () => {
 
   describe('findById', () => {
     it('should find currency by id', async () => {
-      // Сначала вставляем тестовые данные
+      // First insert test data
       const currency = {
         id: 'currency-1',
         code: CurrencyCode.EUR,
@@ -78,7 +78,7 @@ describe('CurrencyRepository', () => {
 
       await relationalDataService.currency.insert(currency);
 
-      // Теперь ищем эти данные
+      // Now look up that data
       const [result, queryDetails] = await relationalDataService.currency.findById('currency-1');
 
       expect(result).toMatchObject(currency);
@@ -95,7 +95,7 @@ describe('CurrencyRepository', () => {
 
   describe('findAll', () => {
     it('should find all currencies with limit', async () => {
-      // Сначала вставляем тестовые данные
+      // First insert test data
       const currencies = [
         {
           id: 'currency-1',
@@ -107,7 +107,7 @@ describe('CurrencyRepository', () => {
 
       await relationalDataService.currency.insert(currencies);
 
-      // Теперь получаем все валюты с лимитом
+      // Now fetch all currencies with a limit
       const [result, queryDetails] = await relationalDataService.currency.findAll({limit: 1});
 
       expect(result).toMatchObject(currencies);

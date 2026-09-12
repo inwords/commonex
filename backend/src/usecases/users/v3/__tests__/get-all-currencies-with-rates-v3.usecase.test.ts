@@ -91,7 +91,7 @@ describe('GetAllCurrenciesWithRatesUseCaseV3', () => {
 
   const testCases: GetAllCurrenciesWithRatesTestCase[] = [
     {
-      name: 'должен успешно вернуть только поддерживаемые валюты и курсы обмена',
+      name: 'returns only supported currencies and their exchange rates',
       initRelationalState: {
         currencies: [...shuffledTestCurrencies, unsupportedCurrency],
         currencyRates: [testCurrencyRate],
@@ -135,7 +135,7 @@ describe('GetAllCurrenciesWithRatesUseCaseV3', () => {
       expectedCurrenciesCount: testCurrencies.length,
     },
     {
-      name: 'должен вернуть ошибку если курс на текущую дату не найден',
+      name: 'returns CurrencyRateNotFoundError when no rate exists for the current date',
       initRelationalState: {
         currencies: testCurrencies,
         currencyRates: [],
@@ -145,7 +145,7 @@ describe('GetAllCurrenciesWithRatesUseCaseV3', () => {
       mockDate: '2026-01-06',
     },
     {
-      name: 'должен работать когда нет валют в базе данных',
+      name: 'works when there are no currencies in the database',
       initRelationalState: {
         currencies: [],
         currencyRates: [testCurrencyRate],
@@ -169,7 +169,7 @@ describe('GetAllCurrenciesWithRatesUseCaseV3', () => {
       expectedCurrenciesCount: 0,
     },
     {
-      name: 'должен вернуть пустой объект курсов если в currencyRate пустой объект rate',
+      name: 'returns an empty rate object when currencyRate has an empty rate object',
       initRelationalState: {
         currencies: testCurrencies,
         currencyRates: [
