@@ -121,9 +121,13 @@ npm run db:migrate:new
 ## Testing
 
 ```bash
-npm run test
+npm run test        # unit and DB-backed tests under src/
+npm run test:e2e    # application tests under test/ (HTTP via Fastify inject, gRPC via a real client)
 npm run test:cov
 ```
+
+Application tests boot `AppModule` through `src/app.factory.ts`, the same code `src/main.ts` uses, so pipes, filters and
+Swagger are configured identically in tests and production. Shared test helpers live in `src/test-support/`.
 
 Tests need a live PostgreSQL. `docker-compose.test.yml` starts one that reuses the production `db` service definition
 from `infra/docker-compose-prod.yml` and reads credentials from `.env` (`cp example.env .env`):

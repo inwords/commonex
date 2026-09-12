@@ -15,6 +15,27 @@ import {CURRENCIES_LIST} from '../constants';
 import {appDbConfig} from './relational-data-service/postgres/config';
 import {RelationalDataService} from './relational-data-service/postgres/relational-data-service';
 
+export const initOrUpdateCurrencies = async (rDataService: RelationalDataServiceAbstract): Promise<void> => {
+  await rDataService.transaction('REPEATABLE READ', async (ctx) => {
+    const [currencies] = await rDataService.currency.findAllSupported(undefined, {ctx});
+
+    if (!currencies.length) {
+      const currencies = CURRENCIES_LIST.map((currency) => new CurrencyValueObject(currency).value);
+
+      await rDataService.currency.insert(currencies, {ctx});
+    } else if (currencies.length !== CURRENCIES_LIST.length) {
+      const existingCodes = new Set(currencies.map((c) => c.code));
+      const missingCurrencies = CURRENCIES_LIST.filter((c) => !existingCodes.has(c.code)).map(
+        (c) => new CurrencyValueObject(c).value,
+      );
+
+      if (missingCurrencies.length > 0) {
+        await rDataService.currency.insert(missingCurrencies, {ctx});
+      }
+    }
+  });
+};
+
 export const providers: Provider[] = [
   {
     provide: RelationalDataServiceAbstract,
@@ -61,24 +82,3 @@ export class FrameworksLayer implements OnApplicationShutdown {
     await this.relationalDataService.destroy();
   }
 }
-
-const initOrUpdateCurrencies = async (rDataService: RelationalDataServiceAbstract): Promise<void> => {
-  await rDataService.transaction('REPEATABLE READ', async (ctx) => {
-    const [currencies] = await rDataService.currency.findAllSupported(undefined, {ctx});
-
-    if (!currencies.length) {
-      const currencies = CURRENCIES_LIST.map((currency) => new CurrencyValueObject(currency).value);
-
-      await rDataService.currency.insert(currencies, {ctx});
-    } else if (currencies.length !== CURRENCIES_LIST.length) {
-      const existingCodes = new Set(currencies.map((c) => c.code));
-      const missingCurrencies = CURRENCIES_LIST.filter((c) => !existingCodes.has(c.code)).map(
-        (c) => new CurrencyValueObject(c).value,
-      );
-
-      if (missingCurrencies.length > 0) {
-        await rDataService.currency.insert(missingCurrencies, {ctx});
-      }
-    }
-  });
-};

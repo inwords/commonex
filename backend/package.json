@@ -20,7 +20,7 @@
     "test:watch": "jest --watch --runInBand",
     "test:cov": "jest --coverage --runInBand --ci",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "test:e2e": "jest --config ./test/jest-e2e.json --runInBand --ci",
     "db:drop": "npx typeorm schema:drop -d datasource.js",
     "db:migrate": "ts-node --transpile-only scripts/migrate.ts",
     "db:migrate:docker_prod": "node dist/scripts/migrate.js",
@@ -64,6 +64,7 @@
   "devDependencies": {
     "@nestjs/cli": "11.0.24",
     "@nestjs/schematics": "11.1.0",
+    "@nestjs/testing": "11.2.1",
     "@trivago/prettier-plugin-sort-imports": "6.0.2",
     "@types/async-retry": "1.4.9",
     "@types/jest": "30.0.0",

@@ -1,0 +1,19 @@
+{
+  "moduleFileExtensions": ["js", "json", "ts"],
+  "rootDir": "..",
+  "roots": ["<rootDir>/test"],
+  "testRegex": "\\.e2e-spec\\.ts$",
+  "transform": {"^.+\\.ts$": "ts-jest"},
+  "testEnvironment": "node",
+  "testTimeout": 30000,
+  "restoreMocks": true,
+  "clearMocks": true,
+  "moduleNameMapper": {
+    "#api/(.*)": "<rootDir>/src/api/$1",
+    "#domain/(.*)": "<rootDir>/src/domain/$1",
+    "#usecases/(.*)": "<rootDir>/src/usecases/$1",
+    "#frameworks/(.*)": "<rootDir>/src/frameworks/$1",
+    "#packages/(.*)": "<rootDir>/src/packages/$1",
+    "#test-support/(.*)": "<rootDir>/src/test-support/$1"
+  }
+}
