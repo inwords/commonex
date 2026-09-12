@@ -43,6 +43,7 @@ export class UserV2Controller {
   ) {}
 
   @Post(UserV2Routes.getEventInfo)
+  @HttpCode(HttpStatus.OK)
   @ApiResponse({status: HttpStatus.OK, type: GetEventInfoResponseDto})
   async getEventInfo(
     @Param() {eventId}: GetEventInfoParamsDto,
@@ -76,6 +77,7 @@ export class UserV2Controller {
   }
 
   @Post(UserV2Routes.getAllEventExpenses)
+  @HttpCode(HttpStatus.OK)
   @ApiResponse({status: HttpStatus.OK, type: [GetEventExpensesResponseDto]})
   async getAllEventExpenses(
     @Param() {eventId}: GetEventExpensesParamsDto,
