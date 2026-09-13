@@ -63,6 +63,10 @@ export const createTypeormConfigDefault = (config: DbConfig): DataSourceOptions 
     password: config.password,
     entities: allEntities,
     migrations: [join(__dirname, '../../../../migrations/**/*.{ts,js}')],
+    invalidWhereValuesBehavior: {
+      null: 'throw',
+      undefined: 'throw',
+    },
     extra: {
       max: config.poolSize,
       min: config.poolMinSize,
