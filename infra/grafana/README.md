@@ -13,7 +13,8 @@ Sync. The connection `repository-1e0ed32` tracks the `main` branch of
 - `provisioning/datasources/`: host-managed PostgreSQL provisioning, mounted
   read-only at `/etc/grafana/provisioning/datasources`. Preserve `postgres-ds`.
 - `grafana_data`: persistent Grafana database, GitHub App connection, credentials,
-  manually configured data sources, alert rules, and other instance state.
+  manually configured data sources, and other instance state. Certificate alerts
+  are DB-owned; see [certificate monitoring](../certificates/monitoring/README.md).
 
 The connection authenticates with a GitHub App. Keep its private key outside Git.
 Git Sync registers a repository webhook using the public Grafana root URL; no
@@ -26,9 +27,8 @@ dashboard changes still trigger normal application validation and deployment.
 Dashboard resources are fetched by Grafana and are not copied onto the host by
 the [application deployment](../deploy/README.md).
 
-Git Sync does not manage data sources, alert rules, or library panels. Keep the
-`CommonEx operations` folder and its certificate alerts under their existing
-management. Moving dashboards does not require moving or deleting that folder.
+Git Sync covers dashboards and folders only. Data sources, alert rules, and
+library panels stay outside Git Sync.
 
 ## Migration and recovery
 
