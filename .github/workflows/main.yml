@@ -18,6 +18,7 @@ on:
       - 'web/**'
       - 'infra/**'
       - '!infra/certificates/**'
+      - '!infra/grafana/sync/**'
       - '.github/workflows/**'
       - '!.github/workflows/certificates.yml'
   pull_request:
@@ -28,6 +29,7 @@ on:
       - 'web/**'
       - 'infra/**'
       - '!infra/certificates/**'
+      - '!infra/grafana/sync/**'
       - '.github/workflows/**'
       - '!.github/workflows/certificates.yml'
 
@@ -49,12 +51,15 @@ jobs:
         id: filter
         uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
         with:
+          predicate-quantifier: every
           filters: |
             backend: 'backend/**'
             frontend: 'web/**'
             otel-collector: 'infra/otel-collector/**'
             nginx: 'infra/nginx/**'
-            infra: 'infra/**'
+            infra:
+              - 'infra/**'
+              - '!infra/grafana/sync/**'
 
       - name: Prepare matrix JSON
         id: matrix-json
