@@ -9,7 +9,7 @@ COMPOSE_FILE = REPOSITORY_ROOT / "infra" / "docker-compose-prod.yml"
 
 
 class ProductionComposeTests(unittest.TestCase):
-    def test_default_stack_excludes_manual_certbot_service(self) -> None:
+    def test_stack_has_no_certbot_service_in_any_profile(self) -> None:
         environment = os.environ.copy()
         environment.update(
             {
@@ -38,6 +38,8 @@ class ProductionComposeTests(unittest.TestCase):
                 "compose",
                 "-f",
                 str(COMPOSE_FILE),
+                "--profile",
+                "*",
                 "config",
                 "--services",
             ],

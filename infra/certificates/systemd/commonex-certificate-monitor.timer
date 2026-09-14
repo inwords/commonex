@@ -1,0 +1,11 @@
+[Unit]
+Description=Check CommonEx certificate health hourly
+
+[Timer]
+OnBootSec=5min
+OnCalendar=hourly
+RandomizedDelaySec=5min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

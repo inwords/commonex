@@ -17,7 +17,9 @@ on:
       - 'backend/**'
       - 'web/**'
       - 'infra/**'
+      - '!infra/certificates/**'
       - '.github/workflows/**'
+      - '!.github/workflows/certificates.yml'
   pull_request:
     branches:
       - main
@@ -25,7 +27,9 @@ on:
       - 'backend/**'
       - 'web/**'
       - 'infra/**'
+      - '!infra/certificates/**'
       - '.github/workflows/**'
+      - '!.github/workflows/certificates.yml'
 
 jobs:
   containers_matrix_prep:
@@ -81,14 +85,14 @@ jobs:
           ]
           ' services.json)
 
-          echo "matrix={\"service\":$matrix}" >> $GITHUB_OUTPUT
-          echo "changed-services=$(echo "$matrix" | jq -c '[.[].name]')" >> $GITHUB_OUTPUT
+          echo "matrix={\"service\":$matrix}" >> "$GITHUB_OUTPUT"
+          echo "changed-services=$(echo "$matrix" | jq -c '[.[].name]')" >> "$GITHUB_OUTPUT"
 
           # Check if matrix has any services
-          if [ "$(echo $matrix | jq 'length')" -gt 0 ]; then
-            echo "has-services=true" >> $GITHUB_OUTPUT
+          if [ "$(echo "$matrix" | jq 'length')" -gt 0 ]; then
+            echo "has-services=true" >> "$GITHUB_OUTPUT"
           else
-            echo "has-services=false" >> $GITHUB_OUTPUT
+            echo "has-services=false" >> "$GITHUB_OUTPUT"
           fi
 
   build-and-push:
@@ -209,21 +213,10 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Set up SSH key
-        run: |
-          mkdir -p ~/.ssh
-          install -m 600 /dev/null ~/.ssh/id_ed25519
-          printf '%s\n' "${{ secrets.SSH_DEPLOY_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
-          install -m 600 infra/deploy/known_hosts ~/.ssh/known_hosts
-          printf '%s\n' \
-            'Host commonex-production' \
-            '    HostName ${{ secrets.SERVER_IP }}' \
-            '    User commonex-deploy' \
-            '    IdentityFile ~/.ssh/id_ed25519' \
-            '    IdentitiesOnly yes' \
-            '    HostKeyAlias commonex-production' \
-            '    StrictHostKeyChecking yes' \
-            '    UserKnownHostsFile ~/.ssh/known_hosts' > ~/.ssh/config
-          chmod 600 ~/.ssh/config
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.SSH_DEPLOY_PRIVATE_KEY }}
+          SERVER_IP: ${{ secrets.SERVER_IP }}
+        run: python3 infra/deploy/configure_ssh.py application
 
       - name: Materialize release secrets
         run: |
@@ -269,21 +262,10 @@ jobs:
           ref: main
 
       - name: Set up SSH key
-        run: |
-          mkdir -p ~/.ssh
-          install -m 600 /dev/null ~/.ssh/id_ed25519
-          printf '%s\n' "${{ secrets.SSH_DEPLOY_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
-          install -m 600 infra/deploy/known_hosts ~/.ssh/known_hosts
-          printf '%s\n' \
-            'Host commonex-production' \
-            '    HostName ${{ secrets.SERVER_IP }}' \
-            '    User commonex-deploy' \
-            '    IdentityFile ~/.ssh/id_ed25519' \
-            '    IdentitiesOnly yes' \
-            '    HostKeyAlias commonex-production' \
-            '    StrictHostKeyChecking yes' \
-            '    UserKnownHostsFile ~/.ssh/known_hosts' > ~/.ssh/config
-          chmod 600 ~/.ssh/config
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.SSH_DEPLOY_PRIVATE_KEY }}
+          SERVER_IP: ${{ secrets.SERVER_IP }}
+        run: python3 infra/deploy/configure_ssh.py application
 
       - name: Activate and verify retained release
         env:

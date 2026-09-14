@@ -1,0 +1,10 @@
+[Unit]
+Description=Check CommonEx certificate renewal twice daily
+
+[Timer]
+OnCalendar=*-*-* 00,12:00:00
+RandomizedDelaySec=30min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

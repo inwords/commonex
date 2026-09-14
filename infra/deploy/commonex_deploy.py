@@ -11,7 +11,6 @@ import shutil
 import stat
 import subprocess
 import sys
-import tarfile
 import tempfile
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -20,6 +19,7 @@ from pathlib import Path
 from typing import BinaryIO, Iterator, Optional, Sequence
 
 try:
+    from infra.deploy.commonex_host.archive import read_members
     from infra.deploy.commonex_host.activation import (
         ActivationCommittedAuditError,
         _ActivationDependencies,
@@ -35,6 +35,7 @@ try:
 except ModuleNotFoundError as error:
     if error.name != "infra":
         raise
+    from commonex_host.archive import read_members
     from commonex_host.activation import (  # type: ignore[no-redef]
         ActivationCommittedAuditError,
         _ActivationDependencies,
@@ -302,44 +303,18 @@ def read_archive(config: DeploymentConfig, input_stream: BinaryIO) -> Path:
             os.close(descriptor)
 
 
-def _archive_member_name(member: tarfile.TarInfo) -> str:
-    name = member.name.removeprefix("./")
-    if not member.isfile() or member.size < 0 or name not in FILES:
-        raise ValueError(f"invalid release member: {member.name}")
-    return name
-
-
 def _extract_archive(
     archive: Path, destination: Path, config: DeploymentConfig
 ) -> None:
-    seen: set[str] = set()
-    extracted_bytes = 0
-    with tarfile.open(archive, mode="r|gz") as bundle:
-        for member in bundle:
-            name = _archive_member_name(member)
-            if name in seen:
-                raise ValueError(f"duplicate release member: {name}")
-            extracted_bytes += member.size
-            if extracted_bytes > config.max_archive_bytes:
-                raise ValueError(
-                    f"extracted release exceeds {config.max_archive_bytes} bytes"
-                )
-
-            seen.add(name)
-            target = destination / name
-            target.parent.mkdir(mode=0o755, parents=True, exist_ok=True)
-            source = bundle.extractfile(member)
-            if source is None:
-                raise ValueError(f"cannot read release member: {name}")
-            with source, target.open("xb") as output:
-                shutil.copyfileobj(source, output, length=READ_CHUNK_BYTES)
-                output.flush()
-                os.fsync(output.fileno())
-            target.chmod(FILES[name])
-
-    missing = set(FILES) - seen
-    if missing:
-        raise ValueError(f"release is missing files: {sorted(missing)}")
+    with archive.open('rb') as source:
+        files = read_members(source, FILES, config.max_archive_bytes)
+    for name, content in files.items():
+        target = destination / name
+        with target.open('xb') as output:
+            output.write(content)
+            output.flush()
+            os.fsync(output.fileno())
+        target.chmod(FILES[name])
 
 
 def stage(
