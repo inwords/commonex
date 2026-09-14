@@ -99,6 +99,10 @@ Install that policy in `/etc/sudoers.d/commonex-deploy` with mode `0440`, then r
 
 Grafana dashboards and datasource provisioning remain host-managed and are outside this release contract.
 
+For certificate state, DNS credentials, and renewal recovery, see the
+[certificate runbook](../certificates/README.md). For certificate deployment and
+rollback, see the [delivery runbook](../certificates/delivery/README.md).
+
 ## Validation
 
 The production host currently runs Python 3.9, so the wrapper must remain compatible with that version. Run its dependency-free regression suite with:

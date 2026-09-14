@@ -234,17 +234,6 @@ services:
       - monitoring-network
       - db-network
 
-  certbot:
-    image: certbot/certbot:v5.8.0
-    profiles: [manual]
-    deploy:
-      resources:
-        limits:
-          memory: 190M
-    volumes:
-      - /etc/commonex/ssl/certbot/:/etc/letsencrypt/:rw
-      - /etc/commonex/www/certbot/:/var/www/certbot/:rw
-
 volumes:
   postgres_data:
   victoriametrics_data:

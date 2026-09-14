@@ -1,0 +1,97 @@
+name: Certificate infrastructure
+
+permissions:
+  contents: read
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'infra/certificates/**'
+      - 'infra/deploy/**'
+      - '.github/workflows/certificates.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'infra/certificates/**'
+      - 'infra/deploy/**'
+      - '.github/workflows/certificates.yml'
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: Deploy current main or roll back to a retained certificate release
+        type: choice
+        options: [deploy, rollback]
+        default: deploy
+        required: true
+      release_sha:
+        description: Retained certificate release SHA (rollback only)
+        type: string
+        required: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Build test image
+        run: docker build --target test -f infra/certificates/Dockerfile -t commonex-certificates:test .
+      - name: Test certificate tooling and shared deployment code
+        run: |
+          docker run --rm commonex-certificates:test discover -s infra/certificates/tests -p 'test_*.py'
+          docker run --rm commonex-certificates:test discover -s infra/certificates/delivery -p 'test_*.py'
+          docker run --rm commonex-certificates:test discover -s infra/deploy -p 'test_*.py'
+
+  deploy:
+    needs: validate
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    environment: production
+    concurrency:
+      group: commonex-production
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Configure certificate deployment identity
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.SSH_CERTIFICATES_DEPLOY_PRIVATE_KEY }}
+          SERVER_IP: ${{ secrets.SERVER_IP }}
+        run: python3 infra/deploy/configure_ssh.py certificates
+      - name: Verify host bootstrap
+        run: python3 infra/certificates/delivery/client.py status
+      - name: Set up Docker Buildx
+        if: inputs.operation != 'rollback'
+        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
+      - name: Log in to Docker Registry
+        if: inputs.operation != 'rollback'
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      - name: Publish immutable certificate runtime
+        if: inputs.operation != 'rollback'
+        id: runtime
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7
+        with:
+          context: .
+          file: infra/certificates/Dockerfile
+          target: runtime
+          platforms: linux/amd64
+          push: true
+          tags: ruggedbl/commonex-certificates:${{ github.sha }}
+      - name: Install and verify certificate release
+        if: inputs.operation != 'rollback'
+        env:
+          IMAGE_DIGEST: ${{ steps.runtime.outputs.digest }}
+        run: >-
+          python3 infra/certificates/delivery/client.py deploy
+          --revision "$GITHUB_SHA" --run-number "$GITHUB_RUN_NUMBER"
+          --image "ruggedbl/commonex-certificates@$IMAGE_DIGEST"
+      - name: Roll back and verify retained release
+        if: inputs.operation == 'rollback'
+        env:
+          RELEASE_SHA: ${{ inputs.release_sha }}
+        run: >-
+          python3 infra/certificates/delivery/client.py rollback
+          --revision "$RELEASE_SHA" --run-number "$GITHUB_RUN_NUMBER"

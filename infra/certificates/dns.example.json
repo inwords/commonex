@@ -1,0 +1,7 @@
+{
+  "zone_id": "REPLACE_WITH_YANDEX_DNS_ZONE_ID",
+  "zone_name": "commonex.ru.",
+  "allowed_identifiers": ["commonex.ru", "*.commonex.ru"],
+  "service_account_key": "/run/secrets/yandex-key.json",
+  "propagation_timeout_seconds": 180
+}
