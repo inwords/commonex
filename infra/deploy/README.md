@@ -4,7 +4,7 @@
 
 ## Host bootstrap
 
-Complete this bootstrap and preflight before enabling the workflow. Preserve the currently working Compose file, `.env`, and host-managed Grafana content; do not generate replacements during wrapper installation.
+Complete this bootstrap and preflight before enabling the workflow. Preserve the currently working Compose file, `.env`, host-managed Grafana datasource provisioning, and Grafana persistent volume; do not generate replacements during wrapper installation.
 
 The merged wrapper **must be installed and validated before approving the first immutable deploy**. The ordinary deploy job asks the host for `current-images`: before the first immutable activation the host responds with the expected bootstrap message, and later it supplies the active immutable references. Keep a recoverable copy of the previous wrapper while installing the merged version:
 
@@ -17,8 +17,7 @@ install -d -o root -g root -m 0755 /run/commonex
 
 test -f /etc/commonex/app/docker-compose-prod.yml
 test -f /etc/commonex/app/.env
-test -d /etc/commonex/app/grafana/provisioning
-test -d /etc/commonex/app/grafana/dashboards
+test -d /etc/commonex/app/grafana/provisioning/datasources
 chown root:root /etc/commonex/app/docker-compose-prod.yml /etc/commonex/app/.env
 chmod 0644 /etc/commonex/app/docker-compose-prod.yml
 chmod 0600 /etc/commonex/app/.env
@@ -56,7 +55,7 @@ Every release archive contains only `docker-compose-prod.yml` and `.env`. After 
 - `COMMONEX_OTEL_COLLECTOR_IMAGE=ruggedbl/opentelemetry-collector-custom@sha256:<64-lowercase-hex>`
 - `COMMONEX_NGINX_IMAGE=ruggedbl/nginx-http3@sha256:<64-lowercase-hex>`
 
-Every push to `main` builds and SHA-tags all four custom images, with each service serialized across workflow runs. A surviving run is therefore self-contained even if an earlier run fails or is superseded while waiting. Pull-request image builds remain change-scoped and are not pushed. The deploy job resolves all four current Git SHA tags to digests; first-deployment bootstrap fails closed unless all four services were built, and it never consults `latest`. The Git SHA tags are retained as registry anchors for their image blobs. This process does not delete remote image tags, including tags older than the three retained host releases.
+Every push to `main` that triggers the application workflow builds and SHA-tags all four custom images, with each service serialized across workflow runs. Changes limited to `infra/grafana/sync/**` do not trigger this workflow on pushes or pull requests; dashboard reconciliation is handled by Git Sync. A surviving run is therefore self-contained even if an earlier run fails or is superseded while waiting. Pull-request image builds remain change-scoped and are not pushed. The deploy job resolves all four current Git SHA tags to digests; first-deployment bootstrap fails closed unless all four services were built, and it never consults `latest`. The Git SHA tags are retained as registry anchors for their image blobs. This process does not delete remote image tags, including tags older than the three retained host releases.
 
 ## Host paths and restricted command
 
@@ -97,7 +96,7 @@ Install that policy in `/etc/sudoers.d/commonex-deploy` with mode `0440`, then r
 - `rollback <40-character-sha> <positive-github-run-number>`
 - `current-images` (no arguments; read-only image-reference output)
 
-Grafana dashboards and datasource provisioning remain host-managed and are outside this release contract.
+Grafana dashboards and folders are managed by Git Sync under `infra/grafana/sync`; they are not deployed to the host. Datasource provisioning remains host-managed under `/etc/commonex/app/grafana/provisioning/datasources`, mounted read-only into Grafana. Both are outside this release contract. Preserve `grafana_data` for Grafana configuration, credentials, alert rules, and other database state. See the [Grafana runbook](../grafana/README.md) for ownership and migration details.
 
 For certificate state, DNS credentials, and renewal recovery, see the
 [certificate runbook](../certificates/README.md). For certificate deployment and
