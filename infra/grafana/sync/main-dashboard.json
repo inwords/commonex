@@ -1,0 +1,2195 @@
+{
+  "apiVersion": "dashboard.grafana.app/v1",
+  "kind": "Dashboard",
+  "metadata": {
+    "name": "de58sw4nub9q8f"
+  },
+  "spec": {
+    "annotations": {
+      "list": [
+        {
+          "builtIn": 1,
+          "datasource": {
+            "type": "grafana",
+            "uid": "-- Grafana --"
+          },
+          "enable": true,
+          "hide": true,
+          "iconColor": "rgba(0, 211, 255, 1)",
+          "name": "Annotations & Alerts",
+          "type": "dashboard"
+        }
+      ]
+    },
+    "editable": true,
+    "fiscalYearStartMonth": 0,
+    "graphTooltip": 0,
+    "links": [],
+    "panels": [
+      {
+        "datasource": {
+          "type": "victoriametrics-metrics-datasource",
+          "uid": "bf05veuz39r0ge"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisBorderShow": false,
+              "axisCenteredZero": false,
+              "axisColorMode": "text",
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "barWidthFactor": 0.6,
+              "drawStyle": "line",
+              "fillOpacity": 0,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "viz": false
+              },
+              "insertNulls": false,
+              "lineInterpolation": "linear",
+              "lineWidth": 1,
+              "pointSize": 5,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "auto",
+              "showValues": false,
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            },
+            "unit": "percent"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 10,
+          "w": 12,
+          "x": 0,
+          "y": 0
+        },
+        "id": 5,
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom",
+            "showLegend": true
+          },
+          "tooltip": {
+            "hideZeros": false,
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "pluginVersion": "12.4.1",
+        "targets": [
+          {
+            "datasource": {
+              "type": "victoriametrics-metrics-datasource",
+              "uid": "bf05veuz39r0ge"
+            },
+            "editorMode": "code",
+            "exemplar": false,
+            "expr": "sum by(container.image.name, container.name) (container.memory.percent)",
+            "format": "time_series",
+            "instant": false,
+            "legendFormat": "{{container.image.name}} {{container.name}}",
+            "range": true,
+            "refId": "A"
+          }
+        ],
+        "title": "Container Memory Percent",
+        "type": "timeseries"
+      },
+      {
+        "datasource": {
+          "type": "victoriametrics-metrics-datasource",
+          "uid": "bf05veuz39r0ge"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisBorderShow": false,
+              "axisCenteredZero": false,
+              "axisColorMode": "text",
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "barWidthFactor": 0.6,
+              "drawStyle": "line",
+              "fillOpacity": 0,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "viz": false
+              },
+              "insertNulls": false,
+              "lineInterpolation": "linear",
+              "lineWidth": 1,
+              "pointSize": 5,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "auto",
+              "showValues": false,
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            },
+            "unit": "bytes"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 10,
+          "w": 12,
+          "x": 12,
+          "y": 0
+        },
+        "id": 4,
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom",
+            "showLegend": true
+          },
+          "tooltip": {
+            "hideZeros": false,
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "pluginVersion": "12.4.1",
+        "targets": [
+          {
+            "0": "c",
+            "1": "o",
+            "10": "m",
+            "11": "e",
+            "12": "m",
+            "13": "o",
+            "14": "r",
+            "15": "y",
+            "16": ".",
+            "17": "u",
+            "18": "s",
+            "19": "a",
+            "2": "n",
+            "20": "g",
+            "21": "e",
+            "22": ".",
+            "23": "t",
+            "24": "o",
+            "25": "t",
+            "26": "a",
+            "27": "l",
+            "3": "t",
+            "4": "a",
+            "5": "i",
+            "6": "n",
+            "7": "e",
+            "8": "r",
+            "9": ".",
+            "datasource": {
+              "type": "victoriametrics-metrics-datasource",
+              "uid": "bf05veuz39r0ge"
+            },
+            "editorMode": "code",
+            "expr": "sum by(container.image.name, container.name) (container.memory.usage.total)",
+            "format": "time_series",
+            "legendFormat": "{{container.image.name}} {{container.name}}",
+            "range": true,
+            "refId": "A"
+          }
+        ],
+        "title": "Container Memory Usage",
+        "type": "timeseries"
+      },
+      {
+        "datasource": {
+          "type": "victoriametrics-metrics-datasource",
+          "uid": "bf05veuz39r0ge"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisBorderShow": false,
+              "axisCenteredZero": false,
+              "axisColorMode": "text",
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "barWidthFactor": 0.6,
+              "drawStyle": "line",
+              "fillOpacity": 0,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "viz": false
+              },
+              "insertNulls": false,
+              "lineInterpolation": "linear",
+              "lineWidth": 1,
+              "pointSize": 5,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "auto",
+              "showValues": false,
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            },
+            "unit": "percent"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 10,
+          "w": 12,
+          "x": 0,
+          "y": 10
+        },
+        "id": 3,
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom",
+            "showLegend": true
+          },
+          "tooltip": {
+            "hideZeros": false,
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "pluginVersion": "12.4.1",
+        "targets": [
+          {
+            "datasource": {
+              "type": "victoriametrics-metrics-datasource",
+              "uid": "bf05veuz39r0ge"
+            },
+            "editorMode": "code",
+            "expr": "sum by(container.image.name, container.name) (container.cpu.utilization)",
+            "format": "time_series",
+            "legendFormat": "{{container.image.name}} {{container.name}}",
+            "range": true,
+            "refId": "A"
+          }
+        ],
+        "title": "Container CPU Utilization",
+        "type": "timeseries"
+      },
+      {
+        "datasource": {
+          "type": "victoriametrics-metrics-datasource",
+          "uid": "bf05veuz39r0ge"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisBorderShow": false,
+              "axisCenteredZero": false,
+              "axisColorMode": "text",
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "barWidthFactor": 0.6,
+              "drawStyle": "line",
+              "fillOpacity": 0,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "viz": false
+              },
+              "insertNulls": false,
+              "lineInterpolation": "linear",
+              "lineStyle": {
+                "fill": "solid"
+              },
+              "lineWidth": 1,
+              "pointSize": 3,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "always",
+              "showValues": false,
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "fieldMinMax": false,
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            },
+            "unit": "reqps"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 10,
+          "w": 12,
+          "x": 12,
+          "y": 10
+        },
+        "id": 1,
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom",
+            "showLegend": true
+          },
+          "tooltip": {
+            "hideZeros": false,
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "pluginVersion": "12.4.1",
+        "targets": [
+          {
+            "datasource": {
+              "type": "victoriametrics-metrics-datasource",
+              "uid": "bf05veuz39r0ge"
+            },
+            "editorMode": "code",
+            "expr": "sum by(http.route, http.request.method, http.response.status_code) (\r\n  increase_pure(http.server.request.duration_count[$__rate_interval])\r\n) / $__rate_interval",
+            "format": "time_series",
+            "legendFormat": "{{http.request.method}} {{http.route}} {{http.response.status_code}}",
+            "range": true,
+            "refId": "A"
+          },
+          {
+            "datasource": {
+              "type": "victoriametrics-metrics-datasource",
+              "uid": "bf05veuz39r0ge"
+            },
+            "editorMode": "code",
+            "expr": "sum(increase_pure(http.server.request.duration_count[$__rate_interval])) / $__rate_interval",
+            "format": "time_series",
+            "legendFormat": "Total",
+            "range": true,
+            "refId": "B"
+          }
+        ],
+        "title": "Backend RPS",
+        "type": "timeseries"
+      },
+      {
+        "datasource": {
+          "type": "victoriametrics-metrics-datasource",
+          "uid": "bf05veuz39r0ge"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisBorderShow": false,
+              "axisCenteredZero": false,
+              "axisColorMode": "text",
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "barWidthFactor": 0.6,
+              "drawStyle": "line",
+              "fillOpacity": 0,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "viz": false
+              },
+              "insertNulls": false,
+              "lineInterpolation": "linear",
+              "lineStyle": {
+                "fill": "solid"
+              },
+              "lineWidth": 1,
+              "pointSize": 3,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "always",
+              "showValues": false,
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "fieldMinMax": false,
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            },
+            "unit": "ms"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 10,
+          "w": 12,
+          "x": 0,
+          "y": 20
+        },
+        "id": 9,
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom",
+            "showLegend": true
+          },
+          "tooltip": {
+            "hideZeros": false,
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "pluginVersion": "12.4.1",
+        "targets": [
+          {
+            "0": "(",
+            "1": "\n",
+            "10": " ",
+            "100": "p",
+            "101": "r",
+            "102": "e",
+            "103": "t",
+            "104": "t",
+            "105": "i",
+            "106": "f",
+            "107": "y",
+            "108": "_",
+            "109": "q",
+            "11": " ",
+            "110": "u",
+            "111": "e",
+            "112": "r",
+            "113": "y",
+            "114": "_",
+            "115": "_",
+            "116": "r",
+            "117": "a",
+            "118": "t",
+            "119": "e",
+            "12": " ",
+            "120": "_",
+            "121": "i",
+            "122": "n",
+            "123": "t",
+            "124": "e",
+            "125": "r",
+            "126": "v",
+            "127": "a",
+            "128": "l",
+            "129": "]",
+            "13": "*",
+            "130": "\n",
+            "131": " ",
+            "132": " ",
+            "133": " ",
+            "134": " ",
+            "135": ")",
+            "136": "\n",
+            "137": " ",
+            "138": " ",
+            "139": ")",
+            "14": "\n",
+            "140": " ",
+            "141": "b",
+            "142": "y",
+            "143": "(",
+            "144": "h",
+            "145": "t",
+            "146": "t",
+            "147": "p",
+            "148": ".",
+            "149": "r",
+            "15": " ",
+            "150": "o",
+            "151": "u",
+            "152": "t",
+            "153": "e",
+            "154": ",",
+            "155": "h",
+            "156": "t",
+            "157": "t",
+            "158": "p",
+            "159": ".",
+            "16": " ",
+            "160": "r",
+            "161": "e",
+            "162": "q",
+            "163": "u",
+            "164": "e",
+            "165": "s",
+            "166": "t",
+            "167": ".",
+            "168": "m",
+            "169": "e",
+            "17": "s",
+            "170": "t",
+            "171": "h",
+            "172": "o",
+            "173": "d",
+            "174": ")",
+            "175": "\n",
+            "176": ")",
+            "177": "\n",
+            "178": " ",
+            "179": " ",
+            "18": "u",
+            "180": "/",
+            "181": "\n",
+            "182": "s",
+            "183": "u",
+            "184": "m",
+            "185": "(",
+            "186": "\n",
+            "187": " ",
+            "188": " ",
+            "189": "i",
+            "19": "m",
+            "190": "n",
+            "191": "c",
+            "192": "r",
+            "193": "e",
+            "194": "a",
+            "195": "s",
+            "196": "e",
+            "197": "_",
+            "198": "p",
+            "199": "u",
+            "2": " ",
+            "20": "(",
+            "200": "r",
+            "201": "e",
+            "202": "(",
+            "203": "\n",
+            "204": " ",
+            "205": " ",
+            "206": " ",
+            "207": " ",
+            "208": "h",
+            "209": "t",
+            "21": "\n",
+            "210": "t",
+            "211": "p",
+            "212": ".",
+            "213": "s",
+            "214": "e",
+            "215": "r",
+            "216": "v",
+            "217": "e",
+            "218": "r",
+            "219": ".",
+            "22": " ",
+            "220": "r",
+            "221": "e",
+            "222": "q",
+            "223": "u",
+            "224": "e",
+            "225": "s",
+            "226": "t",
+            "227": ".",
+            "228": "d",
+            "229": "u",
+            "23": " ",
+            "230": "r",
+            "231": "a",
+            "232": "t",
+            "233": "i",
+            "234": "o",
+            "235": "n",
+            "236": "_",
+            "237": "c",
+            "238": "o",
+            "239": "u",
+            "24": " ",
+            "240": "n",
+            "241": "t",
+            "242": "[",
+            "243": "t",
+            "244": "m",
+            "245": "p",
+            "246": "_",
+            "247": "v",
+            "248": "i",
+            "249": "c",
+            "25": " ",
+            "250": "t",
+            "251": "o",
+            "252": "r",
+            "253": "i",
+            "254": "a",
+            "255": "m",
+            "256": "e",
+            "257": "t",
+            "258": "r",
+            "259": "i",
+            "26": "i",
+            "260": "c",
+            "261": "s",
+            "262": "_",
+            "263": "p",
+            "264": "r",
+            "265": "e",
+            "266": "t",
+            "267": "t",
+            "268": "i",
+            "269": "f",
+            "27": "n",
+            "270": "y",
+            "271": "_",
+            "272": "q",
+            "273": "u",
+            "274": "e",
+            "275": "r",
+            "276": "y",
+            "277": "_",
+            "278": "_",
+            "279": "r",
+            "28": "c",
+            "280": "a",
+            "281": "t",
+            "282": "e",
+            "283": "_",
+            "284": "i",
+            "285": "n",
+            "286": "t",
+            "287": "e",
+            "288": "r",
+            "289": "v",
+            "29": "r",
+            "290": "a",
+            "291": "l",
+            "292": "]",
+            "293": "\n",
+            "294": " ",
+            "295": " ",
+            "296": ")",
+            "297": "\n",
+            "298": ")",
+            "299": " ",
+            "3": " ",
+            "30": "e",
+            "300": "b",
+            "301": "y",
+            "302": "(",
+            "303": "h",
+            "304": "t",
+            "305": "t",
+            "306": "p",
+            "307": ".",
+            "308": "r",
+            "309": "o",
+            "31": "a",
+            "310": "u",
+            "311": "t",
+            "312": "e",
+            "313": ",",
+            "314": "h",
+            "315": "t",
+            "316": "t",
+            "317": "p",
+            "318": ".",
+            "319": "r",
+            "32": "s",
+            "320": "e",
+            "321": "q",
+            "322": "u",
+            "323": "e",
+            "324": "s",
+            "325": "t",
+            "326": ".",
+            "327": "m",
+            "328": "e",
+            "329": "t",
+            "33": "e",
+            "330": "h",
+            "331": "o",
+            "332": "d",
+            "333": ")",
+            "34": "_",
+            "35": "p",
+            "36": "u",
+            "37": "r",
+            "38": "e",
+            "39": "(",
+            "4": "1",
+            "40": "\n",
+            "41": " ",
+            "42": " ",
+            "43": " ",
+            "44": " ",
+            "45": " ",
+            "46": " ",
+            "47": "h",
+            "48": "t",
+            "49": "t",
+            "5": "0",
+            "50": "p",
+            "51": ".",
+            "52": "s",
+            "53": "e",
+            "54": "r",
+            "55": "v",
+            "56": "e",
+            "57": "r",
+            "58": ".",
+            "59": "r",
+            "6": "0",
+            "60": "e",
+            "61": "q",
+            "62": "u",
+            "63": "e",
+            "64": "s",
+            "65": "t",
+            "66": ".",
+            "67": "d",
+            "68": "u",
+            "69": "r",
+            "7": "0",
+            "70": "a",
+            "71": "t",
+            "72": "i",
+            "73": "o",
+            "74": "n",
+            "75": "_",
+            "76": "s",
+            "77": "u",
+            "78": "m",
+            "79": "[",
+            "8": "\n",
+            "80": "t",
+            "81": "m",
+            "82": "p",
+            "83": "_",
+            "84": "v",
+            "85": "i",
+            "86": "c",
+            "87": "t",
+            "88": "o",
+            "89": "r",
+            "9": " ",
+            "90": "i",
+            "91": "a",
+            "92": "m",
+            "93": "e",
+            "94": "t",
+            "95": "r",
+            "96": "i",
+            "97": "c",
+            "98": "s",
+            "99": "_",
+            "editorMode": "code",
+            "expr": "1000 *\nsum by(http.route, http.request.method, http.response.status_code) (\n  increase_pure(http.server.request.duration_sum[$__rate_interval])\n)\n/\nsum by(http.route, http.request.method, http.response.status_code) (\n  increase_pure(http.server.request.duration_count[$__rate_interval])\n)",
+            "format": "time_series",
+            "legendFormat": "{{http.request.method}} {{http.route}} {{http.response.status_code}}",
+            "range": true,
+            "refId": "A"
+          }
+        ],
+        "title": "Backend AVG latency ",
+        "type": "timeseries"
+      },
+      {
+        "datasource": {
+          "type": "victoriametrics-metrics-datasource",
+          "uid": "bf05veuz39r0ge"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisBorderShow": false,
+              "axisCenteredZero": false,
+              "axisColorMode": "text",
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "barWidthFactor": 0.6,
+              "drawStyle": "line",
+              "fillOpacity": 0,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "viz": false
+              },
+              "insertNulls": false,
+              "lineInterpolation": "linear",
+              "lineStyle": {
+                "fill": "solid"
+              },
+              "lineWidth": 1,
+              "pointSize": 3,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "always",
+              "showValues": false,
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "fieldMinMax": false,
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            },
+            "unit": "ms"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 10,
+          "w": 12,
+          "x": 12,
+          "y": 20
+        },
+        "id": 11,
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom",
+            "showLegend": true
+          },
+          "tooltip": {
+            "hideZeros": false,
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "pluginVersion": "12.4.1",
+        "targets": [
+          {
+            "0": "(",
+            "1": "\n",
+            "10": " ",
+            "100": "p",
+            "101": "r",
+            "102": "e",
+            "103": "t",
+            "104": "t",
+            "105": "i",
+            "106": "f",
+            "107": "y",
+            "108": "_",
+            "109": "q",
+            "11": " ",
+            "110": "u",
+            "111": "e",
+            "112": "r",
+            "113": "y",
+            "114": "_",
+            "115": "_",
+            "116": "r",
+            "117": "a",
+            "118": "t",
+            "119": "e",
+            "12": " ",
+            "120": "_",
+            "121": "i",
+            "122": "n",
+            "123": "t",
+            "124": "e",
+            "125": "r",
+            "126": "v",
+            "127": "a",
+            "128": "l",
+            "129": "]",
+            "13": "*",
+            "130": "\n",
+            "131": " ",
+            "132": " ",
+            "133": " ",
+            "134": " ",
+            "135": ")",
+            "136": "\n",
+            "137": " ",
+            "138": " ",
+            "139": ")",
+            "14": "\n",
+            "140": " ",
+            "141": "b",
+            "142": "y",
+            "143": "(",
+            "144": "h",
+            "145": "t",
+            "146": "t",
+            "147": "p",
+            "148": ".",
+            "149": "r",
+            "15": " ",
+            "150": "o",
+            "151": "u",
+            "152": "t",
+            "153": "e",
+            "154": ",",
+            "155": "h",
+            "156": "t",
+            "157": "t",
+            "158": "p",
+            "159": ".",
+            "16": " ",
+            "160": "r",
+            "161": "e",
+            "162": "q",
+            "163": "u",
+            "164": "e",
+            "165": "s",
+            "166": "t",
+            "167": ".",
+            "168": "m",
+            "169": "e",
+            "17": "s",
+            "170": "t",
+            "171": "h",
+            "172": "o",
+            "173": "d",
+            "174": ")",
+            "175": "\n",
+            "176": ")",
+            "177": "\n",
+            "178": " ",
+            "179": " ",
+            "18": "u",
+            "180": "/",
+            "181": "\n",
+            "182": "s",
+            "183": "u",
+            "184": "m",
+            "185": "(",
+            "186": "\n",
+            "187": " ",
+            "188": " ",
+            "189": "i",
+            "19": "m",
+            "190": "n",
+            "191": "c",
+            "192": "r",
+            "193": "e",
+            "194": "a",
+            "195": "s",
+            "196": "e",
+            "197": "_",
+            "198": "p",
+            "199": "u",
+            "2": " ",
+            "20": "(",
+            "200": "r",
+            "201": "e",
+            "202": "(",
+            "203": "\n",
+            "204": " ",
+            "205": " ",
+            "206": " ",
+            "207": " ",
+            "208": "h",
+            "209": "t",
+            "21": "\n",
+            "210": "t",
+            "211": "p",
+            "212": ".",
+            "213": "s",
+            "214": "e",
+            "215": "r",
+            "216": "v",
+            "217": "e",
+            "218": "r",
+            "219": ".",
+            "22": " ",
+            "220": "r",
+            "221": "e",
+            "222": "q",
+            "223": "u",
+            "224": "e",
+            "225": "s",
+            "226": "t",
+            "227": ".",
+            "228": "d",
+            "229": "u",
+            "23": " ",
+            "230": "r",
+            "231": "a",
+            "232": "t",
+            "233": "i",
+            "234": "o",
+            "235": "n",
+            "236": "_",
+            "237": "c",
+            "238": "o",
+            "239": "u",
+            "24": " ",
+            "240": "n",
+            "241": "t",
+            "242": "[",
+            "243": "t",
+            "244": "m",
+            "245": "p",
+            "246": "_",
+            "247": "v",
+            "248": "i",
+            "249": "c",
+            "25": " ",
+            "250": "t",
+            "251": "o",
+            "252": "r",
+            "253": "i",
+            "254": "a",
+            "255": "m",
+            "256": "e",
+            "257": "t",
+            "258": "r",
+            "259": "i",
+            "26": "i",
+            "260": "c",
+            "261": "s",
+            "262": "_",
+            "263": "p",
+            "264": "r",
+            "265": "e",
+            "266": "t",
+            "267": "t",
+            "268": "i",
+            "269": "f",
+            "27": "n",
+            "270": "y",
+            "271": "_",
+            "272": "q",
+            "273": "u",
+            "274": "e",
+            "275": "r",
+            "276": "y",
+            "277": "_",
+            "278": "_",
+            "279": "r",
+            "28": "c",
+            "280": "a",
+            "281": "t",
+            "282": "e",
+            "283": "_",
+            "284": "i",
+            "285": "n",
+            "286": "t",
+            "287": "e",
+            "288": "r",
+            "289": "v",
+            "29": "r",
+            "290": "a",
+            "291": "l",
+            "292": "]",
+            "293": "\n",
+            "294": " ",
+            "295": " ",
+            "296": ")",
+            "297": "\n",
+            "298": ")",
+            "299": " ",
+            "3": " ",
+            "30": "e",
+            "300": "b",
+            "301": "y",
+            "302": "(",
+            "303": "h",
+            "304": "t",
+            "305": "t",
+            "306": "p",
+            "307": ".",
+            "308": "r",
+            "309": "o",
+            "31": "a",
+            "310": "u",
+            "311": "t",
+            "312": "e",
+            "313": ",",
+            "314": "h",
+            "315": "t",
+            "316": "t",
+            "317": "p",
+            "318": ".",
+            "319": "r",
+            "32": "s",
+            "320": "e",
+            "321": "q",
+            "322": "u",
+            "323": "e",
+            "324": "s",
+            "325": "t",
+            "326": ".",
+            "327": "m",
+            "328": "e",
+            "329": "t",
+            "33": "e",
+            "330": "h",
+            "331": "o",
+            "332": "d",
+            "333": ")",
+            "34": "_",
+            "35": "p",
+            "36": "u",
+            "37": "r",
+            "38": "e",
+            "39": "(",
+            "4": "1",
+            "40": "\n",
+            "41": " ",
+            "42": " ",
+            "43": " ",
+            "44": " ",
+            "45": " ",
+            "46": " ",
+            "47": "h",
+            "48": "t",
+            "49": "t",
+            "5": "0",
+            "50": "p",
+            "51": ".",
+            "52": "s",
+            "53": "e",
+            "54": "r",
+            "55": "v",
+            "56": "e",
+            "57": "r",
+            "58": ".",
+            "59": "r",
+            "6": "0",
+            "60": "e",
+            "61": "q",
+            "62": "u",
+            "63": "e",
+            "64": "s",
+            "65": "t",
+            "66": ".",
+            "67": "d",
+            "68": "u",
+            "69": "r",
+            "7": "0",
+            "70": "a",
+            "71": "t",
+            "72": "i",
+            "73": "o",
+            "74": "n",
+            "75": "_",
+            "76": "s",
+            "77": "u",
+            "78": "m",
+            "79": "[",
+            "8": "\n",
+            "80": "t",
+            "81": "m",
+            "82": "p",
+            "83": "_",
+            "84": "v",
+            "85": "i",
+            "86": "c",
+            "87": "t",
+            "88": "o",
+            "89": "r",
+            "9": " ",
+            "90": "i",
+            "91": "a",
+            "92": "m",
+            "93": "e",
+            "94": "t",
+            "95": "r",
+            "96": "i",
+            "97": "c",
+            "98": "s",
+            "99": "_",
+            "editorMode": "code",
+            "expr": "1000 * histogram_quantile(0.95,\n  sum by(le, http.route, http.request.method, http.response.status_code) (\n    increase_pure(http.server.request.duration_bucket[$__rate_interval])\n  )\n)",
+            "format": "time_series",
+            "legendFormat": "{{http.request.method}} {{http.route}} {{http.response.status_code}}",
+            "range": true,
+            "refId": "A"
+          }
+        ],
+        "title": "Backend P95 latency",
+        "type": "timeseries"
+      },
+      {
+        "datasource": {
+          "type": "victoriametrics-metrics-datasource",
+          "uid": "bf05veuz39r0ge"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisBorderShow": false,
+              "axisCenteredZero": false,
+              "axisColorMode": "text",
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "barWidthFactor": 0.6,
+              "drawStyle": "line",
+              "fillOpacity": 0,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "viz": false
+              },
+              "insertNulls": false,
+              "lineInterpolation": "linear",
+              "lineStyle": {
+                "fill": "solid"
+              },
+              "lineWidth": 1,
+              "pointSize": 3,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "always",
+              "showValues": false,
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "fieldMinMax": false,
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            }
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 10,
+          "w": 12,
+          "x": 0,
+          "y": 30
+        },
+        "id": 10,
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom",
+            "showLegend": true
+          },
+          "tooltip": {
+            "hideZeros": false,
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "pluginVersion": "12.4.1",
+        "targets": [
+          {
+            "0": "(",
+            "1": "\n",
+            "10": " ",
+            "100": "p",
+            "101": "r",
+            "102": "e",
+            "103": "t",
+            "104": "t",
+            "105": "i",
+            "106": "f",
+            "107": "y",
+            "108": "_",
+            "109": "q",
+            "11": " ",
+            "110": "u",
+            "111": "e",
+            "112": "r",
+            "113": "y",
+            "114": "_",
+            "115": "_",
+            "116": "r",
+            "117": "a",
+            "118": "t",
+            "119": "e",
+            "12": " ",
+            "120": "_",
+            "121": "i",
+            "122": "n",
+            "123": "t",
+            "124": "e",
+            "125": "r",
+            "126": "v",
+            "127": "a",
+            "128": "l",
+            "129": "]",
+            "13": "*",
+            "130": "\n",
+            "131": " ",
+            "132": " ",
+            "133": " ",
+            "134": " ",
+            "135": ")",
+            "136": "\n",
+            "137": " ",
+            "138": " ",
+            "139": ")",
+            "14": "\n",
+            "140": " ",
+            "141": "b",
+            "142": "y",
+            "143": "(",
+            "144": "h",
+            "145": "t",
+            "146": "t",
+            "147": "p",
+            "148": ".",
+            "149": "r",
+            "15": " ",
+            "150": "o",
+            "151": "u",
+            "152": "t",
+            "153": "e",
+            "154": ",",
+            "155": "h",
+            "156": "t",
+            "157": "t",
+            "158": "p",
+            "159": ".",
+            "16": " ",
+            "160": "r",
+            "161": "e",
+            "162": "q",
+            "163": "u",
+            "164": "e",
+            "165": "s",
+            "166": "t",
+            "167": ".",
+            "168": "m",
+            "169": "e",
+            "17": "s",
+            "170": "t",
+            "171": "h",
+            "172": "o",
+            "173": "d",
+            "174": ")",
+            "175": "\n",
+            "176": ")",
+            "177": "\n",
+            "178": " ",
+            "179": " ",
+            "18": "u",
+            "180": "/",
+            "181": "\n",
+            "182": "s",
+            "183": "u",
+            "184": "m",
+            "185": "(",
+            "186": "\n",
+            "187": " ",
+            "188": " ",
+            "189": "i",
+            "19": "m",
+            "190": "n",
+            "191": "c",
+            "192": "r",
+            "193": "e",
+            "194": "a",
+            "195": "s",
+            "196": "e",
+            "197": "_",
+            "198": "p",
+            "199": "u",
+            "2": " ",
+            "20": "(",
+            "200": "r",
+            "201": "e",
+            "202": "(",
+            "203": "\n",
+            "204": " ",
+            "205": " ",
+            "206": " ",
+            "207": " ",
+            "208": "h",
+            "209": "t",
+            "21": "\n",
+            "210": "t",
+            "211": "p",
+            "212": ".",
+            "213": "s",
+            "214": "e",
+            "215": "r",
+            "216": "v",
+            "217": "e",
+            "218": "r",
+            "219": ".",
+            "22": " ",
+            "220": "r",
+            "221": "e",
+            "222": "q",
+            "223": "u",
+            "224": "e",
+            "225": "s",
+            "226": "t",
+            "227": ".",
+            "228": "d",
+            "229": "u",
+            "23": " ",
+            "230": "r",
+            "231": "a",
+            "232": "t",
+            "233": "i",
+            "234": "o",
+            "235": "n",
+            "236": "_",
+            "237": "c",
+            "238": "o",
+            "239": "u",
+            "24": " ",
+            "240": "n",
+            "241": "t",
+            "242": "[",
+            "243": "t",
+            "244": "m",
+            "245": "p",
+            "246": "_",
+            "247": "v",
+            "248": "i",
+            "249": "c",
+            "25": " ",
+            "250": "t",
+            "251": "o",
+            "252": "r",
+            "253": "i",
+            "254": "a",
+            "255": "m",
+            "256": "e",
+            "257": "t",
+            "258": "r",
+            "259": "i",
+            "26": "i",
+            "260": "c",
+            "261": "s",
+            "262": "_",
+            "263": "p",
+            "264": "r",
+            "265": "e",
+            "266": "t",
+            "267": "t",
+            "268": "i",
+            "269": "f",
+            "27": "n",
+            "270": "y",
+            "271": "_",
+            "272": "q",
+            "273": "u",
+            "274": "e",
+            "275": "r",
+            "276": "y",
+            "277": "_",
+            "278": "_",
+            "279": "r",
+            "28": "c",
+            "280": "a",
+            "281": "t",
+            "282": "e",
+            "283": "_",
+            "284": "i",
+            "285": "n",
+            "286": "t",
+            "287": "e",
+            "288": "r",
+            "289": "v",
+            "29": "r",
+            "290": "a",
+            "291": "l",
+            "292": "]",
+            "293": "\n",
+            "294": " ",
+            "295": " ",
+            "296": ")",
+            "297": "\n",
+            "298": ")",
+            "299": " ",
+            "3": " ",
+            "30": "e",
+            "300": "b",
+            "301": "y",
+            "302": "(",
+            "303": "h",
+            "304": "t",
+            "305": "t",
+            "306": "p",
+            "307": ".",
+            "308": "r",
+            "309": "o",
+            "31": "a",
+            "310": "u",
+            "311": "t",
+            "312": "e",
+            "313": ",",
+            "314": "h",
+            "315": "t",
+            "316": "t",
+            "317": "p",
+            "318": ".",
+            "319": "r",
+            "32": "s",
+            "320": "e",
+            "321": "q",
+            "322": "u",
+            "323": "e",
+            "324": "s",
+            "325": "t",
+            "326": ".",
+            "327": "m",
+            "328": "e",
+            "329": "t",
+            "33": "e",
+            "330": "h",
+            "331": "o",
+            "332": "d",
+            "333": ")",
+            "34": "_",
+            "35": "p",
+            "36": "u",
+            "37": "r",
+            "38": "e",
+            "39": "(",
+            "4": "1",
+            "40": "\n",
+            "41": " ",
+            "42": " ",
+            "43": " ",
+            "44": " ",
+            "45": " ",
+            "46": " ",
+            "47": "h",
+            "48": "t",
+            "49": "t",
+            "5": "0",
+            "50": "p",
+            "51": ".",
+            "52": "s",
+            "53": "e",
+            "54": "r",
+            "55": "v",
+            "56": "e",
+            "57": "r",
+            "58": ".",
+            "59": "r",
+            "6": "0",
+            "60": "e",
+            "61": "q",
+            "62": "u",
+            "63": "e",
+            "64": "s",
+            "65": "t",
+            "66": ".",
+            "67": "d",
+            "68": "u",
+            "69": "r",
+            "7": "0",
+            "70": "a",
+            "71": "t",
+            "72": "i",
+            "73": "o",
+            "74": "n",
+            "75": "_",
+            "76": "s",
+            "77": "u",
+            "78": "m",
+            "79": "[",
+            "8": "\n",
+            "80": "t",
+            "81": "m",
+            "82": "p",
+            "83": "_",
+            "84": "v",
+            "85": "i",
+            "86": "c",
+            "87": "t",
+            "88": "o",
+            "89": "r",
+            "9": " ",
+            "90": "i",
+            "91": "a",
+            "92": "m",
+            "93": "e",
+            "94": "t",
+            "95": "r",
+            "96": "i",
+            "97": "c",
+            "98": "s",
+            "99": "_",
+            "editorMode": "code",
+            "expr": "sum(http.server.active_requests)",
+            "format": "time_series",
+            "legendFormat": "Total",
+            "range": true,
+            "refId": "A"
+          }
+        ],
+        "title": "Backend In-Flight Requests",
+        "type": "timeseries"
+      },
+      {
+        "datasource": {
+          "type": "victoriametrics-metrics-datasource",
+          "uid": "bf05veuz39r0ge"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisBorderShow": false,
+              "axisCenteredZero": false,
+              "axisColorMode": "text",
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "barWidthFactor": 0.6,
+              "drawStyle": "line",
+              "fillOpacity": 0,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "viz": false
+              },
+              "insertNulls": false,
+              "lineInterpolation": "linear",
+              "lineStyle": {
+                "fill": "solid"
+              },
+              "lineWidth": 1,
+              "pointSize": 3,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "always",
+              "showValues": false,
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "fieldMinMax": false,
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            },
+            "unit": "none"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 10,
+          "w": 12,
+          "x": 12,
+          "y": 30
+        },
+        "id": 2,
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom",
+            "showLegend": true
+          },
+          "tooltip": {
+            "hideZeros": false,
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "pluginVersion": "12.4.1",
+        "targets": [
+          {
+            "datasource": {
+              "type": "victoriametrics-metrics-datasource",
+              "uid": "bf05veuz39r0ge"
+            },
+            "editorMode": "code",
+            "expr": "sum by(db.client.connection.pool.name, db.client.connection.state) (\r\n    db.client.connection.count\r\n)",
+            "format": "time_series",
+            "legendFormat": "{{db.client.connection.pool.name}} {{db.client.connection.state}}",
+            "range": true,
+            "refId": "A"
+          }
+        ],
+        "title": "Backend DB Connections",
+        "type": "timeseries"
+      },
+      {
+        "datasource": {
+          "type": "victoriametrics-metrics-datasource",
+          "uid": "bf05veuz39r0ge"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisBorderShow": false,
+              "axisCenteredZero": false,
+              "axisColorMode": "text",
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "barWidthFactor": 0.6,
+              "drawStyle": "line",
+              "fillOpacity": 0,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "viz": false
+              },
+              "insertNulls": false,
+              "lineInterpolation": "linear",
+              "lineWidth": 1,
+              "pointSize": 5,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "auto",
+              "showValues": false,
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            },
+            "unit": "bytes"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 10,
+          "w": 12,
+          "x": 0,
+          "y": 40
+        },
+        "id": 6,
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom",
+            "showLegend": true
+          },
+          "tooltip": {
+            "hideZeros": false,
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "pluginVersion": "12.4.1",
+        "targets": [
+          {
+            "datasource": {
+              "type": "victoriametrics-metrics-datasource",
+              "uid": "bf05veuz39r0ge"
+            },
+            "editorMode": "code",
+            "expr": "sum by(container.image.name, container.name) (delta(container.network.io.usage.rx_bytes[$__interval]))",
+            "format": "time_series",
+            "legendFormat": "{{container.image.name}} {{container.name}}",
+            "range": true,
+            "refId": "A"
+          }
+        ],
+        "title": "Container IO RX",
+        "type": "timeseries"
+      },
+      {
+        "datasource": {
+          "type": "victoriametrics-metrics-datasource",
+          "uid": "bf05veuz39r0ge"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisBorderShow": false,
+              "axisCenteredZero": false,
+              "axisColorMode": "text",
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "barWidthFactor": 0.6,
+              "drawStyle": "line",
+              "fillOpacity": 0,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "viz": false
+              },
+              "insertNulls": false,
+              "lineInterpolation": "linear",
+              "lineWidth": 1,
+              "pointSize": 5,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "auto",
+              "showValues": false,
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            },
+            "unit": "bytes"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 10,
+          "w": 12,
+          "x": 12,
+          "y": 40
+        },
+        "id": 7,
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom",
+            "showLegend": true
+          },
+          "tooltip": {
+            "hideZeros": false,
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "pluginVersion": "12.4.1",
+        "targets": [
+          {
+            "datasource": {
+              "type": "victoriametrics-metrics-datasource",
+              "uid": "bf05veuz39r0ge"
+            },
+            "editorMode": "code",
+            "expr": "sum by(container.image.name, container.name) (delta(container.network.io.usage.tx_bytes[$__interval]))",
+            "format": "time_series",
+            "legendFormat": "{{container.image.name}} {{container.name}}",
+            "range": true,
+            "refId": "A"
+          }
+        ],
+        "title": "Container IO TX",
+        "type": "timeseries"
+      },
+      {
+        "datasource": {
+          "type": "victoriametrics-metrics-datasource",
+          "uid": "bf05veuz39r0ge"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisBorderShow": false,
+              "axisCenteredZero": false,
+              "axisColorMode": "text",
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "barWidthFactor": 0.6,
+              "drawStyle": "line",
+              "fillOpacity": 0,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "viz": false
+              },
+              "insertNulls": false,
+              "lineInterpolation": "linear",
+              "lineWidth": 1,
+              "pointSize": 5,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "auto",
+              "showValues": false,
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            }
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 10,
+          "w": 12,
+          "x": 12,
+          "y": 50
+        },
+        "id": 8,
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom",
+            "showLegend": true
+          },
+          "tooltip": {
+            "hideZeros": false,
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "pluginVersion": "12.4.1",
+        "targets": [
+          {
+            "disableTextWrap": false,
+            "editorMode": "code",
+            "expr": "sum by(service.name, http.route) (rate(traces.span.metrics.duration_count{}[$__interval]))",
+            "format": "time_series",
+            "fullMetaSearch": false,
+            "includeNullMetadata": true,
+            "legendFormat": "{{service.name}} {{http.route}}",
+            "range": true,
+            "refId": "A",
+            "useBackend": false
+          }
+        ],
+        "title": "TBD",
+        "type": "timeseries"
+      }
+    ],
+    "preload": false,
+    "schemaVersion": 42,
+    "tags": [],
+    "templating": {
+      "list": []
+    },
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "timepicker": {},
+    "timezone": "browser",
+    "title": "Main Dashboard",
+    "weekStart": ""
+  }
+}
