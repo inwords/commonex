@@ -7,6 +7,7 @@ import {currencyStore} from '@/5-entities/currency/stores/currency-store';
 import {eventStore} from '@/5-entities/event/stores/event-store';
 import {ExpenseDetailsModal} from '@/3-widgets/ExpenseDetailsModal/ExpenseDetailsModal';
 import {useContent} from '@/6-shared/i18n/useContent';
+import {getExpenseExchangeRate} from '@/5-entities/expense/lib/exchange-rate';
 
 export const ExpensesList = observer(() => {
   const content = useContent();
@@ -52,13 +53,7 @@ export const ExpensesList = observer(() => {
           const isMultiCurrency = e.currencyId !== eventStore.currentEvent?.currencyId;
           const expenseCurrencyCode = currencyStore.getCurrencyCode(e.currencyId);
 
-          let exchangeRate = 1;
-          if (isMultiCurrency && e.splitInformation.length > 0) {
-            const firstSplit = e.splitInformation[0];
-            if (firstSplit.amount > 0) {
-              exchangeRate = firstSplit.exchangedAmount / firstSplit.amount;
-            }
-          }
+          const exchangeRate = getExpenseExchangeRate(e, eventStore.currentEvent?.currencyId);
 
           const handleIconClick = () => {
             const originalExpense = expenseStore.expenses.find((exp) => exp.id === e.id);
