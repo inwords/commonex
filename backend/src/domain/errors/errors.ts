@@ -65,6 +65,27 @@ export class EventOperationConflictError {
   readonly httpCode = HttpStatus.CONFLICT;
 }
 
+export class ExpenseReferenceNotFoundError {
+  readonly name = 'ExpenseReferenceNotFoundError' as const;
+  readonly code = ErrorCode.EXPENSE_REFERENCE_NOT_FOUND;
+  readonly message = 'Referenced expense not found in event';
+  readonly httpCode = HttpStatus.BAD_REQUEST;
+}
+
+export class ExpenseAlreadyRevertedError {
+  readonly name = 'ExpenseAlreadyRevertedError' as const;
+  readonly code = ErrorCode.EXPENSE_ALREADY_REVERTED;
+  readonly message = 'Expense is already reverted';
+  readonly httpCode = HttpStatus.CONFLICT;
+}
+
+export class ExpenseCorrectionConflictError {
+  readonly name = 'ExpenseCorrectionConflictError' as const;
+  readonly code = ErrorCode.EXPENSE_CORRECTION_CONFLICT;
+  readonly message = 'Expense correction is invalid';
+  readonly httpCode = HttpStatus.BAD_REQUEST;
+}
+
 export class IdempotencyHashMismatchError {
   readonly name = 'IdempotencyHashMismatchError' as const;
   readonly code = ErrorCode.IDEMPOTENCY_HASH_MISMATCH;
@@ -84,6 +105,9 @@ export const BUSINESS_ERROR_CLASSES = [
   CurrencyRateNotFoundError,
   InconsistentExchangedAmountError,
   IdempotencyHashMismatchError,
+  ExpenseReferenceNotFoundError,
+  ExpenseAlreadyRevertedError,
+  ExpenseCorrectionConflictError,
 ] as const;
 
 export type BusinessError = InstanceType<(typeof BUSINESS_ERROR_CLASSES)[number]>;
