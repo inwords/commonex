@@ -11,7 +11,7 @@ import com.inwords.expenses.feature.expenses.data.db.entity.ExpenseSplitEntity
 import com.inwords.expenses.feature.expenses.domain.model.ExpenseType
 import com.ionspin.kotlin.bignum.decimal.BigDecimal
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Before
@@ -36,7 +36,7 @@ internal class ExpensesDaoOrderingTest {
     }
 
     @Test
-    fun queryByEventId_shouldReturnExpensesOrderedByTimestampDescAndIdDesc() = runBlocking {
+    fun queryByEventId_shouldReturnExpensesOrderedByTimestampDescAndIdDesc() = runTest {
         val database = createAppDatabase(
             Room.databaseBuilder<AppDatabase>(
                 context = context,
