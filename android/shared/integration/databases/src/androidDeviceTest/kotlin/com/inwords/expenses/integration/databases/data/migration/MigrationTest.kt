@@ -17,7 +17,7 @@ import com.inwords.expenses.integration.databases.data.rateScale
 import com.inwords.expenses.integration.databases.data.rateUnscaled
 import com.inwords.expenses.integration.databases.data.rateUnscaledSqlLiteral
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -66,7 +66,7 @@ internal class MigrationTest {
                 name = testDb
             )
         ).also { db ->
-            runBlocking {
+            runTest {
                 val currencies = db.currenciesDao().queryAll().first()
                 assertEquals(
                     SeededCurrencies.all.map { currency ->
@@ -113,7 +113,7 @@ internal class MigrationTest {
                 name = focusedMigrationDb
             )
         ).also { db ->
-            runBlocking {
+            runTest {
                 val currencies = db.currenciesDao().queryAll().first()
                 assertEquals(
                     listOf(
@@ -199,7 +199,7 @@ internal class MigrationTest {
                 name = focusedMigration3To4Db
             )
         ).also { db ->
-            runBlocking {
+            runTest {
                 val expense = db.expensesDao().queryById(20)
                 assertEquals(false, expense?.expense?.isCustomRate)
             }
@@ -257,7 +257,7 @@ internal class MigrationTest {
                 name = focusedMigration4To5Db
             )
         ).also { db ->
-            runBlocking {
+            runTest {
                 assertEquals("server:srv-event", db.eventsDao().queryEventById(1)?.clientCreateId)
                 val localEventClientCreateId = db.eventsDao().queryEventById(2)?.clientCreateId
                 assertTrue(localEventClientCreateId?.matches(Regex("legacy:[0-9a-f]{32}")) == true)

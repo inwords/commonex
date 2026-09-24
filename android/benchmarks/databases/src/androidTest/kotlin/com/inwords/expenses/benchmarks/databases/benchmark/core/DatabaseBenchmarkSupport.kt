@@ -9,7 +9,7 @@ import com.inwords.expenses.benchmarks.databases.data.BenchEventEntity
 import com.inwords.expenses.benchmarks.databases.data.BenchExpenseEntity
 import com.inwords.expenses.benchmarks.databases.data.BenchPersonEntity
 import com.inwords.expenses.benchmarks.databases.data.createBenchAppDatabase
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.runTest
 import java.io.File
 
 internal object DatabaseBenchmarkSupport {
@@ -156,21 +156,21 @@ internal object DatabaseBenchmarkSupport {
         return snapshot
     }
 
-    fun verifyPragmaEquals(db: BenchAppDatabase, pragmaName: String, expected: Long) = runBlocking {
+    fun verifyPragmaEquals(db: BenchAppDatabase, pragmaName: String, expected: Long) = runTest {
         val actual = readPragmaLong(db, pragmaName)
         check(actual == expected) {
             "PRAGMA $pragmaName expected=$expected actual=$actual"
         }
     }
 
-    fun verifyPragmaAtLeast(db: BenchAppDatabase, pragmaName: String, minValue: Long) = runBlocking {
+    fun verifyPragmaAtLeast(db: BenchAppDatabase, pragmaName: String, minValue: Long) = runTest {
         val actual = readPragmaLong(db, pragmaName)
         check(actual >= minValue) {
             "PRAGMA $pragmaName expectedAtLeast=$minValue actual=$actual"
         }
     }
 
-    fun checkpointWalTruncate(db: BenchAppDatabase) = runBlocking {
+    fun checkpointWalTruncate(db: BenchAppDatabase) = runTest {
         db.useWriterConnection { connection ->
             connection.usePrepared("PRAGMA wal_checkpoint(TRUNCATE)") { checkpointStmt ->
                 check(checkpointStmt.step()) { "wal_checkpoint(TRUNCATE) returned no rows" }

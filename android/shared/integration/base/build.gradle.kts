@@ -84,6 +84,7 @@ kotlin {
                 implementation(shared.androidx.test.runner)
                 implementation(shared.androidx.test.ext.junit)
                 implementation(shared.mockk.android)
+                implementation(shared.coroutines.test)
             }
         }
     }

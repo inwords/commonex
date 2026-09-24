@@ -69,6 +69,7 @@ kotlin {
                 implementation(shared.room.testing)
                 implementation(shared.androidx.test.runner)
                 implementation(shared.androidx.test.ext.junit)
+                implementation(shared.coroutines.test)
             }
         }
     }

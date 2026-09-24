@@ -40,6 +40,7 @@ dependencies {
     androidTestImplementation(shared.androidx.test.runner)
     androidTestImplementation(shared.androidx.test.ext.junit)
     androidTestImplementation(shared.androidx.test.benchmark.junit4)
+    androidTestImplementation(shared.coroutines.test)
     androidTestUtil(shared.androidx.test.orchestrator)
 }
 
