@@ -7,6 +7,11 @@ import {currencyStore} from '@/5-entities/currency/stores/currency-store';
 import {eventStore} from '@/5-entities/event/stores/event-store';
 import {ExpenseDetailsModal} from '@/3-widgets/ExpenseDetailsModal/ExpenseDetailsModal';
 import {useContent} from '@/6-shared/i18n/useContent';
+import {
+  buildCorrectionStatusByExpenseId,
+  projectVisibleExpenseTimeline,
+  selectVisibleOperations,
+} from '@/5-entities/expense/lib/correction-status';
 import {getExpenseExchangeRate} from '@/5-entities/expense/lib/exchange-rate';
 
 export const ExpensesList = observer(() => {
@@ -23,36 +28,27 @@ export const ExpensesList = observer(() => {
     return `${day}.${month}.${year} ${hours}:${minutes}:${seconds}`;
   };
 
-  const getExpenses = () => {
-    if (expenseStore.currentTab === 0) {
-      return expenseStore.currentUserExpenses;
-    }
-
-    if (expenseStore.currentTab === 1) {
-      return expenseStore.expensesToView;
-    }
-
-    return [];
-  };
+  const allOperations = [...expenseStore.expenses, ...expenseStore.expenseRefunds];
+  const visibleOperations = selectVisibleOperations(expenseStore.currentTab, {
+    currentUserExpenses: expenseStore.currentUserExpenses,
+    expensesToView: expenseStore.expensesToView,
+    currentUserExpenseRefunds: [],
+  });
+  const visibleExpenses = projectVisibleExpenseTimeline(
+    visibleOperations,
+    userStore.currentUser?.id,
+    allOperations,
+  );
+  const correctionStatuses = buildCorrectionStatusByExpenseId(allOperations, content.ExpensesList);
 
   return (
     <Box display="flex" justifyContent={'center'} padding={'20px 10px'}>
       <Stack minWidth={300} maxWidth={540} spacing={2} width="100%">
-        {getExpenses().map((e) => {
-          const currentUserDebt = e.splitInformation.reduce((prev, curr) => {
-            if (curr.userId === userStore.currentUser?.id) {
-              prev += +curr.exchangedAmount;
-            }
+        {visibleExpenses.map(({operation: e, currentUserDebt, isRepaymentEligible}) => {
+          const correctionStatus = correctionStatuses.get(e.id) ?? null;
 
-            return prev;
-          }, 0);
-
-          const shouldShowReturnButton = userStore.currentUser?.id !== e.userWhoPaidId && currentUserDebt > 0;
-
-          // Вычисляем курс валюты (если трата была в другой валюте)
           const isMultiCurrency = e.currencyId !== eventStore.currentEvent?.currencyId;
           const expenseCurrencyCode = currencyStore.getCurrencyCode(e.currencyId);
-
           const exchangeRate = getExpenseExchangeRate(e, eventStore.currentEvent?.currencyId);
 
           const handleIconClick = () => {
@@ -82,6 +78,12 @@ export const ExpensesList = observer(() => {
                   </Stack>
                 </Typography>
 
+                {correctionStatus && (
+                  <Typography variant="body2" sx={{mt: 1, color: 'text.secondary'}}>
+                    {correctionStatus}
+                  </Typography>
+                )}
+
                 <Typography variant="body2" sx={{mt: 1}}>
                   {content.ExpensesList.paidBy} {userStore.usersDictIdToName[e.userWhoPaidId] || content.ExpensesList.unknown}
                 </Typography>
@@ -106,7 +108,7 @@ export const ExpensesList = observer(() => {
               </CardContent>
 
               <CardActions>
-                {shouldShowReturnButton && (
+                {isRepaymentEligible && (
                   <Button
                     variant="contained"
                     onClick={() => {

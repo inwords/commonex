@@ -84,6 +84,8 @@ const en: Locale = {
     currency: 'Expense currency:',
     manual: '(manual)',
     refund: 'Refund',
+    editedOn: (date: string) => `Edited on ${date}`,
+    revertedOn: (date: string) => `Reverted on ${date}`,
   },
   DebtsList: {
     noDebts: 'You have no debts',
