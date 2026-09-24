@@ -42,9 +42,10 @@ Feature-Sliced Design with strict folder structure:
 npm run dev        # Development server
 npm run build      # Production build
 npm run lint       # ESLint flat config (includes Next core-web-vitals)
+npm test           # Native Node test runner
 ```
 
-No automated test runner is currently wired through `package.json`.
+`npm test` uses Node's native test runner to execute `test/**/*.test.mts`.
 
 ## Development Workflow
 
@@ -95,6 +96,7 @@ No automated test runner is currently wired through `package.json`.
 ## Validation Steps
 
 ```bash
+npm test
 npm run lint
 npm run build
 ```

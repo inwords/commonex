@@ -2,11 +2,13 @@
   "name": "expenses",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "node_modules/.bin/next dev",
     "build": "node_modules/.bin/next build",
     "start": "node_modules/.bin/next start",
-    "lint": "node_modules/.bin/eslint ."
+    "lint": "node_modules/.bin/eslint .",
+    "test": "node --test \"test/**/*.test.mts\""
   },
   "dependencies": {
     "@emotion/react": "11.14.0",
