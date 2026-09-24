@@ -150,6 +150,7 @@ dependencies {
     androidTestImplementation(project(":shared:feature:menu"))
     androidTestImplementation(shared.compose.components.resources.multiplatform)
     androidTestImplementation(shared.kotlinx.datetime)
+    androidTestImplementation(shared.coroutines.test)
 
     baselineProfile(project(":baselineprofile"))
 }

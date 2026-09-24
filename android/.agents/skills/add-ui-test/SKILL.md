@@ -41,7 +41,7 @@ Write or modify Android Compose UI instrumented tests in `android/app/src/androi
 Prefer stable selectors in this order: test tags, resource strings, raw literals.
 Keep long flows but avoid duplicated checks between steps or across tests.
 If multiple chip/timeline interactions form one coherent user journey, prefer one instrumented scenario over split tests and keep each assertion tied to a visible transition in that flow.
-Avoid `TestScope` or `StandardTestDispatcher` in instrumented Compose tests; keep the `runTest` wrapper.
+Keep the `ComposeTestRule.runTest` wrapper and follow the coroutine and dispatcher guidance in [`android/docs/testing-patterns.md`](../../../docs/testing-patterns.md#key-patterns).
 Ensure clipboard or async actions are awaited before assertions.
 For stateful chips, filters, and segmented controls, assert selected semantics in addition to destination content visibility only when the UI-level bug is about that selection state itself. If host/ViewModel tests already cover selection transitions and the instrumented scenario is about sticky positioning or navigation outcomes, prefer asserting the rendered destination instead of duplicating state-only checks in UI tests, unless the user explicitly asks to verify the selected UI state in that instrumented flow.
 
