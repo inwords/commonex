@@ -40,16 +40,18 @@ internal class DefaultNavigationController() : AttachableNavigationController {
 
     override fun popBackStack(toDestination: Destination, inclusive: Boolean) {
         getBackStack().apply {
-            while (isNotEmpty()) {
-                val top = last()
-                if (top == toDestination) {
-                    if (inclusive) {
-                        removeAt(lastIndex)
-                    }
-                    break
-                } else {
-                    removeAt(lastIndex)
-                }
+            val destinationIndex = lastIndexOf(toDestination)
+            if (destinationIndex == -1) {
+                return@apply
+            }
+
+            val firstIndexToRemove = if (inclusive && destinationIndex > 0) {
+                destinationIndex
+            } else {
+                destinationIndex + 1
+            }
+            while (lastIndex >= firstIndexToRemove) {
+                removeAt(lastIndex)
             }
         }
     }
