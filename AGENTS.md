@@ -57,7 +57,7 @@ If `ast-index` MCP is reachable:
 - Before reading any file longer than 500 lines, call `outline` first, then read only the line range you actually need.
 - For "who uses X" questions, use `usages`; for "who calls X" questions, use `callers`; for "what implements X" questions, use `implementations`.
 - If `ast-index` returns empty, fall back to targeted `grep`/`rg`; do not bulk-read files.
-- In the beginning of the session run `ast-index update`
+- In the beginning of the session run `ast-index update`; if the CLI executable cannot launch but MCP tools are available, continue with the MCP tools and fall back to targeted `grep`/`rg` only when MCP is unavailable or returns empty.
 
 ## Workflow agent rules
 
