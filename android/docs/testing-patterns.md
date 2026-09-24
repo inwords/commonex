@@ -4,6 +4,8 @@ Detailed testing strategy, architecture, and patterns for the Android/KMM projec
 
 ## Testing Strategy
 
+- **Coroutine tests:** Use `kotlinx.coroutines.test.runTest` for Android coroutine tests, including instrumented tests. Compose flows use the `ComposeTestRule.runTest` wrapper described below.
+- **Timed benchmark bridge:** The network benchmark retains `runBlocking` inside `measureRepeated` so coroutine-test scheduler setup and teardown are excluded from request measurements. Use `runTest` for coroutine work in benchmark setup and assertions.
 - **Unit tests:** JUnit 6 for host/JVM tests
 - **Instrumented tests (non-UI):** Android Tests with JUnit 6
 - **Instrumented tests (Compose UI E2E tests):** Android Tests with JUnit 4 and Marathon. Prefer Marathon over `:app:connectedAutotestAndroidTest` for local UI-test validation because it matches the retried/sharded runner used in CI. Use `connectedAutotestAndroidTest` only for narrow targeted debugging when Marathon is unavailable or would be unnecessary overhead. Run against the real backend; avoid mocks and hardcoded remote fixtures by creating required data in-test.
@@ -89,15 +91,13 @@ app/src/androidTest/kotlin/ru/commonex/
            // ...
    }
    ```
-   This utility wraps the test in `runBlocking` and provides `ComposeTestRule` as a context receiver.
-
-   **Note:** `TestScope`/`StandardTestDispatcher` cannot be used with Compose because UI operations must run on the main thread. For instrumented tests, `runBlocking` is appropriate since the device/emulator runs in real-time anyway.
+   This utility wraps the test in `kotlinx.coroutines.test.runTest` and provides `ComposeTestRule` as a context receiver. It keeps the application's main dispatcher unchanged and uses a five-minute timeout for complete UI flows. Use Compose rule waits for UI and network progress; these use wall-clock time while the test scheduler uses virtual time.
 
 4. **@Offline annotation:** Custom annotation + `ConnectivityRule` for tests requiring network control:
    ```kotlin
    @Offline
    @Test
-   fun testOfflineFlow() = runBlocking { ... }
+   fun testOfflineFlow() = composeRule.runTest { ... }
    ```
 
 5. **Selectors:** Prefer test tags for new selectors, fall back to resource strings, and avoid raw literals unless unavoidable. For overlays (dialogs/bottom sheets), scope checks to overlay-specific tags; do not rely on global text waits that can match
