@@ -41,7 +41,7 @@ describe('FetchDailyCurrencyRatesUseCase', () => {
     httpService = {} as HttpService;
     currencyRateService = new CurrencyRateService(httpService);
     sharedUseCase = new FetchAndSaveCurrencyRateSharedUseCase(relationalDataService, currencyRateService);
-    useCase = new FetchDailyCurrencyRatesUseCase(sharedUseCase);
+    useCase = new FetchDailyCurrencyRatesUseCase(relationalDataService, sharedUseCase);
 
     await relationalDataService.initialize();
   });
@@ -60,7 +60,7 @@ describe('FetchDailyCurrencyRatesUseCase', () => {
       name: 'fetches currency rates for the current date',
       initRelationalState: {},
       input: undefined,
-      output: undefined,
+      output: {acquired: true},
       mockDate: '2026-01-06',
       mockSharedUseCase: {
         execute: {
@@ -82,10 +82,22 @@ describe('FetchDailyCurrencyRatesUseCase', () => {
       (getCurrentDateWithoutTimeUTC as jest.Mock).mockReturnValue(testCase.mockDate);
       const executeSpy = jest.spyOn(sharedUseCase, 'execute').mockResolvedValue(testCase.mockSharedUseCase.execute);
 
-      await useCase.execute();
+      await expect(useCase.execute()).resolves.toEqual(testCase.output);
 
       expect(getCurrentDateWithoutTimeUTC).toHaveBeenCalled();
-      expect(executeSpy).toHaveBeenCalledWith({date: testCase.mockDate});
+      expect(executeSpy).toHaveBeenCalledWith({date: testCase.mockDate, trx: {ctx: expect.any(Object)}});
     });
+  });
+
+  it('skips fetching when another transaction holds the job lock', async () => {
+    const executeSpy = jest.spyOn(sharedUseCase, 'execute');
+
+    await relationalDataService.dataSource.transaction(async (ctx) => {
+      await ctx.query(`SELECT pg_advisory_xact_lock(hashtextextended($1, 0))`, ['commonex:cron:currency-rates']);
+
+      await expect(useCase.execute()).resolves.toEqual({acquired: false});
+    });
+
+    expect(executeSpy).not.toHaveBeenCalled();
   });
 });

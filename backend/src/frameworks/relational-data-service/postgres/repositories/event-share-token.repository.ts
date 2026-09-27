@@ -45,7 +45,8 @@ export class EventShareTokenRepository extends BaseRepository implements EventSh
     query = query
       .where(`${this.queryName}.event_id = :eventId`, {eventId})
       .andWhere(`${this.queryName}.expires_at >= :now`, {now: new Date()})
-      .orderBy(`${this.queryName}.expires_at`, 'DESC');
+      .orderBy(`${this.queryName}.expires_at`, 'DESC')
+      .limit(1);
 
     const queryDetails = this.getQueryDetails(query);
     const result = await query.getOne();
@@ -94,6 +95,30 @@ export class EventShareTokenRepository extends BaseRepository implements EventSh
     await query.execute();
 
     return [undefined, queryDetails];
+  };
+
+  readonly deleteExpiredBatch: EventShareTokenRepositoryAbstract['deleteExpiredBatch'] = async (
+    {expiresBefore, limit},
+    trx,
+  ) => {
+    const ctx = trx?.ctx instanceof EntityManager ? trx.ctx : undefined;
+    const repository = this.getRepository(ctx);
+    const candidates = repository
+      .createQueryBuilder(this.queryName)
+      .select(`${this.queryName}.token`)
+      .where(`${this.queryName}.expires_at < :expiresBefore`, {expiresBefore})
+      .orderBy(`${this.queryName}.expires_at`, 'ASC')
+      .addOrderBy(`${this.queryName}.token`, 'ASC')
+      .limit(limit);
+    const query = repository
+      .createQueryBuilder()
+      .delete()
+      .where(`token IN (${candidates.getQuery()})`)
+      .setParameters(candidates.getParameters());
+    const queryDetails = this.getQueryDetails(query);
+    const result = await query.execute();
+
+    return [result.affected ?? 0, queryDetails];
   };
 
   private readonly getRepository = (manager?: EntityManager): Repository<EventShareTokenEntity> => {

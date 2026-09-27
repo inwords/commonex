@@ -78,6 +78,27 @@ describe('IdempotencyKeyRepository', () => {
     expect(details).toMatchSnapshot();
   });
 
+  it('deletes at most one ordered batch of expired keys', async () => {
+    for (const [key, expiresAt] of [
+      ['expired-1', '2025-01-01T00:00:00Z'],
+      ['expired-2', '2025-01-02T00:00:00Z'],
+      ['expired-3', '2025-01-03T00:00:00Z'],
+      ['live', '2027-01-01T00:00:00Z'],
+    ] as const) {
+      await relationalDataService.idempotencyKey.insert(buildKey({key, expiresAt: new Date(expiresAt)}));
+    }
+
+    const [deletedCount, details] = await relationalDataService.idempotencyKey.deleteExpiredBatch({
+      expiresBefore: new Date('2026-01-01T00:00:00Z'),
+      limit: 2,
+    });
+    const [remaining] = await relationalDataService.idempotencyKey.findAll({limit: 10});
+
+    expect(deletedCount).toBe(2);
+    expect(remaining.map((record) => record.key).sort()).toEqual(['expired-3', 'live']);
+    expect(details).toMatchSnapshot();
+  });
+
   it('rejects empty criteria instead of deleting every key', async () => {
     await relationalDataService.idempotencyKey.insert(buildKey({key: 'kept'}));
 

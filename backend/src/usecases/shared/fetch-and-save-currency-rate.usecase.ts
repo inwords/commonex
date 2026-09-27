@@ -4,11 +4,13 @@ import {UseCase} from '#packages/use-case';
 
 import {CurrencyRateServiceAbstract} from '#domain/abstracts/currency-rate-service/currency-rate-service';
 import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-service/relational-data-service';
+import {ITransaction} from '#domain/abstracts/relational-data-service/types';
 import {ICurrencyRate} from '#domain/entities/currency-rate.entity';
 import {CurrencyRateValueObject} from '#domain/value-objects/currency-rate.value-object';
 
 interface Input {
   date: string;
+  trx?: ITransaction;
 }
 type Output = ICurrencyRate;
 
@@ -19,7 +21,7 @@ export class FetchAndSaveCurrencyRateSharedUseCase implements UseCase<Input, Out
     private readonly currencyRateService: CurrencyRateServiceAbstract,
   ) {}
 
-  public async execute({date}: Input): Promise<Output> {
+  public async execute({date, trx}: Input): Promise<Output> {
     const rates = await this.currencyRateService.getCurrencyRate(date);
 
     if (!rates) {
@@ -31,7 +33,7 @@ export class FetchAndSaveCurrencyRateSharedUseCase implements UseCase<Input, Out
       rate: rates,
     }).value;
 
-    await this.rDataService.currencyRate.insert(currencyRate);
+    await this.rDataService.currencyRate.insert(currencyRate, trx);
 
     return currencyRate;
   }
