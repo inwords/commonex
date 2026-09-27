@@ -1340,6 +1340,7 @@
             "value": "public"
           },
           "description": "PostgreSQL schema (POSTGRES_SCHEMA env var value)",
+          "hide": 2,
           "label": "DB Schema",
           "name": "postgres_schema",
           "options": [
@@ -1350,7 +1351,8 @@
             }
           ],
           "query": "public",
-          "type": "textbox"
+          "skipUrlSync": true,
+          "type": "constant"
         }
       ]
     },

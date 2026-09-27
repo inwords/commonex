@@ -4,7 +4,7 @@
 
 ## Host bootstrap
 
-Complete this bootstrap and preflight before enabling the workflow. Preserve the currently working Compose file, `.env`, host-managed Grafana datasource provisioning, and Grafana persistent volume; do not generate replacements during wrapper installation.
+Complete this bootstrap and preflight before enabling the workflow. Preserve the currently working Compose file, `.env`, Grafana datasource provisioning, and Grafana persistent volume; do not generate replacements during wrapper installation. The first release with release-managed datasource provisioning supersedes the old host mount without requiring a deploy-wrapper migration.
 
 The merged wrapper **must be installed and validated before approving the first immutable deploy**. The ordinary deploy job asks the host for `current-images`: before the first immutable activation the host responds with the expected bootstrap message, and later it supplies the active immutable references. Keep a recoverable copy of the previous wrapper while installing the merged version:
 
@@ -48,7 +48,7 @@ The script intentionally uses `/usr/bin/python3`; verify that it is Python 3.9 o
 
 ## Immutable release contract
 
-Every release archive contains only `docker-compose-prod.yml` and `.env`. After staging, the root-only host directory also contains the wrapper-generated `manifest.sha256`. The release `.env` must contain these four image variables, each as the repository name followed by a digest in the exact `repository@sha256:<64-lowercase-hex>` form:
+Every release archive contains only `docker-compose-prod.yml` and `.env`. After staging, the root-only host directory also contains the wrapper-generated `manifest.sha256`. The delivery orchestrator adds the base64-encoded Grafana datasource and its SHA-256 revision to the release `.env`, alongside these four image variables, each as the repository name followed by a digest in the exact `repository@sha256:<64-lowercase-hex>` form:
 
 - `COMMONEX_BACKEND_IMAGE=ruggedbl/commonex-nest-backend@sha256:<64-lowercase-hex>`
 - `COMMONEX_FRONTEND_IMAGE=ruggedbl/commonex-next-web@sha256:<64-lowercase-hex>`
@@ -96,7 +96,7 @@ Install that policy in `/etc/sudoers.d/commonex-deploy` with mode `0440`, then r
 - `rollback <40-character-sha> <positive-github-run-number>`
 - `current-images` (no arguments; read-only image-reference output)
 
-Grafana dashboards and folders are managed by Git Sync under `infra/grafana/sync`; they are not deployed to the host. Datasource provisioning remains host-managed under `/etc/commonex/app/grafana/provisioning/datasources`, mounted read-only into Grafana. Both are outside this release contract. Preserve `grafana_data` for Grafana configuration, credentials, alert rules, and other database state. See the [Grafana runbook](../grafana/README.md) for ownership and migration details.
+Grafana dashboards and folders are managed by Git Sync under `infra/grafana/sync`; they are not deployed to the host. PostgreSQL datasource provisioning is packaged from `infra/grafana/provisioning/datasources/postgres.yaml` into the release environment. A restricted materializer container writes it to the `grafana_provisioning` volume and verifies its SHA-256 before Grafana starts. The same revision is part of the Grafana container configuration, so Compose recreates Grafana when provisioning changes; rollback restores the matching encoded datasource and revision. Local Compose runs without generated release values keep using the repository directory bind mount. Preserve `grafana_data` for Grafana configuration, credentials, alert rules, and other database state. See the [Grafana runbook](../grafana/README.md) for ownership and migration details.
 
 For certificate state, DNS credentials, and renewal recovery, see the
 [certificate runbook](../certificates/README.md). For certificate deployment and

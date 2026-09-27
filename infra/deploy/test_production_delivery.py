@@ -1,4 +1,6 @@
 from io import BytesIO, StringIO
+import base64
+import hashlib
 from pathlib import Path
 import tarfile
 from tempfile import TemporaryDirectory
@@ -20,6 +22,23 @@ CURRENT_IMAGES = "".join(
     )
 )
 EXPECTED_IMAGES = "".join(reversed(CURRENT_IMAGES.splitlines(keepends=True)))
+GRAFANA_DATASOURCE_PATH = (
+    Path(__file__).resolve().parents[1]
+    / "grafana"
+    / "provisioning"
+    / "datasources"
+    / "postgres.yaml"
+)
+GRAFANA_DATASOURCE = GRAFANA_DATASOURCE_PATH.read_bytes()
+EXPECTED_GRAFANA_ENVIRONMENT = (
+    "GRAFANA_DATASOURCE_B64={}\n".format(
+        base64.b64encode(GRAFANA_DATASOURCE).decode("ascii")
+    )
+    + "GRAFANA_PROVISIONING_REVISION={}\n".format(
+        hashlib.sha256(GRAFANA_DATASOURCE).hexdigest()
+    )
+    + "GRAFANA_PROVISIONING_SOURCE=grafana_provisioning\n"
+).encode("ascii")
 
 
 class ScriptedClient:
@@ -147,7 +166,9 @@ class ProductionDeliveryTest(unittest.TestCase):
             environment_contents = bundle.extractfile(".env").read()
         self.assertEqual(
             environment_contents,
-            b"SECRET=not-printed\n" + EXPECTED_IMAGES.encode("utf-8"),
+            b"SECRET=not-printed\n"
+            + EXPECTED_IMAGES.encode("utf-8")
+            + EXPECTED_GRAFANA_ENVIRONMENT,
         )
 
     def test_deploy_uses_current_images_for_resolution(self) -> None:

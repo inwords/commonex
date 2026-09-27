@@ -10,8 +10,12 @@ Sync. The connection `repository-1e0ed32` tracks the `main` branch of
 - `sync/`: dashboard resources and folder metadata owned by Git Sync. Save from
   Grafana to commit directly to `main`, or edit the resources in Git. Preserve
   dashboard `metadata.name` values (the dashboard UIDs) to keep existing URLs.
-- `provisioning/datasources/`: host-managed PostgreSQL provisioning, mounted
-  read-only at `/etc/grafana/provisioning/datasources`. Preserve `postgres-ds`.
+- `provisioning/datasources/`: release-managed PostgreSQL provisioning. The
+  application deployment encodes `postgres.yaml` into the release environment;
+  `grafana-provisioning` materializes and verifies it in a dedicated volume that
+  Grafana mounts read-only. A provisioning change recreates Grafana automatically.
+  Local Compose runs continue to bind-mount this directory directly. Preserve
+  `postgres-ds`.
 - `grafana_data`: persistent Grafana database, GitHub App connection, credentials,
   manually configured data sources, and other instance state. Certificate alerts
   are DB-owned; see [certificate monitoring](../certificates/monitoring/README.md).
@@ -27,8 +31,9 @@ dashboard changes still trigger normal application validation and deployment.
 Dashboard resources are fetched by Grafana and are not copied onto the host by
 the [application deployment](../deploy/README.md).
 
-Git Sync covers dashboards and folders only. Data sources, alert rules, and
-library panels stay outside Git Sync.
+Git Sync covers dashboards and folders only. The PostgreSQL datasource follows
+the application release and rollback lifecycle; alert rules and library panels
+stay outside Git Sync.
 
 ## Migration and recovery
 

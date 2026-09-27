@@ -201,6 +201,43 @@ services:
     networks:
       - monitoring-network
 
+  grafana-provisioning:
+    image: postgres:17-alpine3.24
+    deploy:
+      resources:
+        limits:
+          memory: 32M
+          cpus: '0.10'
+    restart: unless-stopped
+    read_only: true
+    network_mode: none
+    security_opt:
+      - no-new-privileges:true
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - |
+        if [ -z "$$GRAFANA_DATASOURCE_B64" ]; then
+          exec tail -f /dev/null
+        fi
+        temporary="$$(mktemp /provisioning/.postgres.yaml.XXXXXX)"
+        trap 'rm -f "$$temporary"' EXIT
+        printf '%s' "$$GRAFANA_DATASOURCE_B64" | base64 -d > "$$temporary"
+        chmod 0644 "$$temporary"
+        mv -f "$$temporary" /provisioning/postgres.yaml
+        trap - EXIT
+        exec tail -f /dev/null
+    environment:
+      - GRAFANA_DATASOURCE_B64=${GRAFANA_DATASOURCE_B64:-}
+      - GRAFANA_PROVISIONING_REVISION=${GRAFANA_PROVISIONING_REVISION:-local}
+    healthcheck:
+      test: ["CMD-SHELL", "test -z \"$${GRAFANA_DATASOURCE_B64}\" || printf '%s  %s\\n' \"$${GRAFANA_PROVISIONING_REVISION}\" /provisioning/postgres.yaml | sha256sum -c -"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    volumes:
+      - grafana_provisioning:/provisioning
+
   grafana:
     image: grafana/grafana:13.2.1
     container_name: grafana
@@ -215,8 +252,12 @@ services:
     security_opt:
       - no-new-privileges:true
     depends_on:
-      - victoriametrics
-      - victoriatraces
+      grafana-provisioning:
+        condition: service_healthy
+      victoriametrics:
+        condition: service_started
+      victoriatraces:
+        condition: service_started
     environment:
       - GF_SECURITY_ADMIN_USER=${GF_SECURITY_ADMIN_USER}
       - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD}
@@ -225,9 +266,10 @@ services:
       - POSTGRES_DATABASE=${POSTGRES_DATABASE}
       - POSTGRES_USER_NAME=${POSTGRES_USER_NAME}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - COMMONEX_GRAFANA_PROVISIONING_REVISION=${GRAFANA_PROVISIONING_REVISION:-local}
     volumes:
       - grafana_data:/var/lib/grafana
-      - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ${GRAFANA_PROVISIONING_SOURCE:-./grafana/provisioning/datasources}:/etc/grafana/provisioning/datasources:ro
     networks:
       - app-network
       - monitoring-network
@@ -238,6 +280,7 @@ volumes:
   victoriametrics_data:
   victoriatraces_data:
   grafana_data:
+  grafana_provisioning:
 
 networks:
   db-network:

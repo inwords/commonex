@@ -281,6 +281,7 @@ jobs:
           "$CHANGED_SERVICES"
           infra/docker-compose-prod.yml
           release/.env
+          infra/grafana/provisioning/datasources/postgres.yaml
 
   rollback:
     if: |

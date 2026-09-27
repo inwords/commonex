@@ -4,7 +4,9 @@
 from __future__ import annotations
 
 import argparse
+import base64
 from dataclasses import dataclass
+import hashlib
 from io import BytesIO
 from pathlib import Path
 import re
@@ -132,6 +134,20 @@ def _append_images(environment: bytes, images: str) -> bytes:
     return environment + separator + images_bytes
 
 
+def _append_grafana_provisioning(
+    environment: bytes,
+    grafana_datasource: bytes,
+) -> bytes:
+    revision = hashlib.sha256(grafana_datasource).hexdigest()
+    encoded = base64.b64encode(grafana_datasource).decode("ascii")
+    values = (
+        f"GRAFANA_DATASOURCE_B64={encoded}\n"
+        f"GRAFANA_PROVISIONING_REVISION={revision}\n"
+        "GRAFANA_PROVISIONING_SOURCE=grafana_provisioning\n"
+    )
+    return _append_images(environment, values)
+
+
 def _same_image_set(expected: str, active: bytes) -> bool:
     try:
         active_text = active.decode("utf-8", errors="strict")
@@ -198,6 +214,9 @@ def deploy_release(
     environment_path: Path,
     client: ForcedCommandClient,
     *,
+    grafana_datasource_path: Path = Path(
+        "infra/grafana/provisioning/datasources/postgres.yaml"
+    ),
     image_resolver: ImageResolver = resolve_release_images,
     public_verifier: PublicVerifier = _default_public_verifier,
     stderr: TextIO = sys.stderr,
@@ -229,6 +248,8 @@ def deploy_release(
             current_images,
         )
         environment = _append_images(environment_path.read_bytes(), expected_images)
+        grafana_datasource = grafana_datasource_path.read_bytes()
+        environment = _append_grafana_provisioning(environment, grafana_datasource)
         archive = build_release_archive(compose_path.read_bytes(), environment)
     except (OSError, subprocess.SubprocessError, UnicodeError, ValueError) as error:
         print(
@@ -333,6 +354,7 @@ def build_parser() -> argparse.ArgumentParser:
     deploy.add_argument("changed_services_json")
     deploy.add_argument("compose_path", type=Path)
     deploy.add_argument("environment_path", type=Path)
+    deploy.add_argument("grafana_datasource_path", type=Path)
 
     rollback = subparsers.add_parser("rollback")
     rollback.add_argument("release_sha")
@@ -357,6 +379,7 @@ def main(
                 options.compose_path,
                 options.environment_path,
                 forced_command,
+                grafana_datasource_path=options.grafana_datasource_path,
                 stderr=stderr,
             )
         return rollback_release(

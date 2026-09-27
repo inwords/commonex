@@ -20,6 +20,9 @@ class ProductionComposeTests(unittest.TestCase):
                 "DEVTOOLS_SECRET": "test",
                 "GF_SECURITY_ADMIN_PASSWORD": "test",
                 "GF_SECURITY_ADMIN_USER": "test",
+                "GRAFANA_DATASOURCE_B64": "YXBpVmVyc2lvbjogMQo=",
+                "GRAFANA_PROVISIONING_REVISION": "0" * 64,
+                "GRAFANA_PROVISIONING_SOURCE": "grafana_provisioning",
                 "OPEN_EXCHANGE_RATES_API_ID": "test",
                 "POSTGRES_DATABASE": "test",
                 "POSTGRES_DB": "test",
@@ -51,6 +54,20 @@ class ProductionComposeTests(unittest.TestCase):
         )
 
         self.assertNotIn("certbot", result.stdout.splitlines())
+
+    def test_grafana_datasource_is_materialized_before_grafana_starts(self) -> None:
+        compose = COMPOSE_FILE.read_text(encoding="utf-8")
+
+        self.assertIn("GRAFANA_DATASOURCE_B64=${GRAFANA_DATASOURCE_B64}", compose)
+        self.assertIn("condition: service_healthy", compose)
+        self.assertIn(
+            "COMMONEX_GRAFANA_PROVISIONING_REVISION=${GRAFANA_PROVISIONING_REVISION:-local}",
+            compose,
+        )
+        self.assertIn(
+            "${GRAFANA_PROVISIONING_SOURCE:-./grafana/provisioning/datasources}:/etc/grafana/provisioning/datasources:ro",
+            compose,
+        )
 
 
 if __name__ == "__main__":

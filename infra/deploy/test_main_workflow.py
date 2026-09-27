@@ -58,6 +58,10 @@ class MainWorkflowContractTest(unittest.TestCase):
             "CHANGED_SERVICES: ${{ needs.containers_matrix_prep.outputs.changed-services }}",
             deploy_job,
         )
+        self.assertIn(
+            "infra/grafana/provisioning/datasources/postgres.yaml",
+            deploy_job,
+        )
         self.assertNotIn('ssh commonex-production "stage ', deploy_job)
         self.assertNotIn('ssh commonex-production "validate ', deploy_job)
         self.assertNotIn('ssh commonex-production "deploy ', deploy_job)
