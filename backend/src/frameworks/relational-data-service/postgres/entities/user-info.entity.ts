@@ -1,8 +1,9 @@
-import {Column, Entity, PrimaryColumn} from 'typeorm';
+import {Column, Entity, Index, PrimaryColumn} from 'typeorm';
 
 import {type IUserInfo} from '#domain/entities/user-info.entity';
 
 @Entity('user_info')
+@Index(['eventId'])
 export class UserInfoEntity implements IUserInfo {
   @PrimaryColumn({type: 'varchar'})
   id!: IUserInfo['id'];

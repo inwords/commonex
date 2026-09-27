@@ -1,5 +1,14 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
+exports[`IdempotencyKeyRepository deletes at most one ordered batch of expired keys 1`] = `
+{
+  "queryParameters": {
+    "expiresBefore": 2026-01-01T00:00:00.000Z,
+  },
+  "queryString": "DELETE FROM "idempotency_keys" WHERE "key" IN (SELECT "idempotency_key"."key" AS "idempotency_key_key" FROM "idempotency_keys" "idempotency_key" WHERE "idempotency_key"."expires_at" < :expiresBefore ORDER BY "idempotency_key"."expires_at" ASC, "idempotency_key_key" ASC LIMIT 2)",
+}
+`;
+
 exports[`IdempotencyKeyRepository deletes only the keys matching the criteria 1`] = `
 {
   "queryParameters": {

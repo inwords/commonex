@@ -10,8 +10,8 @@
         {
           "builtIn": 1,
           "datasource": {
-            "type": "postgres",
-            "uid": "postgres"
+            "type": "grafana",
+            "uid": "-- Grafana --"
           },
           "enable": true,
           "hide": true,
@@ -1316,7 +1316,7 @@
             },
             "format": "table",
             "rawQuery": true,
-            "rawSql": "SELECT\n  ev.name                          AS \"Event Name\",\n  COUNT(ex.id)                     AS \"Expenses\",\n  COUNT(DISTINCT ui.id)            AS \"Users\",\n  MIN(ex.created_at)::date         AS \"First Expense\",\n  MAX(ex.created_at)::date         AS \"Last Expense\",\n  (MAX(ex.created_at)::date - MIN(ex.created_at)::date) AS \"Active Days\",\n  COUNT(*) FILTER (WHERE ex.is_custom_rate = true) AS \"Custom Rates\"\nFROM \"${postgres_schema}\".event ev\nLEFT JOIN \"${postgres_schema}\".expense ex\n  ON ex.event_id = ev.id AND ex.expense_type = 'expense'\nLEFT JOIN \"${postgres_schema}\".user_info ui\n  ON ui.event_id = ev.id\nWHERE ev.deleted_at IS NULL\nGROUP BY ev.id, ev.name\nORDER BY \"Expenses\" DESC NULLS LAST\nLIMIT 20",
+            "rawSql": "WITH expense_stats AS (\n  SELECT\n    event_id,\n    COUNT(*) AS expenses,\n    MIN(created_at)::date AS first_expense,\n    MAX(created_at)::date AS last_expense,\n    COUNT(*) FILTER (WHERE is_custom_rate = true) AS custom_rates\n  FROM \"${postgres_schema}\".expense\n  WHERE expense_type = 'expense'\n  GROUP BY event_id\n),\nuser_stats AS (\n  SELECT event_id, COUNT(*) AS users\n  FROM \"${postgres_schema}\".user_info\n  GROUP BY event_id\n)\nSELECT\n  ev.name AS \"Event Name\",\n  COALESCE(ex.expenses, 0) AS \"Expenses\",\n  COALESCE(ui.users, 0) AS \"Users\",\n  ex.first_expense AS \"First Expense\",\n  ex.last_expense AS \"Last Expense\",\n  (ex.last_expense - ex.first_expense) AS \"Active Days\",\n  COALESCE(ex.custom_rates, 0) AS \"Custom Rates\"\nFROM \"${postgres_schema}\".event ev\nLEFT JOIN expense_stats ex ON ex.event_id = ev.id\nLEFT JOIN user_stats ui ON ui.event_id = ev.id\nWHERE ev.deleted_at IS NULL\nORDER BY \"Expenses\" DESC NULLS LAST\nLIMIT 20",
             "refId": "A"
           }
         ],
@@ -1355,7 +1355,7 @@
       ]
     },
     "time": {
-      "from": "now-5m",
+      "from": "now-30d",
       "to": "now"
     },
     "timepicker": {},

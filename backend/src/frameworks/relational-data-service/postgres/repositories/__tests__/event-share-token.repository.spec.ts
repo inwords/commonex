@@ -74,6 +74,12 @@ describe('EventShareTokenRepository', () => {
   });
 
   describe('findOneActiveByEventId', () => {
+    it('should limit the active token lookup to one database row', async () => {
+      const [, queryDetails] = await relationalDataService.eventShareToken.findOneActiveByEventId('event-1');
+
+      expect(queryDetails.queryString).toContain('LIMIT 1');
+    });
+
     it('should find active token by event id', async () => {
       const futureDate = new Date();
       futureDate.setFullYear(futureDate.getFullYear() + 1);
@@ -231,6 +237,47 @@ describe('EventShareTokenRepository', () => {
       const [result] = await relationalDataService.eventShareToken.findByToken('test-token-123');
 
       expect(result).toBeNull();
+      expect(queryDetails).toMatchSnapshot();
+    });
+  });
+
+  describe('deleteExpiredBatch', () => {
+    it('should delete at most one ordered batch of expired tokens', async () => {
+      await relationalDataService.eventShareToken.insert([
+        {
+          token: 'expired-1',
+          eventId: 'event-1',
+          expiresAt: new Date('2023-01-01T00:00:00Z'),
+          createdAt: new Date('2022-01-01T00:00:00Z'),
+        },
+        {
+          token: 'expired-2',
+          eventId: 'event-1',
+          expiresAt: new Date('2023-01-02T00:00:00Z'),
+          createdAt: new Date('2022-01-01T00:00:00Z'),
+        },
+        {
+          token: 'expired-3',
+          eventId: 'event-1',
+          expiresAt: new Date('2023-01-03T00:00:00Z'),
+          createdAt: new Date('2022-01-01T00:00:00Z'),
+        },
+        {
+          token: 'live',
+          eventId: 'event-1',
+          expiresAt: new Date('2025-01-01T00:00:00Z'),
+          createdAt: new Date('2022-01-01T00:00:00Z'),
+        },
+      ]);
+
+      const [deletedCount, queryDetails] = await relationalDataService.eventShareToken.deleteExpiredBatch({
+        expiresBefore: new Date('2024-01-01T00:00:00Z'),
+        limit: 2,
+      });
+      const [remaining] = await relationalDataService.eventShareToken.findAll({limit: 10});
+
+      expect(deletedCount).toBe(2);
+      expect(remaining.map((record) => record.token).sort()).toEqual(['expired-3', 'live']);
       expect(queryDetails).toMatchSnapshot();
     });
   });

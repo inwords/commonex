@@ -67,6 +67,30 @@ export class IdempotencyKeyRepository extends BaseRepository implements Idempote
     return [undefined, queryDetails];
   };
 
+  readonly deleteExpiredBatch: IdempotencyKeyRepositoryAbstract['deleteExpiredBatch'] = async (
+    {expiresBefore, limit},
+    trx,
+  ) => {
+    const ctx = trx?.ctx instanceof EntityManager ? trx.ctx : undefined;
+    const repository = this.getRepository(ctx);
+    const candidates = repository
+      .createQueryBuilder(this.queryName)
+      .select(`${this.queryName}.key`)
+      .where(`${this.queryName}.expires_at < :expiresBefore`, {expiresBefore})
+      .orderBy(`${this.queryName}.expires_at`, 'ASC')
+      .addOrderBy(`${this.queryName}.key`, 'ASC')
+      .limit(limit);
+    const query = repository
+      .createQueryBuilder()
+      .delete()
+      .where(`key IN (${candidates.getQuery()})`)
+      .setParameters(candidates.getParameters());
+    const queryDetails = this.getQueryDetails(query);
+    const result = await query.execute();
+
+    return [result.affected ?? 0, queryDetails];
+  };
+
   private readonly getRepository = (manager?: EntityManager): Repository<IdempotencyKeyEntity> => {
     return manager != null
       ? manager.getRepository(IdempotencyKeyEntity)

@@ -22,4 +22,8 @@ export abstract class EventShareTokenRepositoryAbstract {
     token: string,
     trx?: ITransaction,
   ) => Promise<[result: undefined, queryDetails: IQueryDetails]>;
+  abstract deleteExpiredBatch: (
+    input: {expiresBefore: Date; limit: number},
+    trx?: ITransaction,
+  ) => Promise<[deletedCount: number, queryDetails: IQueryDetails]>;
 }

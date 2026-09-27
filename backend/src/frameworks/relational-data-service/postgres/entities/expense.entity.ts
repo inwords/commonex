@@ -1,8 +1,9 @@
-import {Column, Entity, PrimaryColumn} from 'typeorm';
+import {Column, Entity, Index, PrimaryColumn} from 'typeorm';
 
 import {type IExpense} from '#domain/entities/expense.entity';
 
 @Entity('expense')
+@Index(['eventId'])
 export class ExpenseEntity implements IExpense {
   @PrimaryColumn({type: 'varchar'})
   id!: IExpense['id'];
