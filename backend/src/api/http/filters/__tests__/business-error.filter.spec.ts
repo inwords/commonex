@@ -8,6 +8,9 @@ import {
   EventDeletedError,
   EventNotFoundError,
   EventOperationConflictError,
+  ExpenseAlreadyRevertedError,
+  ExpenseCorrectionConflictError,
+  ExpenseReferenceNotFoundError,
   IdempotencyHashMismatchError,
   InconsistentExchangedAmountError,
   InvalidPinCodeError,
@@ -38,6 +41,9 @@ describe('BusinessErrorFilter', () => {
       'B4011',
       'Idempotency key reused with different request body',
     ],
+    [ExpenseReferenceNotFoundError, HttpStatus.BAD_REQUEST, 'B4012', 'Referenced expense not found in event'],
+    [ExpenseAlreadyRevertedError, HttpStatus.CONFLICT, 'B4013', 'Expense is already reverted'],
+    [ExpenseCorrectionConflictError, HttpStatus.BAD_REQUEST, 'B4014', 'Expense correction is invalid'],
     [EventOperationConflictError, HttpStatus.CONFLICT, 'B4015', 'Another operation is in progress for this event'],
   ])('maps %p to its status, code and message', (ErrorClass, statusCode, code, message) => {
     const reply = jest.fn();

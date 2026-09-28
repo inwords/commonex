@@ -1,5 +1,6 @@
 import {CurrencyCode} from '#domain/entities/currency.entity';
-import {ExpenseType} from '#domain/entities/expense.entity';
+import {ExpenseType, IExpense} from '#domain/entities/expense.entity';
+import {ExpenseValueObject} from '#domain/value-objects/expense.value-object';
 
 import {createEvent, findCurrencyIdByCode, insertTodayRate} from '../support/fixtures';
 import {TestApp, createTestApp} from '../support/test-app';
@@ -164,5 +165,87 @@ describe('HTTP /v2/user', () => {
     expect(ok.json()).toEqual([]);
     expect(forbidden.statusCode).toBe(403);
     expect(forbidden.json()).toMatchObject({code: 'B4003'});
+  });
+
+  it('persists the canonical reversal from the full request without rates', async () => {
+    const event = await createEvent(testApp.app, {currencyId: usdId});
+    const [alice, bob] = event.users;
+    if (alice === undefined || bob === undefined) throw new Error('Expected event participants');
+    const original = new ExpenseValueObject({
+      eventId: event.id,
+      currencyId: eurId,
+      description: 'Dinner',
+      userWhoPaidId: alice.id,
+      expenseType: ExpenseType.Expense,
+      isCustomRate: false,
+      splitInformation: [
+        {userId: bob.id, amount: 10, exchangedAmount: 12.5},
+        {userId: bob.id, amount: 10, exchangedAmount: 12.51},
+      ],
+    }).value;
+    await testApp.rDataService.expense.insert(original);
+    const createdAt = '2026-02-03T04:05:06.000Z';
+    const response = await testApp.app.inject({
+      method: 'POST',
+      url: '/v2/user/event/' + event.id + '/expense',
+      payload: {
+        pinCode: '1234',
+        description: 'Undo dinner',
+        createdAt,
+        revertsExpenseId: original.id,
+        currencyId: 'missing',
+        userWhoPaidId: 'wrong',
+        expenseType: ExpenseType.Expense,
+        isCustomRate: true,
+        splitInformation: [{userId: 'wrong', amount: 999, exchangedAmount: -11}],
+      },
+    });
+    expect(response.statusCode).toBe(201);
+    const reversal = response.json<IExpense>();
+    expect(reversal).toMatchObject({
+      currencyId: original.currencyId,
+      userWhoPaidId: original.userWhoPaidId,
+      expenseType: ExpenseType.Refund,
+      isCustomRate: false,
+      description: 'Undo dinner',
+      createdAt,
+      revertsExpenseId: original.id,
+      splitInformation: [
+        {userId: bob.id, amount: -10, exchangedAmount: -12.5},
+        {userId: bob.id, amount: -10, exchangedAmount: -12.51},
+      ],
+    });
+    expect(reversal.id).not.toBe(original.id);
+    const [stored] = await testApp.rDataService.expense.findById(reversal.id);
+    expect(stored).toMatchObject({
+      ...reversal,
+      createdAt: new Date(createdAt),
+      updatedAt: new Date(reversal.updatedAt),
+    });
+  });
+
+  it.each([
+    [{pinCode: '0000', revertsExpenseId: 'missing'}, 403, 'B4003'],
+    [{revertsExpenseId: 'missing'}, 400, 'B4012'],
+    [{revertsExpenseId: 'missing', replacesExpenseId: 'missing'}, 400, 'B4014'],
+  ])('checks access and correction links for a reversal %j', async (input, statusCode, code) => {
+    const event = await createEvent(testApp.app, {currencyId: usdId});
+    const response = await testApp.app.inject({
+      method: 'POST',
+      url: '/v2/user/event/' + event.id + '/expense',
+      payload: {
+        pinCode: '1234',
+        description: 'Undo',
+        currencyId: usdId,
+        userWhoPaidId: 'user-1',
+        expenseType: ExpenseType.Refund,
+        splitInformation: [{userId: 'user-1', amount: -10}],
+        ...input,
+      },
+    });
+    expect(response.statusCode).toBe(statusCode);
+    expect(response.json()).toMatchObject({code});
+    const [expenses] = await testApp.rDataService.expense.findByEventId(event.id);
+    expect(expenses).toEqual([]);
   });
 });

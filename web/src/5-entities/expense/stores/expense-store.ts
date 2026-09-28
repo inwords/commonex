@@ -1,4 +1,9 @@
 import {CreateExpenseRefundForm, Expense, ExpenseRefund, Tabs} from '@/5-entities/expense/types/types';
+import {
+  calculateCurrentUserDebts,
+  calculateSpendingTotals,
+  deriveActiveLedger,
+} from '@/5-entities/expense/lib/correction-status';
 import {makeAutoObservable} from 'mobx';
 import {userStore} from '@/5-entities/user/stores/user-store';
 
@@ -42,76 +47,24 @@ export class ExpenseStore {
     });
   }
 
+  get activeLedger() {
+    return deriveActiveLedger([...this.expenses, ...this.expenseRefunds]);
+  }
+
   get currentUserDebts() {
-    const myDebtsToOthers = this.expenses.reduce<Record<string, number>>((prev, curr) => {
-      if (curr.userWhoPaidId !== userStore.currentUser?.id) {
-        prev[curr.userWhoPaidId] =
-          (prev[curr.userWhoPaidId] || 0) +
-          curr.splitInformation.reduce((pre, cur) => {
-            if (cur.userId === userStore.currentUser?.id) {
-              pre += cur.exchangedAmount;
-            }
+    return calculateCurrentUserDebts(this.activeLedger, userStore.currentUser?.id);
+  }
 
-            return pre;
-          }, 0);
-      }
-
-      return prev;
-    }, {});
-
-    const othersDebtsToMe = this.expenses.reduce<Record<string, number>>((prev, curr) => {
-      if (curr.userWhoPaidId === userStore.currentUser?.id) {
-        curr.splitInformation.forEach((split) => {
-          if (split.userId !== userStore.currentUser?.id) {
-            prev[split.userId] = (prev[split.userId] || 0) + split.exchangedAmount;
-          }
-        });
-      }
-
-      return prev;
-    }, {});
-
-    Object.keys(othersDebtsToMe).forEach((userId) => {
-      if (myDebtsToOthers[userId]) {
-        myDebtsToOthers[userId] -= othersDebtsToMe[userId];
-      } else {
-        myDebtsToOthers[userId] = -othersDebtsToMe[userId];
-      }
-    });
-
-    this.expenseRefunds.forEach((r) => {
-      if (userStore.currentUser?.id === r.userWhoPaidId) {
-        r.splitInformation.forEach((i) => {
-          if (myDebtsToOthers[i.userId]) {
-            myDebtsToOthers[i.userId] -= i.exchangedAmount;
-          }
-        });
-      }
-    });
-
-    const result: Record<string, number> = {};
-
-    Object.entries(myDebtsToOthers).forEach(([userId, amount]) => {
-      if (amount > 0) {
-        result[userId] = amount;
-      }
-    });
-
-    return result;
+  get spendingTotals() {
+    return calculateSpendingTotals([...this.expenses, ...this.expenseRefunds], userStore.currentUser?.id);
   }
 
   get totalExpensesAmount() {
-    return this.expensesToView.reduce((sum, expense) => sum + expense.amount, 0);
+    return this.spendingTotals.totalExpensesAmount;
   }
 
   get currentUserSpentAmount() {
-    return this.expenses.reduce((sum, expense) => {
-      const userSplit = expense.splitInformation.find((split) => split.userId === userStore.currentUser?.id);
-      if (userSplit) {
-        sum += userSplit.exchangedAmount;
-      }
-      return sum;
-    }, 0);
+    return this.spendingTotals.currentUserSpentAmount;
   }
 
   setExpenses(expenses: Array<Expense>) {

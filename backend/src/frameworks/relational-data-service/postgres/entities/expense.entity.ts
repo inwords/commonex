@@ -29,6 +29,14 @@ export class ExpenseEntity implements IExpense {
   @Column({type: 'boolean'})
   isCustomRate!: IExpense['isCustomRate'];
 
+  @Index('IDX_expense_reverts_expense_id')
+  @Column({type: 'varchar', nullable: true})
+  revertsExpenseId!: Exclude<IExpense['revertsExpenseId'], undefined>;
+
+  @Index('IDX_expense_replaces_expense_id')
+  @Column({type: 'varchar', nullable: true})
+  replacesExpenseId!: Exclude<IExpense['replacesExpenseId'], undefined>;
+
   @Column({type: 'timestamptz'})
   createdAt!: IExpense['createdAt'];
 

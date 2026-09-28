@@ -57,6 +57,12 @@ export class GetEventExpensesResponseDto {
 
   @ApiProperty()
   updatedAt!: Date;
+
+  @ApiProperty({required: false})
+  revertsExpenseId?: string | null;
+
+  @ApiProperty({required: false})
+  replacesExpenseId?: string | null;
 }
 
 export class GetEventExpensesResponseWithExpensesDto {

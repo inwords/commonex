@@ -1,6 +1,8 @@
 import {Metadata, status} from '@grpc/grpc-js';
 
 import {CurrencyCode} from '#domain/entities/currency.entity';
+import {ExpenseType} from '#domain/entities/expense.entity';
+import {ExpenseValueObject} from '#domain/value-objects/expense.value-object';
 
 import {createEvent, findCurrencyIdByCode} from '../support/fixtures';
 import {UserServiceClient, callUnary, createUserServiceClient, expectGrpcError} from '../support/grpc-client';
@@ -16,6 +18,8 @@ interface EventResponse {
 
 interface ExpenseResponse {
   id: string;
+  revertsExpenseId?: string;
+  replacesExpenseId?: string;
   expenseType: string;
   isCustomRate: boolean;
   createdAt: string;
@@ -122,6 +126,125 @@ describe('gRPC UserService', () => {
     expect(response.splitInformation).toEqual([{userId: alice?.id, amount: 40.5, exchangedAmount: 40.5}]);
     expect(response.createdAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
     expect(stored[0]?.expenseType).toBe('expense');
+  });
+
+  it('round-trips reversal links and normalizes correction errors', async () => {
+    const event = await createEvent(testApp.app, {currencyId: usdId});
+    const [alice] = event.users;
+    const request = {
+      eventId: event.id,
+      pinCode: '1234',
+      description: 'Lunch',
+      userWhoPaidId: alice?.id,
+      currencyId: usdId,
+      expenseType: 'expense',
+      splitInformation: [{userId: alice?.id, amount: 40.5}],
+    };
+    const original = await callUnary<ExpenseResponse>(client, 'CreateExpenseV2', request);
+
+    const missingReference = await expectGrpcError(
+      callUnary(client, 'CreateExpenseV2', {
+        ...request,
+        replacesExpenseId: 'missing',
+      }),
+    );
+    expect(missingReference).toEqual({
+      code: status.INVALID_ARGUMENT,
+      details: 'Referenced expense not found in event',
+      errorCode: 'B4012',
+    });
+
+    const invalidReversal = await expectGrpcError(
+      callUnary(client, 'CreateExpenseV2', {
+        ...request,
+        revertsExpenseId: original.id,
+        replacesExpenseId: original.id,
+      }),
+    );
+    expect(invalidReversal).toEqual({
+      code: status.INVALID_ARGUMENT,
+      details: 'Expense correction is invalid',
+      errorCode: 'B4014',
+    });
+
+    const reversalRequest = {
+      ...request,
+      description: 'Undo lunch',
+      expenseType: 'refund',
+      splitInformation: [{userId: alice?.id, amount: -40.5}],
+      revertsExpenseId: original.id,
+    };
+    const reversal = await callUnary<ExpenseResponse>(client, 'CreateExpenseV2', reversalRequest);
+    expect(reversal.revertsExpenseId).toBe(original.id);
+    expect(reversal.expenseType).toBe('refund');
+    expect(reversal.splitInformation).toEqual([{userId: alice?.id, amount: -40.5, exchangedAmount: -40.5}]);
+    expect(new Date(reversal.createdAt).toISOString()).toBe(reversal.createdAt);
+
+    const duplicate = await expectGrpcError(callUnary(client, 'CreateExpenseV2', reversalRequest));
+    expect(duplicate).toEqual({
+      code: status.ALREADY_EXISTS,
+      details: 'Expense is already reverted',
+      errorCode: 'B4013',
+    });
+
+    const response = await callUnary<{expenses: ExpenseResponse[]}>(client, 'GetAllEventExpensesV2', {
+      eventId: event.id,
+      pinCode: '1234',
+    });
+    expect(response.expenses).toHaveLength(2);
+    expect(response.expenses).toContainEqual(expect.objectContaining({id: reversal.id, revertsExpenseId: original.id}));
+  });
+
+  it('ignores redundant reversal financial values and preserves historical converted rows without rates', async () => {
+    const event = await createEvent(testApp.app, {currencyId: usdId});
+    const eurId = await findCurrencyIdByCode(testApp.rDataService, CurrencyCode.EUR);
+    const [alice, bob] = event.users;
+    if (alice === undefined || bob === undefined) throw new Error('Expected event participants');
+    const original = new ExpenseValueObject({
+      eventId: event.id,
+      currencyId: eurId,
+      description: 'Refund',
+      userWhoPaidId: alice.id,
+      expenseType: ExpenseType.Refund,
+      isCustomRate: true,
+      splitInformation: [
+        {userId: bob.id, amount: -10, exchangedAmount: -12.5},
+        {userId: bob.id, amount: -10, exchangedAmount: -12.51},
+      ],
+    }).value;
+    await testApp.rDataService.expense.insert(original);
+    const createdAt = '2026-02-03T04:05:06.000Z';
+    const reversal = await callUnary<ExpenseResponse>(client, 'CreateExpenseV2', {
+      eventId: event.id,
+      pinCode: '1234',
+      description: 'Undo refund',
+      createdAt,
+      revertsExpenseId: original.id,
+      currencyId: 'missing',
+      userWhoPaidId: 'wrong',
+      expenseType: 'refund',
+      isCustomRate: false,
+      splitInformation: [{userId: 'wrong', amount: 999, exchangedAmount: 11}],
+    });
+    expect(reversal).toMatchObject({
+      currencyId: eurId,
+      userWhoPaidId: original.userWhoPaidId,
+      expenseType: 'expense',
+      isCustomRate: true,
+      description: 'Undo refund',
+      createdAt,
+      revertsExpenseId: original.id,
+      splitInformation: [
+        {userId: bob.id, amount: 10, exchangedAmount: 12.5},
+        {userId: bob.id, amount: 10, exchangedAmount: 12.51},
+      ],
+    });
+    const [stored] = await testApp.rDataService.expense.findById(reversal.id);
+    expect(stored).toMatchObject({
+      ...reversal,
+      createdAt: new Date(createdAt),
+      updatedAt: new Date(reversal.updatedAt),
+    });
   });
 
   it('returns a share token with an ISO expiry on CreateEventShareTokenV2', async () => {

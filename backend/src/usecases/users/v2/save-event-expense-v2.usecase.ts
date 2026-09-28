@@ -13,9 +13,17 @@ import {
   CurrencyRateNotFoundError,
   EventDeletedError,
   EventNotFoundError,
+  ExpenseAlreadyRevertedError,
+  ExpenseCorrectionConflictError,
+  ExpenseReferenceNotFoundError,
   InconsistentExchangedAmountError,
   InvalidPinCodeError,
 } from '#domain/errors/errors';
+import {
+  ExpenseCorrectionLinksInput,
+  createExpenseReversal,
+  validateExpenseCorrectionLinks as validateExpenseCorrectionLinksDomain,
+} from '#domain/expense-correction/expense-correction';
 import {ExpenseValueObject} from '#domain/value-objects/expense.value-object';
 
 import {IdempotencySharedUseCase, IdempotentInput} from '#usecases/shared/idempotency.usecase';
@@ -26,6 +34,7 @@ type InputCore = Omit<IExpense, 'createdAt' | 'id' | 'updatedAt' | 'isCustomRate
   Partial<Pick<IExpense, 'createdAt'>> & {
     splitInformation: SplitInfoInput[];
     pinCode: string;
+    isCustomRate?: boolean;
   };
 
 type Input = InputCore & IdempotentInput;
@@ -37,6 +46,9 @@ type Output = Result<
   | CurrencyNotFoundError
   | CurrencyRateNotFoundError
   | InconsistentExchangedAmountError
+  | ExpenseAlreadyRevertedError
+  | ExpenseCorrectionConflictError
+  | ExpenseReferenceNotFoundError
 >;
 
 @Injectable()
@@ -55,9 +67,9 @@ export class SaveEventExpenseV2UseCase implements UseCase<Input, Output> {
 
   private async executeCore(input: InputCore): Promise<Output> {
     return this.rDataService.transaction(async (ctx) => {
-      const {pinCode, ...restInput} = input;
+      const {pinCode, isCustomRate: requestedIsCustomRate, ...restInput} = input;
 
-      const [event] = await this.rDataService.event.findById(restInput.eventId, {
+      const [event] = await this.rDataService.event.findById(input.eventId, {
         ctx,
         lock: 'pessimistic_write',
         onLocked: 'nowait',
@@ -79,6 +91,23 @@ export class SaveEventExpenseV2UseCase implements UseCase<Input, Output> {
         return pinCodeResult;
       }
 
+      const referencedExpenseId = input.revertsExpenseId ?? input.replacesExpenseId;
+      if (referencedExpenseId != null) {
+        const correctionValidation = await this.validateExpenseCorrectionAndGetReference(
+          input,
+          referencedExpenseId,
+          ctx,
+        );
+
+        if (isError(correctionValidation)) {
+          return correctionValidation;
+        }
+
+        if (input.revertsExpenseId != null) {
+          return this.saveExpense(createExpenseReversal(correctionValidation.value, input), ctx);
+        }
+      }
+
       if (event.currencyId === input.currencyId) {
         const splitInformation: ISplitInfo[] = [];
 
@@ -91,15 +120,15 @@ export class SaveEventExpenseV2UseCase implements UseCase<Input, Output> {
 
         const expense = new ExpenseValueObject({...restInput, splitInformation, isCustomRate: false}).value;
 
-        await this.rDataService.expense.insert(expense, {ctx});
-
-        return success(expense);
+        return this.saveExpense(expense, ctx);
       } else {
-        // Проверяем, передан ли exchangedAmount хотя бы в одном элементе
-        const hasCustomRate = input.splitInformation.some((s) => s.exchangedAmount !== undefined);
+        const hasExchangedAmounts = input.splitInformation.some((s) => s.exchangedAmount !== undefined);
 
-        if (hasCustomRate) {
-          // Кастомный курс - используем переданные exchangedAmount
+        if (hasExchangedAmounts) {
+          if (requestedIsCustomRate === false && restInput.replacesExpenseId == null) {
+            return error(new InconsistentExchangedAmountError());
+          }
+
           const splitInformation: ISplitInfo[] = [];
           for (const splitInfo of input.splitInformation) {
             if (splitInfo.exchangedAmount === undefined) {
@@ -112,13 +141,14 @@ export class SaveEventExpenseV2UseCase implements UseCase<Input, Output> {
             });
           }
 
-          const expense = new ExpenseValueObject({...restInput, splitInformation, isCustomRate: true}).value;
+          const expense = new ExpenseValueObject({
+            ...restInput,
+            splitInformation,
+            isCustomRate: requestedIsCustomRate ?? true,
+          }).value;
 
-          await this.rDataService.expense.insert(expense, {ctx});
-
-          return success(expense);
+          return this.saveExpense(expense, ctx);
         } else {
-          // Автоматический курс (существующая логика)
           const expenseCurrency = await this.supportedCurrencyService.findById(restInput.currencyId, {ctx});
           const eventCurrency = await this.supportedCurrencyService.findById(event.currencyId, {ctx});
 
@@ -156,11 +186,32 @@ export class SaveEventExpenseV2UseCase implements UseCase<Input, Output> {
 
           const expense = new ExpenseValueObject({...restInput, splitInformation, isCustomRate: false}).value;
 
-          await this.rDataService.expense.insert(expense, {ctx});
-
-          return success(expense);
+          return this.saveExpense(expense, ctx);
         }
       }
     });
+  }
+
+  private async validateExpenseCorrectionAndGetReference(
+    input: ExpenseCorrectionLinksInput,
+    referencedExpenseId: IExpense['id'],
+    ctx: unknown,
+  ): Promise<
+    Result<IExpense, ExpenseAlreadyRevertedError | ExpenseCorrectionConflictError | ExpenseReferenceNotFoundError>
+  > {
+    const [referencedExpense] = await this.rDataService.expense.findById(referencedExpenseId, {ctx});
+    const [existingCorrection] = await this.rDataService.expense.findCorrectionForReferencedExpense(
+      input.eventId,
+      referencedExpenseId,
+      {ctx},
+    );
+
+    return validateExpenseCorrectionLinksDomain(input, referencedExpense, existingCorrection);
+  }
+
+  private async saveExpense(expense: IExpense, ctx: unknown): Promise<Output> {
+    await this.rDataService.expense.insert(expense, {ctx});
+
+    return success(expense);
   }
 }
