@@ -31,6 +31,8 @@ android {
         versionCode = 9
         versionName = "2026.05.1"
 
+        buildConfigField("String", "API_HOST", "\"dev-api.commonex.ru\"")
+
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         testInstrumentationRunnerArguments["clearPackageData"] = "true"
 
@@ -63,6 +65,7 @@ android {
         }
         create("autotest") {
             initWith(getByName("release"))
+            buildConfigField("String", "API_HOST", "\"staging.commonex.ru\"")
             optimization {
                 enable = false
             }
@@ -162,6 +165,9 @@ androidComponents {
 }
 
 sentry {
+    // UI-test builds must not require Sentry upload credentials.
+    ignoredBuildTypes.add("autotest")
+
     org.set("inwords")
     projectName.set("commonex")
 

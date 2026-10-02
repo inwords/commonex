@@ -1,6 +1,7 @@
 [CmdletBinding()]
 param(
-    [switch]$SkipBuild
+    [switch]$SkipBuild,
+    [string]$PythonExecutable = 'python'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -63,13 +64,19 @@ $env:ANDROID_SDK_ROOT = $sdkRoot
 $env:ANDROID_HOME = $sdkRoot
 
 Write-Host "Using ANDROID_SDK_ROOT=$sdkRoot"
+Write-Host 'Autotest API endpoint: https://staging.commonex.ru'
 
 Push-Location -Path $projectRoot
 try {
+    & $PythonExecutable '..\infra\deploy\bootstrap_staging_fixture.py'
+    if ($LASTEXITCODE -ne 0) {
+        exit $LASTEXITCODE
+    }
+
     if ($SkipBuild) {
         Write-Host 'Skipping autotest APK build.'
     } else {
-        & .\gradlew ':app:assembleAutotest' ':app:assembleAutotestAndroidTest' '-Dcom.android.tools.r8.disableApiModeling=true'
+        & .\gradlew '--quiet' ':app:assembleAutotest' ':app:assembleAutotestAndroidTest' '-Dcom.android.tools.r8.disableApiModeling=true'
         if ($LASTEXITCODE -ne 0) {
             exit $LASTEXITCODE
         }

@@ -39,7 +39,12 @@ class App : Application(), Configuration.Provider {
             )
         }
 
-        registerComponents(this, versionCode = BuildConfig.VERSION_CODE, production = production)
+        registerComponents(
+            this,
+            versionCode = BuildConfig.VERSION_CODE,
+            production = production,
+            apiHost = BuildConfig.API_HOST,
+        )
 
         enableSync()
     }
