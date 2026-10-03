@@ -105,6 +105,84 @@ services:
 
   nginx:
     image: ${COMMONEX_NGINX_IMAGE}
+    command:
+      - sh
+      - -ec
+      - |
+        set -eu
+        template=/etc/nginx/nginx.conf
+        output=/tmp/commonex-nginx.conf
+
+        # Substitute only server names: nginx request variables and certificate paths stay literal.
+        awk '
+        function fail(message) {
+            print "nginx environment configuration: " message > "/dev/stderr"
+            exit 1
+        }
+        function validate(host, variable, count, labels, i) {
+            if (length(host) > 253 || host !~ /^[A-Za-z0-9.-]+$$/)
+                fail(variable " must contain DNS hostnames")
+            count = split(host, labels, ".")
+            for (i = 1; i <= count; i++) {
+                if (length(labels[i]) < 1 || length(labels[i]) > 63 ||
+                    labels[i] !~ /^[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?$$/)
+                    fail(variable " must contain DNS hostnames")
+            }
+        }
+        BEGIN {
+            web = ENVIRON["COMMONEX_WEB_HOSTS"]
+            sub(/^[[:space:]]+/, "", web)
+            sub(/[[:space:]]+$$/, "", web)
+            count = split(web, hosts, /[[:space:]]+/)
+            if (web == "") fail("COMMONEX_WEB_HOSTS must contain DNS hostnames")
+            web = ""
+            for (i = 1; i <= count; i++) {
+                validate(hosts[i], "COMMONEX_WEB_HOSTS")
+                if (web_names[tolower(hosts[i])]) fail("duplicate web hostname")
+                web_names[tolower(hosts[i])] = 1
+                web = web (i == 1 ? "" : " ") hosts[i]
+            }
+            api = ENVIRON["COMMONEX_API_HOST"]
+            grpc = ENVIRON["COMMONEX_GRPC_HOST"]
+            grafana = ENVIRON["COMMONEX_GRAFANA_HOST"]
+            validate(api, "COMMONEX_API_HOST")
+            validate(grpc, "COMMONEX_GRPC_HOST")
+            validate(grafana, "COMMONEX_GRAFANA_HOST")
+            if (web_names[tolower(grpc)] || web_names[tolower(grafana)] ||
+                tolower(api) == tolower(grpc) || tolower(api) == tolower(grafana) ||
+                tolower(grpc) == tolower(grafana))
+                fail("web/API, gRPC, and Grafana hostnames must be distinct")
+            shared_api = web_names[tolower(api)]
+        }
+        { sub(/\r$$/, "") }
+        /^    server \{$$/ { in_server = 1; block = ""; omit = 0 }
+        {
+            if ($$0 == "        server_name commonex.ru www.commonex.ru;")
+                $$0 = "        server_name " web ";"
+            else if ($$0 == "        server_name dev-api.commonex.ru;") {
+                $$0 = "        server_name " api ";"
+                omit = shared_api
+            } else if ($$0 == "        server_name grpc.commonex.ru;")
+                $$0 = "        server_name " grpc ";"
+            else if ($$0 == "        server_name gf.commonex.ru;")
+                $$0 = "        server_name " grafana ";"
+
+            if (in_server) block = block $$0 "\n"
+            else print
+        }
+        /^    }$$/ && in_server {
+            if (!omit) printf "%s", block
+            in_server = 0
+        }
+        ' "$$template" > "$$output"
+
+        nginx -t -c "$$output"
+        exec nginx -c "$$output" -g 'daemon off;'
+    environment:
+      COMMONEX_WEB_HOSTS: ${COMMONEX_WEB_HOSTS:-commonex.ru www.commonex.ru}
+      COMMONEX_API_HOST: ${COMMONEX_API_HOST:-dev-api.commonex.ru}
+      COMMONEX_GRPC_HOST: ${COMMONEX_GRPC_HOST:-grpc.commonex.ru}
+      COMMONEX_GRAFANA_HOST: ${COMMONEX_GRAFANA_HOST:-gf.commonex.ru}
     deploy:
       resources:
         limits:
@@ -220,7 +298,7 @@ services:
     environment:
       - GF_SECURITY_ADMIN_USER=${GF_SECURITY_ADMIN_USER}
       - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD}
-      - GF_SERVER_ROOT_URL=https://gf.commonex.ru/
+      - GF_SERVER_ROOT_URL=${GF_SERVER_ROOT_URL:-https://gf.commonex.ru/}
       - GF_SERVER_PROTOCOL=http
       - POSTGRES_DATABASE=${POSTGRES_DATABASE}
       - POSTGRES_USER_NAME=${POSTGRES_USER_NAME}

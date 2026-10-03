@@ -1,0 +1,7 @@
+#!/bin/sh
+set -eu
+if [ "$#" -ne 0 ] || [ "${SSH_ORIGINAL_COMMAND:-}" != install ]; then
+    printf '%s\n' 'Only certificate installation is permitted.' >&2
+    exit 1
+fi
+exec /usr/bin/sudo -n /usr/bin/python3 -B /opt/commonex/staging-certificate-sync/current/staging_sync.py --install
