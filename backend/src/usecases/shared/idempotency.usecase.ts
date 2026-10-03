@@ -29,8 +29,8 @@ export type IdempotencyError = IdempotencyHashMismatchError | IdempotencyRequest
 const RESPONSE_VERSION = 1;
 const DATE_TYPE = 'commonex.date';
 
-type EncodedDate = {type: typeof DATE_TYPE; value: string};
-type LegacySuccessResponse = {result?: unknown; value?: unknown};
+interface EncodedDate {type: typeof DATE_TYPE; value: string}
+interface LegacySuccessResponse {result?: unknown; value?: unknown}
 
 const normalizeForJson = (value: unknown): unknown => {
   if (value instanceof Date) {

@@ -2,80 +2,113 @@ import {HttpStatus} from '@nestjs/common';
 
 import {ErrorCode} from './error-codes.enum';
 
-export class EventNotFoundError {
-  readonly name = 'EventNotFoundError' as const;
+export class EventNotFoundError extends Error {
+  override readonly name = 'EventNotFoundError' as const;
   readonly code = ErrorCode.EVENT_NOT_FOUND;
-  readonly message = 'Event not found';
   readonly httpCode = HttpStatus.NOT_FOUND;
+
+  constructor() {
+    super('Event not found');
+  }
 }
 
-export class EventDeletedError {
-  readonly name = 'EventDeletedError' as const;
+export class EventDeletedError extends Error {
+  override readonly name = 'EventDeletedError' as const;
   readonly code = ErrorCode.EVENT_ALREADY_DELETED;
-  readonly message = 'Event is deleted';
   readonly httpCode = HttpStatus.GONE;
+
+  constructor() {
+    super('Event is deleted');
+  }
 }
 
-export class InvalidPinCodeError {
-  readonly name = 'InvalidPinCodeError' as const;
+export class InvalidPinCodeError extends Error {
+  override readonly name = 'InvalidPinCodeError' as const;
   readonly code = ErrorCode.EVENT_INVALID_PIN;
-  readonly message = 'Invalid pin code';
   readonly httpCode = HttpStatus.FORBIDDEN;
+
+  constructor() {
+    super('Invalid pin code');
+  }
 }
 
-export class InvalidTokenError {
-  readonly name = 'InvalidTokenError' as const;
+export class InvalidTokenError extends Error {
+  override readonly name = 'InvalidTokenError' as const;
   readonly code = ErrorCode.INVALID_TOKEN;
-  readonly message = 'Invalid token';
   readonly httpCode = HttpStatus.UNAUTHORIZED;
+
+  constructor() {
+    super('Invalid token');
+  }
 }
 
-export class TokenExpiredError {
-  readonly name = 'TokenExpiredError' as const;
+export class TokenExpiredError extends Error {
+  override readonly name = 'TokenExpiredError' as const;
   readonly code = ErrorCode.TOKEN_EXPIRED;
-  readonly message = 'Token has expired';
   readonly httpCode = HttpStatus.UNAUTHORIZED;
+
+  constructor() {
+    super('Token has expired');
+  }
 }
 
-export class CurrencyNotFoundError {
-  readonly name = 'CurrencyNotFoundError' as const;
+export class CurrencyNotFoundError extends Error {
+  override readonly name = 'CurrencyNotFoundError' as const;
   readonly code = ErrorCode.CURRENCY_NOT_FOUND;
-  readonly message = 'Currency not found';
   readonly httpCode = HttpStatus.NOT_FOUND;
+
+  constructor() {
+    super('Currency not found');
+  }
 }
 
-export class CurrencyRateNotFoundError {
-  readonly name = 'CurrencyRateNotFoundError' as const;
+export class CurrencyRateNotFoundError extends Error {
+  override readonly name = 'CurrencyRateNotFoundError' as const;
   readonly code = ErrorCode.CURRENCY_RATE_NOT_FOUND;
-  readonly message = 'Currency rate not found';
   readonly httpCode = HttpStatus.NOT_FOUND;
+
+  constructor() {
+    super('Currency rate not found');
+  }
 }
 
-export class InconsistentExchangedAmountError {
-  readonly name = 'InconsistentExchangedAmountError' as const;
+export class InconsistentExchangedAmountError extends Error {
+  override readonly name = 'InconsistentExchangedAmountError' as const;
   readonly code = ErrorCode.INCONSISTENT_EXCHANGED_AMOUNT;
-  readonly message = 'All splitInfo must have exchangedAmount when custom rate is used';
   readonly httpCode = HttpStatus.BAD_REQUEST;
+
+  constructor() {
+    super('All splitInfo must have exchangedAmount when custom rate is used');
+  }
 }
 
-export class EventOperationConflictError {
-  readonly name = 'EventOperationConflictError' as const;
+export class EventOperationConflictError extends Error {
+  override readonly name = 'EventOperationConflictError' as const;
   readonly code = ErrorCode.EVENT_OPERATION_CONFLICT;
-  readonly message = 'Another operation is in progress for this event';
   readonly httpCode = HttpStatus.CONFLICT;
+
+  constructor() {
+    super('Another operation is in progress for this event');
+  }
 }
 
-export class IdempotencyHashMismatchError {
-  readonly name = 'IdempotencyHashMismatchError' as const;
+export class IdempotencyHashMismatchError extends Error {
+  override readonly name = 'IdempotencyHashMismatchError' as const;
   readonly code = ErrorCode.IDEMPOTENCY_HASH_MISMATCH;
-  readonly message = 'Idempotency key reused with different request body';
   readonly httpCode = HttpStatus.UNPROCESSABLE_ENTITY;
+
+  constructor() {
+    super('Idempotency key reused with different request body');
+  }
 }
 
-export class IdempotencyRequestInProgressError {
-  readonly name = 'IdempotencyRequestInProgressError' as const;
+export class IdempotencyRequestInProgressError extends Error {
+  override readonly name = 'IdempotencyRequestInProgressError' as const;
   readonly code = ErrorCode.IDEMPOTENCY_REQUEST_IN_PROGRESS;
-  readonly message = 'Another request with this idempotency key is in progress';
+
+  constructor() {
+    super('Another request with this idempotency key is in progress');
+  }
 }
 
 /** Every domain error the transport layers translate; both exception filters catch exactly this list. */
