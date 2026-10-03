@@ -68,7 +68,9 @@ operation are documented in the [staging runbook](../../../infra/deploy/staging.
 - Linux validation: 176 deployment tests and 16 certificate propagation tests
   passed; the new systemd units validated successfully.
 
-The shared Nginx image now owns hostname templates and its startup entrypoint.
+The shared Nginx image owns hostname templates and reuses the pinned official
+Docker Nginx entrypoint and envsubst renderer. CommonEx hooks handle hostname
+validation, optional API inclusion, and configuration validation.
 The full image build passed its existing TLS/header feature proofs. Isolated
 production and staging containers passed startup as the Nginx user, trusted
 synthetic-certificate TLS, hostname selection, and standard validation/reload

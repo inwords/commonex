@@ -104,8 +104,10 @@ SHA tags for the first deployment, never `latest`; preserve the same digests for
 later promotion. Keep operator `environment.inputs` root-only and **without** image
 keys: the delivery tool appends them to build the validated two-file archive.
 No additional release file, staging-specific image build, or bundle-validation
-exception is needed. The shared Nginx image owns hostname templates and an
-entrypoint that renders `/tmp/commonex-nginx.conf`. It includes the separate API
+exception is needed. The shared Nginx image owns hostname templates and the
+pinned official Docker Nginx entrypoint and envsubst renderer (see
+[upstream provenance](../nginx/upstream/README.md)). CommonEx hooks validate
+hostnames and publish `/tmp/commonex-nginx.conf`. It includes the separate API
 server only when API and web have different hostnames. Restricted substitution
 preserves Nginx request variables; production hostnames remain the defaults.
 Build this updated shared image from merged `main` before deploying this Compose
