@@ -40,6 +40,54 @@ class ScriptedClient:
 
 
 class ProductionDeliveryTest(unittest.TestCase):
+    def test_staging_deploy_passes_environment_verifier_to_existing_lifecycle(self) -> None:
+        client = ScriptedClient([])
+        with patch.object(production_delivery, "deploy_release", return_value=0) as deploy:
+            result = production_delivery.main([
+                "--environment", "staging", "deploy", SHA, "7", "[]",
+                "docker-compose-prod.yml", "staging.env",
+            ], client=client)
+        self.assertEqual(result, 0)
+        self.assertEqual(deploy.call_args.args, (
+            SHA, 7, "[]", Path("docker-compose-prod.yml"), Path("staging.env"), client
+        ))
+        with patch.object(production_delivery, "verify_public_services", return_value=0) as verify:
+            self.assertEqual(deploy.call_args.kwargs["public_verifier"](), 0)
+        verify.assert_called_once_with(("--environment", "staging"))
+
+    def test_staging_rollback_selects_host_and_public_verification(self) -> None:
+        client = ScriptedClient([
+            production_delivery.ForcedCommandResult(0),
+            production_delivery.ForcedCommandResult(0, CURRENT_IMAGES.encode()),
+        ])
+        with patch.object(
+            production_delivery, "SshForcedCommandClient", return_value=client
+        ) as ssh_client, patch.object(
+            production_delivery, "verify_public_services", return_value=0
+        ) as verify:
+            result = production_delivery.main([
+                "--environment", "staging", "rollback", SHA, "7"
+            ])
+
+        self.assertEqual(result, 0)
+        ssh_client.assert_called_once_with("commonex-staging")
+        self.assertEqual(client.calls[0], (("rollback", SHA, "7"), None))
+        verify.assert_called_once_with(("--environment", "staging"))
+
+    def test_production_remains_default_cli_environment(self) -> None:
+        client = ScriptedClient([
+            production_delivery.ForcedCommandResult(0),
+            production_delivery.ForcedCommandResult(0, CURRENT_IMAGES.encode()),
+        ])
+        with patch.object(
+            production_delivery, "SshForcedCommandClient", return_value=client
+        ) as ssh_client, patch.object(
+            production_delivery, "verify_public_services", return_value=0
+        ) as verify:
+            self.assertEqual(production_delivery.main(["rollback", SHA, "7"]), 0)
+        ssh_client.assert_called_once_with("commonex-production")
+        verify.assert_called_once_with(())
+
     def test_public_verifier_does_not_reparse_orchestrator_arguments(self) -> None:
         with patch.object(
             production_delivery,

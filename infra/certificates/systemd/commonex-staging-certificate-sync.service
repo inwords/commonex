@@ -1,0 +1,13 @@
+[Unit]
+Description=Propagate CommonEx certificate to staging
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+ExecStart=/usr/bin/python3 -B /opt/commonex/staging-certificate-sync/current/staging_sync.py --config /etc/commonex/certificates/staging.json
+TimeoutStartSec=10min
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true

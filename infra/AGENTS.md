@@ -2,6 +2,8 @@
 
 For non-trivial work and when to search upstream docs, follow root [AGENTS.md](../AGENTS.md) (workflow lifecycle and freshness policy).
 
+Prefer maintained upstream tooling for generic infrastructure behavior. Check existing production conventions and upstream solutions before adding custom tooling; keep local code limited to CommonEx-specific requirements.
+
 ## Project Overview
 
 CommonEx infrastructure uses Docker Compose for containerization, Nginx as reverse proxy with OpenTelemetry support,
@@ -78,7 +80,7 @@ docker compose -f infra/docker-compose-prod.yml ps
 
 ### Nginx
 
-- **Production config**: `infra/nginx/nginx-prod.conf`
+- **Configuration templates**: `infra/nginx/templates/`; rendered by the pinned official Docker Nginx scripts in `infra/nginx/upstream/`, with CommonEx hooks in `infra/nginx/entrypoint.d/`.
 - **Dockerfile**: `infra/nginx/Dockerfile`
 - Upstream configuration for backend services (blue-green)
 
