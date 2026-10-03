@@ -10,4 +10,7 @@ export {
   CurrencyNotFoundError,
   CurrencyRateNotFoundError,
   InconsistentExchangedAmountError,
+  EventOperationConflictError,
+  IdempotencyHashMismatchError,
+  IdempotencyRequestInProgressError,
 } from './errors';

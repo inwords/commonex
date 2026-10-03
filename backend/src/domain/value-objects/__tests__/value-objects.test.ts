@@ -90,16 +90,20 @@ describe('value objects', () => {
     expect(value.createdAt).toEqual(now);
   });
 
-  it('expires an idempotency key after 24 hours', () => {
+  it('expires an idempotency key after 5 minutes', () => {
     const {value} = new IdempotencyKeyValueObject({
       key: 'k',
-      url: '/u',
+      url: '/user/event',
+      legacyRequestHash: 'legacy-h',
+      legacyResponse: {result: 'success', value: {}},
+      statusCode: 200,
+      operationId: 'event.create.v1',
       requestHash: 'h',
       response: {},
-      statusCode: 200,
+      responseVersion: 1,
     });
 
-    expect(value.expiresAt).toEqual(new Date('2026-01-02T00:00:00.000Z'));
+    expect(value.expiresAt).toEqual(new Date('2026-01-01T00:05:00.000Z'));
     expect(value.createdAt).toEqual(now);
   });
 });

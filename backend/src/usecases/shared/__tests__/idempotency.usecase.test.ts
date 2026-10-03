@@ -1,41 +1,23 @@
 import {createHash} from 'crypto';
 
-import {IdempotencyHashMismatchError} from '#domain/errors/errors';
+import {error, isError, success} from '#packages/result';
+
+import {ITransaction} from '#domain/abstracts/relational-data-service/types';
+import {IdempotencyHashMismatchError, IdempotencyRequestInProgressError} from '#domain/errors';
 
 import {appDbConfig} from '#frameworks/relational-data-service/postgres/config';
 import {RelationalDataService} from '#frameworks/relational-data-service/postgres/relational-data-service';
 
 import {truncateAllTables} from '#test-support/db';
-import {
-  RelationalState,
-  RelationalStateChanges,
-  prepareInitRelationalState,
-  useFakeTimers,
-  validateRelationalStateChanges,
-} from '#test-support/relational-state';
+import {useFakeTimers} from '#test-support/relational-state';
 
-import {IdempotencySharedUseCase} from '../idempotency.usecase';
+import {IdempotencyOperation, IdempotencySharedUseCase} from '../idempotency.usecase';
 
 const KEY = '01JQKP8G0000000000000000AA';
-const URL = '/v2/user/event/event-1/expense';
 const BODY = {amount: 100};
-const FN_RESULT = {id: 'expense-1', amount: 100};
-const FAILED_RESULT = {result: 'error', error: {name: 'EventNotFoundError'}};
-const TTL_MS = 24 * 60 * 60 * 1000;
-
-const computeHash = (url: string, body: object): string =>
-  createHash('sha256').update(JSON.stringify({url, body})).digest('hex');
-
-interface IdempotencyTestCase {
-  name: string;
-  initRelationalState: RelationalState;
-  input: {key: string | undefined; body: object};
-  output?: unknown;
-  expectError?: new () => Error;
-  mockFn: {result: unknown};
-  expectedFnCallCount: number;
-  relationalStateChanges?: RelationalStateChanges;
-}
+const VALUE = {id: 'expense-1', amount: 100};
+const OPERATION = IdempotencyOperation.CREATE_EVENT_EXPENSE_V2;
+const LEGACY_OPERATION = '/v2/user/event/event-1/expense';
 
 describe('IdempotencySharedUseCase', () => {
   let relationalDataService: RelationalDataService;
@@ -44,15 +26,9 @@ describe('IdempotencySharedUseCase', () => {
   const mockNow = new Date('2026-01-01T00:00:00.000Z');
 
   beforeAll(async () => {
-    relationalDataService = new RelationalDataService({
-      dbConfig: appDbConfig,
-      showQueryDetails: false,
-    });
-
+    relationalDataService = new RelationalDataService({dbConfig: appDbConfig, showQueryDetails: false});
     useCase = new IdempotencySharedUseCase(relationalDataService);
-
     await relationalDataService.initialize();
-
     useFakeTimers(mockNow.getTime());
   });
 
@@ -62,123 +38,176 @@ describe('IdempotencySharedUseCase', () => {
   });
 
   beforeEach(async () => {
+    jest.setSystemTime(mockNow);
     await truncateAllTables(relationalDataService.dataSource);
     jest.clearAllMocks();
   });
 
-  const testCases: IdempotencyTestCase[] = [
-    {
-      name: 'calls fn() and returns the result when no key is given',
-      initRelationalState: {},
-      input: {key: undefined, body: BODY},
-      output: FN_RESULT,
-      mockFn: {result: FN_RESULT},
-      expectedFnCallCount: 1,
-      relationalStateChanges: {},
-    },
-    {
-      name: 'calls fn(), stores a DB record and returns the result for a new key',
-      initRelationalState: {},
-      input: {key: KEY, body: BODY},
-      output: FN_RESULT,
-      mockFn: {result: FN_RESULT},
-      expectedFnCallCount: 1,
-      relationalStateChanges: {
-        idempotencyKeys: {
-          inserted: [
-            {
-              key: KEY,
-              url: URL,
-              requestHash: computeHash(URL, BODY),
-              response: FN_RESULT,
-              statusCode: 200,
-              expiresAt: new Date(mockNow.getTime() + TTL_MS),
-              createdAt: mockNow,
-            },
-          ],
-        },
-      },
-    },
-    {
-      name: 'does not store a failed Result so a retry re-runs the operation',
-      initRelationalState: {},
-      input: {key: KEY, body: BODY},
-      output: FAILED_RESULT,
-      mockFn: {result: FAILED_RESULT},
-      expectedFnCallCount: 1,
-      relationalStateChanges: {},
-    },
-    {
-      name: 'returns the cached response without calling fn() for a repeated key with the same hash',
-      initRelationalState: {
-        idempotencyKeys: [
-          {
-            key: KEY,
-            url: URL,
-            requestHash: computeHash(URL, BODY),
-            response: FN_RESULT,
-            statusCode: 200,
-            expiresAt: new Date(mockNow.getTime() + TTL_MS),
-            createdAt: mockNow,
-          },
-        ],
-      },
-      input: {key: KEY, body: BODY},
-      output: FN_RESULT,
-      mockFn: {result: {id: 'new-result'}},
-      expectedFnCallCount: 0,
-      relationalStateChanges: {},
-    },
-    {
-      name: 'throws IdempotencyHashMismatchError for a repeated key with a different hash',
-      initRelationalState: {
-        idempotencyKeys: [
-          {
-            key: KEY,
-            url: URL,
-            requestHash: computeHash(URL, BODY),
-            response: FN_RESULT,
-            statusCode: 200,
-            expiresAt: new Date(mockNow.getTime() + TTL_MS),
-            createdAt: mockNow,
-          },
-        ],
-      },
-      input: {key: KEY, body: {amount: 999}},
-      expectError: IdempotencyHashMismatchError,
-      mockFn: {result: FN_RESULT},
-      expectedFnCallCount: 0,
-      relationalStateChanges: {},
-    },
-  ];
-
-  testCases.forEach((testCase) => {
-    it(testCase.name, async () => {
-      await prepareInitRelationalState({
-        rDataService: relationalDataService,
-        initState: testCase.initRelationalState,
-      });
-
-      const fn = jest.fn().mockResolvedValue(testCase.mockFn.result);
-
-      if (testCase.expectError) {
-        await expect(useCase.execute(testCase.input.key, URL, testCase.input.body, fn)).rejects.toBeInstanceOf(
-          testCase.expectError,
-        );
-      } else {
-        const result = await useCase.execute(testCase.input.key, URL, testCase.input.body, fn);
-        expect(result).toEqual(testCase.output);
-      }
-
-      expect(fn).toHaveBeenCalledTimes(testCase.expectedFnCallCount);
-
-      if (testCase.relationalStateChanges) {
-        await validateRelationalStateChanges({
-          rDataService: relationalDataService,
-          initState: testCase.initRelationalState,
-          stateChanges: testCase.relationalStateChanges,
-        });
-      }
+  it('executes the operation in a transaction when no key is given', async () => {
+    const operation = jest.fn(async (trx: ITransaction) => {
+      expect(trx.ctx).toBeDefined();
+      return success(VALUE);
     });
+
+    await expect(useCase.execute(undefined, OPERATION, undefined, BODY, operation)).resolves.toEqual(success(VALUE));
+    expect(operation).toHaveBeenCalledTimes(1);
+  });
+
+  it('stores and replays a successful result without executing the operation twice', async () => {
+    const operation = jest.fn(async () => success(VALUE));
+
+    const first = await useCase.execute(KEY, OPERATION, LEGACY_OPERATION, BODY, operation);
+    const replay = await useCase.execute(KEY, OPERATION, LEGACY_OPERATION, BODY, operation);
+    const [records] = await relationalDataService.idempotencyKey.findAll({limit: 10});
+
+    expect(first).toEqual(success(VALUE));
+    expect(replay).toEqual(first);
+    expect(operation).toHaveBeenCalledTimes(1);
+    expect(records).toEqual([
+      expect.objectContaining({
+        key: KEY,
+        url: LEGACY_OPERATION,
+        operationId: OPERATION,
+        response: VALUE,
+        responseVersion: 1,
+        createdAt: mockNow,
+        expiresAt: new Date(mockNow.getTime() + 5 * 60 * 1000),
+      }),
+    ]);
+  });
+
+  it('does not store an expected failure so a retry can execute again', async () => {
+    const failure = {name: 'EventNotFoundError'};
+    const operation = jest.fn(async () => error<typeof VALUE, typeof failure>(failure));
+
+    await expect(useCase.execute(KEY, OPERATION, LEGACY_OPERATION, BODY, operation)).resolves.toEqual(error(failure));
+    await expect(useCase.execute(KEY, OPERATION, LEGACY_OPERATION, BODY, operation)).resolves.toEqual(error(failure));
+    const [records] = await relationalDataService.idempotencyKey.findAll({limit: 10});
+
+    expect(operation).toHaveBeenCalledTimes(2);
+    expect(records).toEqual([]);
+  });
+
+  it('returns a hash mismatch as an expected result', async () => {
+    await useCase.execute(KEY, OPERATION, LEGACY_OPERATION, BODY, async () => success(VALUE));
+
+    const result = await useCase.execute(KEY, OPERATION, LEGACY_OPERATION, {amount: 999}, async () =>
+      success({id: 'duplicate'}),
+    );
+
+    expect(isError(result)).toBe(true);
+    if (isError(result)) {
+      expect(result.error).toBeInstanceOf(IdempotencyHashMismatchError);
+    }
+  });
+
+  it('uses canonical object key ordering for request fingerprints', async () => {
+    const operation = jest.fn(async () => success(VALUE));
+
+    await useCase.execute(KEY, OPERATION, LEGACY_OPERATION, {amount: 100, metadata: {b: 2, a: 1}}, operation);
+    const replay = await useCase.execute(
+      KEY,
+      OPERATION,
+      LEGACY_OPERATION,
+      {metadata: {a: 1, b: 2}, amount: 100},
+      operation,
+    );
+
+    expect(replay).toEqual(success(VALUE));
+    expect(operation).toHaveBeenCalledTimes(1);
+  });
+
+  it('restores Date instances when replaying a response', async () => {
+    const createdAt = new Date('2026-01-02T03:04:05.000Z');
+
+    await useCase.execute(KEY, OPERATION, LEGACY_OPERATION, BODY, async () => success({createdAt}));
+    const replay = await useCase.execute(KEY, OPERATION, LEGACY_OPERATION, BODY, async () =>
+      success({createdAt: new Date(0)}),
+    );
+
+    expect(replay).toEqual(success({createdAt}));
+    if (!isError(replay)) {
+      expect(replay.value.createdAt).toBeInstanceOf(Date);
+    }
+  });
+
+  it('replays a legacy record during the expand/contract window', async () => {
+    const legacyValue = {id: 'legacy-expense', createdAt: '2026-01-01T00:00:00.000Z'};
+    const legacyRequestHash = createHash('sha256')
+      .update(JSON.stringify({url: LEGACY_OPERATION, body: BODY}))
+      .digest('hex');
+    await relationalDataService.idempotencyKey.insert({
+      key: KEY,
+      url: LEGACY_OPERATION,
+      legacyRequestHash,
+      legacyResponse: success(legacyValue),
+      statusCode: 200,
+      operationId: null,
+      requestHash: null,
+      response: null,
+      responseVersion: null,
+      createdAt: mockNow,
+      expiresAt: new Date(mockNow.getTime() + 60_000),
+    });
+    const operation = jest.fn(async () => success(VALUE));
+
+    const replay = await useCase.execute(KEY, OPERATION, LEGACY_OPERATION, BODY, operation);
+
+    expect(replay).toEqual(success(legacyValue));
+    expect(operation).not.toHaveBeenCalled();
+  });
+
+  it('executes again after the five-minute TTL and replaces the expired record', async () => {
+    await useCase.execute(KEY, OPERATION, LEGACY_OPERATION, BODY, async () => success(VALUE));
+    jest.setSystemTime(new Date(mockNow.getTime() + 5 * 60 * 1000));
+    const replacement = {id: 'expense-2', amount: 100};
+    const operation = jest.fn(async () => success(replacement));
+
+    const result = await useCase.execute(KEY, OPERATION, LEGACY_OPERATION, BODY, operation);
+
+    expect(result).toEqual(success(replacement));
+    expect(operation).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects a concurrent execution with the same key before running its operation', async () => {
+    let releaseFirst!: () => void;
+    let markFirstStarted!: () => void;
+    const firstStarted = new Promise<void>((resolve) => {
+      markFirstStarted = resolve;
+    });
+    const releaseFirstExecution = new Promise<void>((resolve) => {
+      releaseFirst = resolve;
+    });
+    const firstOperation = jest.fn(async () => {
+      markFirstStarted();
+      await releaseFirstExecution;
+      return success(VALUE);
+    });
+    const secondOperation = jest.fn(async () => success({id: 'duplicate'}));
+
+    const firstExecution = useCase.execute(KEY, OPERATION, LEGACY_OPERATION, BODY, firstOperation);
+    await firstStarted;
+    const secondResult = await useCase.execute(KEY, OPERATION, LEGACY_OPERATION, BODY, secondOperation);
+    releaseFirst();
+    await firstExecution;
+
+    expect(isError(secondResult)).toBe(true);
+    if (isError(secondResult)) {
+      expect(secondResult.error).toBeInstanceOf(IdempotencyRequestInProgressError);
+    }
+    expect(firstOperation).toHaveBeenCalledTimes(1);
+    expect(secondOperation).not.toHaveBeenCalled();
+  });
+
+  it('releases the lock and stores nothing when the operation throws', async () => {
+    await expect(
+      useCase.execute(KEY, OPERATION, LEGACY_OPERATION, BODY, async () => {
+        throw new Error('boom');
+      }),
+    ).rejects.toThrow('boom');
+
+    await expect(useCase.execute(KEY, OPERATION, LEGACY_OPERATION, BODY, async () => success(VALUE))).resolves.toEqual(
+      success(VALUE),
+    );
   });
 });

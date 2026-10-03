@@ -15,6 +15,7 @@ export const GRPC_STATUS_BY_ERROR_CODE: Record<ErrorCode, status> = {
   [ErrorCode.INVALID_TOKEN]: status.UNAUTHENTICATED,
   [ErrorCode.TOKEN_EXPIRED]: status.UNAUTHENTICATED,
   [ErrorCode.IDEMPOTENCY_HASH_MISMATCH]: status.FAILED_PRECONDITION,
+  [ErrorCode.IDEMPOTENCY_REQUEST_IN_PROGRESS]: status.ABORTED,
 };
 
 export const ERROR_CODE_METADATA_KEY = 'error-code';

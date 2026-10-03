@@ -3,7 +3,7 @@ import {PartialByKeys} from '#packages/types';
 import {IIdempotencyKey} from '#domain/entities/idempotency-key.entity';
 import {ValueObject} from '#domain/value-objects/value-object';
 
-const TTL_MS = 24 * 60 * 60 * 1000;
+export const IDEMPOTENCY_KEY_TTL_MS = 5 * 60 * 1000;
 
 export type TIdempotencyKeyDefaultKeys = keyof Pick<IIdempotencyKey, 'createdAt' | 'expiresAt'>;
 
@@ -11,7 +11,7 @@ export const idempotencyKeyDefaultValues: {
   [K in TIdempotencyKeyDefaultKeys]: () => IIdempotencyKey[K];
 } = {
   createdAt: () => new Date(),
-  expiresAt: () => new Date(Date.now() + TTL_MS),
+  expiresAt: () => new Date(Date.now() + IDEMPOTENCY_KEY_TTL_MS),
 } as const;
 Object.freeze(idempotencyKeyDefaultValues);
 

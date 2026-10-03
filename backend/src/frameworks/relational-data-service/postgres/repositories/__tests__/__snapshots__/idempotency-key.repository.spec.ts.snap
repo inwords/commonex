@@ -1,5 +1,14 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
+exports[`IdempotencyKeyRepository acquires an idempotency lock once per key until the transaction finishes 1`] = `
+{
+  "queryParameters": [
+    "key-1",
+  ],
+  "queryString": "SELECT pg_try_advisory_xact_lock(hashtextextended($1, 0)) AS "acquired"",
+}
+`;
+
 exports[`IdempotencyKeyRepository deletes at most one ordered batch of expired keys 1`] = `
 {
   "queryParameters": {
@@ -23,13 +32,17 @@ exports[`IdempotencyKeyRepository inserts a key and finds it by key 1`] = `
   "queryParameters": {
     "orm_param_0": "key-1",
     "orm_param_1": "/user/event",
-    "orm_param_2": "hash-1",
-    "orm_param_3": "{"id":"event-1"}",
+    "orm_param_10": 2026-01-01T00:00:00.000Z,
+    "orm_param_2": "legacy-hash-1",
+    "orm_param_3": "{"result":"success","value":{"id":"event-1"}}",
     "orm_param_4": 200,
-    "orm_param_5": 2026-01-02T00:00:00.000Z,
-    "orm_param_6": 2026-01-01T00:00:00.000Z,
+    "orm_param_5": "event.create.v1",
+    "orm_param_6": "hash-1",
+    "orm_param_7": "{"id":"event-1"}",
+    "orm_param_8": 1,
+    "orm_param_9": 2026-01-02T00:00:00.000Z,
   },
-  "queryString": "INSERT INTO "idempotency_keys" AS "IdempotencyKeyEntity"("key", "url", "request_hash", "response", "status_code", "expires_at", "created_at") VALUES (:orm_param_0, :orm_param_1, :orm_param_2, :orm_param_3, :orm_param_4, :orm_param_5, :orm_param_6)",
+  "queryString": "INSERT INTO "idempotency_keys" AS "IdempotencyKeyEntity"("key", "url", "request_hash", "response", "status_code", "operation_id", "request_hash_v2", "response_v2", "response_version", "expires_at", "created_at") VALUES (:orm_param_0, :orm_param_1, :orm_param_2, :orm_param_3, :orm_param_4, :orm_param_5, :orm_param_6, :orm_param_7, :orm_param_8, :orm_param_9, :orm_param_10)",
 }
 `;
 
@@ -38,13 +51,13 @@ exports[`IdempotencyKeyRepository inserts a key and finds it by key 2`] = `
   "queryParameters": {
     "key": "key-1",
   },
-  "queryString": "SELECT "idempotency_key"."key" AS "idempotency_key_key", "idempotency_key"."url" AS "idempotency_key_url", "idempotency_key"."request_hash" AS "idempotency_key_request_hash", "idempotency_key"."response" AS "idempotency_key_response", "idempotency_key"."status_code" AS "idempotency_key_status_code", "idempotency_key"."expires_at" AS "idempotency_key_expires_at", "idempotency_key"."created_at" AS "idempotency_key_created_at" FROM "idempotency_keys" "idempotency_key" WHERE "idempotency_key"."key" = :key",
+  "queryString": "SELECT "idempotency_key"."key" AS "idempotency_key_key", "idempotency_key"."url" AS "idempotency_key_url", "idempotency_key"."request_hash" AS "idempotency_key_request_hash", "idempotency_key"."response" AS "idempotency_key_response", "idempotency_key"."status_code" AS "idempotency_key_status_code", "idempotency_key"."operation_id" AS "idempotency_key_operation_id", "idempotency_key"."request_hash_v2" AS "idempotency_key_request_hash_v2", "idempotency_key"."response_v2" AS "idempotency_key_response_v2", "idempotency_key"."response_version" AS "idempotency_key_response_version", "idempotency_key"."expires_at" AS "idempotency_key_expires_at", "idempotency_key"."created_at" AS "idempotency_key_created_at" FROM "idempotency_keys" "idempotency_key" WHERE "idempotency_key"."key" = :key",
 }
 `;
 
 exports[`IdempotencyKeyRepository lists keys up to the limit 1`] = `
 {
   "queryParameters": {},
-  "queryString": "SELECT "idempotency_key"."key" AS "idempotency_key_key", "idempotency_key"."url" AS "idempotency_key_url", "idempotency_key"."request_hash" AS "idempotency_key_request_hash", "idempotency_key"."response" AS "idempotency_key_response", "idempotency_key"."status_code" AS "idempotency_key_status_code", "idempotency_key"."expires_at" AS "idempotency_key_expires_at", "idempotency_key"."created_at" AS "idempotency_key_created_at" FROM "idempotency_keys" "idempotency_key" LIMIT 2",
+  "queryString": "SELECT "idempotency_key"."key" AS "idempotency_key_key", "idempotency_key"."url" AS "idempotency_key_url", "idempotency_key"."request_hash" AS "idempotency_key_request_hash", "idempotency_key"."response" AS "idempotency_key_response", "idempotency_key"."status_code" AS "idempotency_key_status_code", "idempotency_key"."operation_id" AS "idempotency_key_operation_id", "idempotency_key"."request_hash_v2" AS "idempotency_key_request_hash_v2", "idempotency_key"."response_v2" AS "idempotency_key_response_v2", "idempotency_key"."response_version" AS "idempotency_key_response_version", "idempotency_key"."expires_at" AS "idempotency_key_expires_at", "idempotency_key"."created_at" AS "idempotency_key_created_at" FROM "idempotency_keys" "idempotency_key" LIMIT 2",
 }
 `;

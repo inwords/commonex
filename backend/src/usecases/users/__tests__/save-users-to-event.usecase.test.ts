@@ -80,7 +80,6 @@ describe('SaveUsersToEventUseCase', () => {
             updatedAt: new Date('2023-01-01T00:00:00Z'),
           },
         ],
-        url: 'url',
       },
       output: success([
         {
@@ -132,7 +131,6 @@ describe('SaveUsersToEventUseCase', () => {
             updatedAt: new Date('2023-01-01T00:00:00Z'),
           },
         ],
-        url: 'url',
       },
       output: error(new EventNotFoundError()),
       relationalStateChanges: {},
@@ -162,7 +160,6 @@ describe('SaveUsersToEventUseCase', () => {
             updatedAt: new Date('2023-01-01T00:00:00Z'),
           },
         ],
-        url: 'url',
       },
       output: error(new EventDeletedError()),
       relationalStateChanges: {},
@@ -192,7 +189,6 @@ describe('SaveUsersToEventUseCase', () => {
             updatedAt: new Date('2023-01-01T00:00:00Z'),
           },
         ],
-        url: 'url',
       },
       output: error(new InvalidPinCodeError()),
       relationalStateChanges: {},
@@ -239,7 +235,7 @@ describe('SaveUsersToEventUseCase', () => {
         {name: 'Alice', createdAt: new Date('2023-01-01T00:00:00Z'), updatedAt: new Date('2023-01-01T00:00:00Z')},
       ],
       idempotencyKey: 'key-1',
-      url: '/user/event/event-1/users',
+      legacyOperationId: '/user/event/event-1/users',
     };
 
     it('replays the stored response and inserts nothing on a repeated key', async () => {
@@ -250,10 +246,10 @@ describe('SaveUsersToEventUseCase', () => {
       const [userInfos] = await relationalDataService.userInfo.findAll({limit: 10});
       const [keys] = await relationalDataService.idempotencyKey.findAll({limit: 10});
 
-      expect(second).toEqual(JSON.parse(JSON.stringify(first)));
+      expect(second).toEqual(first);
       expect(userInfos).toHaveLength(1);
       expect(keys).toEqual([
-        expect.objectContaining({key: 'key-1', url: '/user/event/event-1/users', statusCode: 200}),
+        expect.objectContaining({key: 'key-1', operationId: 'event.users.add.v1', responseVersion: 1}),
       ]);
     });
 
@@ -265,7 +261,9 @@ describe('SaveUsersToEventUseCase', () => {
         {name: 'Bob', createdAt: new Date('2023-01-01T00:00:00Z'), updatedAt: new Date('2023-01-01T00:00:00Z')},
       ];
 
-      await expect(useCase.execute({...input, users: otherUsers})).rejects.toBeInstanceOf(IdempotencyHashMismatchError);
+      await expect(useCase.execute({...input, users: otherUsers})).resolves.toEqual(
+        error(new IdempotencyHashMismatchError()),
+      );
     });
   });
 });

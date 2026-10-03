@@ -146,10 +146,12 @@ Mutating backend routes may accept an optional `Idempotency-Key` header. Header 
 Current backend behavior:
 
 - Missing header keeps legacy behavior and executes the mutation normally.
-- A new key stores the successful response by key, route URL, and request body hash.
-- Reusing the same key with the same URL and request body returns the cached response.
-- Reusing the same key with a different URL or request body is rejected as an idempotency hash mismatch.
-- Stored idempotency records expire after 24 hours and are removed by backend cleanup.
+- A new key fingerprints a stable versioned operation identifier plus the canonically serialized request payload.
+- Only a successful business result is stored. The stored value uses a versioned JSON representation that preserves `Date` values on replay.
+- Reusing the same key with the same operation and payload returns the cached business value.
+- Reusing the same key with a different operation or payload is rejected with `422 Unprocessable Entity` and business code `B4011`.
+- While another request with the same key is still executing, HTTP returns `409 Conflict` with business code `B4016`; gRPC returns `ABORTED` with the same business code. Clients may retry the same key after the first request completes.
+- Idempotency keys are treated as expired 5 minutes after creation, including legacy rows whose stored expiry is longer. Expiration is enforced on lookup; the scheduled cleanup only removes already-expired rows physically.
 
 Current shared mobile KMM behavior:
 
@@ -177,7 +179,10 @@ Current conformance notes:
 
 - The repository contract is optional idempotency. Do not treat missing keys as `400 Bad Request` unless the backend contract changes a route to require idempotency.
 - Backend fingerprint mismatch behavior aligns with the HTTP `Idempotency-Key` guidance for reused keys with different payloads: it returns `422 Unprocessable Entity`.
-- Backend does not currently reserve an idempotency key before executing the first request. Concurrent same-key requests can therefore run before the first result is stored, instead of returning `409 Conflict` while the first request is still processing.
+- Backend serializes same-key execution with a PostgreSQL transaction-scoped advisory lock. The lock and the business mutation share the transaction coordinated by the use case.
+- During the expand/contract rollout, backend dual-reads and dual-writes the legacy URL/hash/result columns and the new operation/hash/versioned-response columns. The nullable legacy columns may be removed only after old backend instances are drained and the compatibility window has elapsed.
+- The bridge schema is rolling-compatible, but atomic same-key execution and the 5-minute effective TTL are guaranteed only after old backend instances are drained. Old instances neither acquire the advisory lock nor enforce the shortened lookup TTL, so the mixed-version window may still duplicate a mutation or replay a key using the legacy expiry.
+- Deployment order is additive migration first, bridge application second. After the last old instance is drained, wait at least the 5-minute TTL plus operational rollback margin before deploying code that stops legacy reads/writes; tightening nullability and dropping legacy columns belongs to a later migration.
 
 ## Response And Error Envelope
 

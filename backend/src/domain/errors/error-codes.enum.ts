@@ -20,4 +20,5 @@ export enum ErrorCode {
 
   // Idempotency errors
   IDEMPOTENCY_HASH_MISMATCH = 'B4011',
+  IDEMPOTENCY_REQUEST_IN_PROGRESS = 'B4016',
 }

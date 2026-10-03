@@ -20,8 +20,6 @@ import {TestCase, prepareInitRelationalState, validateRelationalStateChanges} fr
 
 type SaveUsersToEventV2TestCase = TestCase<SaveUsersToEventV2UseCase>;
 
-const SAVE_USERS_V2_URL = '/v2/user/event/event-1/users';
-
 describe('SaveUsersToEventV2UseCase', () => {
   let relationalDataService: RelationalDataService;
   let useCase: SaveUsersToEventV2UseCase;
@@ -81,7 +79,6 @@ describe('SaveUsersToEventV2UseCase', () => {
             updatedAt: new Date('2023-01-01T00:00:00Z'),
           },
         ],
-        url: 'url',
       },
       output: success([
         {
@@ -133,7 +130,6 @@ describe('SaveUsersToEventV2UseCase', () => {
             updatedAt: new Date('2023-01-01T00:00:00Z'),
           },
         ],
-        url: 'url',
       },
       output: error(new EventNotFoundError()),
       relationalStateChanges: {},
@@ -163,7 +159,6 @@ describe('SaveUsersToEventV2UseCase', () => {
             updatedAt: new Date('2023-01-01T00:00:00Z'),
           },
         ],
-        url: 'url',
       },
       output: error(new EventDeletedError()),
       relationalStateChanges: {},
@@ -193,7 +188,6 @@ describe('SaveUsersToEventV2UseCase', () => {
             updatedAt: new Date('2023-01-01T00:00:00Z'),
           },
         ],
-        url: 'url',
       },
       output: error(new InvalidPinCodeError()),
       relationalStateChanges: {},
@@ -240,7 +234,7 @@ describe('SaveUsersToEventV2UseCase', () => {
         {name: 'Alice', createdAt: new Date('2023-01-01T00:00:00Z'), updatedAt: new Date('2023-01-01T00:00:00Z')},
       ],
       idempotencyKey: 'key-1',
-      url: SAVE_USERS_V2_URL,
+      legacyOperationId: '/v2/user/event/event-1/users',
     };
 
     it('replays the stored response and inserts nothing on a repeated key', async () => {
@@ -251,9 +245,11 @@ describe('SaveUsersToEventV2UseCase', () => {
       const [userInfos] = await relationalDataService.userInfo.findAll({limit: 10});
       const [keys] = await relationalDataService.idempotencyKey.findAll({limit: 10});
 
-      expect(second).toEqual(JSON.parse(JSON.stringify(first)));
+      expect(second).toEqual(first);
       expect(userInfos).toHaveLength(1);
-      expect(keys).toEqual([expect.objectContaining({key: 'key-1', url: SAVE_USERS_V2_URL, statusCode: 200})]);
+      expect(keys).toEqual([
+        expect.objectContaining({key: 'key-1', operationId: 'event.users.add.v2', responseVersion: 1}),
+      ]);
     });
 
     it('rejects a repeated key with a different body', async () => {
@@ -264,7 +260,9 @@ describe('SaveUsersToEventV2UseCase', () => {
         {name: 'Bob', createdAt: new Date('2023-01-01T00:00:00Z'), updatedAt: new Date('2023-01-01T00:00:00Z')},
       ];
 
-      await expect(useCase.execute({...input, users: otherUsers})).rejects.toBeInstanceOf(IdempotencyHashMismatchError);
+      await expect(useCase.execute({...input, users: otherUsers})).resolves.toEqual(
+        error(new IdempotencyHashMismatchError()),
+      );
     });
   });
 });

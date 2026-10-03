@@ -78,7 +78,7 @@ export class UserController {
       users,
       event,
       idempotencyKey: getIdempotencyKey(context),
-      url: 'grpc:CreateEvent',
+      legacyOperationId: 'grpc:CreateEvent',
     });
 
     if (isError(result)) {
@@ -122,7 +122,7 @@ export class UserController {
       eventId,
       ...rest,
       idempotencyKey: getIdempotencyKey(context),
-      url: 'grpc:AddUsersToEvent',
+      legacyOperationId: 'grpc:AddUsersToEvent',
     });
 
     if (isError(result)) {
@@ -153,7 +153,7 @@ export class UserController {
       isCustomRate: false,
       splitInformation: expense.splitInformation.map(({userId, amount}) => ({userId, amount, exchangedAmount: amount})),
       idempotencyKey: getIdempotencyKey(context),
-      url: 'grpc:CreateExpense',
+      legacyOperationId: 'grpc:CreateExpense',
     });
 
     if (isError(result)) {
@@ -187,7 +187,7 @@ export class UserController {
       eventId,
       ...rest,
       idempotencyKey: getIdempotencyKey(context),
-      url: 'grpc:AddUsersToEventV2',
+      legacyOperationId: 'grpc:AddUsersToEventV2',
     });
 
     if (isError(result)) {
@@ -218,7 +218,7 @@ export class UserController {
     const result = await this.saveEventExpenseV2UseCase.execute({
       ...expense,
       idempotencyKey: getIdempotencyKey(context),
-      url: 'grpc:CreateExpenseV2',
+      legacyOperationId: 'grpc:CreateExpenseV2',
     });
 
     if (isError(result)) {

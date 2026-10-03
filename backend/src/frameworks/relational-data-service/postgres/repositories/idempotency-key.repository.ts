@@ -50,6 +50,18 @@ export class IdempotencyKeyRepository extends BaseRepository implements Idempote
     return [undefined, queryDetails];
   };
 
+  readonly tryAcquireLock: IdempotencyKeyRepositoryAbstract['tryAcquireLock'] = async (key, trx) => {
+    if (!(trx.ctx instanceof EntityManager)) {
+      throw new Error('Idempotency lock requires an active transaction');
+    }
+
+    const queryString = 'SELECT pg_try_advisory_xact_lock(hashtextextended($1, 0)) AS "acquired"';
+    const queryParameters = [key];
+    const [result] = await trx.ctx.query<Array<{acquired: boolean}>>(queryString, queryParameters);
+
+    return [result?.acquired === true, {queryString, queryParameters}];
+  };
+
   readonly delete: IdempotencyKeyRepositoryAbstract['delete'] = async (criteria, trx) => {
     // Repository.delete() refuses empty criteria; the query builder would run an unfiltered DELETE instead.
     if (Object.keys(criteria).length === 0) {

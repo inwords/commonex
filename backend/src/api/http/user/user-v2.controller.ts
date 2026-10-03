@@ -67,7 +67,12 @@ export class UserV2Controller {
     @Headers('idempotency-key') idempotencyKey: string | undefined,
     @Req() request: FastifyRequest,
   ): Promise<AddUsersToEventResponseDto[]> {
-    const result = await this.saveUsersToEventV2UseCase.execute({eventId, ...body, idempotencyKey, url: request.url});
+    const result = await this.saveUsersToEventV2UseCase.execute({
+      eventId,
+      ...body,
+      idempotencyKey,
+      legacyOperationId: request.url,
+    });
 
     if (isError(result)) {
       throw result.error;
@@ -104,7 +109,7 @@ export class UserV2Controller {
       ...expense,
       eventId,
       idempotencyKey,
-      url: request.url,
+      legacyOperationId: request.url,
     });
 
     if (isError(result)) {
