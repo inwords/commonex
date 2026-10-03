@@ -105,10 +105,17 @@ from the [image catalog](release-images.json), built from `main`. Resolve all fo
 SHA tags for the first deployment, never `latest`; preserve the same digests for
 later promotion. Keep operator `environment.inputs` root-only and **without** image
 keys: the delivery tool appends them to build the validated two-file archive.
-No additional release file, staging image build, or bundle-validation exception is
-needed. Public routes are rendered from the image's nginx configuration into
-`/tmp/commonex-nginx.conf` at container startup. Production hostnames remain the
-defaults. Explicit nginx validation must use `nginx -t -c /tmp/commonex-nginx.conf`;
+No additional release file, staging-specific image build, or bundle-validation
+exception is needed. The shared Nginx image owns hostname templates and an
+entrypoint that renders `/tmp/commonex-nginx.conf`. It includes the separate API
+server only when API and web have different hostnames. Restricted substitution
+preserves Nginx request variables; production hostnames remain the defaults.
+Build this updated shared image from merged `main` before deploying this Compose
+revision, then use the same immutable digest in both environments. Older images
+do not support these environment inputs without their previous startup wrapper.
+The standard `/etc/nginx/nginx.conf` points to the generated configuration, so
+plain `nginx -t` and explicit `nginx -t -c /tmp/commonex-nginx.conf` validate the
+same active configuration;
 reload signals the master, which rereads its startup configuration.
 
 For an empty database, initialize one backend before starting both replicas:
