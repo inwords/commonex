@@ -19,11 +19,20 @@ DEFAULT_ENDPOINTS = (
     "https://gf.commonex.ru/",
 )
 DEFAULT_GRPC_ENDPOINT = "https://grpc.commonex.ru/"
+STAGING_ENDPOINTS = (
+    "https://staging.commonex.ru/",
+    "https://staging.commonex.ru/api/health",
+    "https://staging-gf.commonex.ru/",
+)
+STAGING_GRPC_ENDPOINT = "https://staging-grpc.commonex.ru/"
 GRPC_HEALTH_METHOD = "grpc.health.v1.Health/Check"
 CURL_COMMAND = ("curl",)
 ALLOWED_REDIRECT_TARGETS = {
     "https://gf.commonex.ru/": frozenset(
         ("https://gf.commonex.ru/login",)
+    ),
+    "https://staging-gf.commonex.ru/": frozenset(
+        ("https://staging-gf.commonex.ru/login",)
     ),
 }
 DEFAULT_ATTEMPTS = 6
@@ -201,9 +210,12 @@ def build_parser() -> argparse.ArgumentParser:
         description="Verify CommonEx public services after an activation."
     )
     parser.add_argument(
+        "--environment", choices=("production", "staging"), default="production"
+    )
+    parser.add_argument(
         "endpoints",
         nargs="*",
-        help="Endpoints to verify; defaults to the production public services.",
+        help="Endpoints to verify; defaults to the selected environment's public services.",
     )
     parser.add_argument(
         "--attempts",
@@ -228,7 +240,8 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: Optional[Sequence[str]] = None) -> int:
     arguments = build_parser().parse_args(argv)
     using_default_endpoints = not arguments.endpoints
-    endpoints = arguments.endpoints or DEFAULT_ENDPOINTS
+    staging = arguments.environment == "staging"
+    endpoints = arguments.endpoints or (STAGING_ENDPOINTS if staging else DEFAULT_ENDPOINTS)
     try:
         for endpoint in endpoints:
             verify_endpoint(
@@ -239,7 +252,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             )
         if using_default_endpoints:
             verify_grpc_ingress(
-                DEFAULT_GRPC_ENDPOINT,
+                STAGING_GRPC_ENDPOINT if staging else DEFAULT_GRPC_ENDPOINT,
                 attempts=arguments.attempts,
                 retry_delay=arguments.retry_delay,
                 timeout=arguments.timeout,

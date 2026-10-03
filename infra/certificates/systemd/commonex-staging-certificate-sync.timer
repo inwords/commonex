@@ -1,0 +1,10 @@
+[Unit]
+Description=Retry CommonEx staging certificate propagation hourly
+
+[Timer]
+OnCalendar=hourly
+Persistent=true
+RandomizedDelaySec=5min
+
+[Install]
+WantedBy=timers.target

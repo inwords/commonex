@@ -1,5 +1,8 @@
 # CommonEx production deployment
 
+For the dedicated staging host, follow the [staging runbook](staging.md). It uses
+the same release archive, host layout, activation transaction, and image catalog.
+
 `commonex_deploy.py` is the repository source for the extensionless `commonex-deploy` host command. It accepts a bounded gzip archive on standard input, validates its exact file list, hashes, and immutable image references, renders Docker Compose in a sanitized environment, installs files atomically, records a configuration rollback copy, and reconciles Compose. Mutating operations are serialized with a host lock. The workflow supplies its monotonically increasing GitHub run number; the host rejects a deploy or rollback whose run number is older than or equal to the last successful activation.
 
 ## Host bootstrap

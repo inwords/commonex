@@ -93,14 +93,16 @@ def redirect_policy(url: str, allowed_target: str) -> Iterator[None]:
 
 
 @contextmanager
-def fake_curl(response_headers: bytes) -> Iterator[tuple[str, ...]]:
+def fake_curl(
+    response_headers: bytes,
+    expected_target: str = "https://grpc.commonex.ru/grpc.health.v1.Health/Check",
+) -> Iterator[tuple[str, ...]]:
     with TemporaryDirectory() as directory:
         script = Path(directory) / "fake_curl.py"
         script.write_text(
             "import sys\n"
             "request = sys.stdin.buffer.read()\n"
-            "expected_target = "
-            "'https://grpc.commonex.ru/grpc.health.v1.Health/Check'\n"
+            f"expected_target = {expected_target!r}\n"
             "if request != b'\\x00\\x00\\x00\\x00\\x00':\n"
             "    raise SystemExit(2)\n"
             "if '--http2' not in sys.argv or sys.argv[-1] != expected_target:\n"
@@ -112,6 +114,51 @@ def fake_curl(response_headers: bytes) -> Iterator[tuple[str, ...]]:
 
 
 class VerifyPublicServicesTests(unittest.TestCase):
+    def test_staging_grpc_probe_reaches_selected_ingress(self) -> None:
+        response = (
+            b"HTTP/2 200 \r\ncontent-type: application/grpc+proto\r\n"
+            b"grpc-status: 12\r\n\r\n"
+        )
+        with fake_curl(
+            response, "https://staging-grpc.commonex.ru/grpc.health.v1.Health/Check"
+        ) as curl_command, patch.object(verify_public_services, "CURL_COMMAND", curl_command):
+            verify_public_services.read_grpc_ingress(
+                "https://staging-grpc.commonex.ru/", 1
+            )
+
+    def test_staging_checks_only_staging_public_routes_and_grpc(self) -> None:
+        with patch.object(verify_public_services, "verify_endpoint") as http, patch.object(
+            verify_public_services, "verify_grpc_ingress"
+        ) as grpc:
+            result = verify_public_services.main(["--environment", "staging"])
+        self.assertEqual(result, 0)
+        self.assertEqual(
+            [call.args[0] for call in http.call_args_list],
+            [
+                "https://staging.commonex.ru/",
+                "https://staging.commonex.ru/api/health",
+                "https://staging-gf.commonex.ru/",
+            ],
+        )
+        self.assertEqual(grpc.call_args.args[0], "https://staging-grpc.commonex.ru/")
+
+    def test_custom_staging_endpoint_retains_custom_probe_behavior(self) -> None:
+        with patch.object(verify_public_services, "verify_endpoint") as http, patch.object(
+            verify_public_services, "verify_grpc_ingress"
+        ) as grpc:
+            result = verify_public_services.main([
+                "--environment", "staging", "https://example.invalid/health"
+            ])
+        self.assertEqual(result, 0)
+        self.assertEqual(http.call_args.args[0], "https://example.invalid/health")
+        grpc.assert_not_called()
+
+    def test_staging_grafana_redirect_is_limited_to_its_own_login(self) -> None:
+        self.assertEqual(
+            verify_public_services.ALLOWED_REDIRECT_TARGETS["https://staging-gf.commonex.ru/"],
+            frozenset(("https://staging-gf.commonex.ru/login",)),
+        )
+
     def run_verifier(self, url: str, attempts: int) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
             [

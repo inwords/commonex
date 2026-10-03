@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Orchestrate CommonEx production deploys through the forced-command seam."""
+"""Orchestrate CommonEx deploys through the forced-command seam."""
 
 from __future__ import annotations
 
@@ -22,6 +22,7 @@ except ImportError:  # pragma: no cover - used when invoked as a script
 
 
 SSH_HOST = "commonex-production"
+SSH_HOSTS = {"production": SSH_HOST, "staging": "commonex-staging"}
 BOOTSTRAP_DIAGNOSTIC = (
     b"commonex-deploy: no immutable activation history exists; bootstrap required\n"
 )
@@ -323,7 +324,10 @@ def _positive_run_number(value: str) -> int:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Orchestrate CommonEx production delivery."
+        description="Orchestrate CommonEx delivery."
+    )
+    parser.add_argument(
+        "--environment", choices=tuple(SSH_HOSTS), default="production"
     )
     subparsers = parser.add_subparsers(dest="operation", required=True)
 
@@ -347,7 +351,14 @@ def main(
     stderr: TextIO = sys.stderr,
 ) -> int:
     options = build_parser().parse_args(arguments)
-    forced_command = client if client is not None else SshForcedCommandClient()
+    forced_command = (
+        client if client is not None
+        else SshForcedCommandClient(SSH_HOSTS[options.environment])
+    )
+    public_verifier = (
+        _default_public_verifier if options.environment == "production"
+        else lambda: verify_public_services(("--environment", options.environment))
+    )
     try:
         if options.operation == "deploy":
             return deploy_release(
@@ -357,12 +368,14 @@ def main(
                 options.compose_path,
                 options.environment_path,
                 forced_command,
+                public_verifier=public_verifier,
                 stderr=stderr,
             )
         return rollback_release(
             options.release_sha,
             options.run_number,
             forced_command,
+            public_verifier=public_verifier,
             stderr=stderr,
         )
     except ValueError as error:
