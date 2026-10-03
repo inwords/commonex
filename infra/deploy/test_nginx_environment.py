@@ -1,5 +1,7 @@
+import hashlib
 import os
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import tempfile
@@ -8,7 +10,10 @@ import unittest
 
 NGINX_DIRECTORY = Path(__file__).resolve().parents[1] / "nginx"
 TEMPLATES = NGINX_DIRECTORY / "templates"
-ENTRYPOINT = NGINX_DIRECTORY / "docker-entrypoint.sh"
+UPSTREAM_DIRECTORY = NGINX_DIRECTORY / "upstream"
+ENTRYPOINT = UPSTREAM_DIRECTORY / "docker-entrypoint.sh"
+RENDERER = UPSTREAM_DIRECTORY / "20-envsubst-on-templates.sh"
+ENVIRONMENT_HOOK = NGINX_DIRECTORY / "entrypoint.d" / "10-commonex-environment.envsh"
 HOST_VARIABLES = (
     "COMMONEX_WEB_HOSTS",
     "COMMONEX_API_HOST",
@@ -29,17 +34,25 @@ class NginxEnvironmentTests(unittest.TestCase):
         environment = os.environ.copy()
         for variable in HOST_VARIABLES:
             environment.pop(variable, None)
+        for variable in tuple(environment):
+            if variable.startswith("NGINX_ENVSUBST_"):
+                environment.pop(variable)
         environment.update(overrides)
         with tempfile.TemporaryDirectory() as directory:
-            output = Path(directory) / "nginx.conf"
+            environment.update({
+                "NGINX_ENVSUBST_TEMPLATE_DIR": str(TEMPLATES),
+                "NGINX_ENVSUBST_OUTPUT_DIR": directory,
+            })
             result = subprocess.run(
-                [self.shell, str(ENTRYPOINT), "--render-only", str(TEMPLATES), str(output)],
+                [self.shell, "-c", 'set -eu; . "$1"; sh "$2"',
+                 "render-test", str(ENVIRONMENT_HOOK), str(RENDERER)],
                 env=environment,
                 text=True,
                 capture_output=True,
                 check=False,
             )
-            rendered = output.read_text() if output.exists() else ""
+            outputs = list(Path(directory).glob("commonex-nginx.*/nginx.conf"))
+            rendered = outputs[0].read_text() if outputs else ""
             fragments = list(Path(directory).glob("commonex-nginx.*/api.conf"))
             api = fragments[0].read_text() if fragments else ""
             if fragments:
@@ -75,7 +88,8 @@ class NginxEnvironmentTests(unittest.TestCase):
             }
         )
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(api, "")
+        self.assertIn('include "/dev/null";', rendered)
+        self.assertIn("server_name preview.example.test;", api)
         self.assertEqual(rendered.count("server_name preview.example.test;"), 1)
         self.assertIn("server_name rpc.example.test;", rendered)
         self.assertIn("server_name metrics.example.test;", rendered)
@@ -95,12 +109,18 @@ class NginxEnvironmentTests(unittest.TestCase):
         self.assertIn("server_name api.example.test;", api)
 
     def test_api_sharing_any_web_alias_skips_separate_virtual_host(self) -> None:
-        result, _, api = self.render({"COMMONEX_API_HOST": "WWW.COMMONEX.RU"})
+        result, rendered, api = self.render({"COMMONEX_API_HOST": "WWW.COMMONEX.RU"})
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(api, "")
+        self.assertIn('include "/dev/null";', rendered)
+        self.assertIn("server_name www.commonex.ru;", api)
+        self.assertEqual(rendered.count("    server {"), 3)
 
     def test_substitution_preserves_nginx_variables_and_ignores_external_fragment_path(self) -> None:
-        result, rendered, _ = self.render({"COMMONEX_API_CONFIG": "/tmp/untrusted.conf"})
+        result, rendered, _ = self.render({
+            "COMMONEX_API_CONFIG": "/tmp/untrusted.conf",
+            "NGINX_ENVSUBST_FILTER": ".*",
+            "NGINX_ENVSUBST_TEMPLATE_SUFFIX": ".untrusted",
+        })
         self.assertEqual(result.returncode, 0, result.stderr)
         for variable in ("$host", "$http_upgrade", "$connection_upgrade"):
             self.assertIn(variable, rendered)
@@ -147,20 +167,19 @@ class NginxEnvironmentTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(result.stdout, "override")
 
-    def test_nginx_version_override_runs_without_rendering(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            fake_nginx = Path(directory) / "nginx"
-            fake_nginx.write_text('#!/bin/sh\nprintf "%s" "$*"\n')
-            fake_nginx.chmod(0o755)
-            result = subprocess.run(
-                [self.shell, str(ENTRYPOINT), "nginx", "-V"],
-                env={**os.environ, "PATH": directory + os.pathsep + os.environ["PATH"],
-                     "COMMONEX_WEB_HOSTS": "invalid;"},
-                capture_output=True,
-                text=True,
-            )
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(result.stdout, "-V")
+
+class NginxUpstreamIntegrityTests(unittest.TestCase):
+    def test_vendored_scripts_match_pinned_upstream_checksums(self) -> None:
+        provenance = (UPSTREAM_DIRECTORY / "README.md").read_text()
+        self.assertRegex(provenance, r"\b[0-9a-f]{40}\b")
+        checksums = dict(re.findall(
+            r"^\| `([^`]+)` \| `[^`]+` \| `([0-9a-f]{64})` \|$",
+            provenance, re.MULTILINE,
+        ))
+        for script in (ENTRYPOINT, RENDERER, UPSTREAM_DIRECTORY / "LICENSE"):
+            with self.subTest(script=script.name):
+                self.assertIn(script.name, checksums)
+                self.assertEqual(hashlib.sha256(script.read_bytes()).hexdigest(), checksums[script.name])
 
 
 if __name__ == "__main__":

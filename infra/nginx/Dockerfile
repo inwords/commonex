@@ -160,17 +160,20 @@ RUN \
          | sort -u > /tmp/nginx-runDeps.txt
 
 COPY templates /tmp/nginx-feature-templates
-COPY docker-entrypoint.sh /tmp/docker-entrypoint.sh
+COPY entrypoint.d/10-commonex-environment.envsh /tmp/10-commonex-environment.envsh
+COPY upstream/20-envsubst-on-templates.sh /tmp/20-envsubst-on-templates.sh
 COPY verify-nginx-features.sh /tmp/verify-nginx-features.sh
 
 RUN \
     mkdir /tmp/nginx-feature-render \
-    && sh /tmp/docker-entrypoint.sh --render-only /tmp/nginx-feature-templates /tmp/nginx-feature-render/nginx.conf \
+    && export NGINX_ENVSUBST_TEMPLATE_DIR=/tmp/nginx-feature-templates NGINX_ENVSUBST_OUTPUT_DIR=/tmp/nginx-feature-render \
+    && . /tmp/10-commonex-environment.envsh \
+    && sh /tmp/20-envsubst-on-templates.sh \
     && sh /tmp/verify-nginx-features.sh \
-      /tmp/nginx-feature-render/nginx.conf \
-      /usr/src/openssl-$OPENSSL_VERSION/apps/openssl /tmp/nginx-feature-render/commonex-nginx.*/api.conf \
+      "$NGINX_ENVSUBST_OUTPUT_DIR/nginx.conf" \
+      /usr/src/openssl-$OPENSSL_VERSION/apps/openssl "$NGINX_ENVSUBST_OUTPUT_DIR/api.conf" \
     && rm -f /var/run/nginx/nginx.pid \
-    && rm -rf /tmp/nginx-feature-render /tmp/nginx-feature-templates /tmp/docker-entrypoint.sh /tmp/verify-nginx-features.sh
+    && rm -rf /tmp/nginx-feature-render /tmp/nginx-feature-templates /tmp/10-commonex-environment.envsh /tmp/20-envsubst-on-templates.sh /tmp/verify-nginx-features.sh
 
 FROM alpine:3.24
 ARG NGINX_VERSION
@@ -185,10 +188,13 @@ COPY --from=base /usr/sbin/nginx /usr/sbin/
 COPY --from=base /tmp/nginx-runDeps.txt /tmp/nginx-runDeps.txt
 COPY --from=base /usr/lib/nginx/modules/*.so /usr/lib/nginx/modules/
 COPY templates /etc/nginx/templates
-COPY docker-entrypoint.sh /usr/local/bin/commonex-nginx-entrypoint
+COPY upstream/docker-entrypoint.sh /docker-entrypoint.sh
+COPY upstream/20-envsubst-on-templates.sh /docker-entrypoint.d/20-envsubst-on-templates.sh
+COPY entrypoint.d /docker-entrypoint.d
+COPY upstream/LICENSE /usr/share/doc/nginx-docker/LICENSE
 
 RUN \
-    chmod 0755 /usr/local/bin/commonex-nginx-entrypoint \
+    chmod 0755 /docker-entrypoint.sh /docker-entrypoint.d/* \
     && addgroup --gid $NGINX_GROUP_GID -S nginx \
     && adduser --uid $NGINX_USER_UID -D -S -h /var/cache/nginx -s /sbin/nologin -G nginx nginx \
     && apk add --no-cache --virtual .nginx-rundeps tzdata gettext-envsubst $(cat /tmp/nginx-runDeps.txt) \
@@ -209,15 +215,17 @@ RUN \
       -keyout /etc/nginx/ssl/live/commonex.ru/privkey.pem \
       -out /etc/nginx/ssl/live/commonex.ru/fullchain.pem \
     && mkdir /tmp/nginx-build-validation \
-    && commonex-nginx-entrypoint --render-only /etc/nginx/templates /tmp/nginx-build-validation/nginx.conf \
+    && export NGINX_ENVSUBST_OUTPUT_DIR=/tmp/nginx-build-validation \
+    && . /docker-entrypoint.d/10-commonex-environment.envsh \
+    && sh /docker-entrypoint.d/20-envsubst-on-templates.sh \
     && sed -i \
       -e 's/server nest-backend-green:/server 127.0.0.2:/g' \
       -e 's/server nest-backend-blue:/server 127.0.0.3:/g' \
       -e 's/server next-web:/server 127.0.0.4:/g' \
       -e 's/server grafana:/server 127.0.0.5:/g' \
       -e 's/endpoint otelcollector:/endpoint 127.0.0.6:/g' \
-      /tmp/nginx-build-validation/nginx.conf /tmp/nginx-build-validation/commonex-nginx.*/api.conf \
-    && nginx -t -c /tmp/nginx-build-validation/nginx.conf \
+      "$NGINX_ENVSUBST_OUTPUT_DIR/nginx.conf" "$NGINX_ENVSUBST_OUTPUT_DIR/api.conf" \
+    && nginx -t -c "$NGINX_ENVSUBST_OUTPUT_DIR/nginx.conf" \
     && rm -rf /tmp/nginx-build-validation \
       /etc/nginx/ssl/live/commonex.ru/privkey.pem \
       /etc/nginx/ssl/live/commonex.ru/fullchain.pem \
@@ -239,5 +247,5 @@ RUN \
       /var/run/nginx/
 
 USER nginx
-ENTRYPOINT ["commonex-nginx-entrypoint"]
+ENTRYPOINT ["/docker-entrypoint.sh"]
 CMD ["nginx", "-c", "/tmp/commonex-nginx.conf", "-g", "daemon off;"]
