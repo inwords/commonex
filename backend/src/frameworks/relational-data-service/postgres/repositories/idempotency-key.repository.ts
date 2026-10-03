@@ -57,7 +57,7 @@ export class IdempotencyKeyRepository extends BaseRepository implements Idempote
 
     const queryString = 'SELECT pg_try_advisory_xact_lock(hashtextextended($1, 0)) AS "acquired"';
     const queryParameters = [key];
-    const [result] = await trx.ctx.query<Array<{acquired: boolean}>>(queryString, queryParameters);
+    const [result] = await trx.ctx.query<{acquired: boolean}[]>(queryString, queryParameters);
 
     return [result?.acquired === true, {queryString, queryParameters}];
   };
