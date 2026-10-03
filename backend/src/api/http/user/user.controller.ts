@@ -45,7 +45,7 @@ export class UserController {
   ): Promise<CreateEventResponseDto> {
     const {users, ...event} = body;
 
-    const result = await this.saveEventUseCase.execute({users, event, idempotencyKey, url: request.url});
+    const result = await this.saveEventUseCase.execute({users, event, idempotencyKey, legacyOperationId: request.url});
 
     if (isError(result)) {
       throw result.error;
@@ -94,7 +94,12 @@ export class UserController {
     @Headers('idempotency-key') idempotencyKey: string | undefined,
     @Req() request: FastifyRequest,
   ): Promise<AddUsersToEventResponseDto[]> {
-    const result = await this.saveUsersToEventUseCase.execute({eventId, ...body, idempotencyKey, url: request.url});
+    const result = await this.saveUsersToEventUseCase.execute({
+      eventId,
+      ...body,
+      idempotencyKey,
+      legacyOperationId: request.url,
+    });
 
     if (isError(result)) {
       throw result.error;
@@ -129,7 +134,7 @@ export class UserController {
       isCustomRate: false,
       splitInformation: expense.splitInformation.map(({userId, amount}) => ({userId, amount, exchangedAmount: amount})),
       idempotencyKey,
-      url: request.url,
+      legacyOperationId: request.url,
     });
 
     if (isError(result)) {

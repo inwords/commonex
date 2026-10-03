@@ -43,6 +43,22 @@ describe('HTTP idempotency-key header', () => {
     expect(events).toHaveLength(1);
   });
 
+  it('returns 409 B4016 while the same idempotency key is in progress', async () => {
+    await testApp.rDataService.dataSource.transaction(async (manager) => {
+      await manager.query('SELECT pg_advisory_xact_lock(hashtextextended($1, 0))', ['key-in-progress']);
+
+      const response = await testApp.app.inject({
+        method: 'POST',
+        url: '/user/event',
+        headers: {'idempotency-key': 'key-in-progress'},
+        payload: payload(),
+      });
+
+      expect(response.statusCode).toBe(409);
+      expect(response.json()).toMatchObject({code: 'B4016'});
+    });
+  });
+
   it('rejects a reused key with a different body with 422 B4011', async () => {
     await testApp.app.inject({
       method: 'POST',

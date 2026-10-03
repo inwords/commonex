@@ -9,9 +9,13 @@ import {createTestRelationalDataService, truncateAllTables} from '#test-support/
 const buildKey = (overrides: Partial<IIdempotencyKey> = {}): IIdempotencyKey => ({
   key: 'key-1',
   url: '/user/event',
+  legacyRequestHash: 'legacy-hash-1',
+  legacyResponse: {result: 'success', value: {id: 'event-1'}},
+  statusCode: 200,
+  operationId: 'event.create.v1',
   requestHash: 'hash-1',
   response: {id: 'event-1'},
-  statusCode: 200,
+  responseVersion: 1,
   expiresAt: new Date('2026-01-02T00:00:00Z'),
   createdAt: new Date('2026-01-01T00:00:00Z'),
   ...overrides,
@@ -48,6 +52,28 @@ describe('IdempotencyKeyRepository', () => {
     const [found] = await relationalDataService.idempotencyKey.findByKey('missing');
 
     expect(found).toBeNull();
+  });
+
+  it('acquires an idempotency lock once per key until the transaction finishes', async () => {
+    await relationalDataService.dataSource.transaction(async (manager) => {
+      const [acquired, details] = await relationalDataService.idempotencyKey.tryAcquireLock('key-1', {ctx: manager});
+
+      expect(acquired).toBe(true);
+      expect(details).toMatchSnapshot();
+
+      await relationalDataService.dataSource.transaction(async (competingManager) => {
+        const [competingAcquired] = await relationalDataService.idempotencyKey.tryAcquireLock('key-1', {
+          ctx: competingManager,
+        });
+
+        expect(competingAcquired).toBe(false);
+      });
+    });
+
+    await relationalDataService.dataSource.transaction(async (manager) => {
+      const [acquired] = await relationalDataService.idempotencyKey.tryAcquireLock('key-1', {ctx: manager});
+      expect(acquired).toBe(true);
+    });
   });
 
   it('lists keys up to the limit', async () => {

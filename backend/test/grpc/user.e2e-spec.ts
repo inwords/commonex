@@ -149,6 +149,30 @@ describe('gRPC UserService', () => {
     expect(events).toHaveLength(1);
   });
 
+  it('maps an in-progress idempotency key to ABORTED', async () => {
+    const metadata = new Metadata();
+    metadata.set('idempotency-key', 'grpc-key-in-progress');
+
+    await testApp.rDataService.dataSource.transaction(async (manager) => {
+      await manager.query('SELECT pg_advisory_xact_lock(hashtextextended($1, 0))', ['grpc-key-in-progress']);
+
+      const grpcError = await expectGrpcError(
+        callUnary(
+          client,
+          'CreateEvent',
+          {name: 'Trip', currencyId: usdId, pinCode: '1234', users: [{name: 'Alice'}]},
+          metadata,
+        ),
+      );
+
+      expect(grpcError).toEqual({
+        code: status.ABORTED,
+        details: 'Another request with this idempotency key is in progress',
+        errorCode: 'B4016',
+      });
+    });
+  });
+
   it('replays CreateExpenseV2 when the idempotency-key metadata repeats', async () => {
     const event = await createEvent(testApp.app, {currencyId: usdId});
     const [alice] = event.users;

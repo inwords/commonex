@@ -19,6 +19,11 @@ export abstract class IdempotencyKeyRepositoryAbstract {
     trx?: ITransaction,
   ) => Promise<[result: undefined, queryDetails: IQueryDetails]>;
 
+  abstract tryAcquireLock: (
+    key: IIdempotencyKey['key'],
+    trx: ITransaction,
+  ) => Promise<[acquired: boolean, queryDetails: IQueryDetails]>;
+
   abstract delete: (
     criteria: FindOptionsWhere<IIdempotencyKey>,
     trx?: ITransaction,

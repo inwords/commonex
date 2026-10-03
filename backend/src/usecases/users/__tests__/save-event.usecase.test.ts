@@ -77,7 +77,6 @@ describe('SaveEventUseCase', () => {
             updatedAt: new Date('2023-01-01T00:00:00Z'),
           },
         ],
-        url: 'url',
       },
       output: success({
         id: expect.any(String),
@@ -154,7 +153,6 @@ describe('SaveEventUseCase', () => {
             updatedAt: new Date('2023-01-01T00:00:00Z'),
           },
         ],
-        url: 'url',
       },
       output: error(new CurrencyNotFoundError()),
       relationalStateChanges: {},
@@ -184,7 +182,6 @@ describe('SaveEventUseCase', () => {
             updatedAt: new Date('2023-01-01T00:00:00Z'),
           },
         ],
-        url: 'url',
       },
       output: error(new CurrencyNotFoundError()),
       relationalStateChanges: {},
@@ -219,7 +216,7 @@ describe('SaveEventUseCase', () => {
         {name: 'Alice', createdAt: new Date('2023-01-01T00:00:00Z'), updatedAt: new Date('2023-01-01T00:00:00Z')},
       ],
       idempotencyKey: 'key-1',
-      url: '/user/event',
+      legacyOperationId: '/user/event',
     };
     const currencies = [
       {
@@ -238,17 +235,19 @@ describe('SaveEventUseCase', () => {
       const [events] = await relationalDataService.event.findAll({limit: 10});
       const [keys] = await relationalDataService.idempotencyKey.findAll({limit: 10});
 
-      expect(second).toEqual(JSON.parse(JSON.stringify(first)));
+      expect(second).toEqual(first);
       expect(events).toHaveLength(1);
-      expect(keys).toEqual([expect.objectContaining({key: 'key-1', url: '/user/event', statusCode: 200})]);
+      expect(keys).toEqual([
+        expect.objectContaining({key: 'key-1', operationId: 'event.create.v1', responseVersion: 1}),
+      ]);
     });
 
     it('rejects a repeated key with a different body', async () => {
       await prepareInitRelationalState({rDataService: relationalDataService, initState: {currencies}});
       await useCase.execute(input);
 
-      await expect(useCase.execute({...input, event: {...input.event, name: 'Other'}})).rejects.toBeInstanceOf(
-        IdempotencyHashMismatchError,
+      await expect(useCase.execute({...input, event: {...input.event, name: 'Other'}})).resolves.toEqual(
+        error(new IdempotencyHashMismatchError()),
       );
     });
   });

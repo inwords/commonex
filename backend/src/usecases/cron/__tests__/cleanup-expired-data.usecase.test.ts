@@ -29,10 +29,14 @@ describe('CleanupExpiredDataUseCase', () => {
   it('cleans expired records in bounded batches under one job lock', async () => {
     const expiredKeys = Array.from({length: 501}, (_, index) => ({
       key: `expired-${index.toString().padStart(3, '0')}`,
-      url: '/u',
+      url: '/user/event',
+      legacyRequestHash: 'legacy-h',
+      legacyResponse: {result: 'success', value: {}},
+      statusCode: 200,
+      operationId: 'event.create.v1',
       requestHash: 'h',
       response: {},
-      statusCode: 200,
+      responseVersion: 1,
       expiresAt: new Date(Date.now() - HOUR_MS),
       createdAt: new Date(),
     }));
@@ -47,10 +51,14 @@ describe('CleanupExpiredDataUseCase', () => {
       ...expiredKeys,
       {
         key: 'live',
-        url: '/u',
+        url: '/user/event',
+        legacyRequestHash: 'legacy-h',
+        legacyResponse: {result: 'success', value: {}},
+        statusCode: 200,
+        operationId: 'event.create.v1',
         requestHash: 'h',
         response: {},
-        statusCode: 200,
+        responseVersion: 1,
         expiresAt: new Date(Date.now() + HOUR_MS),
         createdAt: new Date(),
       },

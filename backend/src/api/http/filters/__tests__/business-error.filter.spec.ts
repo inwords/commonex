@@ -9,6 +9,7 @@ import {
   EventNotFoundError,
   EventOperationConflictError,
   IdempotencyHashMismatchError,
+  IdempotencyRequestInProgressError,
   InconsistentExchangedAmountError,
   InvalidPinCodeError,
   InvalidTokenError,
@@ -39,6 +40,12 @@ describe('BusinessErrorFilter', () => {
       'Idempotency key reused with different request body',
     ],
     [EventOperationConflictError, HttpStatus.CONFLICT, 'B4015', 'Another operation is in progress for this event'],
+    [
+      IdempotencyRequestInProgressError,
+      HttpStatus.CONFLICT,
+      'B4016',
+      'Another request with this idempotency key is in progress',
+    ],
   ])('maps %p to its status, code and message', (ErrorClass, statusCode, code, message) => {
     const reply = jest.fn();
     const response = {};

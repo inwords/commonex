@@ -103,7 +103,6 @@ describe('SaveEventExpenseUseCase', () => {
           {userId: 'user-1', amount: 40, exchangedAmount: 0},
           {userId: 'user-2', amount: 60, exchangedAmount: 0},
         ],
-        url: 'url',
       },
       output: success({
         id: expect.any(String),
@@ -193,7 +192,6 @@ describe('SaveEventExpenseUseCase', () => {
           {userId: 'user-1', amount: 40, exchangedAmount: 0},
           {userId: 'user-2', amount: 60, exchangedAmount: 0},
         ],
-        url: 'url',
       },
       output: success({
         id: expect.any(String),
@@ -243,7 +241,6 @@ describe('SaveEventExpenseUseCase', () => {
         expenseType: ExpenseType.Expense,
         isCustomRate: false,
         splitInformation: [{userId: 'user-1', amount: 100, exchangedAmount: 0}],
-        url: 'url',
       },
       output: error(new EventNotFoundError()),
       relationalStateChanges: {},
@@ -271,7 +268,6 @@ describe('SaveEventExpenseUseCase', () => {
         userWhoPaidId: 'user-1',
         expenseType: ExpenseType.Expense,
         splitInformation: [{userId: 'user-1', amount: 100, exchangedAmount: 0}],
-        url: 'url',
       },
       output: error(new EventDeletedError()),
       relationalStateChanges: {},
@@ -307,7 +303,6 @@ describe('SaveEventExpenseUseCase', () => {
         userWhoPaidId: 'user-1',
         expenseType: ExpenseType.Expense,
         splitInformation: [{userId: 'user-1', amount: 100, exchangedAmount: 0}],
-        url: 'url',
       },
       output: error(new CurrencyNotFoundError()),
       relationalStateChanges: {},
@@ -349,7 +344,6 @@ describe('SaveEventExpenseUseCase', () => {
         userWhoPaidId: 'user-1',
         expenseType: ExpenseType.Expense,
         splitInformation: [{userId: 'user-1', amount: 100, exchangedAmount: 0}],
-        url: 'url',
       },
       output: error(new CurrencyRateNotFoundError()),
       relationalStateChanges: {},
@@ -409,7 +403,7 @@ describe('SaveEventExpenseUseCase', () => {
         {userId: 'user-2', amount: 60, exchangedAmount: 0},
       ],
       idempotencyKey: 'key-1',
-      url: '/user/event/event-1/expense',
+      legacyOperationId: '/user/event/event-1/expense',
     };
 
     it('replays the stored response and inserts nothing on a repeated key', async () => {
@@ -420,10 +414,10 @@ describe('SaveEventExpenseUseCase', () => {
       const [expenses] = await relationalDataService.expense.findAll({limit: 10});
       const [keys] = await relationalDataService.idempotencyKey.findAll({limit: 10});
 
-      expect(second).toEqual(JSON.parse(JSON.stringify(first)));
+      expect(second).toEqual(first);
       expect(expenses).toHaveLength(1);
       expect(keys).toEqual([
-        expect.objectContaining({key: 'key-1', url: '/user/event/event-1/expense', statusCode: 200}),
+        expect.objectContaining({key: 'key-1', operationId: 'event.expense.create.v1', responseVersion: 1}),
       ]);
     });
 
@@ -431,8 +425,8 @@ describe('SaveEventExpenseUseCase', () => {
       await prepareInitRelationalState({rDataService: relationalDataService, initState: {events, currencies}});
       await useCase.execute(input);
 
-      await expect(useCase.execute({...input, description: 'Dinner'})).rejects.toBeInstanceOf(
-        IdempotencyHashMismatchError,
+      await expect(useCase.execute({...input, description: 'Dinner'})).resolves.toEqual(
+        error(new IdempotencyHashMismatchError()),
       );
     });
   });

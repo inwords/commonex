@@ -72,6 +72,12 @@ export class IdempotencyHashMismatchError {
   readonly httpCode = HttpStatus.UNPROCESSABLE_ENTITY;
 }
 
+export class IdempotencyRequestInProgressError {
+  readonly name = 'IdempotencyRequestInProgressError' as const;
+  readonly code = ErrorCode.IDEMPOTENCY_REQUEST_IN_PROGRESS;
+  readonly message = 'Another request with this idempotency key is in progress';
+}
+
 /** Every domain error the transport layers translate; both exception filters catch exactly this list. */
 export const BUSINESS_ERROR_CLASSES = [
   EventNotFoundError,
@@ -84,6 +90,7 @@ export const BUSINESS_ERROR_CLASSES = [
   CurrencyRateNotFoundError,
   InconsistentExchangedAmountError,
   IdempotencyHashMismatchError,
+  IdempotencyRequestInProgressError,
 ] as const;
 
 export type BusinessError = InstanceType<(typeof BUSINESS_ERROR_CLASSES)[number]>;
