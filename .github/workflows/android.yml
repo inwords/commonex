@@ -7,12 +7,15 @@ on:
     paths:
       - 'android/**'
       - '.github/workflows/**'
+      - 'infra/deploy/bootstrap_staging_fixture.py'
   pull_request:
     branches:
       - main
     paths:
       - 'android/**'
       - '.github/workflows/**'
+      - 'infra/deploy/bootstrap_staging_fixture.py'
+  workflow_dispatch:
 
 defaults:
   run:
@@ -94,6 +97,14 @@ jobs:
         with:
           fetch-depth: 1
 
+      - name: Setup Python for staging preflight
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+
+      - name: Verify staging API and Android fixture
+        run: python ../infra/deploy/bootstrap_staging_fixture.py
+
       - name: Enable KVM
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
@@ -114,12 +125,12 @@ jobs:
       - name: Accept Android SDK licenses
         run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
 
-      - name: Build APKs for UI tests
+      - name: Build autotest APKs targeting staging.commonex.ru
         env:
           CI: true
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
         run: >
-          ./gradlew :app:assembleAutotest
+          ./gradlew --quiet :app:assembleAutotest
           :app:assembleAutotestAndroidTest
           -Dcom.android.tools.r8.disableApiModeling
           --no-daemon

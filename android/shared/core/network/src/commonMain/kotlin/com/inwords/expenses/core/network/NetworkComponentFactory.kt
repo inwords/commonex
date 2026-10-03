@@ -10,4 +10,5 @@ expect class NetworkComponentFactory(deps: Deps) {
 interface NetworkComponentFactoryCommonDeps {
 
     val versionCode: Int
+    val apiHost: String
 }

@@ -1,6 +1,7 @@
 package com.inwords.expenses.core.network
 
 import android.content.Context
+import io.ktor.http.URLProtocol
 import okio.Path.Companion.toPath
 
 actual class NetworkComponentFactory actual constructor(
@@ -14,7 +15,8 @@ actual class NetworkComponentFactory actual constructor(
 
     actual fun create(): NetworkComponent {
         return NetworkComponent(
-            HttpClientFactory(
+            hostConfig = HostConfig(URLProtocol.HTTPS, deps.apiHost),
+            httpClientFactory = HttpClientFactory(
                 context = deps.context,
                 userAgent = buildUserAgent(
                     versionCode = deps.versionCode,

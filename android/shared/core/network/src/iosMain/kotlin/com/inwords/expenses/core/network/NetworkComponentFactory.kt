@@ -1,6 +1,7 @@
 package com.inwords.expenses.core.network
 
 import com.inwords.expenses.core.storage.utils.iosDocumentsDirectoryPath
+import io.ktor.http.URLProtocol
 
 actual class NetworkComponentFactory actual constructor(private val deps: Deps) {
 
@@ -8,7 +9,8 @@ actual class NetworkComponentFactory actual constructor(private val deps: Deps) 
 
     actual fun create(): NetworkComponent {
         return NetworkComponent(
-            HttpClientFactory(
+            hostConfig = HostConfig(URLProtocol.HTTPS, deps.apiHost),
+            httpClientFactory = HttpClientFactory(
                 userAgent = buildUserAgent(
                     versionCode = deps.versionCode,
                     platform = "iOS",
