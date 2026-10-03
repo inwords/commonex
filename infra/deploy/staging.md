@@ -68,8 +68,6 @@ install -d -m 0755 /etc/commonex/app/grafana/provisioning/datasources \
 install -d -m 0700 /var/lib/commonex/rollback
 chmod 0700 /var/lib/commonex
 install -m 0644 infra/docker-compose-prod.yml /etc/commonex/app/docker-compose-prod.yml
-install -m 0644 infra/grafana/staging-postgres.yaml \
-  infra/grafana/staging-datasources.yaml /etc/commonex/app/grafana/provisioning/datasources/
 python3 infra/deploy/install_commonex_deploy.py install \
   --bundle <root-owned-tool-bundle> --tool-git-sha <tool-source-sha>
 python3 infra/deploy/install_commonex_deploy.py install \
@@ -220,7 +218,3 @@ uses `app_postgres_data`, `app_victoriametrics_data`, `app_victoriatraces_data`,
 `app_grafana_data`; keep the active Compose directory/project identity stable.
 Docker stores their contents under its volume data root (inspect with
 `docker volume inspect`). Never use `down --volumes` during normal operation.
-
-Provisioned staging data sources use built-in Prometheus/Jaeger support:
-[VictoriaMetrics OTLP/Grafana guidance](https://docs.victoriametrics.com/opentelemetry/)
-and [VictoriaTraces Grafana guidance](https://docs.victoriametrics.com/victoriatraces/querying/grafana/).
