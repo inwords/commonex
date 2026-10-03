@@ -4,6 +4,7 @@ set -eu
 
 config_source="${1:?usage: verify-nginx-features.sh <nginx-config> <openssl-binary>}"
 openssl_binary="${2:?usage: verify-nginx-features.sh <nginx-config> <openssl-binary>}"
+api_config_source="${3:?usage: verify-nginx-features.sh <nginx-config> <openssl-binary> <api-config>}"
 verification_root="$(mktemp -d)"
 verification_config="$verification_root/nginx.conf"
 nginx_started=0
@@ -18,6 +19,8 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 cp "$config_source" "$verification_config"
+cp "$api_config_source" "$verification_root/api.conf"
+sed -i "s#$api_config_source#$verification_root/api.conf#g" "$verification_config"
 printf '[]\n' > "$verification_root/assetlinks.json"
 chmod 0755 "$verification_root"
 chmod 0644 "$verification_root/assetlinks.json"
@@ -32,7 +35,7 @@ sed -i \
     -e "s#/etc/nginx/ssl/live/commonex.ru/fullchain.pem#$verification_root/fullchain.pem#g" \
     -e "s#/etc/nginx/ssl/live/commonex.ru/privkey.pem#$verification_root/privkey.pem#g" \
     -e "s#/var/www/assetlinks.json#$verification_root/assetlinks.json#g" \
-    "$verification_config"
+    "$verification_config" "$verification_root/api.conf"
 
 OPENSSL_CONF=/dev/null "$openssl_binary" req \
     -x509 \

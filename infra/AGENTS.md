@@ -78,7 +78,7 @@ docker compose -f infra/docker-compose-prod.yml ps
 
 ### Nginx
 
-- **Production config**: `infra/nginx/nginx-prod.conf`
+- **Configuration templates**: `infra/nginx/templates/`; rendered by `infra/nginx/docker-entrypoint.sh` using the deployment environment.
 - **Dockerfile**: `infra/nginx/Dockerfile`
 - Upstream configuration for backend services (blue-green)
 

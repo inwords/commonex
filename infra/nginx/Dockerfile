@@ -79,6 +79,7 @@ RUN \
         openssl-dev \
         abseil-cpp-dev \
         abseil-cpp \
+        gettext-envsubst \
    && git config --global init.defaultBranch master
 
 WORKDIR /usr/src/
@@ -158,15 +159,18 @@ RUN \
          | xargs -r apk info --installed \
          | sort -u > /tmp/nginx-runDeps.txt
 
-COPY nginx-prod.conf /tmp/nginx-feature-verification.conf
+COPY templates /tmp/nginx-feature-templates
+COPY docker-entrypoint.sh /tmp/docker-entrypoint.sh
 COPY verify-nginx-features.sh /tmp/verify-nginx-features.sh
 
 RUN \
-    sh /tmp/verify-nginx-features.sh \
-      /tmp/nginx-feature-verification.conf \
-      /usr/src/openssl-$OPENSSL_VERSION/apps/openssl \
+    mkdir /tmp/nginx-feature-render \
+    && sh /tmp/docker-entrypoint.sh --render-only /tmp/nginx-feature-templates /tmp/nginx-feature-render/nginx.conf \
+    && sh /tmp/verify-nginx-features.sh \
+      /tmp/nginx-feature-render/nginx.conf \
+      /usr/src/openssl-$OPENSSL_VERSION/apps/openssl /tmp/nginx-feature-render/commonex-nginx.*/api.conf \
     && rm -f /var/run/nginx/nginx.pid \
-    && rm /tmp/nginx-feature-verification.conf /tmp/verify-nginx-features.sh
+    && rm -rf /tmp/nginx-feature-render /tmp/nginx-feature-templates /tmp/docker-entrypoint.sh /tmp/verify-nginx-features.sh
 
 FROM alpine:3.24
 ARG NGINX_VERSION
@@ -180,14 +184,17 @@ COPY --from=base /etc/nginx /etc/nginx
 COPY --from=base /usr/sbin/nginx /usr/sbin/
 COPY --from=base /tmp/nginx-runDeps.txt /tmp/nginx-runDeps.txt
 COPY --from=base /usr/lib/nginx/modules/*.so /usr/lib/nginx/modules/
-COPY nginx-prod.conf /etc/nginx/nginx.conf
+COPY templates /etc/nginx/templates
+COPY docker-entrypoint.sh /usr/local/bin/commonex-nginx-entrypoint
 
 RUN \
-    addgroup --gid $NGINX_GROUP_GID -S nginx \
+    chmod 0755 /usr/local/bin/commonex-nginx-entrypoint \
+    && addgroup --gid $NGINX_GROUP_GID -S nginx \
     && adduser --uid $NGINX_USER_UID -D -S -h /var/cache/nginx -s /sbin/nologin -G nginx nginx \
-    && apk add --no-cache --virtual .nginx-rundeps tzdata $(cat /tmp/nginx-runDeps.txt) \
+    && apk add --no-cache --virtual .nginx-rundeps tzdata gettext-envsubst $(cat /tmp/nginx-runDeps.txt) \
     && rm /tmp/nginx-runDeps.txt \
     && ln -s /usr/lib/nginx/modules /etc/nginx/modules \
+    && ln -sf /tmp/commonex-nginx.conf /etc/nginx/nginx.conf \
     # forward request and error logs to docker log collector \
     && mkdir /var/log/nginx \
     && touch /var/log/nginx/access.log /var/log/nginx/error.log \
@@ -201,16 +208,17 @@ RUN \
       -subj '/CN=build-validation.invalid' \
       -keyout /etc/nginx/ssl/live/commonex.ru/privkey.pem \
       -out /etc/nginx/ssl/live/commonex.ru/fullchain.pem \
-    && cp /etc/nginx/nginx.conf /tmp/nginx-build-validation.conf \
+    && mkdir /tmp/nginx-build-validation \
+    && commonex-nginx-entrypoint --render-only /etc/nginx/templates /tmp/nginx-build-validation/nginx.conf \
     && sed -i \
       -e 's/server nest-backend-green:/server 127.0.0.2:/g' \
       -e 's/server nest-backend-blue:/server 127.0.0.3:/g' \
       -e 's/server next-web:/server 127.0.0.4:/g' \
       -e 's/server grafana:/server 127.0.0.5:/g' \
       -e 's/endpoint otelcollector:/endpoint 127.0.0.6:/g' \
-      /tmp/nginx-build-validation.conf \
-    && nginx -t -c /tmp/nginx-build-validation.conf \
-    && rm -f /tmp/nginx-build-validation.conf \
+      /tmp/nginx-build-validation/nginx.conf /tmp/nginx-build-validation/commonex-nginx.*/api.conf \
+    && nginx -t -c /tmp/nginx-build-validation/nginx.conf \
+    && rm -rf /tmp/nginx-build-validation \
       /etc/nginx/ssl/live/commonex.ru/privkey.pem \
       /etc/nginx/ssl/live/commonex.ru/fullchain.pem \
     && rmdir /etc/nginx/ssl/live/commonex.ru \
@@ -231,4 +239,5 @@ RUN \
       /var/run/nginx/
 
 USER nginx
-CMD ["sh", "-c", "nginx -t && exec nginx -g 'daemon off;'"]
+ENTRYPOINT ["commonex-nginx-entrypoint"]
+CMD ["nginx", "-c", "/tmp/commonex-nginx.conf", "-g", "daemon off;"]

@@ -65,8 +65,16 @@ operation are documented in the [staging runbook](../../../infra/deploy/staging.
   succeeded; the dedicated SSH key rejects arbitrary commands and general sudo.
   Trusted staging endpoints serve the same certificate as production. Existing
   production renewal code, service guards, and certificate material were preserved.
-- Linux validation: 173 deployment tests and 16 certificate propagation tests
+- Linux validation: 176 deployment tests and 16 certificate propagation tests
   passed; the new systemd units validated successfully.
+
+The shared Nginx image now owns hostname templates and its startup entrypoint.
+The full image build passed its existing TLS/header feature proofs. Isolated
+production and staging containers passed startup as the Nginx user, trusted
+synthetic-certificate TLS, hostname selection, and standard validation/reload
+checks. Request variables remained literal; invalid hostnames were rejected.
+Build its new immutable `main` image before deploying the revised Compose file.
+The running bootstrap remains on its previously verified image and activation.
 
 Deployment identities, image digests, and detailed probe evidence are retained
 in the private operator inventory. Android fixtures/tests and automatic release
