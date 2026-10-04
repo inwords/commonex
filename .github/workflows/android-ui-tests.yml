@@ -1,0 +1,152 @@
+name: Android UI tests
+
+on:
+  workflow_call:
+    inputs:
+      candidate_sha:
+        description: Source SHA to test; defaults to the caller event revision
+        type: string
+        default: ''
+      report_artifact:
+        description: Artifact name for Android reports and source identity
+        type: string
+        default: android-test-reports
+    secrets:
+      SENTRY_AUTH_TOKEN:
+        required: false
+    outputs:
+      checked_out_sha:
+        description: Observed source SHA used to build the autotest APKs
+        value: ${{ jobs.ui_tests_android.outputs.checked_out_sha }}
+
+defaults:
+  run:
+    working-directory: ./android
+
+jobs:
+  ui_tests_android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      API_LEVEL: 36
+      AVD_TARGET: aosp_atd
+      AVD_ARCH: x86_64
+      AVD_PROFILE: pixel_6
+    outputs:
+      checked_out_sha: ${{ steps.source_identity.outputs.checked_out_sha }}
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+          ref: ${{ inputs.candidate_sha }}
+
+      - name: Record Android source identity
+        id: source_identity
+        env:
+          CANDIDATE_SHA: ${{ inputs.candidate_sha || github.sha }}
+        run: |
+          checked_out_sha="$(git rev-parse HEAD)"
+          jq -n --arg candidate_sha "$CANDIDATE_SHA" --arg checked_out_sha "$checked_out_sha" \
+            '{candidate_sha: $candidate_sha, checked_out_sha: $checked_out_sha}' > source-identity.json
+          echo "checked_out_sha=$checked_out_sha" >> "$GITHUB_OUTPUT"
+          test "$checked_out_sha" = "$CANDIDATE_SHA"
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Setup Java
+        uses: actions/setup-java@v6
+        with:
+          distribution: 'temurin'
+          java-version: 22
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-provider: basic
+
+      - name: Accept Android SDK licenses
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses || true
+
+      - name: Build autotest APKs targeting staging.commonex.ru
+        env:
+          CI: true
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+        run: >
+          ./gradlew --quiet :app:assembleAutotest
+          :app:assembleAutotestAndroidTest
+          -Dcom.android.tools.r8.disableApiModeling
+          --no-daemon
+          --continue
+
+      - name: Install Marathon CLI
+        run: |
+          MARATHON_VERSION="0.10.4"
+          curl -L -o marathon.zip "https://github.com/MarathonLabs/marathon/releases/download/${MARATHON_VERSION}/marathon-${MARATHON_VERSION}.zip"
+          unzip marathon.zip -d "$HOME"
+          echo "$HOME/marathon-${MARATHON_VERSION}/bin" >> "$GITHUB_PATH"
+
+      - name: AVD cache
+        uses: actions/cache@v6
+        id: avd-cache
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: avd-${{ env.API_LEVEL }}-${{ env.AVD_TARGET }}-${{ env.AVD_ARCH }}-${{ env.AVD_PROFILE }}
+
+      - name: Create AVD and generate snapshot for caching
+        if: steps.avd-cache.outputs.cache-hit != 'true'
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ env.API_LEVEL }}
+          target: ${{ env.AVD_TARGET }}
+          arch: ${{ env.AVD_ARCH }}
+          profile: ${{ env.AVD_PROFILE }}
+          cores: 4
+          ram-size: 8G
+          force-avd-creation: false
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: false
+          disable-spellchecker: true
+          working-directory: ./android
+          script: echo "Generated AVD snapshot for caching."
+
+      - name: Run UI tests with Marathon and AppFunctions tests
+        uses: reactivecircus/android-emulator-runner@v2
+        env:
+          CI: true
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+        with:
+          api-level: ${{ env.API_LEVEL }}
+          target: ${{ env.AVD_TARGET }}
+          arch: ${{ env.AVD_ARCH }}
+          profile: ${{ env.AVD_PROFILE }}
+          cores: 4
+          ram-size: 8G
+          force-avd-creation: false
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          disable-spellchecker: true
+          working-directory: ./android
+          script: |
+            marathon
+            ./gradlew --quiet :app:connectedAutotestAndroidTest -Dcom.android.tools.r8.disableApiModeling=true -Pandroid.testInstrumentationRunnerArguments.class=ru.commonex.AppFunctionRegistrationTest --no-daemon --continue
+            ./gradlew --quiet :shared:integration:base:connectedAndroidDeviceTest --no-daemon --continue
+
+      - name: Upload Android test reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ inputs.report_artifact }}
+          path: |
+            ${{ github.workspace }}/android/source-identity.json
+            ${{ github.workspace }}/android/build/reports/marathon/
+            ${{ github.workspace }}/android/app/build/reports/androidTests/
+            ${{ github.workspace }}/android/app/build/outputs/androidTest-results/
+            ${{ github.workspace }}/android/shared/integration/base/build/reports/
+            ${{ github.workspace }}/android/shared/integration/base/build/outputs/androidTest-results/

@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import os
 import re
 import shlex
@@ -86,7 +87,9 @@ ENV_KEY_PATTERN = re.compile(r"^[A-Z][A-Z0-9_]*$")
 IMMUTABLE_IMAGE_REFERENCE_PATTERN = re.compile(
     r"^(?P<repository>[^@]+)@sha256:[0-9a-f]{64}$"
 )
-COMMANDS = frozenset({"stage", "validate", "deploy", "rollback", "current-images"})
+COMMANDS = frozenset(
+    {"stage", "validate", "deploy", "rollback", "current-images", "release-status"}
+)
 SAFE_ENVIRONMENT = {
     "HOME": "/root",
     "LANG": "C.UTF-8",
@@ -680,24 +683,167 @@ def rollback(
         _activate("rollback", value, run_number, config)
 
 
+def _current_release(config: DeploymentConfig) -> tuple[int, str, dict[str, str]]:
+    _ensure_no_activation_intent(config)
+    activation_number, history = _read_activation_state(config)
+    if not history:
+        raise ValueError("no immutable activation history exists; bootstrap required")
+    directory = _validate_release_contents(history[0], config)
+    verify_directory(config.app_dir, config)
+    for name in FILES:
+        active = config.app_dir / name
+        _verify_current_file(active, config)
+        if sha256(active) != sha256(directory / name):
+            raise RuntimeError(
+                f"active configuration does not match current release: {name}"
+            )
+    values = _environment_values(config.app_dir / ".env")
+    images = {key: values[key] for key in sorted(IMMUTABLE_IMAGE_REPOSITORIES)}
+    return activation_number, history[0], images
+
+
 def current_images(config: DeploymentConfig = DEFAULT_CONFIG) -> None:
     with operation_lock(config):
-        _ensure_no_activation_intent(config)
-        _, history = _read_activation_state(config)
-        if not history:
-            raise ValueError("no immutable activation history exists; bootstrap required")
-        directory = _validate_release_contents(history[0], config)
-        verify_directory(config.app_dir, config)
-        for name in FILES:
-            active = config.app_dir / name
-            _verify_current_file(active, config)
-            if sha256(active) != sha256(directory / name):
-                raise RuntimeError(
-                    f"active configuration does not match current release: {name}"
-                )
-        values = _environment_values(config.app_dir / ".env")
+        _, _, values = _current_release(config)
         for key in sorted(IMMUTABLE_IMAGE_REPOSITORIES):
             print(f"{key}={values[key]}")
+
+
+def _status_output(command: Sequence[str], directory: Path) -> str:
+    # Captured Compose configuration can contain secrets; never forward diagnostics.
+    return subprocess.run(
+        list(command),
+        cwd=directory,
+        check=True,
+        env=SAFE_ENVIRONMENT,
+        capture_output=True,
+        text=True,
+    ).stdout
+
+
+def _status_json(output: str) -> object:
+    try:
+        return json.loads(output)
+    except (ValueError, TypeError) as error:
+        raise ValueError("invalid release status response") from error
+
+
+def release_status(config: DeploymentConfig = DEFAULT_CONFIG) -> None:
+    with operation_lock(config):
+        activation_number, release_sha, images = _current_release(config)
+        directory = config.app_dir
+        declared = _status_output(
+            compose_command(directory, "config", "--services"), directory
+        ).splitlines()
+        if not declared or len(set(declared)) != len(declared) or any(
+            re.fullmatch(r"[a-zA-Z0-9][a-zA-Z0-9_.-]*", name) is None
+            for name in declared
+        ):
+            raise ValueError("invalid declared release services")
+        configuration = _status_json(
+            _status_output(
+                compose_command(directory, "config", "--format", "json"), directory
+            )
+        )
+        if not isinstance(configuration, dict) or not isinstance(
+            configuration.get("services"), dict
+        ):
+            raise ValueError("invalid release service configuration")
+        configured = configuration["services"]
+        expected_images: dict[str, str] = {}
+        checked_health: set[str] = set()
+        for name in declared:
+            service = configured.get(name)
+            if not isinstance(service, dict) or not isinstance(
+                service.get("image"), str
+            ):
+                raise ValueError("invalid release service configuration")
+            image = service["image"]
+            for key, repository in IMMUTABLE_IMAGE_REPOSITORIES.items():
+                if image.split("@", 1)[0].split(":", 1)[0] == repository:
+                    if image != images[key]:
+                        raise ValueError("configured image does not match release")
+                    expected_images[name] = image
+            healthcheck = service.get("healthcheck")
+            if isinstance(healthcheck, dict) and not healthcheck.get("disable") and (
+                healthcheck.get("test") != ["NONE"]
+            ):
+                checked_health.add(name)
+
+        output = _status_output(
+            compose_command(directory, "ps", "--all", "--format", "json"), directory
+        ).strip()
+        if not output:
+            containers = []
+        elif output.startswith("["):
+            containers = _status_json(output)
+        else:
+            containers = [_status_json(line) for line in output.splitlines()]
+        if not isinstance(containers, list):
+            raise ValueError("invalid release status response")
+        services: list[dict[str, str]] = []
+        present: set[str] = set()
+        healthy = True
+        for container in containers:
+            if not isinstance(container, dict):
+                raise ValueError("invalid release status response")
+            name = container.get("Service")
+            state, health = container.get("State"), container.get("Health", "")
+            if name not in declared:
+                healthy = False
+                continue
+            if state not in {
+                "running", "created", "restarting", "paused", "removing", "exited", "dead"
+            } or health not in {"", "healthy", "unhealthy", "starting"}:
+                raise ValueError("invalid release service status")
+            entry = {"service": name, "state": state, "health": health}
+            image = container.get("Image")
+            if image is not None:
+                if not isinstance(image, str) or re.fullmatch(
+                    r"[a-zA-Z0-9:/@_.-]+", image
+                ) is None:
+                    raise ValueError("invalid release service image")
+                entry["image"] = image
+            healthy = healthy and state == "running" and health in {"", "healthy"}
+            if name in checked_health and health != "healthy":
+                healthy = False
+            if name in expected_images:
+                identifier = container.get("ID")
+                if not isinstance(identifier, str) or re.fullmatch(
+                    r"[0-9a-f]{12,64}", identifier
+                ) is None:
+                    raise ValueError("invalid release container identity")
+                runtime_image = _status_json(
+                    _status_output(
+                        ["docker", "inspect", "--format", "{{json .Config.Image}}", identifier],
+                        directory,
+                    )
+                )
+                if not isinstance(runtime_image, str) or re.fullmatch(
+                    r"[a-zA-Z0-9:/@_.-]+", runtime_image
+                ) is None:
+                    raise ValueError("invalid release runtime image")
+                entry["image"] = runtime_image
+                if runtime_image != expected_images[name]:
+                    healthy = False
+            present.add(name)
+            services.append(entry)
+        for name in sorted(set(declared) - present):
+            services.append({"service": name, "state": "missing", "health": ""})
+            healthy = False
+        print(json.dumps(
+            {
+                "release_sha": release_sha,
+                "activation_number": activation_number,
+                "images": images,
+                "services": sorted(
+                    services,
+                    key=lambda service: (service["service"], service["state"]),
+                ),
+                "healthy": healthy,
+            },
+            separators=(",", ":"),
+        ))
 
 
 def parse_invocation(
@@ -718,7 +864,7 @@ def parse_invocation(
         if len(command) != 3:
             raise ValueError("command is not allowed")
         return command_name, release_id(command[1]), deployment_run_number(command[2])
-    if command_name == "current-images":
+    if command_name in {"current-images", "release-status"}:
         if len(command) != 1:
             raise ValueError("command is not allowed")
         return command_name, "", None
@@ -748,6 +894,8 @@ def execute(
         rollback(value, run_number, config)
     elif command == "current-images":
         current_images(config)
+    elif command == "release-status":
+        release_status(config)
     else:
         raise ValueError("command is not allowed")
 

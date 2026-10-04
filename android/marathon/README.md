@@ -62,7 +62,7 @@ export ANDROID_SDK_ROOT="/path/to/Android/Sdk"
 ## Reports
 
 - Results are generated in `build/reports/marathon/`
-- CI: [`ui_tests_android`](../../.github/workflows/android.yml), artifact `android-test-reports`.
+- CI: [`ui_tests_android`](../../.github/workflows/android.yml) reuses [Android UI tests](../../.github/workflows/android-ui-tests.yml), artifact `android-test-reports`. Staging delivery uses a candidate-specific artifact name; reports include `source-identity.json` with the requested and observed source SHA.
 
 ## Marathonfile configuration
 

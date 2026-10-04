@@ -52,7 +52,7 @@ Start with an empty database, initialize the application, and provision the one 
 - Deliver the existing wildcard certificate and its private key to staging through an appropriate operator-controlled mechanism, including propagation of renewals. No additional certificate issuance is part of this work.
 - Make staging routing and Grafana's public URL selectable through environment configuration while preserving the exact promoted custom-image digests. Do not build separate staging application or nginx images. Any extension to the validated release bundle must preserve its existing validation guarantees.
 - Give Android's autotest build an explicit staging API host. Keep normal Android and iOS API configuration unchanged. Mobile request paths already include the API prefix; configure the hostname without adding that prefix again.
-- Keep the Android suite, assertions, retries, and runner behavior unchanged. Provision its existing fixed event fixture through an idempotent staging bootstrap step after application initialization. Do not modify unrelated accumulated data.
+- Keep the Android suite, assertions, retries, and runner behavior unchanged. Its fixed event fixture is already provisioned; no recurring fixture setup is needed. Do not modify unrelated accumulated data.
 - Use releases built from `main`. Branch and PR deployments are outside the initial scope. Build custom images once, resolve immutable digests, validate them on staging, and promote those same digests to production.
 - Add automatic staging deployment and validation to delivery, with a passing candidate result and explicit manual approval required before production promotion. Existing production rollback remains manual.
 - Introduce no reservations, shared test locks, or new coordination between local testing and CI. Preserve existing activation transaction locks, intent recovery, replay protection, and production safety mechanisms.
@@ -69,7 +69,7 @@ Start with an empty database, initialize the application, and provision the one 
 - Reuse existing public-service verification, service health checks, Android Marathon execution, and deployment-wrapper regression coverage. Extend their environment support rather than adding parallel implementations of the same checks.
 - Verify that all Compose services are present and healthy where health checks exist, public web/API/gRPC routes work, Grafana is reachable, and telemetry ingestion and datasource access function.
 - Run the unchanged Android suite locally and in CI against the staging API. Preserve its current retries and pass/fail rules. Do not introduce a special failure policy for tests that pass after retry.
-- Verify that repeated fixture provisioning leaves the required Android fixture valid and preserves unrelated accumulated events and expenses.
+- Verify that the existing Android fixture remains usable and unrelated accumulated events and expenses are preserved.
 - For a distinct previously deployed staging baseline release A and candidate B, run the following deployment rehearsal:
   1. Establish identifiable events, participants, and expenses under A and confirm persistence through the backend.
   2. Activate B using its immutable release images and run pending migrations.
