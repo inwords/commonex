@@ -56,8 +56,6 @@ class StagingDeliveryTest(unittest.TestCase):
         self.compose.write_text("services: {}\n")
         self.environment = self.root / "inputs"
         self.environment.write_text("POSTGRES_PASSWORD=private-value\n")
-        self.source = self.root / "source-identity.json"
-        self.source.write_text(json.dumps({"candidate_sha": B, "checked_out_sha": B}))
 
     def activate(self, client, public=0, run=101):
         report = staging.new_report(B)
@@ -68,13 +66,11 @@ class StagingDeliveryTest(unittest.TestCase):
         )
         return result, report
 
-    def test_candidate_activation_and_android_success_record_exact_identity(self):
-        client = Client([status(A, 100), status(), status()])
+    def test_candidate_activation_records_exact_identity(self):
+        client = Client([status(A, 100), status()])
         result, report = self.activate(client)
         self.assertEqual(0, result)
-        self.assertEqual("awaiting_android", report["status"])
         self.assertEqual(status(A, 100), report["baseline"])
-        self.assertEqual(0, staging.finish_validation(report, B, "success", self.source, client))
         self.assertEqual("passed", report["status"])
         self.assertEqual(IMAGES, report["expected_images"])
         self.assertFalse(report["promotion_eligible"])
@@ -115,7 +111,7 @@ class StagingDeliveryTest(unittest.TestCase):
                              public_verifier=lambda: 0)), redirect_stdout(StringIO()):
             result = staging.main([
                 "--report", str(report_path), "--candidate", B,
-                "--android-artifact", "android-" + B, "deploy", "999999",
+                "deploy", "999999",
                 str(self.compose), str(self.environment),
             ])
         self.assertEqual(1, result)
@@ -123,7 +119,7 @@ class StagingDeliveryTest(unittest.TestCase):
         self.assertEqual(101, report["activation_number"])
         self.assertIn("stale run number", "\n".join(report["diagnostics"]))
 
-    def test_public_or_service_health_failure_stops_before_android(self):
+    def test_public_or_service_health_failure_fails_activation(self):
         for public, healthy in ((1, True), (0, False)):
             with self.subTest(public=public):
                 result, report = self.activate(Client([status(A, 100), status(healthy=healthy)]), public)
@@ -146,61 +142,24 @@ class StagingDeliveryTest(unittest.TestCase):
         self.assertEqual("failed", report["status"])
 
     def test_committed_audit_failure_cannot_pass_despite_observed_candidate(self):
-        client = Client([status(A, 100), status(), status()], {
+        client = Client([status(A, 100), status()], {
             "deploy": ForcedCommandResult(2, stderr=b"commonex-deploy: final audit failed\n")})
         with redirect_stdout(StringIO()), redirect_stderr(StringIO()):
             result, report = self.activate(client)
         self.assertEqual(1, result)
         self.assertTrue(all(report["checks"].values()))
         self.assertEqual("failed", report["status"])
-        self.assertEqual(1, staging.finish_validation(report, B, "success", self.source, client))
-        self.assertEqual("failed", report["status"])
         self.assertFalse(report["promotion_eligible"])
 
-    def test_final_identity_detects_different_sha_digest_or_intervening_activation(self):
+    def test_activation_identity_rejects_different_sha_digest_or_intervening_activation(self):
         for snapshot in (status(A), status(activation=102),
                          dict(status(), images={key: value.replace("1" * 64, "2" * 64)
                                                 for key, value in IMAGES.items()})):
             with self.subTest(snapshot=snapshot):
-                client = Client([status(A, 100), status(), snapshot])
-                _, report = self.activate(client)
-                self.assertEqual(1, staging.finish_validation(report, B, "success", self.source, client))
-                self.assertFalse(report["checks"]["final_release_identity"])
-
-    def test_failed_cancelled_skipped_android_never_pass(self):
-        for result in ("failure", "cancelled", "skipped"):
-            with self.subTest(result=result):
-                client = Client([status(A, 100), status(), status()])
-                _, report = self.activate(client)
-                self.assertEqual(1, staging.finish_validation(report, B, result, self.source, client))
+                result, report = self.activate(Client([status(A, 100), snapshot]))
+                self.assertEqual(1, result)
                 self.assertEqual("failed", report["status"])
-
-    def test_missing_or_wrong_android_source_fails_and_keeps_observed_release(self):
-        for identity in (None, [], False, 123, {"candidate_sha": A, "checked_out_sha": A}):
-            with self.subTest(identity=identity):
-                if identity is None:
-                    self.source.unlink(missing_ok=True)
-                else:
-                    self.source.write_text(json.dumps(identity))
-                client = Client([status(A, 100), status(), status()])
-                _, report = self.activate(client)
-                self.assertEqual(1, staging.finish_validation(report, B, "success", self.source, client))
-                self.assertEqual(status(), report["after_android"])
-
-    def test_missing_activation_report_cannot_pass(self):
-        report = staging.new_report(B)
-        self.assertEqual(1, staging.finish_validation(report, B, "success", self.source, Client([status()])))
-        self.assertEqual("failed", report["status"])
-
-    def test_candidate_substitution_rejected(self):
-        with self.assertRaisesRegex(ValueError, "identity mismatch"):
-            staging.finish_validation(staging.new_report(A), B, "success", self.source, Client([]))
-
-    def test_final_unhealthy_services_fail_even_after_android_success(self):
-        client = Client([status(A, 100), status(), status(healthy=False)])
-        _, report = self.activate(client)
-        self.assertEqual(1, staging.finish_validation(report, B, "success", self.source, client))
-        self.assertFalse(report["checks"]["final_service_health"])
+                self.assertFalse(report["checks"]["release_identity"])
 
     def test_cli_writes_failed_report_without_private_exception_text(self):
         report_path = self.root / "report.json"
@@ -208,7 +167,7 @@ class StagingDeliveryTest(unittest.TestCase):
                 redirect_stdout(StringIO()):
             result = staging.main([
                 "--report", str(report_path), "--candidate", B,
-                "--android-artifact", "android-" + B, "deploy", "101",
+                "deploy", "101",
                 str(self.compose), str(self.environment),
             ])
         self.assertEqual(1, result)

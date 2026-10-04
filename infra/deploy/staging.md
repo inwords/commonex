@@ -223,7 +223,8 @@ Docker stores their contents under its volume data root (inspect with
 ## Automatic main validation
 
 Applicable `main` pushes in `.github/workflows/main.yml` build all four custom
-images and run `staging-deploy`, `staging-android`, and `staging-result`. PRs and
+images and run `staging-deploy`, followed by `staging-android` after a successful
+deployment. These jobs report separate checks and retain separate evidence. PRs and
 the manual production rollback entry point do not deploy staging. Android CI
 still runs independently against the persistent server; both use the
 [shared Android runner](../../android/marathon/README.md#reports).
@@ -234,8 +235,8 @@ Before enabling this pipeline:
    and verify `ssh commonex-staging release-status` follows the
    [release-status contract](README.md#release-status). Older versions reject it.
 2. Create a GitHub `staging` environment allowing `main`, without required manual
-   approval or a wait timer. Staging activation and final read-only verification
-   both use this environment. Keep production's environment protections in place.
+   approval or a wait timer. Staging deployment uses this environment. Keep
+   production's environment protections in place.
 3. Configure the following **staging-only** environment secrets. The `STAGING_`
    prefix prevents fallback to existing production secret names:
 
@@ -259,26 +260,30 @@ intervening activation. It resolves candidate SHA tags once and follows the
 [shared delivery lifecycle](#deployment-and-application-initialization), then checks
 running services before starting Android tests built from that exact candidate SHA.
 
-The final job reads the Active Release again. A changed SHA, activation number,
-or image digest fails validation, including an intervening rollback and
-reactivation of the same candidate. Failed or missing Android execution/source
-evidence also fails. There is no staging workflow concurrency group, reservation,
-or test lock; the existing host activation lock and replay checks remain the
-only activation coordination. Concurrent attempts may fail and require a new
-candidate after inspecting diagnostics. Existing immutable releases are not
-restaged by a rerun.
+A successful deployment records `status=passed` after service/public checks and
+verification of the activated release and image digests. Android then verifies
+its checkout matches the candidate SHA and runs the unchanged suite. Its result
+is a separate check; an Android failure does not rewrite the deployment report.
+There is no combined report or release recheck after Android finishes.
 
-Every run retains candidate-specific `staging-activation-*`, `staging-android-*`,
-and `staging-validation-*` artifacts, named with SHA, workflow run ID, and attempt.
-The final artifact combines `activation.json`, source identity, and Android
-reports. The JSON records baseline/candidate identities, image digests, activation
-number, service/public/Android checks, observed final release, and bounded safe
-diagnostics. The job summary shows the result and digests. SSH keys, environment
-files, archives, and certificate material are excluded from artifacts.
+There is no staging workflow concurrency group, reservation, or test lock; the
+existing host activation lock and replay checks remain the only activation
+coordination. Concurrent attempts may fail and require a new candidate after
+inspecting diagnostics. Existing immutable releases are not restaged by a rerun.
 
-A passing STG-003 report is only initial staging validation:
-`rehearsal.status=not_run` and `promotion_eligible=false`. STG-004 adds upgrade and
-rollback data checks; STG-005 connects complete evidence to production approval.
+Each producer retains its own candidate-specific `staging-activation-*` or
+`staging-android-*` artifact, named with SHA, workflow run ID, and attempt. The
+deployment artifact contains `activation.json`: baseline/candidate identities,
+image digests, activation number, service/public checks, observed activated
+release, and bounded safe diagnostics. Its job summary shows the deployment
+result and digests. The Android artifact contains `source-identity.json` with
+candidate and checked-out SHAs, plus the existing Android reports and raw results.
+SSH keys, environment files, archives, and certificate material are excluded.
+
+Passing STG-003 checks supply only initial staging validation. The deployment
+report retains `rehearsal.status=not_run` and `promotion_eligible=false`. STG-004
+adds upgrade and rollback data checks; STG-005 connects complete evidence to
+production approval.
 Until those tickets land, production delivery still follows its existing separate
 job and does not depend on staging validation.
 
