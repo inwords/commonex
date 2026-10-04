@@ -13,6 +13,8 @@
   `net.peer.port` attributes.
 - HTTP server metrics are produced by `src/frameworks/observability/fastify-http-metrics.plugin.ts`, registered in
   `src/main.ts` before Nest app creation.
+- HTTP server metrics include the low-cardinality `commonex.client.platform` attribute. Canonical CommonEx User-Agent
+  values map to `Android` or `iOS`, browser User-Agents map to `Web`, and all other traffic maps to `Other`.
 - `http.server.request.duration` histogram boundaries are configured via `NodeSDK` views in `src/otel.ts`
   (meter `commonex-backend.fastify-http`).
 - Metrics export interval: `5000` ms (`PeriodicExportingMetricReader`)

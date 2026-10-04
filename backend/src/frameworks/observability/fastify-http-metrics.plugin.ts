@@ -53,7 +53,11 @@ import fastifyPlugin from 'fastify-plugin';
  */
 
 const METER_NAME = 'commonex-backend.fastify-http';
-const METER_VERSION = '1.0.0'; // Hardcoded intentionally; bump when behavior/semantics change.
+const METER_VERSION = '1.1.0'; // Hardcoded intentionally; bump when behavior/semantics change.
+const ATTR_COMMONEX_CLIENT_PLATFORM = 'commonex.client.platform';
+const COMMONEX_USER_AGENT_PATTERN = /^CommonEx\/\d+ \((Android|iOS)\/[rd]\)$/;
+
+type ClientPlatform = 'Android' | 'iOS' | 'Web' | 'Other';
 
 export const HTTP_SERVER_REQUEST_DURATION = 'http.server.request.duration';
 export const HTTP_SERVER_ACTIVE_REQUESTS = 'http.server.active_requests';
@@ -70,7 +74,7 @@ type FinishKind = 'response' | 'timeout' | 'client_abort' | 'unknown_close';
 
 interface RequestState {
   readonly startedAtNs: bigint;
-  readonly baseAttrs: Attributes; // method+scheme only (stable, low-card)
+  readonly baseAttrs: Attributes; // method+platform+scheme only (stable, low-card)
   detachCloseListener?: () => void;
   sawError?: boolean; // set on onError, used only when deciding server_error
 }
@@ -119,6 +123,13 @@ const normalizeMethod = (method: string): string => {
 const normalizeProtocolVersion = (httpVersion: string, httpVersionMajor: number): string => {
   // OTel semconv expects "2"/"3" (not "2.0"/"3.0"), while keeping "1.1"/"1.0".
   return httpVersionMajor >= 2 ? String(httpVersionMajor) : httpVersion;
+};
+
+const classifyClientPlatform = (userAgent: string | undefined): ClientPlatform => {
+  const commonExPlatform = userAgent?.match(COMMONEX_USER_AGENT_PATTERN)?.[1];
+  if (commonExPlatform === 'Android' || commonExPlatform === 'iOS') return commonExPlatform;
+  if (userAgent?.startsWith('Mozilla/') === true) return 'Web';
+  return 'Other';
 };
 
 const attachCloseListener = (raw: IncomingMessage, listener: () => void): (() => void) => {
@@ -251,6 +262,7 @@ const fastifyHttpMetricsPluginImpl: FastifyPluginCallback<FastifyHttpMetricsPlug
   instance.addHook('onRequest', (request, _reply, hookDone) => {
     const baseAttrs: Attributes = {
       [ATTR_HTTP_REQUEST_METHOD]: normalizeMethod(request.method),
+      [ATTR_COMMONEX_CLIENT_PLATFORM]: classifyClientPlatform(request.headers['user-agent']),
       [ATTR_URL_SCHEME]: request.protocol,
     };
 
