@@ -285,6 +285,47 @@ describe('fastifyHttpMetricsPlugin', () => {
     }
   });
 
+  it.each([
+    ['Android', 'CommonEx/123 (Android/r)'],
+    ['iOS', 'CommonEx/456 (iOS/d)'],
+    [
+      'Web',
+      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0 Safari/537.36',
+    ],
+    ['Other', 'curl/8.7.1'],
+    ['Other', undefined],
+  ])('classifies request traffic as %s from its User-Agent', async (expectedPlatform, userAgent) => {
+    const app = fastify();
+
+    try {
+      await app.register(fastifyHttpMetricsPlugin);
+      app.get('/users/:id', () => ({ok: true}));
+
+      const request = {
+        method: 'GET',
+        url: '/users/123',
+      } as const;
+      const response = await app.inject(userAgent == null ? request : {...request, headers: {'user-agent': userAgent}});
+
+      expect(response.statusCode).toBe(200);
+
+      const requestDurationDataPoints = await collectHistogramDataPoints(
+        meterProvider,
+        metricReader,
+        metricExporter,
+        HTTP_SERVER_REQUEST_DURATION,
+      );
+
+      const point = requestDurationDataPoints.find(({attributes}) => {
+        return attributes['http.route'] === '/users/:id';
+      });
+
+      expect(point?.attributes['commonex.client.platform']).toBe(expectedPlatform);
+    } finally {
+      await app.close();
+    }
+  });
+
   it('sets server_error only for 5xx responses', async () => {
     const app = fastify();
 
