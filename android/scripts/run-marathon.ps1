@@ -69,7 +69,7 @@ try {
     if ($SkipBuild) {
         Write-Host 'Skipping autotest APK build.'
     } else {
-        & .\gradlew ':app:assembleAutotest' ':app:assembleAutotestAndroidTest' '-Dcom.android.tools.r8.disableApiModeling=true'
+        & .\gradlew '--quiet' ':app:assembleAutotest' ':app:assembleAutotestAndroidTest' '-Dcom.android.tools.r8.disableApiModeling=true'
         if ($LASTEXITCODE -ne 0) {
             exit $LASTEXITCODE
         }

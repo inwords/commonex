@@ -15,11 +15,12 @@ import com.inwords.expenses.feature.sync.api.SyncComponentFactoryCommonDeps
 import com.inwords.expenses.integration.databases.api.DatabasesComponent
 import com.inwords.expenses.integration.databases.api.DatabasesComponentFactory
 
-fun registerComponents(appContext: Context, versionCode: Int, production: Boolean) {
+fun registerComponents(appContext: Context, versionCode: Int, production: Boolean, apiHost: String) {
     val platformFactoryDeps = AndroidPlatformFactoryDeps(
         context = appContext,
         production = production,
         versionCode = versionCode,
+        apiHost = apiHost,
     )
 
     registerCommonComponents(
@@ -57,6 +58,7 @@ private data class AndroidPlatformFactoryDeps(
     override val context: Context,
     override val production: Boolean,
     override val versionCode: Int,
+    override val apiHost: String,
 ) : SettingsComponentFactory.Deps, DatabasesComponentFactory.Deps, ShareComponentFactory.Deps, NetworkComponentFactory.Deps
 
 private class AndroidSyncFactoryDeps(

@@ -9,6 +9,8 @@ For local Compose UI test validation, prefer Marathon over `:app:connectedAutote
 
 Run from the `android/` directory.
 
+The `autotest` build targets `https://staging.commonex.ru`.
+
 ## What it provides
 
 - Intelligent test sharding and batching
@@ -60,6 +62,7 @@ export ANDROID_SDK_ROOT="/path/to/Android/Sdk"
 ## Reports
 
 - Results are generated in `build/reports/marathon/`
+- CI: [`ui_tests_android`](../../.github/workflows/android.yml), artifact `android-test-reports`.
 
 ## Marathonfile configuration
 

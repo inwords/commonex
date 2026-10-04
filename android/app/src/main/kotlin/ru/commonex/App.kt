@@ -39,7 +39,12 @@ class App : Application(), Configuration.Provider {
             )
         }
 
-        registerComponents(this, versionCode = BuildConfig.VERSION_CODE, production = production)
+        registerComponents(
+            appContext = this,
+            versionCode = BuildConfig.VERSION_CODE,
+            production = production,
+            apiHost = if (BuildConfig.BUILD_TYPE == "autotest") "staging.commonex.ru" else "dev-api.commonex.ru",
+        )
 
         enableSync()
     }
