@@ -302,6 +302,7 @@ jobs:
 
   staging-android:
     needs: staging-deploy
+    if: ${{ !cancelled() && needs.staging-deploy.result == 'success' }}
     uses: ./.github/workflows/android-ui-tests.yml
     with:
       candidate_sha: ${{ github.sha }}
