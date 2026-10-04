@@ -41,7 +41,7 @@ jobs:
       - name: Retrieve the keystore and decode it to a file
         env:
           KEYSTORE_JKS_BASE64: ${{ secrets.KEYSTORE_JKS_BASE64 }}
-        run: echo $KEYSTORE_JKS_BASE64 | base64 --decode > ./app/keystore.jks
+        run: echo "$KEYSTORE_JKS_BASE64" | base64 --decode > ./app/keystore.jks
 
       - name: Build :app with Gradle
         run: ./gradlew --quiet testHostTest :app:test :app:assembleDebug :app:assembleRelease :app:bundleRelease -Pkover koverHtmlReport koverXmlReport --no-daemon --continue
@@ -81,115 +81,9 @@ jobs:
           path: ${{ github.workspace }}/android/app/build/outputs/bundle/release/app-release.aab
 
   ui_tests_android:
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    env:
-      API_LEVEL: 36
-      AVD_TARGET: aosp_atd
-      AVD_ARCH: x86_64
-      AVD_PROFILE: pixel_6
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v7
-        with:
-          fetch-depth: 1
-
-      - name: Enable KVM
-        run: |
-          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
-          sudo udevadm control --reload-rules
-          sudo udevadm trigger --name-match=kvm
-
-      - name: Setup Java
-        uses: actions/setup-java@v6
-        with:
-          distribution: 'temurin'
-          java-version: 22
-
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v6
-        with:
-          cache-provider: basic
-
-      - name: Accept Android SDK licenses
-        run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
-
-      - name: Build autotest APKs targeting staging.commonex.ru
-        env:
-          CI: true
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-        run: >
-          ./gradlew --quiet :app:assembleAutotest
-          :app:assembleAutotestAndroidTest
-          -Dcom.android.tools.r8.disableApiModeling
-          --no-daemon
-          --continue
-
-      - name: Install Marathon CLI
-        run: |
-          MARATHON_VERSION="0.10.4"
-          curl -L -o marathon.zip "https://github.com/MarathonLabs/marathon/releases/download/${MARATHON_VERSION}/marathon-${MARATHON_VERSION}.zip"
-          unzip marathon.zip -d $HOME
-          echo "$HOME/marathon-${MARATHON_VERSION}/bin" >> $GITHUB_PATH
-
-      - name: AVD cache
-        uses: actions/cache@v6
-        id: avd-cache
-        with:
-          path: |
-            ~/.android/avd/*
-            ~/.android/adb*
-          key: avd-${{ env.API_LEVEL }}-${{ env.AVD_TARGET }}-${{ env.AVD_ARCH }}-${{ env.AVD_PROFILE }}
-
-      - name: Create AVD and generate snapshot for caching
-        if: steps.avd-cache.outputs.cache-hit != 'true'
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: ${{ env.API_LEVEL }}
-          target: ${{ env.AVD_TARGET }}
-          arch: ${{ env.AVD_ARCH }}
-          profile: ${{ env.AVD_PROFILE }}
-          cores: 4
-          ram-size: 8G
-          force-avd-creation: false
-          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
-          disable-animations: false
-          disable-spellchecker: true
-          working-directory: ./android
-          script: echo "Generated AVD snapshot for caching."
-
-      - name: Run UI tests with Marathon and AppFunctions tests
-        uses: reactivecircus/android-emulator-runner@v2
-        env:
-          CI: true
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-        with:
-          api-level: ${{ env.API_LEVEL }}
-          target: ${{ env.AVD_TARGET }}
-          arch: ${{ env.AVD_ARCH }}
-          profile: ${{ env.AVD_PROFILE }}
-          cores: 4
-          ram-size: 8G
-          force-avd-creation: false
-          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
-          disable-animations: true
-          disable-spellchecker: true
-          working-directory: ./android
-          script: |
-            marathon
-            ./gradlew --quiet :app:connectedAutotestAndroidTest -Dcom.android.tools.r8.disableApiModeling=true -Pandroid.testInstrumentationRunnerArguments.class=ru.commonex.AppFunctionRegistrationTest --no-daemon --continue
-            ./gradlew --quiet :shared:integration:base:connectedAndroidDeviceTest --no-daemon --continue
-
-      - name: Upload Android test reports
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: android-test-reports
-          path: |
-            ${{ github.workspace }}/android/build/reports/marathon/
-            ${{ github.workspace }}/android/app/build/reports/androidTests/
-            ${{ github.workspace }}/android/shared/integration/base/build/reports/
-            ${{ github.workspace }}/android/shared/integration/base/build/outputs/androidTest-results/
+    uses: ./.github/workflows/android-ui-tests.yml
+    secrets:
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
 
   build_ios:
     runs-on: macos-26

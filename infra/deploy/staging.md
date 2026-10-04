@@ -13,11 +13,11 @@ Use the approved administrative access method for host setup; keep it out of CI.
 
 The application deployment account is `commonex-deploy`, with the same restricted
 authorized-key command and sudo policy documented in [the main runbook](README.md#host-paths-and-restricted-command).
-Use a separate staging deployment key, never the production key. Future CI should
-store that key in a separate `staging` environment, with staging-specific server
-and application secrets. STG-001 does not add an automated workflow or promotion
-gate. Manual activation identifiers must strictly increase; start future CI above
-the host's `last_successful_run`, preserving replay protection.
+Use a separate staging deployment key, never the production key. Store it in the
+GitHub `staging` environment with staging-specific server and application secrets.
+Manual activation identifiers must strictly increase. Automated validation uses
+exactly the observed `last_successful_run + 1`, preserving replay protection and
+rejecting an intervening activation without introducing a test lock.
 
 Pin the SSH host key using an already trusted administrative connection or the
 cloud console. Store the verified key in private operator/CI configuration.
@@ -220,3 +220,83 @@ uses `app_postgres_data`, `app_victoriametrics_data`, `app_victoriatraces_data`,
 `app_grafana_data`; keep the active Compose directory/project identity stable.
 Docker stores their contents under its volume data root (inspect with
 `docker volume inspect`). Never use `down --volumes` during normal operation.
+
+## Automatic main validation
+
+Applicable `main` pushes in `.github/workflows/main.yml` build all four custom
+images and run `staging-deploy`, `staging-android`, and `staging-result`. PRs and
+the manual production rollback entry point do not deploy staging. Android CI
+still runs independently against the persistent server; it uses the same reusable
+`android-ui-tests.yml` workflow, emulator, Marathon assertions, retries, and device
+tests as staging validation.
+
+Before enabling this pipeline:
+
+1. Install the reviewed deployment tool using the existing versioned installer.
+   The host must support `ssh commonex-staging release-status`; older versions
+   reject this command. Verify its SHA, activation number, four immutable image
+   references, and all declared services. It checks active files against the
+   retained release, refuses unresolved activation intents, and inspects custom
+   containers' actual image references. Defined healthchecks must be healthy;
+   other services must be running. No environment values are returned.
+2. Create a GitHub `staging` environment allowing `main`, without required manual
+   approval or a wait timer. Staging activation and final read-only verification
+   both use this environment. Keep production's environment protections in place.
+3. Configure the following **staging-only** environment secrets. The `STAGING_`
+   prefix prevents fallback to existing production secret names:
+
+   - `STAGING_SERVER_IP`, `STAGING_SSH_DEPLOY_PRIVATE_KEY`: the staging IPv4 address
+     and dedicated restricted application deployment key.
+   - `STAGING_SSH_KNOWN_HOSTS`: an operator-verified known-hosts line using the
+     alias `commonex-staging`, key type, and public host key. No runtime key scan
+     or host-key bypass is used.
+   - `STAGING_POSTGRES_PORT`, `STAGING_POSTGRES_USER_NAME`,
+     `STAGING_POSTGRES_PASSWORD`, `STAGING_POSTGRES_DATABASE`,
+     `STAGING_POSTGRES_HOST`, `STAGING_POSTGRES_SCHEMA`: the existing private
+     staging database configuration. Do not replace these credentials on a
+     persistent initialized database.
+   - `STAGING_OPEN_EXCHANGE_RATES_API_ID`, `STAGING_DEVTOOLS_SECRET`,
+     `STAGING_GF_SECURITY_ADMIN_USER`, `STAGING_GF_SECURITY_ADMIN_PASSWORD`:
+     the existing staging runtime inputs.
+
+   The Android job receives the existing optional repository `SENTRY_AUTH_TOKEN`.
+   Public hostnames are fixed staging runtime inputs; no staging-specific image
+   is built. The already provisioned Android event fixture needs no recurring
+   setup. Verify it remains usable without resetting accumulated data.
+
+The delivery adapter resolves the candidate SHA tags once, preserves the observed
+baseline before replacement, stages the existing validated two-file release,
+and activates it through the same restricted commands and Compose health wait.
+It then checks public web/API/Grafana/gRPC and the actual running service status
+before starting Android tests built from that exact candidate SHA.
+
+The final job reads the Active Release again. A changed SHA, activation number,
+or image digest fails validation, including an intervening rollback and
+reactivation of the same candidate. Failed or missing Android execution/source
+evidence also fails. There is no staging workflow concurrency group, reservation,
+or test lock; the existing host activation lock and replay checks remain the
+only activation coordination. Concurrent attempts may fail and require a new
+candidate after inspecting diagnostics. Existing immutable releases are not
+restaged by a rerun.
+
+Every run retains candidate-specific `staging-activation-*`, `staging-android-*`,
+and `staging-validation-*` artifacts, named with SHA, workflow run ID, and attempt.
+The final artifact combines `activation.json`, source identity, and Android
+reports. The JSON records baseline/candidate identities, image digests, activation
+number, service/public/Android checks, observed final release, and bounded safe
+diagnostics. The job summary shows the result and digests. SSH keys, environment
+files, archives, and certificate material are excluded from artifacts.
+
+A passing STG-003 report is only initial staging validation:
+`rehearsal.status=not_run` and `promotion_eligible=false`. STG-004 adds upgrade and
+rollback data checks; STG-005 connects complete evidence to production approval.
+Until those tickets land, production delivery still follows its existing separate
+job and does not depend on staging validation.
+
+Validate the orchestration with the existing Linux deployment suite and a workflow
+syntax checker, then exercise an eligible `main` candidate through the actual
+workflow. Inspect exact digests, source identity, service/public evidence, and all
+retained Android reports. Exercise a required-check failure and confirm the final
+result fails with diagnostics. Repeat activation and verify marked API records
+and persistent volumes survive. Live CI evidence is required to close STG-003;
+local regression checks alone do not satisfy its acceptance criteria.

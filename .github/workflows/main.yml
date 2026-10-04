@@ -61,6 +61,8 @@ jobs:
             infra:
               - 'infra/**'
               - '!infra/grafana/sync/**'
+              - '.github/workflows/main.yml'
+              - '.github/workflows/android-ui-tests.yml'
 
       - name: Prepare matrix JSON
         id: matrix-json
@@ -227,6 +229,167 @@ jobs:
 
       - name: Test deployment wrapper
         run: python3 -m unittest discover -s infra/deploy -p 'test_*.py'
+
+  staging-deploy:
+    environment: staging
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [containers_matrix_prep, build-and-push, backend-checks, web-checks, infra-deploy-tests]
+    if: |
+      always() &&
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main' &&
+      needs.containers_matrix_prep.result == 'success' &&
+      needs.build-and-push.result == 'success' &&
+      (needs.backend-checks.result == 'success' || needs.backend-checks.result == 'skipped') &&
+      (needs.web-checks.result == 'success' || needs.web-checks.result == 'skipped') &&
+      (needs.infra-deploy-tests.result == 'success' || needs.infra-deploy-tests.result == 'skipped')
+    steps:
+      - name: Checkout candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Set up staging SSH
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.STAGING_SSH_DEPLOY_PRIVATE_KEY }}
+          SERVER_IP: ${{ secrets.STAGING_SERVER_IP }}
+          STAGING_KNOWN_HOSTS: ${{ secrets.STAGING_SSH_KNOWN_HOSTS }}
+        run: |
+          install -d -m 700 release
+          printf '%s\n' "$STAGING_KNOWN_HOSTS" > release/known_hosts
+          python3 infra/deploy/configure_ssh.py application --environment staging --known-hosts release/known_hosts
+
+      - name: Materialize staging runtime inputs
+        env:
+          POSTGRES_PORT: ${{ secrets.STAGING_POSTGRES_PORT }}
+          POSTGRES_USER_NAME: ${{ secrets.STAGING_POSTGRES_USER_NAME }}
+          POSTGRES_PASSWORD: ${{ secrets.STAGING_POSTGRES_PASSWORD }}
+          POSTGRES_DATABASE: ${{ secrets.STAGING_POSTGRES_DATABASE }}
+          POSTGRES_HOST: ${{ secrets.STAGING_POSTGRES_HOST }}
+          POSTGRES_SCHEMA: ${{ secrets.STAGING_POSTGRES_SCHEMA }}
+          OPEN_EXCHANGE_RATES_API_ID: ${{ secrets.STAGING_OPEN_EXCHANGE_RATES_API_ID }}
+          DEVTOOLS_SECRET: ${{ secrets.STAGING_DEVTOOLS_SECRET }}
+          GF_SECURITY_ADMIN_USER: ${{ secrets.STAGING_GF_SECURITY_ADMIN_USER }}
+          GF_SECURITY_ADMIN_PASSWORD: ${{ secrets.STAGING_GF_SECURITY_ADMIN_PASSWORD }}
+        run: |
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+
+          keys = (
+              "POSTGRES_PORT", "POSTGRES_USER_NAME", "POSTGRES_PASSWORD", "POSTGRES_DATABASE",
+              "POSTGRES_HOST", "POSTGRES_SCHEMA", "OPEN_EXCHANGE_RATES_API_ID", "DEVTOOLS_SECRET",
+              "GF_SECURITY_ADMIN_USER", "GF_SECURITY_ADMIN_PASSWORD",
+          )
+          values = {key: os.environ[key] for key in keys}
+          if any(not value or "\n" in value or "\r" in value for value in values.values()):
+              raise SystemExit("Staging runtime inputs must be configured single-line values")
+          values.update(
+              COMMONEX_WEB_HOSTS="staging.commonex.ru", COMMONEX_API_HOST="staging.commonex.ru",
+              COMMONEX_GRPC_HOST="staging-grpc.commonex.ru", COMMONEX_GRAFANA_HOST="staging-gf.commonex.ru",
+              GF_SERVER_ROOT_URL="https://staging-gf.commonex.ru/",
+          )
+          path = Path("release/.env")
+          path.touch(mode=0o600)
+          path.write_text("".join(f"{key}={value}\n" for key, value in values.items()))
+          PY
+
+      - name: Activate and verify staging candidate
+        env:
+          ANDROID_ARTIFACT: staging-android-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+        run: >-
+          python3 infra/deploy/staging_delivery.py
+          --report staging-evidence/activation.json
+          --summary "$GITHUB_STEP_SUMMARY"
+          --candidate "$GITHUB_SHA"
+          --android-artifact "$ANDROID_ARTIFACT"
+          deploy "$GITHUB_RUN_ID"
+          infra/docker-compose-prod.yml release/.env
+
+      - name: Retain staging activation evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: staging-activation-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: staging-evidence/activation.json
+          if-no-files-found: error
+
+      - name: Remove private runtime inputs
+        if: always()
+        run: rm -rf release
+
+  staging-android:
+    needs: staging-deploy
+    uses: ./.github/workflows/android-ui-tests.yml
+    with:
+      candidate_sha: ${{ github.sha }}
+      report_artifact: staging-android-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+    secrets:
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+
+  staging-result:
+    environment: staging
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [staging-deploy, staging-android]
+    if: |
+      always() && github.event_name == 'push' && github.ref == 'refs/heads/main' &&
+      needs.staging-deploy.result != 'skipped'
+    steps:
+      - name: Checkout candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Download activation evidence
+        continue-on-error: true
+        uses: actions/download-artifact@v7
+        with:
+          name: staging-activation-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: staging-evidence
+
+      - name: Download Android evidence
+        continue-on-error: true
+        uses: actions/download-artifact@v7
+        with:
+          name: staging-android-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: staging-evidence/android
+
+      - name: Set up staging status access
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.STAGING_SSH_DEPLOY_PRIVATE_KEY }}
+          SERVER_IP: ${{ secrets.STAGING_SERVER_IP }}
+          STAGING_KNOWN_HOSTS: ${{ secrets.STAGING_SSH_KNOWN_HOSTS }}
+        run: |
+          install -d -m 700 release
+          printf '%s\n' "$STAGING_KNOWN_HOSTS" > release/known_hosts
+          python3 infra/deploy/configure_ssh.py application --environment staging --known-hosts release/known_hosts
+
+      - name: Record final staging result
+        if: always()
+        env:
+          ANDROID_RESULT: ${{ needs.staging-android.result }}
+          ANDROID_ARTIFACT: staging-android-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+        run: >-
+          python3 infra/deploy/staging_delivery.py
+          --report staging-evidence/activation.json
+          --summary "$GITHUB_STEP_SUMMARY"
+          --candidate "$GITHUB_SHA"
+          --android-artifact "$ANDROID_ARTIFACT"
+          finish "$ANDROID_RESULT" staging-evidence/android/source-identity.json
+
+      - name: Retain candidate validation result and Android reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: staging-validation-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: staging-evidence/
+          if-no-files-found: error
+
+      - name: Remove private status-access inputs
+        if: always()
+        run: rm -rf release
 
   deploy:
     environment: production

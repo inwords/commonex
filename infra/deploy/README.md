@@ -98,6 +98,8 @@ Install that policy in `/etc/sudoers.d/commonex-deploy` with mode `0440`, then r
 - `deploy <40-character-sha> <positive-github-run-number>`
 - `rollback <40-character-sha> <positive-github-run-number>`
 - `current-images` (no arguments; read-only image-reference output)
+- `release-status` (no arguments; read-only JSON with Active Release SHA, activation
+  number, immutable images, and service health; used by [staging CI](staging.md#automatic-main-validation))
 
 Grafana dashboards and folders are managed by Git Sync under `infra/grafana/sync`; they are not deployed to the host. Datasource provisioning remains host-managed under `/etc/commonex/app/grafana/provisioning/datasources`, mounted read-only into Grafana. Both are outside this release contract. Preserve `grafana_data` for Grafana configuration, credentials, alert rules, and other database state. See the [Grafana runbook](../grafana/README.md) for ownership and migration details.
 
