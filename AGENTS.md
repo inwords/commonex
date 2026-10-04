@@ -70,6 +70,7 @@ If `ast-index` MCP is reachable:
 - Follow project-scoped MCP validation/tooling rules where defined (for example, Android MCP-first validation policy in `android/AGENTS.md`).
 - Important: try to fix things at the cause, not the symptom. Keep changes minimal and focused.
 - For non-trivial work, choose a planning track (`Quick Change`, `Feature Track`, or `System Track`) and propose a short plan before editing.
+- When updating a PR, follow the [commit history guidance](docs/agent-workflows.md#commit-history).
 - If scope changes materially mid-task, update the active plan with a delta instead of restarting the whole plan from scratch.
 - Prefer repo-native discovery order: canonical docs -> target project instructions/docs -> targeted repo search -> upstream docs only when freshness is required.
 - For concrete bugs, prefer `reproduce -> root cause -> minimal fix -> verify`; if reproduction fails, stop and report before making speculative edits.

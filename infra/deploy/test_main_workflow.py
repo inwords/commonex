@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 import unittest
 
 
@@ -107,6 +108,28 @@ class MainWorkflowContractTest(unittest.TestCase):
         self.assertIn("github.ref == 'refs/heads/main'", deploy_job)
         self.assertIn("github.event_name == 'workflow_dispatch'", rollback_job)
         self.assertIn("github.ref == 'refs/heads/main'", rollback_job)
+
+    def test_staging_android_guards_deployment_success_despite_skipped_ancestors(self) -> None:
+        job = re.search(r"(?ms)^  staging-android:[ \t]*\n(.*?)(?=^  \S|\Z)", self.workflow)
+        self.assertIsNotNone(job, "staging-android job is missing")
+        needs = re.search(r"(?ms)^    needs:[ \t]*(.*?)(?=^    \S|\Z)", job.group(1))
+        self.assertIsNotNone(needs, "staging-android dependency is missing")
+        self.assertRegex(needs.group(1), r"(?<![\w-])staging-deploy(?![\w-])")
+        condition = re.search(r"(?ms)^    if:[ \t]*(.*?)(?=^    \S|\Z)", job.group(1))
+        self.assertIsNotNone(condition, "staging-android needs an explicit condition")
+        condition = condition.group(1)
+        deployment_result = (
+            r"needs\s*(?:\.\s*staging-deploy|\[\s*['\"]staging-deploy['\"]\s*\])"
+            r"\s*(?:\.\s*result|\[\s*['\"]result['\"]\s*\])"
+        )
+        success = r"['\"]success['\"]"
+        self.assertRegex(
+            condition,
+            rf"(?:{deployment_result}\s*==\s*{success}|"
+            rf"{success}\s*==\s*{deployment_result})",
+        )
+        # Require the non-cancelled override; GitHub scheduling still needs a real run.
+        self.assertRegex(condition, r"!\s*cancelled\s*\(\s*\)")
 
     def test_workflow_keeps_secret_materialization_outside_command_arguments(
         self,

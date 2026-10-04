@@ -124,6 +124,17 @@ The production host currently runs Python 3.9, so the wrapper must remain compat
 python3 -m unittest discover -s infra/deploy -p 'test_*.py'
 ```
 
+For workflow changes, run native [actionlint](https://github.com/rhysd/actionlint/blob/main/docs/install.md)
+on the changed workflows and their reusable callees. The tool must be available
+on `PATH`.
+
+```text
+actionlint -shellcheck= -pyflakes= .github/workflows/main.yml .github/workflows/android-ui-tests.yml
+```
+
+This invocation checks workflow syntax and expressions. ShellCheck and Pyflakes
+are disabled here; run applicable script checks separately.
+
 Before enabling deployments, confirm the restricted SSH key reaches only the forced command, invalid and extra-argument commands are rejected, the deployment log and state files remain root-only, `docker compose --env-file .env -f docker-compose-prod.yml config --quiet` succeeds from `/etc/commonex/app`, and `docker compose up --help` lists `--remove-orphans`. The unit tests verify the exact Compose command used for successful activation and failure restoration; a live Docker daemon integration test is not part of this repository suite. Post-activation verification checks the public HTTP routes and sends an empty gRPC frame through `grpc.commonex.ru`; it requires the expected `UNIMPLEMENTED` response from the backend's standard health-method path, so the workflow runner must provide HTTP/2-capable `curl`.
 
 ## Manual release rollback
