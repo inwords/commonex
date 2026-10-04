@@ -3,6 +3,8 @@ import 'tsconfig-paths/register';
 import {appDbConfig} from '#frameworks/relational-data-service/postgres/config';
 import {RelationalDataService} from '#frameworks/relational-data-service/postgres/relational-data-service';
 
+import {runMigrations} from './run-migrations';
+
 void (async (): Promise<void> => {
   const dataService = new RelationalDataService({
     showQueryDetails: false,
@@ -12,10 +14,11 @@ void (async (): Promise<void> => {
     },
   });
 
-  await dataService.initialize();
-
-  await dataService.dataSource.runMigrations({
-    transaction: 'each',
-  });
-  await dataService.destroy();
+  try {
+    await dataService.initialize();
+    await runMigrations(dataService.dataSource);
+  } finally {
+    // Closing the pool also releases the session lock if explicit unlock fails.
+    await dataService.destroy();
+  }
 })();
