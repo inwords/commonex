@@ -1,18 +1,14 @@
 import {Injectable} from '@nestjs/common';
-import {HealthIndicatorResult} from '@nestjs/terminus';
 
 import {UseCase} from '#packages/use-case';
 
 import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-service/relational-data-service';
 
-type Output = HealthIndicatorResult;
-
 @Injectable()
-export class HealthCheckUseCase implements UseCase<void, Output> {
+export class HealthCheckUseCase implements UseCase<void> {
   constructor(private readonly rDataService: RelationalDataServiceAbstract) {}
 
-  public async execute(): Promise<HealthIndicatorResult> {
+  public async execute(): Promise<void> {
     await this.rDataService.healthCheck();
-    return {database: {status: 'up'}};
   }
 }
