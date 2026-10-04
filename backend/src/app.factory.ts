@@ -4,6 +4,7 @@ import {NestFastifyApplication} from '@nestjs/platform-fastify';
 import {DocumentBuilder, SwaggerModule} from '@nestjs/swagger';
 
 import {BusinessErrorFilter} from '#api/http/filters/business-error.filter';
+import {InternalErrorFilter} from '#api/http/filters/internal-error.filter';
 import {ValidationExceptionFilter} from '#api/http/filters/validation-exception.filter';
 import {createValidationPipe} from '#api/validation-pipe';
 
@@ -13,7 +14,11 @@ export const configureHttpApp = (app: NestFastifyApplication): void => {
   const {httpAdapter} = app.get(HttpAdapterHost);
 
   app.useGlobalPipes(createValidationPipe());
-  app.useGlobalFilters(new ValidationExceptionFilter(httpAdapter), new BusinessErrorFilter(httpAdapter));
+  app.useGlobalFilters(
+    new InternalErrorFilter(httpAdapter),
+    new ValidationExceptionFilter(httpAdapter),
+    new BusinessErrorFilter(httpAdapter),
+  );
 
   const config = new DocumentBuilder()
     .setTitle('Expenses Swagger')

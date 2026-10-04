@@ -25,6 +25,7 @@ import {GetEventInfoResponseDto} from '#api/http/user/dto/get-event-info.dto';
 import {createValidationPipe} from '#api/validation-pipe';
 
 import {GrpcBusinessErrorFilter} from '../filters/grpc-business-error.filter';
+import {GrpcInternalErrorFilter} from '../filters/grpc-internal-error.filter';
 import {GrpcValidationErrorFilter} from '../filters/grpc-validation-error.filter';
 import {AddUsersToEventGrpcRequestDto} from './dto/add-users-to-event-grpc-request.dto';
 import {CreateEventShareTokenGrpcRequestDto} from './dto/create-event-share-token-grpc-request.dto';
@@ -54,7 +55,7 @@ const getIdempotencyKey = (context: unknown): string | undefined => {
 
 @Controller()
 @UsePipes(createValidationPipe())
-@UseFilters(GrpcValidationErrorFilter, GrpcBusinessErrorFilter)
+@UseFilters(GrpcInternalErrorFilter, GrpcValidationErrorFilter, GrpcBusinessErrorFilter)
 export class UserController {
   constructor(
     private readonly getEventExpensesUseCase: GetEventExpensesUseCase,
