@@ -98,14 +98,23 @@ Install that policy in `/etc/sudoers.d/commonex-deploy` with mode `0440`, then r
 - `deploy <40-character-sha> <positive-github-run-number>`
 - `rollback <40-character-sha> <positive-github-run-number>`
 - `current-images` (no arguments; read-only image-reference output)
-- `release-status` (no arguments; read-only JSON with Active Release SHA, activation
-  number, immutable images, and service health; used by [staging CI](staging.md#automatic-main-validation))
+- `release-status` (no arguments; [read-only release and service status](#release-status))
 
 Grafana dashboards and folders are managed by Git Sync under `infra/grafana/sync`; they are not deployed to the host. Datasource provisioning remains host-managed under `/etc/commonex/app/grafana/provisioning/datasources`, mounted read-only into Grafana. Both are outside this release contract. Preserve `grafana_data` for Grafana configuration, credentials, alert rules, and other database state. See the [Grafana runbook](../grafana/README.md) for ownership and migration details.
 
 For certificate state, DNS credentials, and renewal recovery, see the
 [certificate runbook](../certificates/README.md). For certificate deployment and
 rollback, see the [delivery runbook](../certificates/delivery/README.md).
+
+## Release status
+
+`release-status` returns JSON with the Active Release SHA, activation number,
+four immutable image references, declared service states, and aggregate health.
+It holds the existing operation lock, checks active files against the retained
+release, refuses unresolved activation intents, and inspects custom containers'
+actual image references. Defined health checks must be healthy; other services
+must be running. No environment values are returned. [Staging CI](staging.md#automatic-main-validation)
+uses this command before activation and after Android execution.
 
 ## Validation
 

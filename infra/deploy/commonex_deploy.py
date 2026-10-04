@@ -728,6 +728,12 @@ def _status_json(output: str) -> object:
         raise ValueError("invalid release status response") from error
 
 
+def _status_image(value: object, source: str) -> str:
+    if not isinstance(value, str) or re.fullmatch(r"[a-zA-Z0-9:/@_.-]+", value) is None:
+        raise ValueError(f"invalid release {source} image")
+    return value
+
+
 def release_status(config: DeploymentConfig = DEFAULT_CONFIG) -> None:
     with operation_lock(config):
         activation_number, release_sha, images = _current_release(config)
@@ -799,11 +805,7 @@ def release_status(config: DeploymentConfig = DEFAULT_CONFIG) -> None:
             entry = {"service": name, "state": state, "health": health}
             image = container.get("Image")
             if image is not None:
-                if not isinstance(image, str) or re.fullmatch(
-                    r"[a-zA-Z0-9:/@_.-]+", image
-                ) is None:
-                    raise ValueError("invalid release service image")
-                entry["image"] = image
+                entry["image"] = _status_image(image, "service")
             healthy = healthy and state == "running" and health in {"", "healthy"}
             if name in checked_health and health != "healthy":
                 healthy = False
@@ -819,11 +821,7 @@ def release_status(config: DeploymentConfig = DEFAULT_CONFIG) -> None:
                         directory,
                     )
                 )
-                if not isinstance(runtime_image, str) or re.fullmatch(
-                    r"[a-zA-Z0-9:/@_.-]+", runtime_image
-                ) is None:
-                    raise ValueError("invalid release runtime image")
-                entry["image"] = runtime_image
+                entry["image"] = _status_image(runtime_image, "runtime")
                 if runtime_image != expected_images[name]:
                     healthy = False
             present.add(name)

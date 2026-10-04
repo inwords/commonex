@@ -15,11 +15,15 @@ from typing import Optional, Sequence
 
 try:
     from . import production_delivery as delivery
-    from .release_image_catalog import load_release_image_catalog
+    from .release_image_catalog import (
+        load_release_image_catalog, parse_image_references, validate_image_references,
+    )
     from .verify_public_services import STAGING_ENDPOINTS, STAGING_GRPC_ENDPOINT, main as verify_public
 except ImportError:  # Direct invocation from the workflow.
     import production_delivery as delivery
-    from release_image_catalog import load_release_image_catalog
+    from release_image_catalog import (
+        load_release_image_catalog, parse_image_references, validate_image_references,
+    )
     from verify_public_services import STAGING_ENDPOINTS, STAGING_GRPC_ENDPOINT, main as verify_public
 
 
@@ -43,19 +47,6 @@ def write_report(path: Path, report: dict) -> None:
     path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
-def image_set(images: object) -> dict:
-    catalog = {image.environment_key: image for image in load_release_image_catalog()}
-    if not isinstance(images, dict) or set(images) != set(catalog):
-        raise ValueError("invalid observed image set")
-    for key, image in catalog.items():
-        reference = images[key]
-        if not isinstance(reference, str) or not re.fullmatch(
-            re.escape(image.repository) + r"@sha256:[0-9a-f]{64}", reference
-        ):
-            raise ValueError("invalid observed image reference")
-    return dict(images)
-
-
 def read_status(client: delivery.ForcedCommandClient) -> Optional[dict]:
     result = client.run(("release-status",))
     if result.returncode and result.stderr == delivery.BOOTSTRAP_DIAGNOSTIC:
@@ -66,7 +57,7 @@ def read_status(client: delivery.ForcedCommandClient) -> Optional[dict]:
     value = json.loads(result.stdout)
     sha = delivery._validate_release_sha(value["release_sha"])
     activation = delivery._validate_run_number(value["activation_number"])
-    images = image_set(value["images"])
+    images = validate_image_references(value["images"])
     if type(value["healthy"]) is not bool or not isinstance(value["services"], list):
         raise ValueError("invalid service status")
     services = []
@@ -118,9 +109,7 @@ def activate_candidate(
 
     def resolve(changed: str, sha: str, current: Optional[str]) -> str:
         references = image_resolver(changed, sha, current)
-        report["expected_images"] = image_set(dict(
-            line.split("=", 1) for line in references.splitlines()
-        ))
+        report["expected_images"] = parse_image_references(references)
         return references
 
     def verify() -> int:

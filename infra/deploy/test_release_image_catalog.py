@@ -144,6 +144,40 @@ class ReleaseImageCatalogTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "not ordered by service"):
             self.load_text(serialized(reversed(EXPECTED_IMAGES)))
 
+    def test_reference_validation_requires_complete_owned_immutable_images(self) -> None:
+        references = {
+            image.environment_key: image.repository + "@sha256:" + "a" * 64
+            for image in EXPECTED_IMAGES
+        }
+        self.assertEqual(catalog.validate_image_references(references), references)
+        key = EXPECTED_IMAGES[0].environment_key
+        for invalid in (
+            {},
+            {**references, "OTHER_IMAGE": references[key]},
+            {**references, key: "other/backend@sha256:" + "a" * 64},
+            {**references, key: "ruggedbl/commonex-nest-backend:latest"},
+            {**references, key: "ruggedbl/commonex-nest-backend@sha256:" + "A" * 64},
+            {**references, key: None},
+        ):
+            with self.subTest(invalid=invalid), self.assertRaises(ValueError):
+                catalog.validate_image_references(invalid)
+
+    def test_reference_parser_preserves_canonical_host_wire_contract(self) -> None:
+        references = {
+            image.environment_key: image.repository + "@sha256:" + "a" * 64
+            for image in EXPECTED_IMAGES
+        }
+        lines = [f"{key}={references[key]}\n" for key in sorted(references)]
+        self.assertEqual(catalog.parse_image_references("".join(lines)), references)
+        for invalid in (
+            "".join(lines).rstrip("\n"),
+            "".join(reversed(lines)),
+            "".join(lines + [lines[0]]),
+            "".join(lines[:-1]),
+        ):
+            with self.subTest(invalid=invalid), self.assertRaises(ValueError):
+                catalog.parse_image_references(invalid)
+
 
 if __name__ == "__main__":
     unittest.main()
