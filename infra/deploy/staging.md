@@ -223,11 +223,10 @@ Docker stores their contents under its volume data root (inspect with
 ## Automatic main validation
 
 Applicable `main` pushes in `.github/workflows/main.yml` build all four custom
-images and run `staging-deploy`, followed by `staging-android` after a successful
-deployment. These jobs report separate checks and retain separate evidence. PRs and
-the manual production rollback entry point do not deploy staging. Android CI
-still runs independently against the persistent server; both use the
-[shared Android runner](../../android/marathon/README.md#reports).
+images and run `staging-deploy` and `staging-android`. PRs and the manual
+production rollback entry point do not deploy staging. Independent Android CI
+also uses the [shared Android runner](../../android/marathon/README.md#reports)
+against the persistent server.
 
 Before enabling this pipeline:
 
@@ -250,26 +249,24 @@ Before enabling this pipeline:
      Use the existing staging values; do not replace persistent database credentials.
 
    The Android job receives the existing optional repository `SENTRY_AUTH_TOKEN`.
-   Public hostnames are fixed staging runtime inputs; no staging-specific image
-   is built. The already provisioned Android event fixture needs no recurring
-   setup. Verify it remains usable without resetting accumulated data.
+   Runtime hostnames come from the [bootstrap table](#host-bootstrap-and-environment).
+   Keep the provisioned Android fixture and accumulated data; no recurring setup
+   is needed.
 
-The delivery adapter records the baseline and uses exactly its activation number
-plus one (or one for an empty host). Existing replay protection rejects an
-intervening activation. It resolves candidate SHA tags once and follows the
-[shared delivery lifecycle](#deployment-and-application-initialization), then checks
-running services before starting Android tests built from that exact candidate SHA.
+The delivery adapter resolves candidate SHA tags once, records the baseline, and
+uses its activation number plus one (or one for an empty host). It follows the
+[shared delivery lifecycle](#deployment-and-application-initialization), preserving
+activation locks, recovery, and replay protection. There is no staging workflow
+concurrency group, reservation, or test lock. An intervening activation can fail
+the attempt; inspect diagnostics before choosing a new candidate. Reruns do not
+restage an existing immutable release.
 
-A successful deployment records `status=passed` after service/public checks and
-verification of the activated release and image digests. Android then verifies
-its checkout matches the candidate SHA and runs the unchanged suite. Its result
-is a separate check; an Android failure does not rewrite the deployment report.
-There is no combined report or release recheck after Android finishes.
-
-There is no staging workflow concurrency group, reservation, or test lock; the
-existing host activation lock and replay checks remain the only activation
-coordination. Concurrent attempts may fail and require a new candidate after
-inspecting diagnostics. Existing immutable releases are not restaged by a rerun.
+`staging-deploy` records `status=passed` only after service/public checks and
+verification of the activated release and image digests. Its success starts
+`staging-android`, which builds from the candidate SHA, verifies the checkout,
+and runs the unchanged suite and retry rules. The jobs report separate checks;
+an Android failure does not rewrite the deployment report. There is no combined
+report or release recheck after Android finishes.
 
 Each producer retains its own candidate-specific `staging-activation-*` or
 `staging-android-*` artifact, named with SHA, workflow run ID, and attempt. The
@@ -287,8 +284,6 @@ production approval.
 Until those tickets land, production delivery still follows its existing separate
 job and does not depend on staging validation.
 
-CI acceptance and required failure exercises are defined in
+For orchestration changes, run the deployment suite and workflow syntax checks.
+CI acceptance and failure exercises are defined in
 [STG-003](../../docs/issues/staging-server-and-production-deployment-gate/STG-003-automate-main-staging-validation.md#validation).
-Use the [existing verification and persistence procedure](#verification-and-persistence)
-to check retained data, and run the deployment suite plus workflow syntax checks
-for orchestration changes. Live CI evidence is required to close the ticket.
