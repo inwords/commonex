@@ -44,7 +44,7 @@ jobs:
         run: echo $KEYSTORE_JKS_BASE64 | base64 --decode > ./app/keystore.jks
 
       - name: Build :app with Gradle
-        run: ./gradlew testHostTest :app:test :app:assembleDebug :app:assembleRelease :app:bundleRelease -Pkover koverHtmlReport koverXmlReport --no-daemon --continue
+        run: ./gradlew --quiet testHostTest :app:test :app:assembleDebug :app:assembleRelease :app:bundleRelease -Pkover koverHtmlReport koverXmlReport --no-daemon --continue
         env:
           CI: true
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
@@ -114,12 +114,12 @@ jobs:
       - name: Accept Android SDK licenses
         run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
 
-      - name: Build APKs for UI tests
+      - name: Build autotest APKs targeting staging.commonex.ru
         env:
           CI: true
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
         run: >
-          ./gradlew :app:assembleAutotest
+          ./gradlew --quiet :app:assembleAutotest
           :app:assembleAutotestAndroidTest
           -Dcom.android.tools.r8.disableApiModeling
           --no-daemon
@@ -177,8 +177,8 @@ jobs:
           working-directory: ./android
           script: |
             marathon
-            ./gradlew :app:connectedAutotestAndroidTest -Dcom.android.tools.r8.disableApiModeling=true -Pandroid.testInstrumentationRunnerArguments.class=ru.commonex.AppFunctionRegistrationTest --no-daemon --continue
-            ./gradlew :shared:integration:base:connectedAndroidDeviceTest --no-daemon --continue
+            ./gradlew --quiet :app:connectedAutotestAndroidTest -Dcom.android.tools.r8.disableApiModeling=true -Pandroid.testInstrumentationRunnerArguments.class=ru.commonex.AppFunctionRegistrationTest --no-daemon --continue
+            ./gradlew --quiet :shared:integration:base:connectedAndroidDeviceTest --no-daemon --continue
 
       - name: Upload Android test reports
         if: always()

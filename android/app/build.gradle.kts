@@ -162,6 +162,9 @@ androidComponents {
 }
 
 sentry {
+    // UI-test builds must not require Sentry upload credentials.
+    ignoredBuildTypes.add("autotest")
+
     org.set("inwords")
     projectName.set("commonex")
 

@@ -54,6 +54,7 @@ private object IosPlatformFactoryDeps :
     NetworkComponentFactory.Deps {
 
     override val versionCode = bundleBuildNumber()
+    override val apiHost = "dev-api.commonex.ru"
 
     private fun bundleBuildNumber(): Int {
         val info = NSBundle.mainBundle.infoDictionary ?: return 0
