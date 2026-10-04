@@ -55,7 +55,7 @@ api/composition ──> usecases ──> domain
 | P1 | Подтверждённая проблема | Убрать TypeORM из domain/usecases | Внутренние слои знают ORM query DSL, dependency rule уже нарушен |
 | P1 | Подтверждённая проблема | Ввести единый контракт ожидаемых и неожиданных ошибок | Output use cases неполон, а DB-сбои дают разные HTTP/gRPC ответы |
 | P1 | Подтверждённая проблема | Убрать HTTP status из domain | Domain зависит от Nest/HTTP, хотя gRPC использует другую семантику |
-| P1 | Подтверждённый пробел | Автоматически проверять импорты между слоями | Текущий ESLint защищает только production от `test-support` |
+| P1 | Отложено до завершения рефакторинга | Автоматически проверять импорты между слоями | Текущий ESLint защищает только production от `test-support` |
 | P2 | Подтверждённая проблема | Сделать транзакционный seam fail-safe | Неверный `ctx` молча отключает транзакцию |
 | P2 | Подтверждённая проблема интерфейса | Убрать `queryDetails` из domain-портов | Production-интерфейс каждого репозитория расширен только ради adapter-тестов |
 | P2 | Подтверждённая проблема интерфейса | Разделить общий `RelationalDataServiceAbstract` на capability ports | Каждый use case получает service locator со всеми репозиториями и lifecycle-методами |
@@ -181,7 +181,7 @@ Callback получает transaction-scoped набор портов, поэто
 - production: уже действующий запрет `test-support` сохранить;
 - relative imports должны проверяться на тот же escape path, иначе aliases можно обойти через `../../`.
 
-Добавлять правила лучше после первых P1-исправлений, затем включать как CI gate. Иначе baseline сразу станет красным и правило начнут обходить.
+По решению от 03.10.2026 ESLint-ограничения для слоёв отложены до завершения всего рефакторинга из этого плана. После очистки известных нарушений их следует включить последним CI gate, чтобы не поддерживать временные исключения и не оставлять красный baseline.
 
 ### 10. Публичный интерфейс error-модуля неполон
 
@@ -243,7 +243,7 @@ gRPC controller и request DTO импортируют HTTP DTO, например
 3. Убрать `HttpStatus`/`httpCode` из domain errors; добавить полную HTTP mapping рядом с gRPC mapping.
 4. Сделать health output transport-neutral.
 5. Перенести Nest module composition из `UseCasesModule` в явный composition root, если принята строгая модель.
-6. Добавить ESLint restrictions для слоёв и regression fixtures/tests для запрещённых импортов.
+6. После завершения всех этапов рефакторинга добавить ESLint restrictions для слоёв и regression fixtures/tests для запрещённых импортов как финальный CI gate.
 
 Критерий готовности: `domain` не импортирует Nest/TypeORM; `usecases` не импортирует TypeORM/transport types/concrete frameworks; CI предотвращает возврат нарушений.
 
