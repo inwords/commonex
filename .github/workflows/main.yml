@@ -250,8 +250,7 @@ jobs:
         with:
           ref: ${{ github.sha }}
 
-      - &staging-ssh
-        name: Set up staging SSH
+      - name: Set up staging SSH
         env:
           DEPLOY_SSH_KEY: ${{ secrets.STAGING_SSH_DEPLOY_PRIVATE_KEY }}
           SERVER_IP: ${{ secrets.STAGING_SERVER_IP }}
@@ -276,14 +275,11 @@ jobs:
         run: python3 infra/deploy/write_runtime_environment.py --environment staging release/.env
 
       - name: Activate and verify staging candidate
-        env:
-          ANDROID_ARTIFACT: &staging-android-artifact staging-android-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
         run: >-
           python3 infra/deploy/staging_delivery.py
           --report staging-evidence/activation.json
           --summary "$GITHUB_STEP_SUMMARY"
           --candidate "$GITHUB_SHA"
-          --android-artifact "$ANDROID_ARTIFACT"
           deploy "$GITHUB_RUN_ID"
           infra/docker-compose-prod.yml release/.env
 
@@ -295,8 +291,7 @@ jobs:
           path: staging-evidence/activation.json
           if-no-files-found: error
 
-      - &remove-private-inputs
-        name: Remove private runtime inputs
+      - name: Remove private runtime inputs
         if: always()
         run: rm -rf release
 
@@ -306,62 +301,9 @@ jobs:
     uses: ./.github/workflows/android-ui-tests.yml
     with:
       candidate_sha: ${{ github.sha }}
-      report_artifact: *staging-android-artifact
+      report_artifact: staging-android-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
     secrets:
       SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-
-  staging-result:
-    environment: staging
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    needs: [staging-deploy, staging-android]
-    if: |
-      always() && github.event_name == 'push' && github.ref == 'refs/heads/main' &&
-      needs.staging-deploy.result != 'skipped'
-    steps:
-      - name: Checkout candidate
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          ref: ${{ github.sha }}
-
-      - name: Download activation evidence
-        continue-on-error: true
-        uses: actions/download-artifact@v7
-        with:
-          name: staging-activation-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
-          path: staging-evidence
-
-      - name: Download Android evidence
-        continue-on-error: true
-        uses: actions/download-artifact@v7
-        with:
-          name: *staging-android-artifact
-          path: staging-evidence/android
-
-      - *staging-ssh
-
-      - name: Record final staging result
-        if: always()
-        env:
-          ANDROID_RESULT: ${{ needs.staging-android.result }}
-          ANDROID_ARTIFACT: *staging-android-artifact
-        run: >-
-          python3 infra/deploy/staging_delivery.py
-          --report staging-evidence/activation.json
-          --summary "$GITHUB_STEP_SUMMARY"
-          --candidate "$GITHUB_SHA"
-          --android-artifact "$ANDROID_ARTIFACT"
-          finish "$ANDROID_RESULT" staging-evidence/android/source-identity.json
-
-      - name: Retain candidate validation result and Android reports
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: staging-validation-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
-          path: staging-evidence/
-          if-no-files-found: error
-
-      - *remove-private-inputs
 
   deploy:
     environment: production
