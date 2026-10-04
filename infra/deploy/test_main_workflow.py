@@ -28,6 +28,17 @@ class MainWorkflowContractTest(unittest.TestCase):
             self.workflow,
         )
 
+    def test_infra_filter_combines_positive_paths_before_applying_exclusion(self) -> None:
+        self.assertIn("predicate-quantifier: every", self.workflow)
+        infra_rules = self.workflow.split("            infra:\n", maxsplit=1)[1].split(
+            "\n\n", maxsplit=1
+        )[0]
+        patterns = [line.strip().removeprefix("- ").strip("'\"")
+                    for line in infra_rules.splitlines()]
+        # With `every`, disjoint positive globs exclude every changed file.
+        self.assertEqual(1, sum(not pattern.startswith("!") for pattern in patterns))
+        self.assertIn("!infra/grafana/sync/**", patterns)
+
     def test_each_service_build_is_serialized_across_workflow_runs(self) -> None:
         self.assertIn(
             "group: commonex-image-${{ matrix.service.name }}-${{ github.ref }}",
