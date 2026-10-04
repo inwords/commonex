@@ -116,7 +116,14 @@ class MainWorkflowContractTest(unittest.TestCase):
             "python3 infra/deploy/production_delivery.py deploy", maxsplit=1
         )[1]
 
-        self.assertIn("install -m 600 /dev/null release/.env", deploy_job)
+        for environment in ("staging", "production"):
+            self.assertIn(
+                "python3 infra/deploy/write_runtime_environment.py "
+                f"--environment {environment} release/.env",
+                deploy_job,
+            )
+        self.assertNotIn("cat >> release/.env", deploy_job)
+        self.assertNotIn("python3 - <<'PY'", deploy_job)
         self.assertIn("${{ secrets.POSTGRES_PASSWORD }}", deploy_job)
         self.assertNotIn("${{ secrets.", orchestrator_command)
 

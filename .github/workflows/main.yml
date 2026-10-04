@@ -248,7 +248,8 @@ jobs:
         with:
           ref: ${{ github.sha }}
 
-      - name: Set up staging SSH
+      - &staging-ssh
+        name: Set up staging SSH
         env:
           DEPLOY_SSH_KEY: ${{ secrets.STAGING_SSH_DEPLOY_PRIVATE_KEY }}
           SERVER_IP: ${{ secrets.STAGING_SERVER_IP }}
@@ -270,32 +271,11 @@ jobs:
           DEVTOOLS_SECRET: ${{ secrets.STAGING_DEVTOOLS_SECRET }}
           GF_SECURITY_ADMIN_USER: ${{ secrets.STAGING_GF_SECURITY_ADMIN_USER }}
           GF_SECURITY_ADMIN_PASSWORD: ${{ secrets.STAGING_GF_SECURITY_ADMIN_PASSWORD }}
-        run: |
-          python3 - <<'PY'
-          import os
-          from pathlib import Path
-
-          keys = (
-              "POSTGRES_PORT", "POSTGRES_USER_NAME", "POSTGRES_PASSWORD", "POSTGRES_DATABASE",
-              "POSTGRES_HOST", "POSTGRES_SCHEMA", "OPEN_EXCHANGE_RATES_API_ID", "DEVTOOLS_SECRET",
-              "GF_SECURITY_ADMIN_USER", "GF_SECURITY_ADMIN_PASSWORD",
-          )
-          values = {key: os.environ[key] for key in keys}
-          if any(not value or "\n" in value or "\r" in value for value in values.values()):
-              raise SystemExit("Staging runtime inputs must be configured single-line values")
-          values.update(
-              COMMONEX_WEB_HOSTS="staging.commonex.ru", COMMONEX_API_HOST="staging.commonex.ru",
-              COMMONEX_GRPC_HOST="staging-grpc.commonex.ru", COMMONEX_GRAFANA_HOST="staging-gf.commonex.ru",
-              GF_SERVER_ROOT_URL="https://staging-gf.commonex.ru/",
-          )
-          path = Path("release/.env")
-          path.touch(mode=0o600)
-          path.write_text("".join(f"{key}={value}\n" for key, value in values.items()))
-          PY
+        run: python3 infra/deploy/write_runtime_environment.py --environment staging release/.env
 
       - name: Activate and verify staging candidate
         env:
-          ANDROID_ARTIFACT: staging-android-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          ANDROID_ARTIFACT: &staging-android-artifact staging-android-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
         run: >-
           python3 infra/deploy/staging_delivery.py
           --report staging-evidence/activation.json
@@ -313,7 +293,8 @@ jobs:
           path: staging-evidence/activation.json
           if-no-files-found: error
 
-      - name: Remove private runtime inputs
+      - &remove-private-inputs
+        name: Remove private runtime inputs
         if: always()
         run: rm -rf release
 
@@ -322,7 +303,7 @@ jobs:
     uses: ./.github/workflows/android-ui-tests.yml
     with:
       candidate_sha: ${{ github.sha }}
-      report_artifact: staging-android-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+      report_artifact: *staging-android-artifact
     secrets:
       SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
 
@@ -351,24 +332,16 @@ jobs:
         continue-on-error: true
         uses: actions/download-artifact@v7
         with:
-          name: staging-android-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          name: *staging-android-artifact
           path: staging-evidence/android
 
-      - name: Set up staging status access
-        env:
-          DEPLOY_SSH_KEY: ${{ secrets.STAGING_SSH_DEPLOY_PRIVATE_KEY }}
-          SERVER_IP: ${{ secrets.STAGING_SERVER_IP }}
-          STAGING_KNOWN_HOSTS: ${{ secrets.STAGING_SSH_KNOWN_HOSTS }}
-        run: |
-          install -d -m 700 release
-          printf '%s\n' "$STAGING_KNOWN_HOSTS" > release/known_hosts
-          python3 infra/deploy/configure_ssh.py application --environment staging --known-hosts release/known_hosts
+      - *staging-ssh
 
       - name: Record final staging result
         if: always()
         env:
           ANDROID_RESULT: ${{ needs.staging-android.result }}
-          ANDROID_ARTIFACT: staging-android-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          ANDROID_ARTIFACT: *staging-android-artifact
         run: >-
           python3 infra/deploy/staging_delivery.py
           --report staging-evidence/activation.json
@@ -385,9 +358,7 @@ jobs:
           path: staging-evidence/
           if-no-files-found: error
 
-      - name: Remove private status-access inputs
-        if: always()
-        run: rm -rf release
+      - *remove-private-inputs
 
   deploy:
     environment: production
@@ -411,28 +382,26 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      - name: Set up SSH key
+      - &production-ssh
+        name: Set up SSH key
         env:
           DEPLOY_SSH_KEY: ${{ secrets.SSH_DEPLOY_PRIVATE_KEY }}
           SERVER_IP: ${{ secrets.SERVER_IP }}
         run: python3 infra/deploy/configure_ssh.py application
 
       - name: Materialize release secrets
-        run: |
-          install -d release
-          install -m 600 /dev/null release/.env
-          cat >> release/.env << 'ENVEOF'
-          POSTGRES_PORT=${{ secrets.POSTGRES_PORT }}
-          POSTGRES_USER_NAME=${{ secrets.POSTGRES_USER_NAME }}
-          POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
-          POSTGRES_DATABASE=${{ secrets.POSTGRES_DATABASE }}
-          POSTGRES_HOST=${{ secrets.POSTGRES_HOST }}
-          POSTGRES_SCHEMA=${{ secrets.POSTGRES_SCHEMA }}
-          OPEN_EXCHANGE_RATES_API_ID=${{ secrets.OPEN_EXCHANGE_RATES_API_ID }}
-          DEVTOOLS_SECRET=${{ secrets.DEVTOOLS_SECRET }}
-          GF_SECURITY_ADMIN_USER=${{ secrets.GF_SECURITY_ADMIN_USER }}
-          GF_SECURITY_ADMIN_PASSWORD=${{ secrets.GF_SECURITY_ADMIN_PASSWORD }}
-          ENVEOF
+        env:
+          POSTGRES_PORT: ${{ secrets.POSTGRES_PORT }}
+          POSTGRES_USER_NAME: ${{ secrets.POSTGRES_USER_NAME }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_DATABASE: ${{ secrets.POSTGRES_DATABASE }}
+          POSTGRES_HOST: ${{ secrets.POSTGRES_HOST }}
+          POSTGRES_SCHEMA: ${{ secrets.POSTGRES_SCHEMA }}
+          OPEN_EXCHANGE_RATES_API_ID: ${{ secrets.OPEN_EXCHANGE_RATES_API_ID }}
+          DEVTOOLS_SECRET: ${{ secrets.DEVTOOLS_SECRET }}
+          GF_SECURITY_ADMIN_USER: ${{ secrets.GF_SECURITY_ADMIN_USER }}
+          GF_SECURITY_ADMIN_PASSWORD: ${{ secrets.GF_SECURITY_ADMIN_PASSWORD }}
+        run: python3 infra/deploy/write_runtime_environment.py --environment production release/.env
 
       - name: Resolve, activate, and verify release
         env:
@@ -460,11 +429,7 @@ jobs:
         with:
           ref: main
 
-      - name: Set up SSH key
-        env:
-          DEPLOY_SSH_KEY: ${{ secrets.SSH_DEPLOY_PRIVATE_KEY }}
-          SERVER_IP: ${{ secrets.SERVER_IP }}
-        run: python3 infra/deploy/configure_ssh.py application
+      - *production-ssh
 
       - name: Activate and verify retained release
         env:

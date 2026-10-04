@@ -6,6 +6,7 @@ from dataclasses import dataclass
 import json
 from pathlib import Path
 import re
+from typing import Mapping, Optional
 
 
 CATALOG_PATH = Path(__file__).with_name("release-images.json")
@@ -97,3 +98,44 @@ def load_release_image_catalog(
             raise ValueError(f"release image catalog has duplicate {attribute}")
 
     return tuple(images)
+
+
+def validate_image_references(
+    references: object,
+    images_by_key: Optional[Mapping[str, ReleaseImage]] = None,
+) -> dict[str, str]:
+    """Validate the complete immutable image set against the owned catalog."""
+    if images_by_key is None:
+        images_by_key = {
+            image.environment_key: image for image in load_release_image_catalog()
+        }
+    if not isinstance(references, dict) or set(references) != set(images_by_key):
+        raise ValueError("immutable image set is invalid")
+    for key, image in images_by_key.items():
+        reference = references[key]
+        if not isinstance(reference, str) or re.fullmatch(
+            re.escape(image.repository) + r"@sha256:[0-9a-f]{64}", reference
+        ) is None:
+            raise ValueError("immutable image reference is invalid")
+    return dict(references)
+
+
+def parse_image_references(
+    serialized: str,
+    images_by_key: Optional[Mapping[str, ReleaseImage]] = None,
+) -> dict[str, str]:
+    """Read the host's sorted, newline-terminated key=value image contract."""
+    if not serialized.endswith("\n"):
+        raise ValueError("current images are invalid")
+    references: dict[str, str] = {}
+    for line in serialized.splitlines():
+        key, separator, reference = line.partition("=")
+        if not separator or key in references:
+            raise ValueError("current images are invalid")
+        references[key] = reference
+    if list(references) != sorted(references):
+        raise ValueError("current images are invalid")
+    try:
+        return validate_image_references(references, images_by_key)
+    except ValueError as error:
+        raise ValueError("current images are invalid") from error

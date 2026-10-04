@@ -12,9 +12,13 @@ import sys
 from typing import Callable, Mapping, Optional, Sequence
 
 try:
-    from .release_image_catalog import ReleaseImage, load_release_image_catalog
+    from .release_image_catalog import (
+        ReleaseImage, load_release_image_catalog, parse_image_references,
+    )
 except ImportError:  # Direct execution from infra/deploy.
-    from release_image_catalog import ReleaseImage, load_release_image_catalog
+    from release_image_catalog import (
+        ReleaseImage, load_release_image_catalog, parse_image_references,
+    )
 
 
 GIT_SHA_PATTERN = re.compile(r"^[0-9a-f]{40}$")
@@ -55,33 +59,6 @@ def _validated_digest(value: object, message: str) -> str:
     if not isinstance(value, str) or not DIGEST_PATTERN.fullmatch(value):
         raise ValueError(message)
     return value
-
-
-def _current_images(
-    serialized: str, images_by_key: Mapping[str, ReleaseImage]
-) -> dict[str, str]:
-    if not serialized.endswith("\n"):
-        raise ValueError("current images are invalid")
-    lines = serialized.splitlines()
-    if len(lines) != len(images_by_key):
-        raise ValueError("current images are invalid")
-
-    images: dict[str, str] = {}
-    for line in lines:
-        key, separator, reference = line.partition("=")
-        if not separator or key in images or key not in images_by_key:
-            raise ValueError("current images are invalid")
-        expected_prefix = f"{images_by_key[key].repository}@"
-        if not reference.startswith(expected_prefix):
-            raise ValueError("current images are invalid")
-        _validated_digest(
-            reference[len(expected_prefix) :], "current images are invalid"
-        )
-        images[key] = reference
-
-    if list(images) != sorted(images_by_key):
-        raise ValueError("current images are invalid")
-    return images
 
 
 def resolve_manifest_digest(
@@ -130,7 +107,7 @@ def resolve_release_images(
     current = (
         None
         if current_images_text is None
-        else _current_images(current_images_text, images_by_key)
+        else parse_image_references(current_images_text, images_by_key)
     )
     if current is None and changed_services != set(service_images):
         raise ValueError("bootstrap requires all services")
