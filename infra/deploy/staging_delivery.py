@@ -123,10 +123,10 @@ def activate_candidate(
         client, image_resolver=resolve, public_verifier=verify,
         stderr=sys.stderr,
     )
-    report["checks"]["activation"] = result == 0
     observed = read_status(client)
     report["after_activation"] = observed
     report["checks"]["release_identity"] = same_activation(observed, report)
+    report["checks"]["activation"] = report["checks"]["release_identity"]
     report["checks"]["service_health"] = bool(observed and observed["healthy"])
     report["public_endpoints"] = [*STAGING_ENDPOINTS, STAGING_GRPC_ENDPOINT]
     if result or not all(report["checks"].values()):

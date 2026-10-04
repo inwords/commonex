@@ -1,4 +1,4 @@
-from contextlib import redirect_stdout
+from contextlib import redirect_stderr, redirect_stdout
 from io import StringIO
 import json
 from pathlib import Path
@@ -129,6 +129,10 @@ class StagingDeliveryTest(unittest.TestCase):
                 result, report = self.activate(Client([status(A, 100), status(healthy=healthy)]), public)
                 self.assertEqual(1, result)
                 self.assertEqual("failed", report["status"])
+                self.assertTrue(report["checks"]["activation"])
+                self.assertTrue(report["checks"]["release_identity"])
+                self.assertEqual(public == 0, report["checks"]["public_services"])
+                self.assertEqual(healthy, report["checks"]["service_health"])
 
     def test_activation_failure_is_not_a_pass(self):
         client = Client([status(A, 100), status(A, 100)], {
@@ -137,6 +141,21 @@ class StagingDeliveryTest(unittest.TestCase):
             result, report = self.activate(client)
         self.assertEqual(1, result)
         self.assertFalse(report["checks"]["activation"])
+        self.assertFalse(report["checks"]["release_identity"])
+        self.assertEqual(status(A, 100), report["after_activation"])
+        self.assertEqual("failed", report["status"])
+
+    def test_committed_audit_failure_cannot_pass_despite_observed_candidate(self):
+        client = Client([status(A, 100), status(), status()], {
+            "deploy": ForcedCommandResult(2, stderr=b"commonex-deploy: final audit failed\n")})
+        with redirect_stdout(StringIO()), redirect_stderr(StringIO()):
+            result, report = self.activate(client)
+        self.assertEqual(1, result)
+        self.assertTrue(all(report["checks"].values()))
+        self.assertEqual("failed", report["status"])
+        self.assertEqual(1, staging.finish_validation(report, B, "success", self.source, client))
+        self.assertEqual("failed", report["status"])
+        self.assertFalse(report["promotion_eligible"])
 
     def test_final_identity_detects_different_sha_digest_or_intervening_activation(self):
         for snapshot in (status(A), status(activation=102),
