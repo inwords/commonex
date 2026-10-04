@@ -34,6 +34,8 @@ STG-001 provides staging delivery; STG-002 provides staging-targeted autotest bu
 
 Run an eligible main candidate through CI and compare retained deployment identities with the published image digests and Android source identity. Exercise a required failure in each check and inspect its evidence; confirm a deployment failure prevents Android execution. Verify persistence using the [runbook procedure](../../../infra/deploy/staging.md#verification-and-persistence).
 
+Include a main run where optional backend or web checks are skipped: after a successful staging deployment, Android must still execute. Inspect the actual job results; local contract tests and lint do not reproduce GitHub's scheduler.
+
 ## Out of Scope
 
 Branch/PR deployments, new Android UI tests, retry-policy changes, upgrade/rollback orchestration, and production approval enforcement. The latter two are owned by STG-004 and STG-005.

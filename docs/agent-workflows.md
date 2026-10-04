@@ -106,6 +106,8 @@ The default debug sequence is:
 
 If the issue cannot be reproduced with the current information, stop and report that instead of making speculative fixes.
 
+For workflow failures, check the step's purpose against the [validation-stage review guidance](../.agents/skills/code-review/SKILL.md#3-identify-the-standards-sources) before expanding it.
+
 ## External Review Feedback
 
 When addressing automated or external review feedback, treat each comment as a hypothesis and keep valid fixes causally scoped.
@@ -126,6 +128,10 @@ When addressing automated or external review feedback, treat each comment as a h
 
 - Review findings (e.g. lint, test failures, or manual checklist gaps) become refinement tasks. Re-run the same validation after refinement to confirm fixes.
 - If review reveals a design or scope problem, return to Plan and update the active plan or issue a `Plan Delta` before further Code.
+
+## Commit History
+
+Squash transient draft iterations into the owning change before updating a PR when they add no independently useful history. Keep distinct, coherent changes separate. Use `--force-with-lease` when pushing a rewritten branch.
 
 ## References
 
