@@ -51,7 +51,6 @@ module.exports = defineConfig([
                 'CurrencyNotFoundError',
                 'CurrencyRateNotFoundError',
                 'InconsistentExchangedAmountError',
-                'EventOperationConflictError',
                 'IdempotencyHashMismatchError',
               ],
             },

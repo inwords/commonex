@@ -81,6 +81,23 @@ describe('HTTP /user (v1)', () => {
     expect(infoResponse.json()).toMatchObject({code: 'B4002'});
   });
 
+  it('returns INTERNAL_ERROR when the event row cannot be locked immediately', async () => {
+    const event = await createEvent(testApp.app, {currencyId: usdId});
+
+    await testApp.rDataService.dataSource.transaction(async (manager) => {
+      await manager.query('SELECT "id" FROM "event" WHERE "id" = $1 FOR UPDATE', [event.id]);
+
+      const response = await testApp.app.inject({
+        method: 'DELETE',
+        url: `/user/event/${event.id}`,
+        payload: {pinCode: '1234'},
+      });
+
+      expect(response.statusCode).toBe(500);
+      expect(response.json()).toEqual({statusCode: 500, code: 'B4007', message: 'Internal server error'});
+    });
+  });
+
   it('adds users to an event', async () => {
     const event = await createEvent(testApp.app, {currencyId: usdId, users: []});
 

@@ -1,6 +1,6 @@
 # Аудит слоёв backend и ошибок репозиториев
 
-Проверено: 23.09.2026. Статус реализации обновлён: 03.10.2026.
+Проверено: 23.09.2026. Статус реализации обновлён: 04.10.2026.
 
 ## Цель и границы
 
@@ -50,10 +50,10 @@ api/composition ──> usecases ──> domain
 
 | Приоритет | Статус | Изменение | Основной риск сейчас |
 | --- | --- | --- | --- |
-| P0 | Реализовано в рабочем дереве; tests и typecheck подтверждены пользователем | Сделать идемпотентность атомарной | Mixed-version rollout не даёт полной атомарности до drain старых инстансов |
-| P1 | Переход начат; legacy transport data временно сохранены для expand/contract | Убрать transport data из идемпотентности | Старые поля нельзя удалить до завершения compatibility window |
+| P0 | ✅ Реализовано в рабочем дереве; tests и typecheck подтверждены пользователем | Сделать идемпотентность атомарной | Mixed-version rollout не даёт полной атомарности до drain старых инстансов |
+| P1 | 🟡 Переход начат; legacy transport data временно сохранены для expand/contract | Убрать transport data из идемпотентности | Старые поля нельзя удалить до завершения compatibility window |
 | P1 | Подтверждённая проблема | Убрать TypeORM из domain/usecases | Внутренние слои знают ORM query DSL, dependency rule уже нарушен |
-| P1 | Подтверждённая проблема | Ввести единый контракт ожидаемых и неожиданных ошибок | Output use cases неполон, а DB-сбои дают разные HTTP/gRPC ответы |
+| P1 | 🟡 Частично: unknown errors получили единый `INTERNAL_ERROR`; `55P03` оставлен infrastructure error | Ввести единый контракт ожидаемых и неожиданных ошибок | Не все ожидаемые outcomes ещё отражены в `Output` use cases |
 | P1 | Подтверждённая проблема | Убрать HTTP status из domain | Domain зависит от Nest/HTTP, хотя gRPC использует другую семантику |
 | P1 | Отложено до завершения рефакторинга | Автоматически проверять импорты между слоями | Текущий ESLint защищает только production от `test-support` |
 | P2 | Подтверждённая проблема | Сделать транзакционный seam fail-safe | Неверный `ctx` молча отключает транзакцию |
@@ -86,13 +86,12 @@ Domain должен владеть стабильным business code, имен�
 
 Большинство use cases объявляет `Result<Value, BusinessError>` и возвращает ожидаемые отказы как значение. Затем HTTP/gRPC controllers повторяют `if (isError(result)) throw result.error`, например [`user.controller.ts`](../../backend/src/api/http/user/user.controller.ts#L48).
 
-Одновременно:
+Текущее состояние:
 
-- PostgreSQL event repository напрямую бросает `EventOperationConflictError` при коде PostgreSQL `55P03`: [`event.repository.ts`](../../backend/src/frameworks/relational-data-service/postgres/repositories/event.repository.ts#L47);
-- `IdempotencySharedUseCase` бросает `IdempotencyHashMismatchError`, хотя оборачивает функцию с generic `Result`: [`idempotency.usecase.ts`](../../backend/src/usecases/shared/idempotency.usecase.ts#L25);
-- эти ошибки отсутствуют в объявленных `Output` затронутых use cases, например [`save-event-expense.usecase.ts`](../../backend/src/usecases/users/save-event-expense.usecase.ts#L23) и [`delete-event.usecase.ts`](../../backend/src/usecases/users/delete-event.usecase.ts#L16).
+- PostgreSQL `55P03` больше не преобразуется в `EventOperationConflictError`: event repository сохраняет `QueryFailedError`, а HTTP/gRPC catch-all возвращают `INTERNAL_ERROR / B4007` ([repository](../../backend/src/frameworks/relational-data-service/postgres/repositories/event.repository.ts#L21), [HTTP filter](../../backend/src/api/http/filters/internal-error.filter.ts#L16), [gRPC filter](../../backend/src/api/grpc/filters/grpc-internal-error.filter.ts#L25));
+- `IdempotencySharedUseCase` возвращает `IdempotencyHashMismatchError` и `IdempotencyRequestInProgressError` через `Result`, а затронутые mutation use cases включают `IdempotencyError` в `Output` ([idempotency use case](../../backend/src/usecases/shared/idempotency.usecase.ts#L95), [expense output](../../backend/src/usecases/users/save-event-expense.usecase.ts#L29)).
 
-Итог: интерфейс use case не описывает все ожидаемые outcomes. Caller должен знать и `Result`, и скрытые классы исключений.
+В типах use cases по-прежнему не отражаются неожиданные infrastructure failures; это намеренно, поскольку они обрабатываются transport catch-all. Обоснование границы зафиксировано в [primary-source notes](postgresql-typeorm-expected-errors-primary-sources.md#exact-propagation-and-retry-boundary).
 
 Рекомендуемая политика:
 
@@ -183,11 +182,9 @@ Callback получает transaction-scoped набор портов, поэто
 
 По решению от 03.10.2026 ESLint-ограничения для слоёв отложены до завершения всего рефакторинга из этого плана. После очистки известных нарушений их следует включить последним CI gate, чтобы не поддерживать временные исключения и не оставлять красный baseline.
 
-### 10. Публичный интерфейс error-модуля неполон
+### 10. Публичный интерфей error-модуля синхронизирован
 
-Barrel [`domain/errors/index.ts`](../../backend/src/domain/errors/index.ts#L1) не экспортирует `EventOperationConflictError` и `IdempotencyHashMismatchError`, хотя они входят в `BUSINESS_ERROR_CLASSES`. Поэтому часть файлов импортирует `#domain/errors`, часть — внутренний `#domain/errors/errors`.
-
-После выбора error policy все публичные типы должны экспортироваться через один interface модуля. Если ошибки остаются throwable, общий base class должен наследовать `Error`, вызывать `super(message)` и поддерживать `cause`. Сейчас plain classes намеренно разрешены ESLint-конфигурацией: [`eslint.config.js`](../../backend/eslint.config.js#L37). Nest filters работают, поэтому это не текущий functional bug, но стандартные stack/cause и observability хуже.
+Barrel [`domain/errors/index.ts`](../../backend/src/domain/errors/index.ts#L1) экспортирует активные business-error типы, включая idempotency errors. Удалённый `EventOperationConflictError` больше не входит в публичный interface и `BUSINESS_ERROR_CLASSES`. Остающиеся прямые импорты `#domain/errors/errors` — вопрос единообразия, а не неполноты текущего barrel.
 
 ## Варианты дизайна и места, требующие решения
 
@@ -250,7 +247,7 @@ gRPC controller и request DTO импортируют HTTP DTO, например
 ### Этап 3. Унифицировать ошибки (P1)
 
 1. Ввести общий transport-neutral тип business failure и полный публичный export.
-2. Перевести lock conflict из прямого `EventOperationConflictError` в нейтральный repository/application outcome, затем включить его в use case Output.
+2. Сохранить lock conflicts и lock timeouts как infrastructure failures; не добавлять отдельную клиентскую реакцию без нового доказанного business contract.
 3. Перевести idempotency mismatch в тот же выбранный путь.
 4. Добавить catch-all HTTP/gRPC filters только для unknown errors, с безопасным `INTERNAL_ERROR`, логированием и correlation id.
 5. Убрать повторяющийся `if (isError) throw` из controllers через один transport helper/interceptor.

@@ -1,15 +1,12 @@
-import {DataSource, EntityManager, QueryFailedError, Repository} from 'typeorm';
+import {DataSource, EntityManager, Repository} from 'typeorm';
 
 import {EventRepositoryAbstract} from '#domain/abstracts/relational-data-service/repositories/event.repository';
 import {IQueryDetails} from '#domain/abstracts/relational-data-service/types';
 import {IEvent} from '#domain/entities/event.entity';
-import {EventOperationConflictError} from '#domain/errors/errors';
 
 import {EventEntity} from '#frameworks/relational-data-service/postgres/entities/event.entity';
 
 import {BaseRepository} from './base.repository';
-
-const POSTGRES_LOCK_NOT_AVAILABLE_ERROR_CODE = '55P03';
 
 export class EventRepository extends BaseRepository implements EventRepositoryAbstract {
   readonly dataSource: DataSource;
@@ -42,22 +39,7 @@ export class EventRepository extends BaseRepository implements EventRepositoryAb
     }
 
     const queryDetails = this.getQueryDetails(query);
-    let result: EventEntity | null;
-
-    try {
-      result = await query.getOne();
-    } catch (exception) {
-      if (
-        trx?.lock === 'pessimistic_write' &&
-        trx.onLocked === 'nowait' &&
-        exception instanceof QueryFailedError &&
-        (exception.driverError as Error & {code?: string}).code === POSTGRES_LOCK_NOT_AVAILABLE_ERROR_CODE
-      ) {
-        throw new EventOperationConflictError();
-      }
-
-      throw exception;
-    }
+    const result = await query.getOne();
 
     return [result, queryDetails];
   };

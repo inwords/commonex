@@ -72,15 +72,6 @@ export class InconsistentExchangedAmountError extends Error {
   }
 }
 
-export class EventOperationConflictError extends Error {
-  override readonly name = 'EventOperationConflictError' as const;
-  readonly code = ErrorCode.EVENT_OPERATION_CONFLICT;
-
-  constructor() {
-    super('Another operation is in progress for this event');
-  }
-}
-
 export class IdempotencyHashMismatchError extends Error {
   override readonly name = 'IdempotencyHashMismatchError' as const;
   readonly code = ErrorCode.IDEMPOTENCY_HASH_MISMATCH;
@@ -103,7 +94,6 @@ export class IdempotencyRequestInProgressError extends Error {
 export const BUSINESS_ERROR_CLASSES = [
   EventNotFoundError,
   EventDeletedError,
-  EventOperationConflictError,
   InvalidPinCodeError,
   InvalidTokenError,
   TokenExpiredError,
