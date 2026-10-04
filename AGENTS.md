@@ -25,6 +25,8 @@ CommonEx is a multi-platform expense sharing application with Android/iOS (KMM),
 
 - Prefer LF line endings in text files unless a file or tool explicitly requires a different EOL.
 - Keep changes minimal; preserve architecture and conventions already in place unless improving them.
+- Before writing custom code or adding a dependency, check in order for an existing repo helper or pattern, a standard-library function, a native platform feature, and an installed dependency that meets the requirements.
+- Choose the simplest readable solution that preserves requested behavior, validation, security, accessibility, and repo conventions. Judge simplicity by maintenance burden rather than line or file count; retain abstractions justified by real module, test, or platform boundaries.
 - Avoid editing generated and build output files, `.env` and secrets (e.g., `.next/`, `build/`).
 - When commands are listed, run them from the relevant project directory; there is no root `package.json`.
 - Add comments only when the logic is non-obvious.
