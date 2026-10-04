@@ -113,7 +113,8 @@ four immutable image references, declared service states, and aggregate health.
 It holds the existing operation lock, checks active files against the retained
 release, refuses unresolved activation intents, and inspects custom containers'
 actual image references. Defined health checks must be healthy; other services
-must be running. No environment values are returned. [Staging CI](staging.md#automatic-main-validation)
+must be running. Configurations that omit a catalog image are rejected. No
+environment values are returned. [Staging CI](staging.md#automatic-main-validation)
 uses this command before activation and after Android execution.
 
 ## Validation

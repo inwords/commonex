@@ -775,6 +775,8 @@ def release_status(config: DeploymentConfig = DEFAULT_CONFIG) -> None:
                 healthcheck.get("test") != ["NONE"]
             ):
                 checked_health.add(name)
+        if set(expected_images.values()) != set(images.values()):
+            raise ValueError("configured images do not include every release image")
 
         output = _status_output(
             compose_command(directory, "ps", "--all", "--format", "json"), directory
