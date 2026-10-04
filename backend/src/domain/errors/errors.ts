@@ -1,11 +1,8 @@
-import {HttpStatus} from '@nestjs/common';
-
 import {ErrorCode} from './error-codes.enum';
 
 export class EventNotFoundError extends Error {
   override readonly name = 'EventNotFoundError' as const;
   readonly code = ErrorCode.EVENT_NOT_FOUND;
-  readonly httpCode = HttpStatus.NOT_FOUND;
 
   constructor() {
     super('Event not found');
@@ -15,7 +12,6 @@ export class EventNotFoundError extends Error {
 export class EventDeletedError extends Error {
   override readonly name = 'EventDeletedError' as const;
   readonly code = ErrorCode.EVENT_ALREADY_DELETED;
-  readonly httpCode = HttpStatus.GONE;
 
   constructor() {
     super('Event is deleted');
@@ -25,7 +21,6 @@ export class EventDeletedError extends Error {
 export class InvalidPinCodeError extends Error {
   override readonly name = 'InvalidPinCodeError' as const;
   readonly code = ErrorCode.EVENT_INVALID_PIN;
-  readonly httpCode = HttpStatus.FORBIDDEN;
 
   constructor() {
     super('Invalid pin code');
@@ -35,7 +30,6 @@ export class InvalidPinCodeError extends Error {
 export class InvalidTokenError extends Error {
   override readonly name = 'InvalidTokenError' as const;
   readonly code = ErrorCode.INVALID_TOKEN;
-  readonly httpCode = HttpStatus.UNAUTHORIZED;
 
   constructor() {
     super('Invalid token');
@@ -45,7 +39,6 @@ export class InvalidTokenError extends Error {
 export class TokenExpiredError extends Error {
   override readonly name = 'TokenExpiredError' as const;
   readonly code = ErrorCode.TOKEN_EXPIRED;
-  readonly httpCode = HttpStatus.UNAUTHORIZED;
 
   constructor() {
     super('Token has expired');
@@ -55,7 +48,6 @@ export class TokenExpiredError extends Error {
 export class CurrencyNotFoundError extends Error {
   override readonly name = 'CurrencyNotFoundError' as const;
   readonly code = ErrorCode.CURRENCY_NOT_FOUND;
-  readonly httpCode = HttpStatus.NOT_FOUND;
 
   constructor() {
     super('Currency not found');
@@ -65,7 +57,6 @@ export class CurrencyNotFoundError extends Error {
 export class CurrencyRateNotFoundError extends Error {
   override readonly name = 'CurrencyRateNotFoundError' as const;
   readonly code = ErrorCode.CURRENCY_RATE_NOT_FOUND;
-  readonly httpCode = HttpStatus.NOT_FOUND;
 
   constructor() {
     super('Currency rate not found');
@@ -75,7 +66,6 @@ export class CurrencyRateNotFoundError extends Error {
 export class InconsistentExchangedAmountError extends Error {
   override readonly name = 'InconsistentExchangedAmountError' as const;
   readonly code = ErrorCode.INCONSISTENT_EXCHANGED_AMOUNT;
-  readonly httpCode = HttpStatus.BAD_REQUEST;
 
   constructor() {
     super('All splitInfo must have exchangedAmount when custom rate is used');
@@ -85,7 +75,6 @@ export class InconsistentExchangedAmountError extends Error {
 export class EventOperationConflictError extends Error {
   override readonly name = 'EventOperationConflictError' as const;
   readonly code = ErrorCode.EVENT_OPERATION_CONFLICT;
-  readonly httpCode = HttpStatus.CONFLICT;
 
   constructor() {
     super('Another operation is in progress for this event');
@@ -95,7 +84,6 @@ export class EventOperationConflictError extends Error {
 export class IdempotencyHashMismatchError extends Error {
   override readonly name = 'IdempotencyHashMismatchError' as const;
   readonly code = ErrorCode.IDEMPOTENCY_HASH_MISMATCH;
-  readonly httpCode = HttpStatus.UNPROCESSABLE_ENTITY;
 
   constructor() {
     super('Idempotency key reused with different request body');

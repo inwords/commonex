@@ -15,6 +15,11 @@ export class HealthController {
   @Get()
   @HealthCheck()
   check(): Promise<HealthCheckResult> {
-    return this.healthCheckService.check([(): Promise<HealthIndicatorResult> => this.healthCheckUseCase.execute()]);
+    return this.healthCheckService.check([
+      async (): Promise<HealthIndicatorResult> => {
+        await this.healthCheckUseCase.execute();
+        return {database: {status: 'up'}};
+      },
+    ]);
   }
 }
