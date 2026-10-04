@@ -92,6 +92,18 @@ describe('gRPC UserService', () => {
     expect(error).toEqual({code: status.FAILED_PRECONDITION, details: 'Event is deleted', errorCode: 'B4002'});
   });
 
+  it('returns INTERNAL when the event row cannot be locked immediately', async () => {
+    const event = await createEvent(testApp.app, {currencyId: usdId});
+
+    await testApp.rDataService.dataSource.transaction(async (manager) => {
+      await manager.query('SELECT "id" FROM "event" WHERE "id" = $1 FOR UPDATE', [event.id]);
+
+      const error = await expectGrpcError(callUnary(client, 'DeleteEvent', {eventId: event.id, pinCode: '1234'}));
+
+      expect(error).toEqual({code: status.INTERNAL, details: 'Internal server error', errorCode: 'B4007'});
+    });
+  });
+
   it('validates the request and maps violations to INVALID_ARGUMENT', async () => {
     const error = await expectGrpcError(
       callUnary(client, 'CreateEvent', {name: 'Trip', currencyId: usdId, pinCode: '12', users: []}),

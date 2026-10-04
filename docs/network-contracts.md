@@ -210,7 +210,7 @@ Known route-specific mapping examples:
 - V2 token-based event reads distinguish invalid token vs expired token by backend error `code`.
 - Validation failures are exposed as `400` plus `VALIDATION_ERROR` in the normalized error envelope.
 - V2 custom-rate validation failures are exposed as `400` plus `B4010` when only some splits include `exchangedAmount`.
-- Concurrent operations scoped to the same event that cannot acquire its lock immediately are exposed as `409` plus `B4015`; clients may retry the operation using the same idempotency key.
+- PostgreSQL lock failures are treated as internal infrastructure errors; transports expose the same generic `INTERNAL_ERROR` contract as for other unexpected database failures and do not reveal the vendor-specific condition.
 
 ## Retry, Redirect, And Failure Semantics
 

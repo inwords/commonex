@@ -2,7 +2,6 @@ import {QueryFailedError} from 'typeorm';
 
 import {IQueryDetails} from '#domain/abstracts/relational-data-service/types';
 import {IEvent} from '#domain/entities/event.entity';
-import {EventOperationConflictError} from '#domain/errors/errors';
 
 import {appDbConfig} from '#frameworks/relational-data-service/postgres/config';
 import {RelationalDataService} from '#frameworks/relational-data-service/postgres/relational-data-service';
@@ -109,7 +108,7 @@ describe('EventRepository', () => {
       expect(result.queryDetails).toMatchSnapshot();
     });
 
-    it('should report a domain conflict when an event row cannot be locked immediately', async () => {
+    it('should preserve query failures when an event row cannot be locked immediately', async () => {
       const event = {
         id: 'event-1',
         name: 'Test Event',
@@ -148,7 +147,7 @@ describe('EventRepository', () => {
               onLocked: 'nowait',
             }),
           ),
-        ).rejects.toBeInstanceOf(EventOperationConflictError);
+        ).rejects.toBeInstanceOf(QueryFailedError);
       } finally {
         releaseLock();
         await lockHolder;

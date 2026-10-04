@@ -7,7 +7,6 @@ import {
   CurrencyRateNotFoundError,
   EventDeletedError,
   EventNotFoundError,
-  EventOperationConflictError,
   IdempotencyHashMismatchError,
   IdempotencyRequestInProgressError,
   InconsistentExchangedAmountError,
@@ -39,7 +38,6 @@ describe('BusinessErrorFilter', () => {
       'B4011',
       'Idempotency key reused with different request body',
     ],
-    [EventOperationConflictError, HttpStatus.CONFLICT, 'B4015', 'Another operation is in progress for this event'],
     [
       IdempotencyRequestInProgressError,
       HttpStatus.CONFLICT,
