@@ -130,6 +130,8 @@ jobs:
         with:
           context: ${{ matrix.service.context }}
           push: ${{ github.ref == 'refs/heads/main' }}
+          cache-from: type=gha,scope=${{ matrix.service.name }},version=2
+          cache-to: type=gha,scope=${{ matrix.service.name }},mode=max,version=2
           tags: |
             ${{ matrix.service.repository }}:latest
             ${{ matrix.service.repository }}:${{ github.sha }}
