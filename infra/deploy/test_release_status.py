@@ -48,6 +48,20 @@ class ReleaseStatusTest(unittest.TestCase):
              "Image": self.backend_image, "ID": "b" * 64, "Command": "secret"},
             {"Service": "db", "State": "running", "Health": "", "Image": "postgres:17-alpine3.24"},
         ]
+        self.runtime_images = {}
+        for index, (name, key) in enumerate([
+            ("frontend", "COMMONEX_FRONTEND_IMAGE"),
+            ("nginx", "COMMONEX_NGINX_IMAGE"),
+            ("otel-collector", "COMMONEX_OTEL_COLLECTOR_IMAGE"),
+        ], 3):
+            image = self.images[key]
+            identifier = str(index) * 64
+            self.configuration["services"][name] = {"image": image}
+            self.containers.append({
+                "Service": name, "State": "running", "Health": "",
+                "Image": image, "ID": identifier,
+            })
+            self.runtime_images[identifier] = image
         self.runtime_image = self.backend_image
         self.ndjson = False
         self.commands: list[list[str]] = []
@@ -58,13 +72,13 @@ class ReleaseStatusTest(unittest.TestCase):
         self.assertTrue(kwargs["check"])
         self.assertTrue(kwargs["capture_output"])
         if command[-2:] == ["config", "--services"]:
-            output = "backend\ndb\n"
+            output = "".join(name + "\n" for name in self.configuration["services"])
         elif command[-3:] == ["config", "--format", "json"]:
             output = json.dumps(self.configuration)
         elif command[-4:] == ["ps", "--all", "--format", "json"]:
             output = "\n".join(map(json.dumps, self.containers)) if self.ndjson else json.dumps(self.containers)
         elif command[:4] == ["docker", "inspect", "--format", "{{json .Config.Image}}"]:
-            output = json.dumps(self.runtime_image)
+            output = json.dumps(self.runtime_images.get(command[-1], self.runtime_image))
         else:
             self.fail(f"unexpected command: {command}")
         return subprocess.CompletedProcess(command, 0, stdout=output, stderr="secret diagnostics")
@@ -88,6 +102,9 @@ class ReleaseStatusTest(unittest.TestCase):
             "services": [
                 {"service": "backend", "state": "running", "health": "healthy", "image": self.backend_image},
                 {"service": "db", "state": "running", "health": "", "image": "postgres:17-alpine3.24"},
+                {"service": "frontend", "state": "running", "health": "", "image": self.images["COMMONEX_FRONTEND_IMAGE"]},
+                {"service": "nginx", "state": "running", "health": "", "image": self.images["COMMONEX_NGINX_IMAGE"]},
+                {"service": "otel-collector", "state": "running", "health": "", "image": self.images["COMMONEX_OTEL_COLLECTOR_IMAGE"]},
             ], "healthy": True,
         })
         self.assertEqual(before, {path: path.read_bytes() for path in self.config.release_root.rglob("*") if path.is_file()})
@@ -95,6 +112,38 @@ class ReleaseStatusTest(unittest.TestCase):
     def test_accepts_newline_delimited_compose_json(self) -> None:
         self.ndjson = True
         self.assertTrue(self.status()["healthy"])
+
+    def test_substituted_or_omitted_owned_image_emits_no_status(self) -> None:
+        for replacement in ("other/application:latest", None):
+            with self.subTest(replacement=replacement):
+                original = self.configuration["services"]["backend"]
+                if replacement is None:
+                    del self.configuration["services"]["backend"]
+                else:
+                    self.configuration["services"]["backend"] = {"image": replacement}
+                output = io.StringIO()
+                with mock.patch.object(deploy, "run_command"), mock.patch.object(
+                    deploy.subprocess, "run", side_effect=self.run_command,
+                ), redirect_stdout(output), self.assertRaisesRegex(
+                    ValueError, "configured images do not include every release image",
+                ):
+                    deploy.release_status(self.config)
+                self.assertEqual(output.getvalue(), "")
+                self.configuration["services"]["backend"] = original
+
+    def test_checks_every_configured_replica_of_an_owned_image(self) -> None:
+        identifier = "f" * 64
+        self.configuration["services"]["backend-replica"] = {"image": self.backend_image}
+        self.containers.append({
+            "Service": "backend-replica", "State": "running", "Health": "",
+            "Image": self.backend_image, "ID": identifier,
+        })
+        self.runtime_images[identifier] = self.backend_image
+        self.assertTrue(self.status()["healthy"])
+        inspected = {command[-1] for command in self.commands if command[1] == "inspect"}
+        self.assertEqual(inspected, {"b" * 64, "3" * 64, "4" * 64, "5" * 64, identifier})
+        self.runtime_images[identifier] = "other/application:latest"
+        self.assertFalse(self.status()["healthy"])
 
     def test_missing_service_is_explicitly_unhealthy(self) -> None:
         self.containers = self.containers[:1]
