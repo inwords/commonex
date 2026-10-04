@@ -18,6 +18,9 @@ on:
       SENTRY_AUTH_TOKEN:
         required: false
     outputs:
+      report_artifact:
+        description: Artifact name produced by this Android job attempt
+        value: ${{ jobs.ui_tests_android.outputs.report_artifact }}
       checked_out_sha:
         description: Observed source SHA used to build the autotest APKs
         value: ${{ jobs.ui_tests_android.outputs.checked_out_sha }}
@@ -36,6 +39,7 @@ jobs:
       AVD_ARCH: x86_64
       AVD_PROFILE: pixel_6
     outputs:
+      report_artifact: ${{ inputs.report_artifact }}
       checked_out_sha: ${{ steps.source_identity.outputs.checked_out_sha }}
     steps:
       - name: Checkout sources

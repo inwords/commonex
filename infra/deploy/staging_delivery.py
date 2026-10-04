@@ -211,7 +211,6 @@ def main(arguments: Optional[Sequence[str]] = None) -> int:
     finish.add_argument("source_identity", type=Path)
     options = parser.parse_args(arguments)
     report = new_report(options.candidate)
-    report["android_artifact"] = options.android_artifact
     client = delivery.SshForcedCommandClient(delivery.SSH_HOSTS["staging"])
     diagnostics = StringIO()
     result = 1
@@ -240,6 +239,7 @@ def main(arguments: Optional[Sequence[str]] = None) -> int:
     # Host diagnostics have already been filtered by the delivery adapter. Never
     # serialize the release archive, environment inputs, or arbitrary SSH output.
     report["diagnostics"].extend(diagnostics.getvalue().splitlines()[-100:])
+    report["android_artifact"] = options.android_artifact
     write_report(options.report, report)
     if options.summary:
         append_summary(options.summary, report)

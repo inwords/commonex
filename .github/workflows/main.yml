@@ -234,6 +234,8 @@ jobs:
     environment: staging
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    outputs:
+      activation_artifact: &staging-activation-artifact staging-activation-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
     needs: [containers_matrix_prep, build-and-push, backend-checks, web-checks, infra-deploy-tests]
     if: |
       always() &&
@@ -291,7 +293,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: staging-activation-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          name: *staging-activation-artifact
           path: staging-evidence/activation.json
           if-no-files-found: error
 
@@ -325,17 +327,19 @@ jobs:
           ref: ${{ github.sha }}
 
       - name: Download activation evidence
+        if: needs.staging-deploy.outputs.activation_artifact != ''
         continue-on-error: true
         uses: actions/download-artifact@v7
         with:
-          name: staging-activation-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          name: ${{ needs.staging-deploy.outputs.activation_artifact }}
           path: staging-evidence
 
       - name: Download Android evidence
+        if: needs.staging-android.outputs.report_artifact != ''
         continue-on-error: true
         uses: actions/download-artifact@v7
         with:
-          name: *staging-android-artifact
+          name: ${{ needs.staging-android.outputs.report_artifact }}
           path: staging-evidence/android
 
       - *staging-ssh
@@ -344,7 +348,7 @@ jobs:
         if: always()
         env:
           ANDROID_RESULT: ${{ needs.staging-android.result }}
-          ANDROID_ARTIFACT: *staging-android-artifact
+          ANDROID_ARTIFACT: ${{ needs.staging-android.outputs.report_artifact }}
         run: >-
           python3 infra/deploy/staging_delivery.py
           --report staging-evidence/activation.json

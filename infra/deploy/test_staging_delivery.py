@@ -202,6 +202,34 @@ class StagingDeliveryTest(unittest.TestCase):
         self.assertEqual(1, staging.finish_validation(report, B, "success", self.source, client))
         self.assertFalse(report["checks"]["final_service_health"])
 
+    def test_cli_partial_rerun_keeps_activation_and_records_new_android_artifact(self):
+        activation_client = Client([status(A, 100), status()])
+        activation_result, activation_report = self.activate(activation_client)
+        self.assertEqual(0, activation_result)
+        activation_report["android_artifact"] = "android-" + B + "-attempt-1"
+        report_path = self.root / "activation.json"
+        staging.write_report(report_path, activation_report)
+
+        android_artifact = "android-" + B + "-attempt-2"
+        finish_client = Client([status()])
+        with patch.object(staging.delivery, "SshForcedCommandClient", return_value=finish_client), \
+                redirect_stdout(StringIO()):
+            result = staging.main([
+                "--report", str(report_path), "--candidate", B,
+                "--android-artifact", android_artifact, "finish", "success", str(self.source),
+            ])
+
+        report = json.loads(report_path.read_text())
+        self.assertEqual(0, result)
+        self.assertEqual("passed", report["status"])
+        self.assertEqual(android_artifact, report["android_artifact"])
+        for key in ("candidate_sha", "activation_number", "expected_images", "baseline", "after_activation"):
+            self.assertEqual(activation_report[key], report[key])
+        self.assertTrue(all(report["checks"].values()))
+        self.assertFalse(report["promotion_eligible"])
+        self.assertEqual([("release-status",)], finish_client.commands)
+        self.assertEqual([], finish_client.archives)
+
     def test_cli_writes_failed_report_without_private_exception_text(self):
         report_path = self.root / "report.json"
         with patch.object(staging, "activate_candidate", side_effect=ValueError("private-value")), \
