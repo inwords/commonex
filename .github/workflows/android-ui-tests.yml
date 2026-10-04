@@ -1,5 +1,8 @@
 name: Android UI tests
 
+permissions:
+  contents: read
+
 on:
   workflow_call:
     inputs:

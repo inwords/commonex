@@ -1,5 +1,8 @@
 name: Mobile CI/CD Pipeline
 
+permissions:
+  contents: read
+
 on:
   push:
     branches:

@@ -59,10 +59,8 @@ jobs:
             otel-collector: 'infra/otel-collector/**'
             nginx: 'infra/nginx/**'
             infra:
-              - 'infra/**'
+              - '{infra/**,.github/workflows/main.yml,.github/workflows/android-ui-tests.yml}'
               - '!infra/grafana/sync/**'
-              - '.github/workflows/main.yml'
-              - '.github/workflows/android-ui-tests.yml'
 
       - name: Prepare matrix JSON
         id: matrix-json

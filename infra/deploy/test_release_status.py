@@ -6,12 +6,12 @@ import shutil
 import subprocess
 import tempfile
 import unittest
+import unittest.mock as mock
 from contextlib import redirect_stdout
 from pathlib import Path
-from unittest import mock
 
 from infra.deploy import commonex_deploy as deploy
-from infra.deploy.test_commonex_deploy import release_archive, valid_environment
+from infra.deploy.test_commonex_deploy import release_archive
 
 
 RELEASE = "a" * 40
