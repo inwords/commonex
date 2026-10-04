@@ -41,6 +41,7 @@ jobs:
       matrix: ${{ steps.matrix-json.outputs.matrix }}
       has-services: ${{ steps.matrix-json.outputs.has-services }}
       has-infra-changes: ${{ steps.filter.outputs.infra }}
+      has-deployment-validation-changes: ${{ steps.filter.outputs.infra == 'true' || steps.filter.outputs.deployment-validation == 'true' }}
       changed-services: ${{ steps.matrix-json.outputs.changed-services }}
       has-backend-changes: ${{ steps.filter.outputs.backend }}
       has-web-changes: ${{ steps.filter.outputs.frontend }}
@@ -58,8 +59,9 @@ jobs:
             frontend: 'web/**'
             otel-collector: 'infra/otel-collector/**'
             nginx: 'infra/nginx/**'
+            deployment-validation: '.github/workflows/android-ui-tests.yml'
             infra:
-              - '{infra/**,.github/workflows/main.yml,.github/workflows/android-ui-tests.yml}'
+              - '{infra/**,.github/workflows/main.yml}'
               - '!infra/grafana/sync/**'
 
       - name: Prepare matrix JSON
@@ -220,7 +222,7 @@ jobs:
     needs: containers_matrix_prep
     if: |
       github.event_name != 'workflow_dispatch' &&
-      needs.containers_matrix_prep.outputs.has-infra-changes == 'true'
+      needs.containers_matrix_prep.outputs.has-deployment-validation-changes == 'true'
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
