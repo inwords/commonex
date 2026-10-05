@@ -163,7 +163,7 @@ services:
       - monitoring-network
 
   victoriametrics:
-    image: victoriametrics/victoria-metrics:v1.151.0
+    image: victoriametrics/victoria-metrics:v1.153.0
     container_name: victoriametrics
     deploy:
       resources:
@@ -184,7 +184,7 @@ services:
       - monitoring-network
 
   victoriatraces:
-    image: victoriametrics/victoria-traces:v0.11.0
+    image: victoriametrics/victoria-traces:v0.12.0
     container_name: victoriatraces
     deploy:
       resources:
@@ -207,7 +207,7 @@ services:
       - monitoring-network
 
   grafana:
-    image: grafana/grafana:13.2.1
+    image: grafana/grafana:13.2.3
     container_name: grafana
     deploy:
       resources:
