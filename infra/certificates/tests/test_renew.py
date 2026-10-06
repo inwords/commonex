@@ -36,6 +36,9 @@ class CertbotCommandTests(unittest.TestCase):
         self.assertEqual(len(mounts), 3)
         self.assertFalse(any('docker.sock' in value for value in arguments))
         self.assertIn('--cap-drop=ALL', arguments)
+        self.assertEqual([value for value in arguments if value.startswith('--cap-add=')],
+                         ['--cap-add=CHOWN'])
+        self.assertIn('--security-opt=no-new-privileges:true', arguments)
         self.assertIn('--read-only', arguments)
 
     def test_mutable_or_malformed_image_is_rejected_before_execution(self):
