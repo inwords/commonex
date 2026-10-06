@@ -85,7 +85,8 @@ def certbot_command(image, dry_run=False):
     if not re.fullmatch(r'(?:[A-Za-z0-9._:/-]+@)?sha256:[a-f0-9]{64}', image):
         raise ValueError('Certbot image must be an immutable digest or local image ID')
     arguments = ['docker', 'run', '--rm', '--name', 'commonex-certificate-renewal',
-                 '--cap-drop=ALL', '--security-opt=no-new-privileges:true',
+                 # Certbot preserves the previous private key's group on renewal.
+                 '--cap-drop=ALL', '--cap-add=CHOWN', '--security-opt=no-new-privileges:true',
                  '--read-only', '--tmpfs', '/tmp:rw,noexec,nosuid,size=64m',
                  '--tmpfs', '/var/lib/letsencrypt:rw,nosuid,size=32m',
                  '--tmpfs', '/var/log/letsencrypt:rw,nosuid,size=32m',
