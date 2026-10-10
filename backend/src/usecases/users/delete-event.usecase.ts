@@ -29,9 +29,9 @@ export class DeleteEventUseCase implements UseCase<Input, Output> {
   ) {}
 
   public async execute({eventId, pinCode}: Input): Promise<Output> {
-    return this.rDataService.transaction(async (ctx) => {
+    return this.rDataService.transaction(async (trx) => {
       const [event] = await this.rDataService.event.findById(eventId, {
-        ctx,
+        ...trx,
         lock: 'pessimistic_write',
         onLocked: 'nowait',
       });
@@ -50,7 +50,7 @@ export class DeleteEventUseCase implements UseCase<Input, Output> {
           deletedAt,
           updatedAt: new Date(),
         },
-        {ctx},
+        trx,
       );
 
       return success({

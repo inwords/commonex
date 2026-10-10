@@ -1,4 +1,4 @@
-import {DataSource, EntityManager, Repository} from 'typeorm';
+import {DataSource} from 'typeorm';
 
 import {ExpenseRepositoryAbstract} from '#domain/abstracts/relational-data-service/repositories/expense.repository';
 import {IQueryDetails} from '#domain/abstracts/relational-data-service/types';
@@ -21,9 +21,7 @@ export class ExpenseRepository extends BaseRepository implements ExpenseReposito
     eventId: IExpense['eventId'],
     trx,
   ): Promise<[result: IExpense[], queryDetails: IQueryDetails]> => {
-    const ctx = trx?.ctx instanceof EntityManager ? trx.ctx : undefined;
-
-    let query = this.getRepository(ctx).createQueryBuilder(this.queryName);
+    let query = this.getRepository(this.dataSource, ExpenseEntity, trx).createQueryBuilder(this.queryName);
 
     query = query.where(`${this.queryName}.event_id = :eventId`, {
       eventId,
@@ -37,9 +35,7 @@ export class ExpenseRepository extends BaseRepository implements ExpenseReposito
 
   public findAll: ExpenseRepositoryAbstract['findAll'] = async (input, trx) => {
     const {limit} = input;
-    const ctx = trx?.ctx instanceof EntityManager ? trx.ctx : undefined;
-
-    let query = this.getRepository(ctx).createQueryBuilder(this.queryName);
+    let query = this.getRepository(this.dataSource, ExpenseEntity, trx).createQueryBuilder(this.queryName);
 
     query = query.limit(limit);
 
@@ -53,17 +49,11 @@ export class ExpenseRepository extends BaseRepository implements ExpenseReposito
     input: IExpense | IExpense[],
     trx,
   ): Promise<[result: undefined, queryDetails: IQueryDetails]> => {
-    const ctx = trx?.ctx instanceof EntityManager ? trx.ctx : undefined;
-
-    const query = this.getRepository(ctx).createQueryBuilder().insert().values(input);
+    const query = this.getRepository(this.dataSource, ExpenseEntity, trx).createQueryBuilder().insert().values(input);
     const queryDetails = this.getQueryDetails(query);
 
     await query.execute();
 
     return [undefined, queryDetails];
-  };
-
-  private readonly getRepository = (manager?: EntityManager): Repository<ExpenseEntity> => {
-    return manager != null ? manager.getRepository(ExpenseEntity) : this.dataSource.getRepository(ExpenseEntity);
   };
 }

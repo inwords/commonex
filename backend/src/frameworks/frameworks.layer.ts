@@ -16,13 +16,13 @@ import {appDbConfig} from './relational-data-service/postgres/config';
 import {RelationalDataService} from './relational-data-service/postgres/relational-data-service';
 
 export const initOrUpdateCurrencies = async (rDataService: RelationalDataServiceAbstract): Promise<void> => {
-  await rDataService.transaction('REPEATABLE READ', async (ctx) => {
-    const [currencies] = await rDataService.currency.findAllSupported(undefined, {ctx});
+  await rDataService.transaction('REPEATABLE READ', async (trx) => {
+    const [currencies] = await rDataService.currency.findAllSupported(undefined, trx);
 
     if (!currencies.length) {
       const currencies = CURRENCIES_LIST.map((currency) => new CurrencyValueObject(currency).value);
 
-      await rDataService.currency.insert(currencies, {ctx});
+      await rDataService.currency.insert(currencies, trx);
     } else if (currencies.length !== CURRENCIES_LIST.length) {
       const existingCodes = new Set(currencies.map((c) => c.code));
       const missingCurrencies = CURRENCIES_LIST.filter((c) => !existingCodes.has(c.code)).map(
@@ -30,7 +30,7 @@ export const initOrUpdateCurrencies = async (rDataService: RelationalDataService
       );
 
       if (missingCurrencies.length > 0) {
-        await rDataService.currency.insert(missingCurrencies, {ctx});
+        await rDataService.currency.insert(missingCurrencies, trx);
       }
     }
   });

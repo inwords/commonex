@@ -1,10 +1,14 @@
 import {QueryFailedError} from 'typeorm';
 
-import {IQueryDetails} from '#domain/abstracts/relational-data-service/types';
+import {IQueryDetails, ITransaction} from '#domain/abstracts/relational-data-service/types';
 import {IEvent} from '#domain/entities/event.entity';
 
 import {appDbConfig} from '#frameworks/relational-data-service/postgres/config';
 import {RelationalDataService} from '#frameworks/relational-data-service/postgres/relational-data-service';
+import {
+  createTransactionHandle,
+  invalidateTransactionHandle,
+} from '#frameworks/relational-data-service/postgres/transaction-context';
 
 import {truncateAllTables} from '#test-support/db';
 
@@ -78,6 +82,37 @@ describe('EventRepository', () => {
       expect(queryDetails).toMatchSnapshot();
     });
 
+    it('rejects invalid transaction contexts before reading or writing event rows', async () => {
+      const event = {
+        id: 'event-1',
+        name: 'Test Event',
+        currencyId: 'currency-1',
+        pinCode: '1234',
+        createdAt: new Date('2023-01-01T00:00:00Z'),
+        updatedAt: new Date('2023-01-01T00:00:00Z'),
+        deletedAt: null,
+      };
+      await relationalDataService.event.insert(event);
+      const invalidTransaction = {ctx: {}} as ITransaction;
+
+      await expect(relationalDataService.event.findById('event-1', invalidTransaction)).rejects.toBeInstanceOf(
+        TypeError,
+      );
+      await expect(
+        relationalDataService.event.findById('event-1', {...invalidTransaction, lock: 'pessimistic_write'}),
+      ).rejects.toBeInstanceOf(TypeError);
+      await expect(
+        relationalDataService.event.update(
+          'event-1',
+          {deletedAt: new Date('2023-01-02T00:00:00Z')},
+          invalidTransaction,
+        ),
+      ).rejects.toBeInstanceOf(TypeError);
+
+      const [unchanged] = await relationalDataService.event.findById('event-1');
+      expect(unchanged).toMatchObject(event);
+    });
+
     it('should find event by id with pessimistic_write lock', async () => {
       // First insert test data
       const event = {
@@ -94,9 +129,9 @@ describe('EventRepository', () => {
 
       // Look it up with a lock inside a transaction
       const result: {result: IEvent | null; queryDetails: IQueryDetails} = await relationalDataService.transaction(
-        async (ctx) => {
+        async (trx) => {
           const [foundEvent, queryDetails] = await relationalDataService.event.findById('event-1', {
-            ctx,
+            ...trx,
             lock: 'pessimistic_write',
           });
 
@@ -130,8 +165,8 @@ describe('EventRepository', () => {
         releaseLock = resolve;
       });
 
-      const lockHolder = relationalDataService.transaction(async (ctx) => {
-        await relationalDataService.event.findById('event-1', {ctx, lock: 'pessimistic_write'});
+      const lockHolder = relationalDataService.transaction(async (trx) => {
+        await relationalDataService.event.findById('event-1', {...trx, lock: 'pessimistic_write'});
         notifyLockAcquired();
         await lockRelease;
       });
@@ -140,9 +175,9 @@ describe('EventRepository', () => {
 
       try {
         await expect(
-          relationalDataService.transaction((ctx) =>
+          relationalDataService.transaction((trx) =>
             relationalDataService.event.findById('event-1', {
-              ctx,
+              ...trx,
               lock: 'pessimistic_write',
               onLocked: 'nowait',
             }),
@@ -176,8 +211,8 @@ describe('EventRepository', () => {
         releaseLock = resolve;
       });
 
-      const lockHolder = relationalDataService.transaction(async (ctx) => {
-        await relationalDataService.event.findById('event-1', {ctx, lock: 'pessimistic_write'});
+      const lockHolder = relationalDataService.transaction(async (trx) => {
+        await relationalDataService.event.findById('event-1', {...trx, lock: 'pessimistic_write'});
         notifyLockAcquired();
         await lockRelease;
       });
@@ -186,12 +221,17 @@ describe('EventRepository', () => {
 
       try {
         await expect(
-          relationalDataService.transaction(async (ctx) => {
-            await ctx.query("SET LOCAL lock_timeout = '1ms'");
-            return relationalDataService.event.findById('event-1', {
-              ctx,
-              lock: 'pessimistic_write',
-            });
+          relationalDataService.dataSource.transaction(async (manager) => {
+            await manager.query("SET LOCAL lock_timeout = '1ms'");
+            const trx = createTransactionHandle(relationalDataService.dataSource, manager);
+            try {
+              return await relationalDataService.event.findById('event-1', {
+                ...trx,
+                lock: 'pessimistic_write',
+              });
+            } finally {
+              invalidateTransactionHandle(trx);
+            }
           }),
         ).rejects.toBeInstanceOf(QueryFailedError);
       } finally {
@@ -254,17 +294,19 @@ describe('EventRepository', () => {
       const newUpdatedAt = new Date('2023-01-02T00:00:00Z');
 
       // Update inside a transaction
-      await relationalDataService.transaction(async (ctx) => {
+      await relationalDataService.transaction(async (trx) => {
         const [, queryDetails] = await relationalDataService.event.update(
           'event-1',
           {
             deletedAt: newDeletedAt,
             updatedAt: newUpdatedAt,
           },
-          {ctx},
+          trx,
         );
 
         expect(queryDetails.queryString).toContain('UPDATE');
+        const [updatedInsideTransaction] = await relationalDataService.event.findById('event-1', trx);
+        expect(updatedInsideTransaction).toMatchObject({deletedAt: newDeletedAt, updatedAt: newUpdatedAt});
       });
 
       // Verify the changes were applied
@@ -289,14 +331,49 @@ describe('EventRepository', () => {
       await relationalDataService.event.insert(event);
 
       await expect(
-        relationalDataService.transaction(async (ctx) => {
-          await relationalDataService.event.update('event-1', {deletedAt: new Date('2023-01-02T00:00:00Z')}, {ctx});
+        relationalDataService.transaction(async (trx) => {
+          await relationalDataService.event.update('event-1', {deletedAt: new Date('2023-01-02T00:00:00Z')}, trx);
           throw new Error('boom');
         }),
       ).rejects.toThrow('boom');
       const [found] = await relationalDataService.event.findById('event-1');
 
       expect(found?.deletedAt).toBeNull();
+    });
+
+    it('rolls back writes made through separate repositories with the same handle', async () => {
+      const event = {
+        id: 'event-1',
+        name: 'Test Event',
+        currencyId: 'currency-1',
+        pinCode: '1234',
+        createdAt: new Date('2023-01-01T00:00:00Z'),
+        updatedAt: new Date('2023-01-01T00:00:00Z'),
+        deletedAt: null,
+      };
+      await relationalDataService.event.insert(event);
+
+      await expect(
+        relationalDataService.transaction(async (trx) => {
+          await relationalDataService.event.update('event-1', {deletedAt: new Date('2023-01-02T00:00:00Z')}, trx);
+          await relationalDataService.userInfo.insert(
+            {
+              id: 'user-1',
+              eventId: 'event-1',
+              name: 'Test User',
+              createdAt: new Date('2023-01-01T00:00:00Z'),
+              updatedAt: new Date('2023-01-01T00:00:00Z'),
+            },
+            trx,
+          );
+          throw new Error('rollback both repositories');
+        }),
+      ).rejects.toThrow('rollback both repositories');
+
+      const [foundEvent] = await relationalDataService.event.findById('event-1');
+      const [users] = await relationalDataService.userInfo.findByEventId('event-1');
+      expect(foundEvent?.deletedAt).toBeNull();
+      expect(users).toHaveLength(0);
     });
   });
 

@@ -1,6 +1,8 @@
-import type {QueryBuilder} from 'typeorm';
+import type {DataSource, EntityTarget, ObjectLiteral, QueryBuilder, Repository} from 'typeorm';
 
-import {IQueryDetails} from '#domain/abstracts/relational-data-service/types';
+import {IQueryDetails, ITransaction} from '#domain/abstracts/relational-data-service/types';
+
+import {resolveTransactionManager} from '../transaction-context';
 
 export class BaseRepository {
   private readonly showQueryDetails: boolean;
@@ -18,5 +20,14 @@ export class BaseRepository {
       queryString: queryBuilder.getQuery(),
       queryParameters: queryBuilder.getParameters(),
     };
+  }
+
+  protected getRepository<TEntity extends ObjectLiteral>(
+    dataSource: DataSource,
+    entity: EntityTarget<TEntity>,
+    trx?: ITransaction,
+  ): Repository<TEntity> {
+    const manager = resolveTransactionManager(dataSource, trx);
+    return manager === undefined ? dataSource.getRepository(entity) : manager.getRepository(entity);
   }
 }
