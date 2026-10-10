@@ -1,4 +1,4 @@
-import {DataSource, EntityManager, Repository} from 'typeorm';
+import {DataSource} from 'typeorm';
 
 import {EventShareTokenRepositoryAbstract} from '#domain/abstracts/relational-data-service/repositories/event-share-token.repository';
 import {IQueryDetails} from '#domain/abstracts/relational-data-service/types';
@@ -22,9 +22,7 @@ export class EventShareTokenRepository extends BaseRepository implements EventSh
     token: string,
     trx,
   ): Promise<[result: IEventShareToken | null, queryDetails: IQueryDetails]> => {
-    const ctx = trx?.ctx instanceof EntityManager ? trx.ctx : undefined;
-
-    let query = this.getRepository(ctx).createQueryBuilder(this.queryName);
+    let query = this.getRepository(this.dataSource, EventShareTokenEntity, trx).createQueryBuilder(this.queryName);
 
     query = query.where(`${this.queryName}.token = :token`, {token});
 
@@ -38,9 +36,7 @@ export class EventShareTokenRepository extends BaseRepository implements EventSh
     eventId: string,
     trx,
   ): Promise<[result: IEventShareToken | null, queryDetails: IQueryDetails]> => {
-    const ctx = trx?.ctx instanceof EntityManager ? trx.ctx : undefined;
-
-    let query = this.getRepository(ctx).createQueryBuilder(this.queryName);
+    let query = this.getRepository(this.dataSource, EventShareTokenEntity, trx).createQueryBuilder(this.queryName);
 
     query = query
       .where(`${this.queryName}.event_id = :eventId`, {eventId})
@@ -56,9 +52,7 @@ export class EventShareTokenRepository extends BaseRepository implements EventSh
 
   public findAll: EventShareTokenRepositoryAbstract['findAll'] = async (input, trx) => {
     const {limit} = input;
-    const ctx = trx?.ctx instanceof EntityManager ? trx.ctx : undefined;
-
-    let query = this.getRepository(ctx).createQueryBuilder(this.queryName);
+    let query = this.getRepository(this.dataSource, EventShareTokenEntity, trx).createQueryBuilder(this.queryName);
 
     query = query.limit(limit);
 
@@ -72,9 +66,10 @@ export class EventShareTokenRepository extends BaseRepository implements EventSh
     input: IEventShareToken | IEventShareToken[],
     trx,
   ): Promise<[result: undefined, queryDetails: IQueryDetails]> => {
-    const ctx = trx?.ctx instanceof EntityManager ? trx.ctx : undefined;
-
-    const query = this.getRepository(ctx).createQueryBuilder().insert().values(input);
+    const query = this.getRepository(this.dataSource, EventShareTokenEntity, trx)
+      .createQueryBuilder()
+      .insert()
+      .values(input);
     const queryDetails = this.getQueryDetails(query);
 
     await query.execute();
@@ -86,9 +81,10 @@ export class EventShareTokenRepository extends BaseRepository implements EventSh
     token: string,
     trx,
   ): Promise<[result: undefined, queryDetails: IQueryDetails]> => {
-    const ctx = trx?.ctx instanceof EntityManager ? trx.ctx : undefined;
-
-    const query = this.getRepository(ctx).createQueryBuilder().delete().where('token = :token', {token});
+    const query = this.getRepository(this.dataSource, EventShareTokenEntity, trx)
+      .createQueryBuilder()
+      .delete()
+      .where('token = :token', {token});
 
     const queryDetails = this.getQueryDetails(query);
 
@@ -101,8 +97,7 @@ export class EventShareTokenRepository extends BaseRepository implements EventSh
     {expiresBefore, limit},
     trx,
   ) => {
-    const ctx = trx?.ctx instanceof EntityManager ? trx.ctx : undefined;
-    const repository = this.getRepository(ctx);
+    const repository = this.getRepository(this.dataSource, EventShareTokenEntity, trx);
     const candidates = repository
       .createQueryBuilder(this.queryName)
       .select(`${this.queryName}.token`)
@@ -119,11 +114,5 @@ export class EventShareTokenRepository extends BaseRepository implements EventSh
     const result = await query.execute();
 
     return [result.affected ?? 0, queryDetails];
-  };
-
-  private readonly getRepository = (manager?: EntityManager): Repository<EventShareTokenEntity> => {
-    return manager != null
-      ? manager.getRepository(EventShareTokenEntity)
-      : this.dataSource.getRepository(EventShareTokenEntity);
   };
 }

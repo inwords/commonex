@@ -1,5 +1,4 @@
 import {Injectable} from '@nestjs/common';
-import {EntityManager} from 'typeorm';
 
 import {getCurrentDateWithoutTimeUTC} from '#packages/date-utils';
 import {UseCase} from '#packages/use-case';
@@ -18,15 +17,13 @@ export class FetchDailyCurrencyRatesUseCase implements UseCase<void, Output> {
   ) {}
 
   public async execute(): Promise<Output> {
-    return this.rDataService.transaction<Output, EntityManager>(async (ctx) => {
-      const rows = await ctx.query<{acquired: boolean}[]>(
-        `SELECT pg_try_advisory_xact_lock(hashtextextended($1, 0)) AS acquired`,
-        ['commonex:cron:currency-rates'],
-      );
-      if (rows[0]?.acquired !== true) return {acquired: false};
+    return this.rDataService.transaction<Output>(async (trx) => {
+      if (!(await this.rDataService.tryAcquireTransactionLock('commonex:cron:currency-rates', trx))) {
+        return {acquired: false};
+      }
 
       const date = getCurrentDateWithoutTimeUTC();
-      await this.fetchAndSaveCurrencyRateSharedUseCase.execute({date, trx: {ctx}});
+      await this.fetchAndSaveCurrencyRateSharedUseCase.execute({date, trx});
 
       return {acquired: true};
     });

@@ -55,23 +55,21 @@ describe('IdempotencyKeyRepository', () => {
   });
 
   it('acquires an idempotency lock once per key until the transaction finishes', async () => {
-    await relationalDataService.dataSource.transaction(async (manager) => {
-      const [acquired, details] = await relationalDataService.idempotencyKey.tryAcquireLock('key-1', {ctx: manager});
+    await relationalDataService.transaction(async (trx) => {
+      const [acquired, details] = await relationalDataService.idempotencyKey.tryAcquireLock('key-1', trx);
 
       expect(acquired).toBe(true);
       expect(details).toMatchSnapshot();
 
-      await relationalDataService.dataSource.transaction(async (competingManager) => {
-        const [competingAcquired] = await relationalDataService.idempotencyKey.tryAcquireLock('key-1', {
-          ctx: competingManager,
-        });
+      await relationalDataService.transaction(async (competingTrx) => {
+        const [competingAcquired] = await relationalDataService.idempotencyKey.tryAcquireLock('key-1', competingTrx);
 
         expect(competingAcquired).toBe(false);
       });
     });
 
-    await relationalDataService.dataSource.transaction(async (manager) => {
-      const [acquired] = await relationalDataService.idempotencyKey.tryAcquireLock('key-1', {ctx: manager});
+    await relationalDataService.transaction(async (trx) => {
+      const [acquired] = await relationalDataService.idempotencyKey.tryAcquireLock('key-1', trx);
       expect(acquired).toBe(true);
     });
   });

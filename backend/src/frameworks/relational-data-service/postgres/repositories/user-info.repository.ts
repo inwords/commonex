@@ -1,4 +1,4 @@
-import {DataSource, EntityManager, Repository} from 'typeorm';
+import {DataSource} from 'typeorm';
 
 import {UserInfoRepositoryAbstract} from '#domain/abstracts/relational-data-service/repositories/user-info.repository';
 import {IQueryDetails} from '#domain/abstracts/relational-data-service/types';
@@ -21,9 +21,7 @@ export class UserInfoRepository extends BaseRepository implements UserInfoReposi
     eventId: IUserInfo['eventId'],
     trx,
   ): Promise<[result: IUserInfo[], queryDetails: IQueryDetails]> => {
-    const ctx = trx?.ctx instanceof EntityManager ? trx.ctx : undefined;
-
-    let query = this.getRepository(ctx).createQueryBuilder(this.queryName);
+    let query = this.getRepository(this.dataSource, UserInfoEntity, trx).createQueryBuilder(this.queryName);
 
     query = query.where(`${this.queryName}.event_id = :eventId`, {
       eventId,
@@ -37,9 +35,7 @@ export class UserInfoRepository extends BaseRepository implements UserInfoReposi
 
   public findAll: UserInfoRepositoryAbstract['findAll'] = async (input, trx) => {
     const {limit} = input;
-    const ctx = trx?.ctx instanceof EntityManager ? trx.ctx : undefined;
-
-    let query = this.getRepository(ctx).createQueryBuilder(this.queryName);
+    let query = this.getRepository(this.dataSource, UserInfoEntity, trx).createQueryBuilder(this.queryName);
 
     query = query.limit(limit);
 
@@ -53,17 +49,11 @@ export class UserInfoRepository extends BaseRepository implements UserInfoReposi
     input: IUserInfo | IUserInfo[],
     trx,
   ): Promise<[result: undefined, queryDetails: IQueryDetails]> => {
-    const ctx = trx?.ctx instanceof EntityManager ? trx.ctx : undefined;
-
-    const query = this.getRepository(ctx).createQueryBuilder().insert().values(input);
+    const query = this.getRepository(this.dataSource, UserInfoEntity, trx).createQueryBuilder().insert().values(input);
     const queryDetails = this.getQueryDetails(query);
 
     await query.execute();
 
     return [undefined, queryDetails];
-  };
-
-  private readonly getRepository = (manager?: EntityManager): Repository<UserInfoEntity> => {
-    return manager != null ? manager.getRepository(UserInfoEntity) : this.dataSource.getRepository(UserInfoEntity);
   };
 }

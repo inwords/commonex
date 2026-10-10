@@ -1,9 +1,11 @@
-import {DataSource, EntityManager, Repository} from 'typeorm';
+import {DataSource} from 'typeorm';
 
 import {IdempotencyKeyRepositoryAbstract} from '#domain/abstracts/relational-data-service/repositories/idempotency-key.repository';
 
 import {IdempotencyKeyEntity} from '#frameworks/relational-data-service/postgres/entities/idempotency-key.entity';
 import {BaseRepository} from '#frameworks/relational-data-service/postgres/repositories/base.repository';
+
+import {requireTransactionManager} from '../transaction-context';
 
 export class IdempotencyKeyRepository extends BaseRepository implements IdempotencyKeyRepositoryAbstract {
   readonly dataSource: DataSource;
@@ -16,9 +18,7 @@ export class IdempotencyKeyRepository extends BaseRepository implements Idempote
   }
 
   readonly findByKey: IdempotencyKeyRepositoryAbstract['findByKey'] = async (key, trx) => {
-    const ctx = trx?.ctx instanceof EntityManager ? trx.ctx : undefined;
-
-    const query = this.getRepository(ctx)
+    const query = this.getRepository(this.dataSource, IdempotencyKeyEntity, trx)
       .createQueryBuilder(this.queryName)
       .where(`${this.queryName}.key = :key`, {key});
 
@@ -29,9 +29,9 @@ export class IdempotencyKeyRepository extends BaseRepository implements Idempote
   };
 
   readonly findAll: IdempotencyKeyRepositoryAbstract['findAll'] = async ({limit}, trx) => {
-    const ctx = trx?.ctx instanceof EntityManager ? trx.ctx : undefined;
-
-    const query = this.getRepository(ctx).createQueryBuilder(this.queryName).limit(limit);
+    const query = this.getRepository(this.dataSource, IdempotencyKeyEntity, trx)
+      .createQueryBuilder(this.queryName)
+      .limit(limit);
 
     const queryDetails = this.getQueryDetails(query);
     const result = await query.getMany();
@@ -40,9 +40,10 @@ export class IdempotencyKeyRepository extends BaseRepository implements Idempote
   };
 
   readonly insert: IdempotencyKeyRepositoryAbstract['insert'] = async (input, trx) => {
-    const ctx = trx?.ctx instanceof EntityManager ? trx.ctx : undefined;
-
-    const query = this.getRepository(ctx).createQueryBuilder().insert().values(input);
+    const query = this.getRepository(this.dataSource, IdempotencyKeyEntity, trx)
+      .createQueryBuilder()
+      .insert()
+      .values(input);
     const queryDetails = this.getQueryDetails(query);
 
     await query.execute();
@@ -51,13 +52,10 @@ export class IdempotencyKeyRepository extends BaseRepository implements Idempote
   };
 
   readonly tryAcquireLock: IdempotencyKeyRepositoryAbstract['tryAcquireLock'] = async (key, trx) => {
-    if (!(trx.ctx instanceof EntityManager)) {
-      throw new Error('Idempotency lock requires an active transaction');
-    }
-
+    const manager = requireTransactionManager(this.dataSource, trx);
     const queryString = 'SELECT pg_try_advisory_xact_lock(hashtextextended($1, 0)) AS "acquired"';
     const queryParameters = [key];
-    const [result] = await trx.ctx.query<{acquired: boolean}[]>(queryString, queryParameters);
+    const [result] = await manager.query<{acquired: boolean}[]>(queryString, queryParameters);
 
     return [result?.acquired === true, {queryString, queryParameters}];
   };
@@ -68,9 +66,10 @@ export class IdempotencyKeyRepository extends BaseRepository implements Idempote
       throw new Error('Empty criteria are not allowed for the delete method');
     }
 
-    const ctx = trx?.ctx instanceof EntityManager ? trx.ctx : undefined;
-
-    const query = this.getRepository(ctx).createQueryBuilder().delete().where(criteria);
+    const query = this.getRepository(this.dataSource, IdempotencyKeyEntity, trx)
+      .createQueryBuilder()
+      .delete()
+      .where(criteria);
 
     const queryDetails = this.getQueryDetails(query);
 
@@ -83,8 +82,7 @@ export class IdempotencyKeyRepository extends BaseRepository implements Idempote
     {expiresBefore, limit},
     trx,
   ) => {
-    const ctx = trx?.ctx instanceof EntityManager ? trx.ctx : undefined;
-    const repository = this.getRepository(ctx);
+    const repository = this.getRepository(this.dataSource, IdempotencyKeyEntity, trx);
     const candidates = repository
       .createQueryBuilder(this.queryName)
       .select(`${this.queryName}.key`)
@@ -101,11 +99,5 @@ export class IdempotencyKeyRepository extends BaseRepository implements Idempote
     const result = await query.execute();
 
     return [result.affected ?? 0, queryDetails];
-  };
-
-  private readonly getRepository = (manager?: EntityManager): Repository<IdempotencyKeyEntity> => {
-    return manager != null
-      ? manager.getRepository(IdempotencyKeyEntity)
-      : this.dataSource.getRepository(IdempotencyKeyEntity);
   };
 }

@@ -1,6 +1,7 @@
-import {DataSource} from 'typeorm';
+import {DataSource, EntityManager} from 'typeorm';
 
 import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-service/relational-data-service';
+import {ITransaction, ITransactionIsolationLevel} from '#domain/abstracts/relational-data-service/types';
 
 import {CurrencyRateRepository} from '#frameworks/relational-data-service/postgres/repositories/currency-rate.repository';
 import {CurrencyRepository} from '#frameworks/relational-data-service/postgres/repositories/currency.repository';
@@ -11,12 +12,12 @@ import {IdempotencyKeyRepository} from '#frameworks/relational-data-service/post
 import {UserInfoRepository} from '#frameworks/relational-data-service/postgres/repositories/user-info.repository';
 
 import {DbConfig, createTypeormConfigDefault} from './config';
+import {createTransactionHandle, invalidateTransactionHandle, requireTransactionManager} from './transaction-context';
 
 export class RelationalDataService implements RelationalDataServiceAbstract {
   readonly dbConfig: DbConfig;
   readonly dataSource: DataSource;
   readonly showQueryDetails: boolean;
-  readonly transaction;
 
   readonly event: EventRepository;
   readonly userInfo: UserInfoRepository;
@@ -29,7 +30,6 @@ export class RelationalDataService implements RelationalDataServiceAbstract {
   constructor({dbConfig, showQueryDetails}: {dbConfig: DbConfig; showQueryDetails: boolean}) {
     this.dbConfig = dbConfig;
     this.dataSource = new DataSource(createTypeormConfigDefault(dbConfig));
-    this.transaction = this.dataSource.transaction.bind(this.dataSource);
     this.showQueryDetails = showQueryDetails;
 
     this.event = new EventRepository({dataSource: this.dataSource, showQueryDetails});
@@ -39,6 +39,46 @@ export class RelationalDataService implements RelationalDataServiceAbstract {
     this.currencyRate = new CurrencyRateRepository({dataSource: this.dataSource, showQueryDetails});
     this.eventShareToken = new EventShareTokenRepository({dataSource: this.dataSource, showQueryDetails});
     this.idempotencyKey = new IdempotencyKeyRepository({dataSource: this.dataSource, showQueryDetails});
+  }
+
+  transaction<T>(runInTransaction: (trx: ITransaction) => Promise<T>): Promise<T>;
+  transaction<T>(
+    isolationLevel: ITransactionIsolationLevel,
+    runInTransaction: (trx: ITransaction) => Promise<T>,
+  ): Promise<T>;
+  transaction<T>(
+    isolationLevelOrCallback: ITransactionIsolationLevel | ((trx: ITransaction) => Promise<T>),
+    maybeCallback?: (trx: ITransaction) => Promise<T>,
+  ): Promise<T> {
+    const runInTransaction = typeof isolationLevelOrCallback === 'function' ? isolationLevelOrCallback : maybeCallback;
+    if (runInTransaction == null) {
+      throw new TypeError('A transaction callback is required');
+    }
+
+    const runWithHandle = async (manager: EntityManager): Promise<T> => {
+      const trx = createTransactionHandle(this.dataSource, manager);
+      try {
+        return await runInTransaction(trx);
+      } finally {
+        invalidateTransactionHandle(trx);
+      }
+    };
+
+    if (typeof isolationLevelOrCallback === 'function') {
+      return this.dataSource.transaction(runWithHandle);
+    }
+
+    return this.dataSource.transaction(isolationLevelOrCallback, runWithHandle);
+  }
+
+  async tryAcquireTransactionLock(key: string, trx: ITransaction): Promise<boolean> {
+    const manager = requireTransactionManager(this.dataSource, trx);
+    const rows = await manager.query<{acquired: boolean}[]>(
+      'SELECT pg_try_advisory_xact_lock(hashtextextended($1, 0)) AS acquired',
+      [key],
+    );
+
+    return rows[0]?.acquired === true;
   }
 
   async initialize(): Promise<void> {

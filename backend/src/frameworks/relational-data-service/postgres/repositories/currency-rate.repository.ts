@@ -1,4 +1,4 @@
-import {DataSource, EntityManager, Repository} from 'typeorm';
+import {DataSource} from 'typeorm';
 
 import {CurrencyRateRepositoryAbstract} from '#domain/abstracts/relational-data-service/repositories/currency-rate.repository';
 import {IQueryDetails, ITransactionWithLock} from '#domain/abstracts/relational-data-service/types';
@@ -24,9 +24,7 @@ export class CurrencyRateRepository extends BaseRepository implements CurrencyRa
     date: ICurrencyRate['date'],
     trx,
   ): Promise<[result: ICurrencyRate | null, queryDetails: IQueryDetails]> => {
-    const ctx = trx?.ctx instanceof EntityManager ? trx.ctx : undefined;
-
-    let query = this.getRepository(ctx).createQueryBuilder(this.queryName);
+    let query = this.getRepository(this.dataSource, CurrencyRateEntity, trx).createQueryBuilder(this.queryName);
 
     query = query.where(`${this.queryName}.date = :date`, {
       date,
@@ -40,13 +38,12 @@ export class CurrencyRateRepository extends BaseRepository implements CurrencyRa
 
   readonly findSupportedCurrenciesWithRatesVersionByDate: CurrencyRateRepositoryAbstract['findSupportedCurrenciesWithRatesVersionByDate'] =
     async (date: string, trx: ITransactionWithLock | undefined) => {
-      const ctx = trx?.ctx instanceof EntityManager ? trx.ctx : undefined;
       const supportedCurrencyFilter = createSupportedCurrencyCodesFilter(
         'currency',
         'supportedCurrencyCodesForVersion',
       );
 
-      let query = this.getRepository(ctx)
+      let query = this.getRepository(this.dataSource, CurrencyRateEntity, trx)
         .createQueryBuilder(this.queryName)
         .select(`${this.queryName}.updatedAt`, 'rateUpdatedAt')
         .addSelect((subQuery) => {
@@ -81,9 +78,7 @@ export class CurrencyRateRepository extends BaseRepository implements CurrencyRa
 
   public findAll: CurrencyRateRepositoryAbstract['findAll'] = async (input, trx) => {
     const {limit} = input;
-    const ctx = trx?.ctx instanceof EntityManager ? trx.ctx : undefined;
-
-    let query = this.getRepository(ctx).createQueryBuilder(this.queryName);
+    let query = this.getRepository(this.dataSource, CurrencyRateEntity, trx).createQueryBuilder(this.queryName);
 
     query = query.limit(limit);
 
@@ -97,9 +92,7 @@ export class CurrencyRateRepository extends BaseRepository implements CurrencyRa
     input: ICurrencyRate | ICurrencyRate[],
     trx,
   ): Promise<[result: undefined, queryDetails: IQueryDetails]> => {
-    const ctx = trx?.ctx instanceof EntityManager ? trx.ctx : undefined;
-
-    const query = this.getRepository(ctx)
+    const query = this.getRepository(this.dataSource, CurrencyRateEntity, trx)
       .createQueryBuilder()
       .insert()
       .values(input)
@@ -109,11 +102,5 @@ export class CurrencyRateRepository extends BaseRepository implements CurrencyRa
     await query.execute();
 
     return [undefined, queryDetails];
-  };
-
-  private readonly getRepository = (manager?: EntityManager): Repository<CurrencyRateEntity> => {
-    return manager != null
-      ? manager.getRepository(CurrencyRateEntity)
-      : this.dataSource.getRepository(CurrencyRateEntity);
   };
 }

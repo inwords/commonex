@@ -18,6 +18,7 @@ export abstract class RelationalDataServiceAbstract implements IRelationalDataSe
 
   abstract initialize: IRelationalDataService['initialize'];
   abstract transaction: IRelationalDataService['transaction'];
+  abstract tryAcquireTransactionLock: IRelationalDataService['tryAcquireTransactionLock'];
   abstract destroy: IRelationalDataService['destroy'];
 
   abstract healthCheck: IRelationalDataService['healthCheck'];

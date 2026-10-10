@@ -99,9 +99,7 @@ export class IdempotencySharedUseCase {
     body: object,
     fn: (trx: ITransaction) => Promise<Result<TValue, TError>>,
   ): Promise<Result<TValue, TError | IdempotencyError>> {
-    return this.rDataService.transaction(async (ctx) => {
-      const trx = {ctx};
-
+    return this.rDataService.transaction(async (trx) => {
       if (!key) {
         return fn(trx);
       }
