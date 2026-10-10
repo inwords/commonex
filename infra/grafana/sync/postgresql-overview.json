@@ -1,0 +1,1135 @@
+{
+  "apiVersion": "dashboard.grafana.app/v1",
+  "kind": "Dashboard",
+  "metadata": {
+    "name": "postgresql-overview-v1"
+  },
+  "spec": {
+    "annotations": {
+      "list": [
+        {
+          "builtIn": 1,
+          "datasource": {
+            "type": "grafana",
+            "uid": "-- Grafana --"
+          },
+          "enable": true,
+          "hide": true,
+          "iconColor": "rgba(0, 211, 255, 1)",
+          "name": "Annotations \u0026 Alerts",
+          "type": "dashboard"
+        }
+      ]
+    },
+    "description": "Database-client history and PostgreSQL current diagnostics. No extension or host collector changes.",
+    "editable": true,
+    "links": [
+      {
+        "keepTime": true,
+        "title": "Main Dashboard",
+        "type": "link",
+        "url": "/d/de58sw4nub9q8f"
+      }
+    ],
+    "panels": [
+      {
+        "datasource": {
+          "type": "victoriametrics-metrics-datasource",
+          "uid": "bf05veuz39r0ge"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisBorderShow": false,
+              "axisCenteredZero": false,
+              "axisColorMode": "text",
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "barWidthFactor": 0.6,
+              "drawStyle": "line",
+              "fillOpacity": 0,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "viz": false
+              },
+              "insertNulls": false,
+              "lineInterpolation": "linear",
+              "lineStyle": {
+                "fill": "solid"
+              },
+              "lineWidth": 1,
+              "pointSize": 3,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "always",
+              "showValues": false,
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "fieldMinMax": false,
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            },
+            "unit": "none"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 0
+        },
+        "id": 1,
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom",
+            "showLegend": true
+          },
+          "tooltip": {
+            "hideZeros": false,
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "pluginVersion": "12.4.1",
+        "targets": [
+          {
+            "datasource": {
+              "type": "victoriametrics-metrics-datasource",
+              "uid": "bf05veuz39r0ge"
+            },
+            "editorMode": "code",
+            "expr": "sum by(db.client.connection.pool.name, db.client.connection.state) (\r\n    db.client.connection.count\r\n)",
+            "format": "time_series",
+            "legendFormat": "{{db.client.connection.pool.name}} {{db.client.connection.state}}",
+            "range": true,
+            "refId": "A"
+          }
+        ],
+        "title": "Backend DB Connections",
+        "type": "timeseries"
+      },
+      {
+        "datasource": {
+          "type": "victoriametrics-metrics-datasource",
+          "uid": "bf05veuz39r0ge"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisBorderShow": false,
+              "axisCenteredZero": false,
+              "axisColorMode": "text",
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "barWidthFactor": 0.6,
+              "drawStyle": "line",
+              "fillOpacity": 0,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "viz": false
+              },
+              "insertNulls": false,
+              "lineInterpolation": "linear",
+              "lineStyle": {
+                "fill": "solid"
+              },
+              "lineWidth": 1,
+              "pointSize": 3,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "always",
+              "showValues": false,
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "fieldMinMax": false,
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            },
+            "unit": "none"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 0
+        },
+        "id": 2,
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom",
+            "showLegend": true
+          },
+          "tooltip": {
+            "hideZeros": false,
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "pluginVersion": "12.4.1",
+        "targets": [
+          {
+            "datasource": {
+              "type": "victoriametrics-metrics-datasource",
+              "uid": "bf05veuz39r0ge"
+            },
+            "editorMode": "code",
+            "expr": "sum by (\"host.name\") ({\"db.client.connection.pending_requests\"})",
+            "format": "time_series",
+            "legendFormat": "{{host.name}}",
+            "range": true,
+            "refId": "A"
+          }
+        ],
+        "title": "Pool Pending Requests",
+        "type": "timeseries"
+      },
+      {
+        "datasource": {
+          "type": "victoriametrics-metrics-datasource",
+          "uid": "bf05veuz39r0ge"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisBorderShow": false,
+              "axisCenteredZero": false,
+              "axisColorMode": "text",
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "barWidthFactor": 0.6,
+              "drawStyle": "line",
+              "fillOpacity": 0,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "viz": false
+              },
+              "insertNulls": false,
+              "lineInterpolation": "linear",
+              "lineStyle": {
+                "fill": "solid"
+              },
+              "lineWidth": 1,
+              "pointSize": 3,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "always",
+              "showValues": false,
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "fieldMinMax": false,
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            },
+            "unit": "ops"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 8
+        },
+        "id": 3,
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom",
+            "showLegend": true
+          },
+          "tooltip": {
+            "hideZeros": false,
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "pluginVersion": "12.4.1",
+        "targets": [
+          {
+            "datasource": {
+              "type": "victoriametrics-metrics-datasource",
+              "uid": "bf05veuz39r0ge"
+            },
+            "editorMode": "code",
+            "expr": "sum by (\"db.operation.name\") (rate({\"db.client.operation.duration_count\",\"db.operation.name\"=~\"SELECT|INSERT|UPDATE|DELETE\"}[$__rate_interval]))",
+            "format": "time_series",
+            "legendFormat": "{{db.operation.name}}",
+            "range": true,
+            "refId": "A"
+          }
+        ],
+        "title": "SQL Operations / sec",
+        "type": "timeseries"
+      },
+      {
+        "datasource": {
+          "type": "victoriametrics-metrics-datasource",
+          "uid": "bf05veuz39r0ge"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisBorderShow": false,
+              "axisCenteredZero": false,
+              "axisColorMode": "text",
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "barWidthFactor": 0.6,
+              "drawStyle": "line",
+              "fillOpacity": 0,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "viz": false
+              },
+              "insertNulls": false,
+              "lineInterpolation": "linear",
+              "lineStyle": {
+                "fill": "solid"
+              },
+              "lineWidth": 1,
+              "pointSize": 3,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "always",
+              "showValues": false,
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "fieldMinMax": false,
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            },
+            "unit": "s"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 8
+        },
+        "id": 4,
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom",
+            "showLegend": true
+          },
+          "tooltip": {
+            "hideZeros": false,
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "pluginVersion": "12.4.1",
+        "targets": [
+          {
+            "datasource": {
+              "type": "victoriametrics-metrics-datasource",
+              "uid": "bf05veuz39r0ge"
+            },
+            "editorMode": "code",
+            "expr": "sum by (\"db.operation.name\") (rate({\"db.client.operation.duration_sum\",\"db.operation.name\"=~\"SELECT|INSERT|UPDATE|DELETE\"}[$__rate_interval])) / sum by (\"db.operation.name\") (rate({\"db.client.operation.duration_count\",\"db.operation.name\"=~\"SELECT|INSERT|UPDATE|DELETE\"}[$__rate_interval]))",
+            "format": "time_series",
+            "legendFormat": "{{db.operation.name}}",
+            "range": true,
+            "refId": "A"
+          }
+        ],
+        "title": "SQL Mean Latency",
+        "type": "timeseries"
+      },
+      {
+        "datasource": {
+          "type": "victoriametrics-metrics-datasource",
+          "uid": "bf05veuz39r0ge"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisBorderShow": false,
+              "axisCenteredZero": false,
+              "axisColorMode": "text",
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "barWidthFactor": 0.6,
+              "drawStyle": "line",
+              "fillOpacity": 0,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "viz": false
+              },
+              "insertNulls": false,
+              "lineInterpolation": "linear",
+              "lineStyle": {
+                "fill": "solid"
+              },
+              "lineWidth": 1,
+              "pointSize": 3,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "always",
+              "showValues": false,
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "fieldMinMax": false,
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            },
+            "unit": "s"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 16
+        },
+        "id": 5,
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom",
+            "showLegend": true
+          },
+          "tooltip": {
+            "hideZeros": false,
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "pluginVersion": "12.4.1",
+        "targets": [
+          {
+            "datasource": {
+              "type": "victoriametrics-metrics-datasource",
+              "uid": "bf05veuz39r0ge"
+            },
+            "editorMode": "code",
+            "expr": "histogram_quantile(0.95, sum by (le, \"db.operation.name\") (rate({\"db.client.operation.duration_bucket\",\"db.operation.name\"=~\"SELECT|INSERT|UPDATE|DELETE\"}[$__rate_interval])))",
+            "format": "time_series",
+            "legendFormat": "{{db.operation.name}}",
+            "range": true,
+            "refId": "A"
+          }
+        ],
+        "title": "SQL P95 Latency",
+        "type": "timeseries"
+      },
+      {
+        "datasource": {
+          "type": "victoriametrics-metrics-datasource",
+          "uid": "bf05veuz39r0ge"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisBorderShow": false,
+              "axisCenteredZero": false,
+              "axisColorMode": "text",
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "barWidthFactor": 0.6,
+              "drawStyle": "line",
+              "fillOpacity": 0,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "viz": false
+              },
+              "insertNulls": false,
+              "lineInterpolation": "linear",
+              "lineStyle": {
+                "fill": "solid"
+              },
+              "lineWidth": 1,
+              "pointSize": 3,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "always",
+              "showValues": false,
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "fieldMinMax": false,
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            },
+            "unit": "ops"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 16
+        },
+        "id": 6,
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom",
+            "showLegend": true
+          },
+          "tooltip": {
+            "hideZeros": false,
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "pluginVersion": "12.4.1",
+        "targets": [
+          {
+            "datasource": {
+              "type": "victoriametrics-metrics-datasource",
+              "uid": "bf05veuz39r0ge"
+            },
+            "editorMode": "code",
+            "expr": "sum by (\"db.operation.name\") (rate({\"db.client.operation.duration_count\",\"db.operation.name\"=~\"COMMIT|ROLLBACK\"}[$__rate_interval]))",
+            "format": "time_series",
+            "legendFormat": "{{db.operation.name}}",
+            "range": true,
+            "refId": "A"
+          }
+        ],
+        "title": "COMMIT / ROLLBACK Operations / sec",
+        "type": "timeseries"
+      },
+      {
+        "datasource": {
+          "type": "victoriametrics-metrics-datasource",
+          "uid": "bf05veuz39r0ge"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisBorderShow": false,
+              "axisCenteredZero": false,
+              "axisColorMode": "text",
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "barWidthFactor": 0.6,
+              "drawStyle": "line",
+              "fillOpacity": 0,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "viz": false
+              },
+              "insertNulls": false,
+              "lineInterpolation": "linear",
+              "lineStyle": {
+                "fill": "solid"
+              },
+              "lineWidth": 1,
+              "pointSize": 3,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "always",
+              "showValues": false,
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "fieldMinMax": false,
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            },
+            "unit": "percent"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 24
+        },
+        "id": 7,
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom",
+            "showLegend": true
+          },
+          "tooltip": {
+            "hideZeros": false,
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "pluginVersion": "12.4.1",
+        "targets": [
+          {
+            "datasource": {
+              "type": "victoriametrics-metrics-datasource",
+              "uid": "bf05veuz39r0ge"
+            },
+            "editorMode": "code",
+            "expr": "sum by (\"container.name\") ({\"container.cpu.utilization\",\"container.image.name\"=~\"postgres:.*\"})",
+            "format": "time_series",
+            "legendFormat": "{{container.name}}",
+            "range": true,
+            "refId": "A"
+          }
+        ],
+        "title": "PostgreSQL CPU",
+        "type": "timeseries"
+      },
+      {
+        "datasource": {
+          "type": "victoriametrics-metrics-datasource",
+          "uid": "bf05veuz39r0ge"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisBorderShow": false,
+              "axisCenteredZero": false,
+              "axisColorMode": "text",
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "barWidthFactor": 0.6,
+              "drawStyle": "line",
+              "fillOpacity": 0,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "viz": false
+              },
+              "insertNulls": false,
+              "lineInterpolation": "linear",
+              "lineStyle": {
+                "fill": "solid"
+              },
+              "lineWidth": 1,
+              "pointSize": 3,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "always",
+              "showValues": false,
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "fieldMinMax": false,
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            },
+            "unit": "bytes"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 24
+        },
+        "id": 8,
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom",
+            "showLegend": true
+          },
+          "tooltip": {
+            "hideZeros": false,
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "pluginVersion": "12.4.1",
+        "targets": [
+          {
+            "datasource": {
+              "type": "victoriametrics-metrics-datasource",
+              "uid": "bf05veuz39r0ge"
+            },
+            "editorMode": "code",
+            "expr": "sum by (\"container.name\") ({\"container.memory.usage.total\",\"container.image.name\"=~\"postgres:.*\"})",
+            "format": "time_series",
+            "legendFormat": "{{container.name}}",
+            "range": true,
+            "refId": "A"
+          }
+        ],
+        "title": "PostgreSQL Memory",
+        "type": "timeseries"
+      },
+      {
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "postgres-ds"
+        },
+        "description": "Counters are cumulative since stats_reset. Buffer cache hits exclude OS cache. Database size is not free disk space.",
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "align": "auto",
+              "cellOptions": {
+                "type": "auto"
+              }
+            },
+            "mappings": []
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 9,
+          "w": 24,
+          "x": 0,
+          "y": 32
+        },
+        "id": 9,
+        "options": {
+          "cellHeight": "sm",
+          "footer": {
+            "show": false
+          },
+          "showHeader": true
+        },
+        "targets": [
+          {
+            "datasource": {
+              "type": "grafana-postgresql-datasource",
+              "uid": "postgres-ds"
+            },
+            "format": "table",
+            "rawQuery": true,
+            "rawSql": "SELECT current_database() AS database, current_setting('max_connections')::int AS max_connections, (SELECT COUNT(*) FROM pg_stat_activity WHERE backend_type = 'client backend') AS cluster_client_connections, numbackends AS database_connections, pg_database_size(datid) AS database_bytes, ROUND(100.0 * blks_hit / NULLIF(blks_hit + blks_read, 0), 2) AS cache_hit_percent_since_reset, deadlocks AS deadlocks_since_reset, temp_bytes AS temp_bytes_since_reset, stats_reset FROM pg_stat_database WHERE datname = current_database()",
+            "refId": "A"
+          }
+        ],
+        "title": "Connections \u0026 Database Health — current snapshot",
+        "type": "table"
+      },
+      {
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "postgres-ds"
+        },
+        "description": "Open transaction age, not completed transaction latency. idle in transaction is visible via state. No query text/parameters.",
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "align": "auto",
+              "cellOptions": {
+                "type": "auto"
+              }
+            },
+            "mappings": []
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 9,
+          "w": 24,
+          "x": 0,
+          "y": 41
+        },
+        "id": 10,
+        "options": {
+          "cellHeight": "sm",
+          "footer": {
+            "show": false
+          },
+          "showHeader": true
+        },
+        "targets": [
+          {
+            "datasource": {
+              "type": "grafana-postgresql-datasource",
+              "uid": "postgres-ds"
+            },
+            "format": "table",
+            "rawQuery": true,
+            "rawSql": "SELECT pid, application_name, state, ROUND(EXTRACT(EPOCH FROM clock_timestamp() - xact_start)::numeric, 3) AS transaction_age_seconds, ROUND(EXTRACT(EPOCH FROM clock_timestamp() - state_change)::numeric, 3) AS state_age_seconds, wait_event_type, wait_event FROM pg_stat_activity WHERE datname = current_database() AND backend_type = 'client backend' AND xact_start IS NOT NULL AND pid \u003c\u003e pg_backend_pid() ORDER BY xact_start LIMIT 50",
+            "refId": "A"
+          }
+        ],
+        "title": "Open Transactions — current snapshot",
+        "type": "table"
+      },
+      {
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "postgres-ds"
+        },
+        "description": "Query age is NOT lock-wait duration. No query text/parameters.",
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "align": "auto",
+              "cellOptions": {
+                "type": "auto"
+              }
+            },
+            "mappings": []
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 9,
+          "w": 24,
+          "x": 0,
+          "y": 50
+        },
+        "id": 11,
+        "options": {
+          "cellHeight": "sm",
+          "footer": {
+            "show": false
+          },
+          "showHeader": true
+        },
+        "targets": [
+          {
+            "datasource": {
+              "type": "grafana-postgresql-datasource",
+              "uid": "postgres-ds"
+            },
+            "format": "table",
+            "rawQuery": true,
+            "rawSql": "SELECT pid, application_name, state, wait_event_type, wait_event, pg_blocking_pids(pid)::text AS blocking_pids, ROUND(EXTRACT(EPOCH FROM clock_timestamp() - query_start)::numeric, 3) AS query_age_seconds FROM pg_stat_activity WHERE datname = current_database() AND pid \u003c\u003e pg_backend_pid() AND cardinality(pg_blocking_pids(pid)) \u003e 0 ORDER BY query_start LIMIT 50",
+            "refId": "A"
+          }
+        ],
+        "title": "Blocked Sessions — current snapshot",
+        "type": "table"
+      },
+      {
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "postgres-ds"
+        },
+        "description": "Live/dead rows are estimates, not measured bloat. Vacuum counters are cumulative.",
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "align": "auto",
+              "cellOptions": {
+                "type": "auto"
+              }
+            },
+            "mappings": []
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 9,
+          "w": 24,
+          "x": 0,
+          "y": 59
+        },
+        "id": 12,
+        "options": {
+          "cellHeight": "sm",
+          "footer": {
+            "show": false
+          },
+          "showHeader": true
+        },
+        "targets": [
+          {
+            "datasource": {
+              "type": "grafana-postgresql-datasource",
+              "uid": "postgres-ds"
+            },
+            "format": "table",
+            "rawQuery": true,
+            "rawSql": "SELECT schemaname, s.relname AS table_name, pg_total_relation_size(relid) AS total_bytes, pg_table_size(relid) AS table_bytes, pg_indexes_size(relid) AS index_bytes, n_live_tup AS estimated_live_rows, n_dead_tup AS estimated_dead_rows, last_autovacuum, last_autoanalyze, autovacuum_count, autoanalyze_count, age(c.relfrozenxid) AS xid_age FROM pg_stat_user_tables s JOIN pg_class c ON c.oid = s.relid ORDER BY pg_total_relation_size(relid) DESC LIMIT 50",
+            "refId": "A"
+          }
+        ],
+        "title": "Table Size \u0026 Vacuum — current snapshot",
+        "type": "table"
+      },
+      {
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "postgres-ds"
+        },
+        "description": "Only running VACUUM, including autovacuum. Empty result is normal when none is running.",
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "align": "auto",
+              "cellOptions": {
+                "type": "auto"
+              }
+            },
+            "mappings": []
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 9,
+          "w": 24,
+          "x": 0,
+          "y": 68
+        },
+        "id": 13,
+        "options": {
+          "cellHeight": "sm",
+          "footer": {
+            "show": false
+          },
+          "showHeader": true
+        },
+        "targets": [
+          {
+            "datasource": {
+              "type": "grafana-postgresql-datasource",
+              "uid": "postgres-ds"
+            },
+            "format": "table",
+            "rawQuery": true,
+            "rawSql": "SELECT p.pid, n.nspname AS schema_name, c.relname AS table_name, a.backend_type, p.phase, p.heap_blks_total, p.heap_blks_scanned, p.heap_blks_vacuumed, p.index_vacuum_count FROM pg_stat_progress_vacuum p JOIN pg_class c ON c.oid = p.relid JOIN pg_namespace n ON n.oid = c.relnamespace LEFT JOIN pg_stat_activity a ON a.pid = p.pid WHERE p.datname = current_database()",
+            "refId": "A"
+          }
+        ],
+        "title": "Vacuum Progress — current snapshot",
+        "type": "table"
+      },
+      {
+        "gridPos": {
+          "h": 5,
+          "w": 24,
+          "x": 0,
+          "y": 77
+        },
+        "id": 14,
+        "options": {
+          "content": "SQL panels show **current snapshots**, independent of the selected historical time range. Metric charts show historical backend-client and PostgreSQL-container telemetry.\n\nNot collected yet: filesystem free bytes/inodes for the PostgreSQL volume; pg_stat_statements top queries; historical server vacuum/locks/WAL; completed transaction duration. These require separately approved collectors, extension configuration or application instrumentation. No query parameters are displayed.",
+          "mode": "markdown"
+        },
+        "title": "Coverage / next collectors",
+        "type": "text"
+      }
+    ],
+    "refresh": "1m",
+    "schemaVersion": 42,
+    "tags": [
+      "postgresql",
+      "database",
+      "backend"
+    ],
+    "templating": {
+      "list": []
+    },
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "timezone": "browser",
+    "title": "PostgreSQL Overview"
+  }
+}
