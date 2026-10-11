@@ -16,12 +16,12 @@
           "enable": true,
           "hide": true,
           "iconColor": "rgba(0, 211, 255, 1)",
-          "name": "Annotations \u0026 Alerts",
+          "name": "Annotations & Alerts",
           "type": "dashboard"
         }
       ]
     },
-    "description": "Database-client history and PostgreSQL current diagnostics. No extension or host collector changes.",
+    "description": "Backend-client history, PostgreSQL server health, DB-volume capacity and current SQL diagnostics. New server/volume panels require the Collector monitoring release.",
     "editable": true,
     "links": [
       {
@@ -866,6 +866,2093 @@
       },
       {
         "datasource": {
+          "type": "victoriametrics-metrics-datasource",
+          "uid": "bf05veuz39r0ge"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "fieldMinMax": false,
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            },
+            "unit": "bytes"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "x": 0,
+          "y": 32,
+          "w": 12,
+          "h": 8
+        },
+        "id": 101,
+        "options": {
+          "reduceOptions": {
+            "values": false,
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": ""
+          },
+          "orientation": "auto",
+          "textMode": "auto",
+          "colorMode": "value",
+          "graphMode": "none",
+          "justifyMode": "auto"
+        },
+        "pluginVersion": "12.4.1",
+        "targets": [
+          {
+            "datasource": {
+              "type": "victoriametrics-metrics-datasource",
+              "uid": "bf05veuz39r0ge"
+            },
+            "refId": "A",
+            "expr": "sum({\"system.filesystem.usage\",mountpoint=\"/var/lib/postgresql/data\",state=\"free\"})",
+            "legendFormat": "Free",
+            "format": "time_series",
+            "range": false,
+            "instant": true,
+            "editorMode": "code"
+          }
+        ],
+        "title": "DB Volume Free Space",
+        "type": "stat",
+        "description": "Available bytes on the filesystem backing postgres_data, shared with any other data on that filesystem. Reserved bytes are excluded. Read-only is the Collector mount mode."
+      },
+      {
+        "datasource": {
+          "type": "victoriametrics-metrics-datasource",
+          "uid": "bf05veuz39r0ge"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "fieldMinMax": false,
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "red",
+                  "value": null
+                },
+                {
+                  "color": "orange",
+                  "value": 10
+                },
+                {
+                  "color": "green",
+                  "value": 20
+                }
+              ]
+            },
+            "unit": "percent",
+            "min": 0,
+            "max": 100
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "x": 12,
+          "y": 32,
+          "w": 12,
+          "h": 8
+        },
+        "id": 102,
+        "options": {
+          "reduceOptions": {
+            "values": false,
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": ""
+          },
+          "orientation": "auto",
+          "textMode": "auto",
+          "colorMode": "value",
+          "graphMode": "none",
+          "justifyMode": "auto"
+        },
+        "pluginVersion": "12.4.1",
+        "targets": [
+          {
+            "datasource": {
+              "type": "victoriametrics-metrics-datasource",
+              "uid": "bf05veuz39r0ge"
+            },
+            "refId": "A",
+            "expr": "100 * sum({\"system.filesystem.usage\",mountpoint=\"/var/lib/postgresql/data\",state=\"free\"}) / sum({\"system.filesystem.usage\",mountpoint=\"/var/lib/postgresql/data\"})",
+            "legendFormat": "Free",
+            "format": "time_series",
+            "range": false,
+            "instant": true,
+            "editorMode": "code"
+          }
+        ],
+        "title": "DB Volume Free %",
+        "type": "stat",
+        "description": "Free bytes / total bytes (used + free + reserved). Requires the Collector release; missing data is not zero."
+      },
+      {
+        "datasource": {
+          "type": "victoriametrics-metrics-datasource",
+          "uid": "bf05veuz39r0ge"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "fieldMinMax": false,
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "red",
+                  "value": null
+                },
+                {
+                  "color": "orange",
+                  "value": 10
+                },
+                {
+                  "color": "green",
+                  "value": 20
+                }
+              ]
+            },
+            "unit": "percent",
+            "min": 0,
+            "max": 100
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "x": 0,
+          "y": 40,
+          "w": 12,
+          "h": 8
+        },
+        "id": 103,
+        "options": {
+          "reduceOptions": {
+            "values": false,
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": ""
+          },
+          "orientation": "auto",
+          "textMode": "auto",
+          "colorMode": "value",
+          "graphMode": "none",
+          "justifyMode": "auto"
+        },
+        "pluginVersion": "12.4.1",
+        "targets": [
+          {
+            "datasource": {
+              "type": "victoriametrics-metrics-datasource",
+              "uid": "bf05veuz39r0ge"
+            },
+            "refId": "A",
+            "expr": "100 * sum({\"system.filesystem.inodes.usage\",mountpoint=\"/var/lib/postgresql/data\",state=\"free\"}) / sum({\"system.filesystem.inodes.usage\",mountpoint=\"/var/lib/postgresql/data\"})",
+            "legendFormat": "Free",
+            "format": "time_series",
+            "range": false,
+            "instant": true,
+            "editorMode": "code"
+          }
+        ],
+        "title": "DB Volume Free Inodes %",
+        "type": "stat",
+        "description": "Free inode fraction for the DB volume's backing filesystem. Not the Collector overlay root."
+      },
+      {
+        "datasource": {
+          "type": "victoriametrics-metrics-datasource",
+          "uid": "bf05veuz39r0ge"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisBorderShow": false,
+              "axisCenteredZero": false,
+              "axisColorMode": "text",
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "barWidthFactor": 0.6,
+              "drawStyle": "line",
+              "fillOpacity": 0,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "viz": false
+              },
+              "insertNulls": false,
+              "lineInterpolation": "linear",
+              "lineStyle": {
+                "fill": "solid"
+              },
+              "lineWidth": 1,
+              "pointSize": 3,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "always",
+              "showValues": false,
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "fieldMinMax": false,
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            },
+            "unit": "bytes"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "x": 12,
+          "y": 40,
+          "w": 12,
+          "h": 8
+        },
+        "id": 104,
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom",
+            "showLegend": true
+          },
+          "tooltip": {
+            "hideZeros": false,
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "pluginVersion": "12.4.1",
+        "targets": [
+          {
+            "datasource": {
+              "type": "victoriametrics-metrics-datasource",
+              "uid": "bf05veuz39r0ge"
+            },
+            "refId": "A",
+            "expr": "max by (\"postgresql.database.name\") ({\"postgresql.db_size\"})",
+            "legendFormat": "{{postgresql.database.name}}",
+            "format": "time_series",
+            "range": true,
+            "instant": false,
+            "editorMode": "code"
+          }
+        ],
+        "title": "Database Size History",
+        "type": "timeseries",
+        "description": "Native PostgreSQL database size; not filesystem free space."
+      },
+      {
+        "datasource": {
+          "type": "victoriametrics-metrics-datasource",
+          "uid": "bf05veuz39r0ge"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisBorderShow": false,
+              "axisCenteredZero": false,
+              "axisColorMode": "text",
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "barWidthFactor": 0.6,
+              "drawStyle": "line",
+              "fillOpacity": 0,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "viz": false
+              },
+              "insertNulls": false,
+              "lineInterpolation": "linear",
+              "lineStyle": {
+                "fill": "solid"
+              },
+              "lineWidth": 1,
+              "pointSize": 3,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "always",
+              "showValues": false,
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "fieldMinMax": false,
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            },
+            "unit": "s"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "x": 0,
+          "y": 48,
+          "w": 12,
+          "h": 8
+        },
+        "id": 105,
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom",
+            "showLegend": true
+          },
+          "tooltip": {
+            "hideZeros": false,
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "pluginVersion": "12.4.1",
+        "targets": [
+          {
+            "datasource": {
+              "type": "victoriametrics-metrics-datasource",
+              "uid": "bf05veuz39r0ge"
+            },
+            "refId": "A",
+            "expr": "max by (database) ({\"commonex.postgresql.transaction.oldest.seconds\"})",
+            "legendFormat": "{{database}}",
+            "format": "time_series",
+            "range": true,
+            "instant": false,
+            "editorMode": "code"
+          }
+        ],
+        "title": "Oldest Open Transaction",
+        "type": "timeseries",
+        "description": "Oldest open client transaction sampled every 30s. Short transactions can occur between scrapes. Not completed transaction latency."
+      },
+      {
+        "datasource": {
+          "type": "victoriametrics-metrics-datasource",
+          "uid": "bf05veuz39r0ge"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisBorderShow": false,
+              "axisCenteredZero": false,
+              "axisColorMode": "text",
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "barWidthFactor": 0.6,
+              "drawStyle": "line",
+              "fillOpacity": 0,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "viz": false
+              },
+              "insertNulls": false,
+              "lineInterpolation": "linear",
+              "lineStyle": {
+                "fill": "solid"
+              },
+              "lineWidth": 1,
+              "pointSize": 3,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "always",
+              "showValues": false,
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "fieldMinMax": false,
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            },
+            "unit": "none"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "x": 12,
+          "y": 48,
+          "w": 12,
+          "h": 8
+        },
+        "id": 106,
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom",
+            "showLegend": true
+          },
+          "tooltip": {
+            "hideZeros": false,
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "pluginVersion": "12.4.1",
+        "targets": [
+          {
+            "datasource": {
+              "type": "victoriametrics-metrics-datasource",
+              "uid": "bf05veuz39r0ge"
+            },
+            "refId": "A",
+            "expr": "max by (database) ({\"commonex.postgresql.transaction.open\"})",
+            "legendFormat": "{{database}} open",
+            "format": "time_series",
+            "range": true,
+            "instant": false,
+            "editorMode": "code"
+          },
+          {
+            "datasource": {
+              "type": "victoriametrics-metrics-datasource",
+              "uid": "bf05veuz39r0ge"
+            },
+            "refId": "B",
+            "expr": "max by (database) ({\"commonex.postgresql.transaction.idle\"})",
+            "legendFormat": "{{database}} idle",
+            "format": "time_series",
+            "range": true,
+            "editorMode": "code"
+          },
+          {
+            "datasource": {
+              "type": "victoriametrics-metrics-datasource",
+              "uid": "bf05veuz39r0ge"
+            },
+            "refId": "C",
+            "expr": "max by (database) ({\"commonex.postgresql.transaction.idle_aborted\"})",
+            "legendFormat": "{{database}} idle aborted",
+            "format": "time_series",
+            "range": true,
+            "editorMode": "code"
+          }
+        ],
+        "title": "Open / Idle Transactions",
+        "type": "timeseries",
+        "description": "Current open transaction count includes idle transactions; these series are not additive."
+      },
+      {
+        "datasource": {
+          "type": "victoriametrics-metrics-datasource",
+          "uid": "bf05veuz39r0ge"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisBorderShow": false,
+              "axisCenteredZero": false,
+              "axisColorMode": "text",
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "barWidthFactor": 0.6,
+              "drawStyle": "line",
+              "fillOpacity": 0,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "viz": false
+              },
+              "insertNulls": false,
+              "lineInterpolation": "linear",
+              "lineStyle": {
+                "fill": "solid"
+              },
+              "lineWidth": 1,
+              "pointSize": 3,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "always",
+              "showValues": false,
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "fieldMinMax": false,
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            },
+            "unit": "none"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "x": 0,
+          "y": 56,
+          "w": 12,
+          "h": 8
+        },
+        "id": 107,
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom",
+            "showLegend": true
+          },
+          "tooltip": {
+            "hideZeros": false,
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "pluginVersion": "12.4.1",
+        "targets": [
+          {
+            "datasource": {
+              "type": "victoriametrics-metrics-datasource",
+              "uid": "bf05veuz39r0ge"
+            },
+            "refId": "A",
+            "expr": "max by (database) ({\"commonex.postgresql.lock.waiters\"})",
+            "legendFormat": "{{database}}",
+            "format": "time_series",
+            "range": true,
+            "instant": false,
+            "editorMode": "code"
+          }
+        ],
+        "title": "Lock Waiters",
+        "type": "timeseries",
+        "description": "Sessions currently waiting on a PostgreSQL Lock event. This is a sampled count, not lock wait duration."
+      },
+      {
+        "datasource": {
+          "type": "victoriametrics-metrics-datasource",
+          "uid": "bf05veuz39r0ge"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisBorderShow": false,
+              "axisCenteredZero": false,
+              "axisColorMode": "text",
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "barWidthFactor": 0.6,
+              "drawStyle": "line",
+              "fillOpacity": 0,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "viz": false
+              },
+              "insertNulls": false,
+              "lineInterpolation": "linear",
+              "lineStyle": {
+                "fill": "solid"
+              },
+              "lineWidth": 1,
+              "pointSize": 3,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "always",
+              "showValues": false,
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "fieldMinMax": false,
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            },
+            "unit": "ops"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "x": 12,
+          "y": 56,
+          "w": 12,
+          "h": 8
+        },
+        "id": 108,
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom",
+            "showLegend": true
+          },
+          "tooltip": {
+            "hideZeros": false,
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "pluginVersion": "12.4.1",
+        "targets": [
+          {
+            "datasource": {
+              "type": "victoriametrics-metrics-datasource",
+              "uid": "bf05veuz39r0ge"
+            },
+            "refId": "A",
+            "expr": "sum by (\"postgresql.database.name\") (rate({\"postgresql.deadlocks\"}[$__rate_interval]))",
+            "legendFormat": "{{postgresql.database.name}}",
+            "format": "time_series",
+            "range": true,
+            "instant": false,
+            "editorMode": "code"
+          }
+        ],
+        "title": "Deadlocks / sec",
+        "type": "timeseries",
+        "description": "Server deadlocks counter, reset-aware rate. Zero is normal."
+      },
+      {
+        "datasource": {
+          "type": "victoriametrics-metrics-datasource",
+          "uid": "bf05veuz39r0ge"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisBorderShow": false,
+              "axisCenteredZero": false,
+              "axisColorMode": "text",
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "barWidthFactor": 0.6,
+              "drawStyle": "line",
+              "fillOpacity": 0,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "viz": false
+              },
+              "insertNulls": false,
+              "lineInterpolation": "linear",
+              "lineStyle": {
+                "fill": "solid"
+              },
+              "lineWidth": 1,
+              "pointSize": 3,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "always",
+              "showValues": false,
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "fieldMinMax": false,
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            },
+            "unit": "none"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "x": 0,
+          "y": 64,
+          "w": 12,
+          "h": 8
+        },
+        "id": 109,
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom",
+            "showLegend": true
+          },
+          "tooltip": {
+            "hideZeros": false,
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "pluginVersion": "12.4.1",
+        "targets": [
+          {
+            "datasource": {
+              "type": "victoriametrics-metrics-datasource",
+              "uid": "bf05veuz39r0ge"
+            },
+            "refId": "A",
+            "expr": "max by (\"postgresql.database.name\", \"postgresql.table.name\") ({\"postgresql.rows\",state=\"dead\"})",
+            "legendFormat": "{{postgresql.database.name}} {{postgresql.table.name}}",
+            "format": "time_series",
+            "range": true,
+            "instant": false,
+            "editorMode": "code"
+          }
+        ],
+        "title": "Estimated Dead Tuples",
+        "type": "timeseries",
+        "description": "Estimated dead rows from PostgreSQL statistics. Not exact bloat or reclaimable disk bytes."
+      },
+      {
+        "datasource": {
+          "type": "victoriametrics-metrics-datasource",
+          "uid": "bf05veuz39r0ge"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "fieldMinMax": false,
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            },
+            "unit": "none"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "x": 12,
+          "y": 64,
+          "w": 12,
+          "h": 8
+        },
+        "id": 110,
+        "options": {
+          "reduceOptions": {
+            "values": false,
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": ""
+          },
+          "orientation": "auto",
+          "textMode": "auto",
+          "colorMode": "value",
+          "graphMode": "none",
+          "justifyMode": "auto"
+        },
+        "pluginVersion": "12.4.1",
+        "targets": [
+          {
+            "datasource": {
+              "type": "victoriametrics-metrics-datasource",
+              "uid": "bf05veuz39r0ge"
+            },
+            "refId": "A",
+            "expr": "sum by (database,schema,table) (increase({\"commonex.postgresql.autovacuum.count\"}[$__range]))",
+            "legendFormat": "{{database}} {{schema}}.{{table}}",
+            "format": "time_series",
+            "range": false,
+            "instant": true,
+            "editorMode": "code"
+          }
+        ],
+        "title": "Autovacuum Runs — selected range",
+        "type": "stat",
+        "description": "Counter increase over selected time range. Requires >=2 samples. Polling cannot capture individual vacuum execution duration."
+      },
+      {
+        "datasource": {
+          "type": "victoriametrics-metrics-datasource",
+          "uid": "bf05veuz39r0ge"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "fieldMinMax": false,
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            },
+            "unit": "none"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "x": 0,
+          "y": 72,
+          "w": 12,
+          "h": 8
+        },
+        "id": 111,
+        "options": {
+          "reduceOptions": {
+            "values": false,
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": ""
+          },
+          "orientation": "auto",
+          "textMode": "auto",
+          "colorMode": "value",
+          "graphMode": "none",
+          "justifyMode": "auto"
+        },
+        "pluginVersion": "12.4.1",
+        "targets": [
+          {
+            "datasource": {
+              "type": "victoriametrics-metrics-datasource",
+              "uid": "bf05veuz39r0ge"
+            },
+            "refId": "A",
+            "expr": "sum by (database,schema,table) (increase({\"commonex.postgresql.autoanalyze.count\"}[$__range]))",
+            "legendFormat": "{{database}} {{schema}}.{{table}}",
+            "format": "time_series",
+            "range": false,
+            "instant": true,
+            "editorMode": "code"
+          }
+        ],
+        "title": "Autoanalyze Runs — selected range",
+        "type": "stat",
+        "description": "Counter increase over selected time range, including counter resets."
+      },
+      {
+        "datasource": {
+          "type": "victoriametrics-metrics-datasource",
+          "uid": "bf05veuz39r0ge"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisBorderShow": false,
+              "axisCenteredZero": false,
+              "axisColorMode": "text",
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "barWidthFactor": 0.6,
+              "drawStyle": "line",
+              "fillOpacity": 0,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "viz": false
+              },
+              "insertNulls": false,
+              "lineInterpolation": "linear",
+              "lineStyle": {
+                "fill": "solid"
+              },
+              "lineWidth": 1,
+              "pointSize": 3,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "always",
+              "showValues": false,
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "fieldMinMax": false,
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            },
+            "unit": "s"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "x": 12,
+          "y": 72,
+          "w": 12,
+          "h": 8
+        },
+        "id": 112,
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom",
+            "showLegend": true
+          },
+          "tooltip": {
+            "hideZeros": false,
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "pluginVersion": "12.4.1",
+        "targets": [
+          {
+            "datasource": {
+              "type": "victoriametrics-metrics-datasource",
+              "uid": "bf05veuz39r0ge"
+            },
+            "refId": "A",
+            "expr": "time() - max by (database,schema,table) ({\"commonex.postgresql.last_autovacuum.seconds\"} > 0)",
+            "legendFormat": "{{database}} {{schema}}.{{table}}",
+            "format": "time_series",
+            "range": true,
+            "instant": false,
+            "editorMode": "code"
+          }
+        ],
+        "title": "Time Since Last Autovacuum",
+        "type": "timeseries",
+        "description": "Tables with unknown/null last_autovacuum are omitted, not shown as an enormous age. Existing snapshot table still lists them."
+      },
+      {
+        "datasource": {
+          "type": "victoriametrics-metrics-datasource",
+          "uid": "bf05veuz39r0ge"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisBorderShow": false,
+              "axisCenteredZero": false,
+              "axisColorMode": "text",
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "barWidthFactor": 0.6,
+              "drawStyle": "line",
+              "fillOpacity": 0,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "viz": false
+              },
+              "insertNulls": false,
+              "lineInterpolation": "linear",
+              "lineStyle": {
+                "fill": "solid"
+              },
+              "lineWidth": 1,
+              "pointSize": 3,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "always",
+              "showValues": false,
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "fieldMinMax": false,
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            },
+            "unit": "none"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "x": 0,
+          "y": 80,
+          "w": 12,
+          "h": 8
+        },
+        "id": 113,
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom",
+            "showLegend": true
+          },
+          "tooltip": {
+            "hideZeros": false,
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "pluginVersion": "12.4.1",
+        "targets": [
+          {
+            "datasource": {
+              "type": "victoriametrics-metrics-datasource",
+              "uid": "bf05veuz39r0ge"
+            },
+            "refId": "A",
+            "expr": "max by (database,schema,table) ({\"commonex.postgresql.xid.age\"})",
+            "legendFormat": "{{database}} {{schema}}.{{table}}",
+            "format": "time_series",
+            "range": true,
+            "instant": false,
+            "editorMode": "code"
+          }
+        ],
+        "title": "Table XID Age",
+        "type": "timeseries",
+        "description": "Transaction ID age of each table; interpretation depends on freeze settings. No automatic tuning/alerts."
+      },
+      {
+        "datasource": {
+          "type": "victoriametrics-metrics-datasource",
+          "uid": "bf05veuz39r0ge"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisBorderShow": false,
+              "axisCenteredZero": false,
+              "axisColorMode": "text",
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "barWidthFactor": 0.6,
+              "drawStyle": "line",
+              "fillOpacity": 0,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "viz": false
+              },
+              "insertNulls": false,
+              "lineInterpolation": "linear",
+              "lineStyle": {
+                "fill": "solid"
+              },
+              "lineWidth": 1,
+              "pointSize": 3,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "always",
+              "showValues": false,
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "fieldMinMax": false,
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            },
+            "unit": "none"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "x": 12,
+          "y": 80,
+          "w": 12,
+          "h": 8
+        },
+        "id": 114,
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom",
+            "showLegend": true
+          },
+          "tooltip": {
+            "hideZeros": false,
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "pluginVersion": "12.4.1",
+        "targets": [
+          {
+            "datasource": {
+              "type": "victoriametrics-metrics-datasource",
+              "uid": "bf05veuz39r0ge"
+            },
+            "refId": "A",
+            "expr": "max by (\"postgresql.database.name\") ({\"postgresql.backends\"})",
+            "legendFormat": "{{postgresql.database.name}}",
+            "format": "time_series",
+            "range": true,
+            "instant": false,
+            "editorMode": "code"
+          }
+        ],
+        "title": "Server Backend Processes",
+        "type": "timeseries",
+        "description": "Includes all backend types/states, including autovacuum and parallel workers. Not client max_connections utilization."
+      },
+      {
+        "datasource": {
+          "type": "victoriametrics-metrics-datasource",
+          "uid": "bf05veuz39r0ge"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisBorderShow": false,
+              "axisCenteredZero": false,
+              "axisColorMode": "text",
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "barWidthFactor": 0.6,
+              "drawStyle": "line",
+              "fillOpacity": 0,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "viz": false
+              },
+              "insertNulls": false,
+              "lineInterpolation": "linear",
+              "lineStyle": {
+                "fill": "solid"
+              },
+              "lineWidth": 1,
+              "pointSize": 3,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "always",
+              "showValues": false,
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "fieldMinMax": false,
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            },
+            "unit": "percent"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "x": 0,
+          "y": 88,
+          "w": 12,
+          "h": 8
+        },
+        "id": 115,
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom",
+            "showLegend": true
+          },
+          "tooltip": {
+            "hideZeros": false,
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "pluginVersion": "12.4.1",
+        "targets": [
+          {
+            "datasource": {
+              "type": "victoriametrics-metrics-datasource",
+              "uid": "bf05veuz39r0ge"
+            },
+            "refId": "A",
+            "expr": "100 * sum by (\"postgresql.database.name\") (rate({\"postgresql.blks_hit\"}[$__rate_interval])) / (sum by (\"postgresql.database.name\") (rate({\"postgresql.blks_hit\"}[$__rate_interval])) + sum by (\"postgresql.database.name\") (rate({\"postgresql.blks_read\"}[$__rate_interval])))",
+            "legendFormat": "{{postgresql.database.name}}",
+            "format": "time_series",
+            "range": true,
+            "instant": false,
+            "editorMode": "code"
+          }
+        ],
+        "title": "Buffer Cache Hit %",
+        "type": "timeseries",
+        "description": "PostgreSQL buffer hit ratio over the selected rate window. Excludes OS cache. Undefined when no buffer accesses occur."
+      },
+      {
+        "datasource": {
+          "type": "victoriametrics-metrics-datasource",
+          "uid": "bf05veuz39r0ge"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisBorderShow": false,
+              "axisCenteredZero": false,
+              "axisColorMode": "text",
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "barWidthFactor": 0.6,
+              "drawStyle": "line",
+              "fillOpacity": 0,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "viz": false
+              },
+              "insertNulls": false,
+              "lineInterpolation": "linear",
+              "lineStyle": {
+                "fill": "solid"
+              },
+              "lineWidth": 1,
+              "pointSize": 3,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "always",
+              "showValues": false,
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "fieldMinMax": false,
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            },
+            "unit": "Bps"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "x": 12,
+          "y": 88,
+          "w": 12,
+          "h": 8
+        },
+        "id": 116,
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom",
+            "showLegend": true
+          },
+          "tooltip": {
+            "hideZeros": false,
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "pluginVersion": "12.4.1",
+        "targets": [
+          {
+            "datasource": {
+              "type": "victoriametrics-metrics-datasource",
+              "uid": "bf05veuz39r0ge"
+            },
+            "refId": "A",
+            "expr": "sum by (\"postgresql.database.name\") (rate({\"postgresql.temp.io\"}[$__rate_interval]))",
+            "legendFormat": "{{postgresql.database.name}}",
+            "format": "time_series",
+            "range": true,
+            "instant": false,
+            "editorMode": "code"
+          }
+        ],
+        "title": "Temporary Files Write / sec",
+        "type": "timeseries",
+        "description": "Bytes written to temporary files by queries, not all PostgreSQL disk I/O."
+      },
+      {
+        "datasource": {
+          "type": "victoriametrics-metrics-datasource",
+          "uid": "bf05veuz39r0ge"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisBorderShow": false,
+              "axisCenteredZero": false,
+              "axisColorMode": "text",
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "barWidthFactor": 0.6,
+              "drawStyle": "line",
+              "fillOpacity": 0,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "viz": false
+              },
+              "insertNulls": false,
+              "lineInterpolation": "linear",
+              "lineStyle": {
+                "fill": "solid"
+              },
+              "lineWidth": 1,
+              "pointSize": 3,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "always",
+              "showValues": false,
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "fieldMinMax": false,
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            },
+            "unit": "s",
+            "min": 0
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "x": 0,
+          "y": 96,
+          "w": 12,
+          "h": 8
+        },
+        "id": 117,
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom",
+            "showLegend": true
+          },
+          "tooltip": {
+            "hideZeros": false,
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "pluginVersion": "12.4.1",
+        "targets": [
+          {
+            "datasource": {
+              "type": "victoriametrics-metrics-datasource",
+              "uid": "bf05veuz39r0ge"
+            },
+            "refId": "A",
+            "expr": "topk(10, sum by (database, userid, queryid) (rate({\"commonex.postgresql.statement.execution.seconds\"}[$__rate_interval])))",
+            "legendFormat": "{{database}} / user {{userid}} / query {{queryid}}",
+            "format": "time_series",
+            "range": true,
+            "instant": false,
+            "editorMode": "code"
+          }
+        ],
+        "title": "Top SQL — execution cost / sec",
+        "type": "timeseries",
+        "description": "Execution seconds per wall-clock second, not latency or CPU utilization; can exceed 1 with concurrent execution. Requires PostgreSQL preload/restart, public pg_stat_statements extension and Collector release. Numeric queryid/userid only; no SQL text. Monitoring-role statements are excluded; other clients including Grafana may be counted. Rankings vary over time and query identities can change after resets, eviction or DDL."
+      },
+      {
+        "datasource": {
+          "type": "victoriametrics-metrics-datasource",
+          "uid": "bf05veuz39r0ge"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisBorderShow": false,
+              "axisCenteredZero": false,
+              "axisColorMode": "text",
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "barWidthFactor": 0.6,
+              "drawStyle": "line",
+              "fillOpacity": 0,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "viz": false
+              },
+              "insertNulls": false,
+              "lineInterpolation": "linear",
+              "lineStyle": {
+                "fill": "solid"
+              },
+              "lineWidth": 1,
+              "pointSize": 3,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "always",
+              "showValues": false,
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "fieldMinMax": false,
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            },
+            "unit": "ops",
+            "min": 0
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "x": 12,
+          "y": 96,
+          "w": 12,
+          "h": 8
+        },
+        "id": 118,
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom",
+            "showLegend": true
+          },
+          "tooltip": {
+            "hideZeros": false,
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "pluginVersion": "12.4.1",
+        "targets": [
+          {
+            "datasource": {
+              "type": "victoriametrics-metrics-datasource",
+              "uid": "bf05veuz39r0ge"
+            },
+            "refId": "A",
+            "expr": "topk(10, sum by (database, userid, queryid) (rate({\"commonex.postgresql.statement.calls\"}[$__rate_interval])))",
+            "legendFormat": "{{database}} / user {{userid}} / query {{queryid}}",
+            "format": "time_series",
+            "range": true,
+            "instant": false,
+            "editorMode": "code"
+          }
+        ],
+        "title": "Top SQL — calls / sec",
+        "type": "timeseries",
+        "description": "Most frequently executed statement identities over the rate window. Requires PostgreSQL preload/restart, public pg_stat_statements extension and Collector release. Numeric queryid/userid only; no SQL text. Monitoring-role statements are excluded; other clients including Grafana may be counted. Rankings vary over time and query identities can change after resets, eviction or DDL."
+      },
+      {
+        "datasource": {
+          "type": "victoriametrics-metrics-datasource",
+          "uid": "bf05veuz39r0ge"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisBorderShow": false,
+              "axisCenteredZero": false,
+              "axisColorMode": "text",
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "barWidthFactor": 0.6,
+              "drawStyle": "line",
+              "fillOpacity": 0,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "viz": false
+              },
+              "insertNulls": false,
+              "lineInterpolation": "linear",
+              "lineStyle": {
+                "fill": "solid"
+              },
+              "lineWidth": 1,
+              "pointSize": 3,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "always",
+              "showValues": false,
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "fieldMinMax": false,
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            },
+            "unit": "s",
+            "min": 0
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "x": 0,
+          "y": 104,
+          "w": 12,
+          "h": 8
+        },
+        "id": 119,
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom",
+            "showLegend": true
+          },
+          "tooltip": {
+            "hideZeros": false,
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "pluginVersion": "12.4.1",
+        "targets": [
+          {
+            "datasource": {
+              "type": "victoriametrics-metrics-datasource",
+              "uid": "bf05veuz39r0ge"
+            },
+            "refId": "A",
+            "expr": "topk(10, sum by (database, userid, queryid) (rate({\"commonex.postgresql.statement.execution.seconds\"}[$__rate_interval])) / (sum by (database, userid, queryid) (rate({\"commonex.postgresql.statement.calls\"}[$__rate_interval])) > 0))",
+            "legendFormat": "{{database}} / user {{userid}} / query {{queryid}}",
+            "format": "time_series",
+            "range": true,
+            "instant": false,
+            "editorMode": "code"
+          }
+        ],
+        "title": "Top SQL — mean execution latency",
+        "type": "timeseries",
+        "description": "Rate-weighted mean for successful executions in the rate window. Not P95, planning time, or transaction duration; idle identities are omitted. Requires PostgreSQL preload/restart, public pg_stat_statements extension and Collector release. Numeric queryid/userid only; no SQL text. Monitoring-role statements are excluded; other clients including Grafana may be counted. Rankings vary over time and query identities can change after resets, eviction or DDL."
+      },
+      {
+        "datasource": {
+          "type": "victoriametrics-metrics-datasource",
+          "uid": "bf05veuz39r0ge"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisBorderShow": false,
+              "axisCenteredZero": false,
+              "axisColorMode": "text",
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "barWidthFactor": 0.6,
+              "drawStyle": "line",
+              "fillOpacity": 0,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "viz": false
+              },
+              "insertNulls": false,
+              "lineInterpolation": "linear",
+              "lineStyle": {
+                "fill": "solid"
+              },
+              "lineWidth": 1,
+              "pointSize": 3,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "always",
+              "showValues": false,
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "fieldMinMax": false,
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            },
+            "unit": "short",
+            "min": 0
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "x": 12,
+          "y": 104,
+          "w": 12,
+          "h": 8
+        },
+        "id": 120,
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom",
+            "showLegend": true
+          },
+          "tooltip": {
+            "hideZeros": false,
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "pluginVersion": "12.4.1",
+        "targets": [
+          {
+            "datasource": {
+              "type": "victoriametrics-metrics-datasource",
+              "uid": "bf05veuz39r0ge"
+            },
+            "refId": "A",
+            "expr": "topk(10, sum by (database, userid, queryid) (rate({\"commonex.postgresql.statement.blocks.read\"}[$__rate_interval])))",
+            "legendFormat": "{{database}} / user {{userid}} / query {{queryid}}",
+            "format": "time_series",
+            "range": true,
+            "instant": false,
+            "editorMode": "code"
+          }
+        ],
+        "title": "Top SQL — shared blocks read / sec",
+        "type": "timeseries",
+        "description": "Shared buffer misses in blocks per second, not physical disk reads or bytes; the OS cache may satisfy these reads. Requires PostgreSQL preload/restart, public pg_stat_statements extension and Collector release. Numeric queryid/userid only; no SQL text. Monitoring-role statements are excluded; other clients including Grafana may be counted. Rankings vary over time and query identities can change after resets, eviction or DDL."
+      },
+      {
+        "datasource": {
+          "type": "victoriametrics-metrics-datasource",
+          "uid": "bf05veuz39r0ge"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisBorderShow": false,
+              "axisCenteredZero": false,
+              "axisColorMode": "text",
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "barWidthFactor": 0.6,
+              "drawStyle": "line",
+              "fillOpacity": 0,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "viz": false
+              },
+              "insertNulls": false,
+              "lineInterpolation": "linear",
+              "lineStyle": {
+                "fill": "solid"
+              },
+              "lineWidth": 1,
+              "pointSize": 3,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "always",
+              "showValues": false,
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "fieldMinMax": false,
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": 0
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            },
+            "unit": "rowsps",
+            "min": 0
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "x": 0,
+          "y": 112,
+          "w": 12,
+          "h": 8
+        },
+        "id": 121,
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom",
+            "showLegend": true
+          },
+          "tooltip": {
+            "hideZeros": false,
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "pluginVersion": "12.4.1",
+        "targets": [
+          {
+            "datasource": {
+              "type": "victoriametrics-metrics-datasource",
+              "uid": "bf05veuz39r0ge"
+            },
+            "refId": "A",
+            "expr": "topk(10, sum by (database, userid, queryid) (rate({\"commonex.postgresql.statement.rows\"}[$__rate_interval])))",
+            "legendFormat": "{{database}} / user {{userid}} / query {{queryid}}",
+            "format": "time_series",
+            "range": true,
+            "instant": false,
+            "editorMode": "code"
+          }
+        ],
+        "title": "Top SQL — rows / sec",
+        "type": "timeseries",
+        "description": "Rows retrieved or affected, not the size of returned payloads. Requires PostgreSQL preload/restart, public pg_stat_statements extension and Collector release. Numeric queryid/userid only; no SQL text. Monitoring-role statements are excluded; other clients including Grafana may be counted. Rankings vary over time and query identities can change after resets, eviction or DDL."
+      },
+      {
+        "datasource": {
           "type": "grafana-postgresql-datasource",
           "uid": "postgres-ds"
         },
@@ -886,7 +2973,7 @@
           "h": 9,
           "w": 24,
           "x": 0,
-          "y": 32
+          "y": 120
         },
         "id": 9,
         "options": {
@@ -908,7 +2995,7 @@
             "refId": "A"
           }
         ],
-        "title": "Connections \u0026 Database Health — current snapshot",
+        "title": "Connections & Database Health — current snapshot",
         "type": "table"
       },
       {
@@ -933,7 +3020,7 @@
           "h": 9,
           "w": 24,
           "x": 0,
-          "y": 41
+          "y": 129
         },
         "id": 10,
         "options": {
@@ -951,7 +3038,7 @@
             },
             "format": "table",
             "rawQuery": true,
-            "rawSql": "SELECT pid, application_name, state, ROUND(EXTRACT(EPOCH FROM clock_timestamp() - xact_start)::numeric, 3) AS transaction_age_seconds, ROUND(EXTRACT(EPOCH FROM clock_timestamp() - state_change)::numeric, 3) AS state_age_seconds, wait_event_type, wait_event FROM pg_stat_activity WHERE datname = current_database() AND backend_type = 'client backend' AND xact_start IS NOT NULL AND pid \u003c\u003e pg_backend_pid() ORDER BY xact_start LIMIT 50",
+            "rawSql": "SELECT pid, application_name, state, ROUND(EXTRACT(EPOCH FROM clock_timestamp() - xact_start)::numeric, 3) AS transaction_age_seconds, ROUND(EXTRACT(EPOCH FROM clock_timestamp() - state_change)::numeric, 3) AS state_age_seconds, wait_event_type, wait_event FROM pg_stat_activity WHERE datname = current_database() AND backend_type = 'client backend' AND xact_start IS NOT NULL AND pid <> pg_backend_pid() ORDER BY xact_start LIMIT 50",
             "refId": "A"
           }
         ],
@@ -980,7 +3067,7 @@
           "h": 9,
           "w": 24,
           "x": 0,
-          "y": 50
+          "y": 138
         },
         "id": 11,
         "options": {
@@ -998,7 +3085,7 @@
             },
             "format": "table",
             "rawQuery": true,
-            "rawSql": "SELECT pid, application_name, state, wait_event_type, wait_event, pg_blocking_pids(pid)::text AS blocking_pids, ROUND(EXTRACT(EPOCH FROM clock_timestamp() - query_start)::numeric, 3) AS query_age_seconds FROM pg_stat_activity WHERE datname = current_database() AND pid \u003c\u003e pg_backend_pid() AND cardinality(pg_blocking_pids(pid)) \u003e 0 ORDER BY query_start LIMIT 50",
+            "rawSql": "SELECT pid, application_name, state, wait_event_type, wait_event, pg_blocking_pids(pid)::text AS blocking_pids, ROUND(EXTRACT(EPOCH FROM clock_timestamp() - query_start)::numeric, 3) AS query_age_seconds FROM pg_stat_activity WHERE datname = current_database() AND pid <> pg_backend_pid() AND cardinality(pg_blocking_pids(pid)) > 0 ORDER BY query_start LIMIT 50",
             "refId": "A"
           }
         ],
@@ -1027,7 +3114,7 @@
           "h": 9,
           "w": 24,
           "x": 0,
-          "y": 59
+          "y": 147
         },
         "id": 12,
         "options": {
@@ -1049,7 +3136,7 @@
             "refId": "A"
           }
         ],
-        "title": "Table Size \u0026 Vacuum — current snapshot",
+        "title": "Table Size & Vacuum — current snapshot",
         "type": "table"
       },
       {
@@ -1074,7 +3161,7 @@
           "h": 9,
           "w": 24,
           "x": 0,
-          "y": 68
+          "y": 156
         },
         "id": 13,
         "options": {
@@ -1104,11 +3191,11 @@
           "h": 5,
           "w": 24,
           "x": 0,
-          "y": 77
+          "y": 165
         },
         "id": 14,
         "options": {
-          "content": "SQL panels show **current snapshots**, independent of the selected historical time range. Metric charts show historical backend-client and PostgreSQL-container telemetry.\n\nNot collected yet: filesystem free bytes/inodes for the PostgreSQL volume; pg_stat_statements top queries; historical server vacuum/locks/WAL; completed transaction duration. These require separately approved collectors, extension configuration or application instrumentation. No query parameters are displayed.",
+          "content": "SQL tables show **current snapshots**, independent of the historical time range. Backend-client and PostgreSQL-container charts already have telemetry.\n\nServer health, vacuum, open-transaction history and DB-volume capacity charts require deployment of the Collector configuration in infra/otel-collector. Until deployment, missing data is expected and is not mapped to zero. See infra/otel-collector/README.md for role/secret preparation and verification.\n\nStatement rankings additionally require pg_stat_statements preload/restart and CREATE EXTENSION in the application database. They use numeric queryid/userid and rate windows, not SQL text or transaction duration. See the runbook for staged activation and reset/eviction caveats.\n\nStill deferred: completed transaction duration; WAL-size history. No SQL text or query parameters are exported.",
           "mode": "markdown"
         },
         "title": "Coverage / next collectors",

@@ -17,7 +17,7 @@ class InstallCommonExDeployTest(unittest.TestCase):
     def setUp(self) -> None:
         self.temporary_directory = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary_directory.cleanup)
-        self.root = Path(self.temporary_directory.name)
+        self.root = Path(self.temporary_directory.name).resolve()
         self.bundle = self.root / "bundle"
         self.bundle.mkdir()
         (self.bundle / "commonex_deploy.py").write_text(

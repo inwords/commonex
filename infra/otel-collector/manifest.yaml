@@ -7,6 +7,8 @@ receivers:
   - gomod: go.opentelemetry.io/collector/receiver/otlpreceiver v0.159.0
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/dockerstatsreceiver v0.159.0
   - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/hostmetricsreceiver v0.159.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/postgresqlreceiver v0.159.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/receiver/sqlqueryreceiver v0.159.0
 
 processors:
   - gomod: go.opentelemetry.io/collector/processor/batchprocessor v0.159.0
