@@ -2954,7 +2954,7 @@
       {
         "datasource": {
           "type": "grafana-postgresql-datasource",
-          "uid": "postgres-ds"
+          "uid": "dfzndqwico7i8e"
         },
         "description": "Counters are cumulative since stats_reset. Buffer cache hits exclude OS cache. Database size is not free disk space.",
         "fieldConfig": {
@@ -2987,7 +2987,7 @@
           {
             "datasource": {
               "type": "grafana-postgresql-datasource",
-              "uid": "postgres-ds"
+              "uid": "dfzndqwico7i8e"
             },
             "format": "table",
             "rawQuery": true,
@@ -3001,7 +3001,7 @@
       {
         "datasource": {
           "type": "grafana-postgresql-datasource",
-          "uid": "postgres-ds"
+          "uid": "dfzndqwico7i8e"
         },
         "description": "Open transaction age, not completed transaction latency. idle in transaction is visible via state. No query text/parameters.",
         "fieldConfig": {
@@ -3034,7 +3034,7 @@
           {
             "datasource": {
               "type": "grafana-postgresql-datasource",
-              "uid": "postgres-ds"
+              "uid": "dfzndqwico7i8e"
             },
             "format": "table",
             "rawQuery": true,
@@ -3048,7 +3048,7 @@
       {
         "datasource": {
           "type": "grafana-postgresql-datasource",
-          "uid": "postgres-ds"
+          "uid": "dfzndqwico7i8e"
         },
         "description": "Query age is NOT lock-wait duration. No query text/parameters.",
         "fieldConfig": {
@@ -3081,7 +3081,7 @@
           {
             "datasource": {
               "type": "grafana-postgresql-datasource",
-              "uid": "postgres-ds"
+              "uid": "dfzndqwico7i8e"
             },
             "format": "table",
             "rawQuery": true,
@@ -3095,7 +3095,7 @@
       {
         "datasource": {
           "type": "grafana-postgresql-datasource",
-          "uid": "postgres-ds"
+          "uid": "dfzndqwico7i8e"
         },
         "description": "Live/dead rows are estimates, not measured bloat. Vacuum counters are cumulative.",
         "fieldConfig": {
@@ -3128,7 +3128,7 @@
           {
             "datasource": {
               "type": "grafana-postgresql-datasource",
-              "uid": "postgres-ds"
+              "uid": "dfzndqwico7i8e"
             },
             "format": "table",
             "rawQuery": true,
@@ -3142,7 +3142,7 @@
       {
         "datasource": {
           "type": "grafana-postgresql-datasource",
-          "uid": "postgres-ds"
+          "uid": "dfzndqwico7i8e"
         },
         "description": "Only running VACUUM, including autovacuum. Empty result is normal when none is running.",
         "fieldConfig": {
@@ -3175,7 +3175,7 @@
           {
             "datasource": {
               "type": "grafana-postgresql-datasource",
-              "uid": "postgres-ds"
+              "uid": "dfzndqwico7i8e"
             },
             "format": "table",
             "rawQuery": true,
