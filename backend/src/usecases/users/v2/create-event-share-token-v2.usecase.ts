@@ -22,24 +22,30 @@ export class CreateEventShareTokenV2UseCase implements UseCase<Input, Output> {
   ) {}
 
   public async execute({eventId, pinCode}: Input): Promise<Output> {
-    const [event] = await this.rDataService.event.findById(eventId);
+    return this.rDataService.transaction('READ COMMITTED', async (trx) => {
+      const [event] = await this.rDataService.event.findById(eventId, {...trx, lock: 'pessimistic_write'});
 
-    const validationResult = this.eventService.isValidEvent(event, pinCode);
+      const validationResult = this.eventService.isValidEvent(event, pinCode);
 
-    if (isError(validationResult)) {
-      return validationResult;
-    }
+      if (isError(validationResult)) {
+        return validationResult;
+      }
 
-    const [existingToken] = await this.rDataService.eventShareToken.findOneActiveByEventId(eventId);
+      const [existingToken] = await this.rDataService.eventShareToken.findByEventId(eventId, trx);
 
-    if (existingToken) {
-      return success({token: existingToken.token, expiresAt: existingToken.expiresAt.toISOString()});
-    }
+      if (existingToken && existingToken.expiresAt.getTime() >= Date.now()) {
+        return success({token: existingToken.token, expiresAt: existingToken.expiresAt.toISOString()});
+      }
 
-    const shareToken = new EventShareTokenValueObject({eventId});
+      if (existingToken) {
+        await this.rDataService.eventShareToken.deleteByToken(existingToken.token, trx);
+      }
 
-    await this.rDataService.eventShareToken.insert(shareToken.value);
+      const shareToken = new EventShareTokenValueObject({eventId});
 
-    return success({token: shareToken.value.token, expiresAt: shareToken.value.expiresAt.toISOString()});
+      await this.rDataService.eventShareToken.insert(shareToken.value, trx);
+
+      return success({token: shareToken.value.token, expiresAt: shareToken.value.expiresAt.toISOString()});
+    });
   }
 }

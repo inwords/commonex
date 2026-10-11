@@ -4,6 +4,7 @@ import {type IEventShareToken} from '#domain/entities/event-share-token.entity';
 
 @Entity({name: 'event_share_token'})
 @Index(['eventId', 'expiresAt'])
+@Index(['eventId'], {unique: true})
 export class EventShareTokenEntity implements IEventShareToken {
   @PrimaryColumn({type: 'varchar', length: 64})
   token!: IEventShareToken['token'];
