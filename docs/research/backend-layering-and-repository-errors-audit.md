@@ -28,6 +28,10 @@ P0-срез атомарной идемпотентности реализова
 - Transaction handle разрешается через framework-internal registry; некорректные, чужие и завершённые handles отклоняются, а не отключают транзакцию.
 - По решению пользователя от 11.10.2026 wiring остаётся в `UseCasesModule`; отдельный composition-модуль не вводится.
 - HTTP V1/V2/V3 и gRPC controllers используют общий API helper `unwrapResult`: успешное значение возвращается без изменений, исходная business error бросается для существующих transport filters.
+- По решению пользователя от 11.10.2026 `initialize`/`destroy` остаются в domain data interface: use cases их не вызывают, а отдельное сужение этих двух методов не оправдывает изменения wiring. Удаление lifecycle-методов исключено из плана.
+- Удаление `queryDetails` остаётся несогласованным предложением; реализация не начата.
+- Share-token invariant подтверждён пользователем и реализован: не более одной записи на событие, unique index по `eventId`, создание/переиспользование в `READ COMMITTED` transaction с блокировкой события. Истёкшая запись заменяется; TTL остаётся 14 дней.
+- Миграция share tokens сохраняет максимальный `expiresAt`; при равенстве — максимальный `createdAt`, затем минимальный `token`. Остальные записи удаляются, их ссылки перестают работать. `down` удаляет индекс, но не восстанавливает удалённые записи. При rolling deployment старые инстансы могут получить unique conflict до их drain; новые инстансы сериализуют создание и возвращают один token.
 
 Остальные пункты остаются планом. Исходные формулировки находок ниже сохранены как снимок состояния на дату аудита; текущий статус выше имеет приоритет.
 
@@ -71,7 +75,7 @@ api/composition ──> usecases ──> domain
 | P3 | ✅ Реализовано для активных business errors | Унифицировать классы ошибок и barrel exports | Классы наследуют `Error`, barrel экспортирует активные типы |
 | P3 | Вариант дизайна | Переместить чистые event rules из frameworks | Единственная реализация абстракции создаёт неглубокий, гипотетический seam |
 | P3 | Вариант дизайна | Развязать gRPC DTO от HTTP DTO | Два transport-адаптера меняются совместно |
-| P3 | Требует подтверждения инварианта | Атомарно переиспользовать один активный share token | Конкурентные вызовы могут создать несколько активных токенов |
+| P3 | ✅ Инвариант подтверждён и реализован | Атомарно переиспользовать один активный share token | Unique index и транзакционная блокировка предотвращают дубликаты |
 
 ## Подтверждённые проблемы
 
@@ -173,7 +177,7 @@ Callback получает transaction-scoped набор портов, поэто
 План углубления seam:
 
 - use case получает узкие capability ports (`EventReader`, `ExpenseWriter`, `TransactionRunner`), сгруппированные по согласованной операции, а не обязательно один CRUD-interface на таблицу;
-- lifecycle остаётся у PostgreSQL adapter/composition module;
+- `initialize`/`destroy` остаются в текущем domain data interface по решению пользователя от 11.10.2026; отдельный lifecycle refactor не планируется;
 - health получает отдельный `HealthProbe` port;
 - не создавать по интерфейсу на каждый метод: интерфейс должен скрывать сложность операции и иметь реальную заменяемость либо отчётливую test seam.
 
@@ -211,9 +215,9 @@ gRPC controller и request DTO импортируют HTTP DTO, например
 
 ### Один активный share token
 
-Канонический domain doc говорит, что существующий активный token переиспользуется. Use case выполняет `findOneActiveByEventId -> insert` без transaction: [`create-event-share-token-v2.usecase.ts`](../../backend/src/usecases/users/v2/create-event-share-token-v2.usecase.ts#L24). В БД `eventId` имеет неуникальный индекс: [`event-share-token.entity.ts`](../../backend/src/frameworks/relational-data-service/postgres/entities/event-share-token.entity.ts#L5).
+По решению пользователя от 11.10.2026 событие хранит не более одной записи share token. [Use case](../../backend/src/usecases/users/v2/create-event-share-token-v2.usecase.ts) блокирует событие в `READ COMMITTED` transaction, проверяет доступ и читает token через `findByEventId`. Активный token возвращается без изменения expiry; истёкшая запись удаляется и заменяется в той же transaction. [Persistence entity](../../backend/src/frameworks/relational-data-service/postgres/entities/event-share-token.entity.ts) содержит unique index по `eventId`.
 
-Конкурентные вызовы могут создать несколько активных token. До исправления нужно подтвердить строгий инвариант: «ровно один активный token» или «несколько допустимы, но один обычно переиспользуется». В первом случае нужна атомарная repository operation и DB/lock guarantee, во втором — уточнение domain doc и названия `findOneActive...`.
+[Миграция](../../backend/migrations/default/1791726271060-init.ts) блокирует таблицу, сохраняет запись с самым поздним expiry на событие и создаёт unique index. Удалённые дубликаты не восстанавливаются при rollback migration. DB-backed тесты воспроизводят исходную гонку и проверяют параллельное переиспользование и замену истёкшего token; HTTP/gRPC E2E проверяют единый token для конкурентных запросов обоих transport adapters.
 
 ### Versioned use cases расходятся по гарантиям
 
@@ -267,7 +271,7 @@ gRPC controller и request DTO импортируют HTTP DTO, например
 ### Этап 4. Углубить repository/transaction modules (P2)
 
 1. ✅ Реализован fail-fast context через framework-internal registry transaction handles.
-2. Убрать lifecycle methods из domain data interface.
+2. Исключено по решению пользователя от 11.10.2026: сохранить `initialize`/`destroy` в domain data interface. Текущие use cases их не вызывают; польза отдельной правки не оправдывает изменения wiring.
 3. Выделять capability ports по use case, начиная с idempotency и event mutation paths; не переписывать все семь repositories одним большим PR.
 4. Убрать `queryDetails` из production interfaces, сохранив SQL snapshot tests через framework-internal hook.
 5. После каждого slice запускать repository, use case и E2E tests затронутого потока.
@@ -279,7 +283,7 @@ gRPC controller и request DTO импортируют HTTP DTO, например
 1. Переместить чистые event rules из frameworks после удаления гипотетической абстракции.
 2. Определить место supported-currency policy.
 3. Разделить gRPC и HTTP DTO, оставив общим use case contract.
-4. Решить share-token invariant и добавить concurrency test при строгом варианте.
+4. ✅ Зафиксирован строгий share-token invariant; добавлены unique index, transaction и concurrency tests.
 5. Консолидировать V1/V2 core только после решения о legacy compatibility.
 
 ## Стратегия поставки и проверки

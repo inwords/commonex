@@ -148,6 +148,35 @@ describe('gRPC UserService', () => {
     expect(new Date(response.expiresAt).toISOString()).toBe(response.expiresAt);
   });
 
+  it('reuses one share token across concurrent HTTP and gRPC requests', async () => {
+    const event = await createEvent(testApp.app, {currencyId: usdId});
+    const [http, ...grpc] = await Promise.all([
+      testApp.app
+        .inject({
+          method: 'POST',
+          url: `/v2/user/event/${event.id}/share-token`,
+          payload: {pinCode: '1234'},
+        })
+        .then((response) => {
+          expect(response.statusCode).toBe(201);
+          return response.json<{token: string; expiresAt: string}>();
+        }),
+      ...Array.from({length: 3}, () =>
+        callUnary<{token: string; expiresAt: string}>(client, 'CreateEventShareTokenV2', {
+          eventId: event.id,
+          pinCode: '1234',
+        }),
+      ),
+    ]);
+    const [tokens] = await testApp.rDataService.eventShareToken.findAll({limit: 10});
+
+    expect(tokens).toHaveLength(1);
+    expect(http).toEqual({token: tokens[0]?.token, expiresAt: tokens[0]?.expiresAt.toISOString()});
+    for (const response of grpc) {
+      expect(response).toEqual(http);
+    }
+  });
+
   it('replays CreateEvent when the idempotency-key metadata repeats', async () => {
     const metadata = new Metadata();
     metadata.set('idempotency-key', 'grpc-key-1');

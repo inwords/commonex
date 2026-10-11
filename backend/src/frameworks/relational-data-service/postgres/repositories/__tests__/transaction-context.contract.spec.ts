@@ -52,8 +52,8 @@ describe('PostgreSQL repository transaction context contract', () => {
       ({eventShareToken}, trx): Promise<unknown> => eventShareToken.findByToken('token', trx),
     ],
     [
-      'EventShareToken.findOneActiveByEventId',
-      ({eventShareToken}, trx): Promise<unknown> => eventShareToken.findOneActiveByEventId('event', trx),
+      'EventShareToken.findByEventId',
+      ({eventShareToken}, trx): Promise<unknown> => eventShareToken.findByEventId('event', trx),
     ],
     ['EventShareToken.findAll', ({eventShareToken}, trx): Promise<unknown> => eventShareToken.findAll({limit: 1}, trx)],
     [

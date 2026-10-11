@@ -57,6 +57,26 @@ describe('HTTP /v2/user', () => {
     expect(infoResponse.json()).toMatchObject({id: event.id});
   });
 
+  it('reuses one share token across concurrent requests', async () => {
+    const event = await createEvent(testApp.app, {currencyId: usdId});
+    const responses = await Promise.all(
+      Array.from({length: 4}, () =>
+        testApp.app.inject({
+          method: 'POST',
+          url: `/v2/user/event/${event.id}/share-token`,
+          payload: {pinCode: '1234'},
+        }),
+      ),
+    );
+    const [tokens] = await testApp.rDataService.eventShareToken.findAll({limit: 10});
+
+    expect(tokens).toHaveLength(1);
+    for (const response of responses) {
+      expect(response.statusCode).toBe(201);
+      expect(response.json()).toEqual({token: tokens[0]?.token, expiresAt: tokens[0]?.expiresAt.toISOString()});
+    }
+  });
+
   it('rejects an unknown share token with 401 B4008', async () => {
     const event = await createEvent(testApp.app, {currencyId: usdId});
 

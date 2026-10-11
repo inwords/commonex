@@ -6,7 +6,7 @@ export abstract class EventShareTokenRepositoryAbstract {
     token: string,
     trx?: ITransaction,
   ) => Promise<[result: IEventShareToken | null, queryDetails: IQueryDetails]>;
-  abstract findOneActiveByEventId: (
+  abstract findByEventId: (
     eventId: string,
     trx?: ITransaction,
   ) => Promise<[result: IEventShareToken | null, queryDetails: IQueryDetails]>;
