@@ -17,7 +17,6 @@ const KEY = '01JQKP8G0000000000000000AA';
 const BODY = {amount: 100};
 const VALUE = {id: 'expense-1', amount: 100};
 const OPERATION = IdempotencyOperation.CREATE_EVENT_EXPENSE_V2;
-const LEGACY_OPERATION = '/v2/user/event/event-1/expense';
 
 describe('IdempotencySharedUseCase', () => {
   let relationalDataService: RelationalDataService;
@@ -49,15 +48,15 @@ describe('IdempotencySharedUseCase', () => {
       return Promise.resolve(success(VALUE));
     });
 
-    await expect(useCase.execute(undefined, OPERATION, undefined, BODY, operation)).resolves.toEqual(success(VALUE));
+    await expect(useCase.execute(undefined, OPERATION, BODY, operation)).resolves.toEqual(success(VALUE));
     expect(operation).toHaveBeenCalledTimes(1);
   });
 
   it('stores and replays a successful result without executing the operation twice', async () => {
     const operation = jest.fn(() => Promise.resolve(success(VALUE)));
 
-    const first = await useCase.execute(KEY, OPERATION, LEGACY_OPERATION, BODY, operation);
-    const replay = await useCase.execute(KEY, OPERATION, LEGACY_OPERATION, BODY, operation);
+    const first = await useCase.execute(KEY, OPERATION, BODY, operation);
+    const replay = await useCase.execute(KEY, OPERATION, BODY, operation);
     const [records] = await relationalDataService.idempotencyKey.findAll({limit: 10});
 
     expect(first).toEqual(success(VALUE));
@@ -66,7 +65,6 @@ describe('IdempotencySharedUseCase', () => {
     expect(records).toEqual([
       expect.objectContaining({
         key: KEY,
-        url: LEGACY_OPERATION,
         operationId: OPERATION,
         response: VALUE,
         responseVersion: 1,
@@ -80,8 +78,8 @@ describe('IdempotencySharedUseCase', () => {
     const failure = {name: 'EventNotFoundError'};
     const operation = jest.fn(() => Promise.resolve(error<typeof VALUE, typeof failure>(failure)));
 
-    await expect(useCase.execute(KEY, OPERATION, LEGACY_OPERATION, BODY, operation)).resolves.toEqual(error(failure));
-    await expect(useCase.execute(KEY, OPERATION, LEGACY_OPERATION, BODY, operation)).resolves.toEqual(error(failure));
+    await expect(useCase.execute(KEY, OPERATION, BODY, operation)).resolves.toEqual(error(failure));
+    await expect(useCase.execute(KEY, OPERATION, BODY, operation)).resolves.toEqual(error(failure));
     const [records] = await relationalDataService.idempotencyKey.findAll({limit: 10});
 
     expect(operation).toHaveBeenCalledTimes(2);
@@ -89,9 +87,9 @@ describe('IdempotencySharedUseCase', () => {
   });
 
   it('returns a hash mismatch as an expected result', async () => {
-    await useCase.execute(KEY, OPERATION, LEGACY_OPERATION, BODY, () => Promise.resolve(success(VALUE)));
+    await useCase.execute(KEY, OPERATION, BODY, () => Promise.resolve(success(VALUE)));
 
-    const result = await useCase.execute(KEY, OPERATION, LEGACY_OPERATION, {amount: 999}, () =>
+    const result = await useCase.execute(KEY, OPERATION, {amount: 999}, () =>
       Promise.resolve(success({id: 'duplicate'})),
     );
 
@@ -104,14 +102,8 @@ describe('IdempotencySharedUseCase', () => {
   it('uses canonical object key ordering for request fingerprints', async () => {
     const operation = jest.fn(() => Promise.resolve(success(VALUE)));
 
-    await useCase.execute(KEY, OPERATION, LEGACY_OPERATION, {amount: 100, metadata: {b: 2, a: 1}}, operation);
-    const replay = await useCase.execute(
-      KEY,
-      OPERATION,
-      LEGACY_OPERATION,
-      {metadata: {a: 1, b: 2}, amount: 100},
-      operation,
-    );
+    await useCase.execute(KEY, OPERATION, {amount: 100, metadata: {b: 2, a: 1}}, operation);
+    const replay = await useCase.execute(KEY, OPERATION, {metadata: {a: 1, b: 2}, amount: 100}, operation);
 
     expect(replay).toEqual(success(VALUE));
     expect(operation).toHaveBeenCalledTimes(1);
@@ -120,8 +112,8 @@ describe('IdempotencySharedUseCase', () => {
   it('restores Date instances when replaying a response', async () => {
     const createdAt = new Date('2026-01-02T03:04:05.000Z');
 
-    await useCase.execute(KEY, OPERATION, LEGACY_OPERATION, BODY, () => Promise.resolve(success({createdAt})));
-    const replay = await useCase.execute(KEY, OPERATION, LEGACY_OPERATION, BODY, () =>
+    await useCase.execute(KEY, OPERATION, BODY, () => Promise.resolve(success({createdAt})));
+    const replay = await useCase.execute(KEY, OPERATION, BODY, () =>
       Promise.resolve(success({createdAt: new Date(0)})),
     );
 
@@ -131,39 +123,77 @@ describe('IdempotencySharedUseCase', () => {
     }
   });
 
-  it('replays a legacy record during the expand/contract window', async () => {
-    const legacyValue = {id: 'legacy-expense', createdAt: '2026-01-01T00:00:00.000Z'};
-    const legacyRequestHash = createHash('sha256')
-      .update(JSON.stringify({url: LEGACY_OPERATION, body: BODY}))
+  it('replays a versioned record written by the previous backend release', async () => {
+    const requestHash = createHash('sha256')
+      .update(JSON.stringify({body: BODY, operationId: OPERATION}))
       .digest('hex');
-    await relationalDataService.idempotencyKey.insert({
-      key: KEY,
-      url: LEGACY_OPERATION,
-      legacyRequestHash,
-      legacyResponse: success(legacyValue),
-      statusCode: 200,
-      operationId: null,
-      requestHash: null,
-      response: null,
-      responseVersion: null,
-      createdAt: mockNow,
-      expiresAt: new Date(mockNow.getTime() + 60_000),
-    });
-    const operation = jest.fn(() => Promise.resolve(success(VALUE)));
+    await relationalDataService.dataSource.query(
+      `INSERT INTO idempotency_keys
+        (key, url, request_hash, response, status_code, operation_id, request_hash_v2, response_v2,
+         response_version, created_at, expires_at)
+       VALUES ($1, $2, $3, $4, 200, $5, $6, $7, 1, $8, $9)`,
+      [
+        KEY,
+        '/old/url',
+        'old-hash',
+        success(VALUE),
+        OPERATION,
+        requestHash,
+        VALUE,
+        mockNow,
+        new Date(mockNow.getTime() + 60_000),
+      ],
+    );
+    const operation = jest.fn(() => Promise.resolve(success({id: 'duplicate'})));
 
-    const replay = await useCase.execute(KEY, OPERATION, LEGACY_OPERATION, BODY, operation);
+    const replay = await useCase.execute(KEY, OPERATION, BODY, operation);
 
-    expect(replay).toEqual(success(legacyValue));
+    expect(replay).toEqual(success(VALUE));
     expect(operation).not.toHaveBeenCalled();
   });
 
+  it('stores only the versioned response without legacy transport data', async () => {
+    await useCase.execute(KEY, OPERATION, BODY, () => Promise.resolve(success(VALUE)));
+
+    const records = await relationalDataService.dataSource.query<
+      {
+        url: string | null;
+        request_hash: string | null;
+        response: object | null;
+        status_code: number | null;
+      }[]
+    >('SELECT url, request_hash, response, status_code FROM idempotency_keys WHERE key = $1', [KEY]);
+
+    expect(records).toEqual([{url: null, request_hash: null, response: null, status_code: null}]);
+  });
+
+  it('replaces a legacy-only record whose effective five-minute TTL has elapsed', async () => {
+    await relationalDataService.dataSource.query(
+      `INSERT INTO idempotency_keys
+        (key, url, request_hash, response, status_code, created_at, expires_at)
+       VALUES ($1, '/old/url', 'old-hash', $2, 200, $3, $4)`,
+      [
+        KEY,
+        success({id: 'old-expense'}),
+        new Date(mockNow.getTime() - 5 * 60 * 1000),
+        new Date(mockNow.getTime() + 24 * 60 * 60 * 1000),
+      ],
+    );
+
+    const result = await useCase.execute(KEY, OPERATION, BODY, () => Promise.resolve(success(VALUE)));
+    const [records] = await relationalDataService.idempotencyKey.findAll({limit: 10});
+
+    expect(result).toEqual(success(VALUE));
+    expect(records).toEqual([expect.objectContaining({key: KEY, operationId: OPERATION, response: VALUE})]);
+  });
+
   it('executes again after the five-minute TTL and replaces the expired record', async () => {
-    await useCase.execute(KEY, OPERATION, LEGACY_OPERATION, BODY, () => Promise.resolve(success(VALUE)));
+    await useCase.execute(KEY, OPERATION, BODY, () => Promise.resolve(success(VALUE)));
     jest.setSystemTime(new Date(mockNow.getTime() + 5 * 60 * 1000));
     const replacement = {id: 'expense-2', amount: 100};
     const operation = jest.fn(() => Promise.resolve(success(replacement)));
 
-    const result = await useCase.execute(KEY, OPERATION, LEGACY_OPERATION, BODY, operation);
+    const result = await useCase.execute(KEY, OPERATION, BODY, operation);
 
     expect(result).toEqual(success(replacement));
     expect(operation).toHaveBeenCalledTimes(1);
@@ -185,9 +215,9 @@ describe('IdempotencySharedUseCase', () => {
     });
     const secondOperation = jest.fn(() => Promise.resolve(success({id: 'duplicate'})));
 
-    const firstExecution = useCase.execute(KEY, OPERATION, LEGACY_OPERATION, BODY, firstOperation);
+    const firstExecution = useCase.execute(KEY, OPERATION, BODY, firstOperation);
     await firstStarted;
-    const secondResult = await useCase.execute(KEY, OPERATION, LEGACY_OPERATION, BODY, secondOperation);
+    const secondResult = await useCase.execute(KEY, OPERATION, BODY, secondOperation);
     releaseFirst();
     await firstExecution;
 
@@ -200,12 +230,12 @@ describe('IdempotencySharedUseCase', () => {
   });
 
   it('releases the lock and stores nothing when the operation throws', async () => {
-    await expect(
-      useCase.execute(KEY, OPERATION, LEGACY_OPERATION, BODY, () => Promise.reject(new Error('boom'))),
-    ).rejects.toThrow('boom');
+    await expect(useCase.execute(KEY, OPERATION, BODY, () => Promise.reject(new Error('boom')))).rejects.toThrow(
+      'boom',
+    );
 
-    await expect(
-      useCase.execute(KEY, OPERATION, LEGACY_OPERATION, BODY, () => Promise.resolve(success(VALUE))),
-    ).resolves.toEqual(success(VALUE));
+    await expect(useCase.execute(KEY, OPERATION, BODY, () => Promise.resolve(success(VALUE)))).resolves.toEqual(
+      success(VALUE),
+    );
   });
 });

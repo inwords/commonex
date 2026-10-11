@@ -234,7 +234,6 @@ describe('SaveUsersToEventV2UseCase', () => {
         {name: 'Alice', createdAt: new Date('2023-01-01T00:00:00Z'), updatedAt: new Date('2023-01-01T00:00:00Z')},
       ],
       idempotencyKey: 'key-1',
-      legacyOperationId: '/v2/user/event/event-1/users',
     };
 
     it('replays the stored response and inserts nothing on a repeated key', async () => {

@@ -403,7 +403,6 @@ describe('SaveEventExpenseUseCase', () => {
         {userId: 'user-2', amount: 60, exchangedAmount: 0},
       ],
       idempotencyKey: 'key-1',
-      legacyOperationId: '/user/event/event-1/expense',
     };
 
     it('replays the stored response and inserts nothing on a repeated key', async () => {

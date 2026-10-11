@@ -22,6 +22,11 @@ P0-срез атомарной идемпотентности реализова
 
 Дополнительный статус на 11.10.2026:
 
+- Пользователь подтвердил завершение compatibility window старой идемпотентности. Согласована двухэтапная поставка: сначала код без legacy reads/writes, затем отдельная contract migration после выкладки этого кода и остановки предыдущих инстансов.
+- Первый этап реализован: `legacyOperationId`, transport URL/status, legacy hash и legacy replay удалены из API/domain/usecases. Новые записи сохраняют только versioned operation ID/hash/response/schema version. Versioned records предыдущей версии продолжают replay; codec с `Date`, advisory lock и эффективный TTL 5 минут сохранены.
+- Старые nullable-колонки пока сохранены только в persistence entity с `select/insert/update: false`; схема БД не меняется. Domain versioned-поля обязательны, DB `NOT NULL` откладывается до contract migration.
+- Второй этап ещё не выполнен: после выкладки первого этапа удалить истёкшие legacy-only записи и колонки `url`, `request_hash`, `response`, `status_code`, затем установить DB `NOT NULL` для versioned-полей. Имена `request_hash_v2`/`response_v2` сохраняются; живые versioned records не удалять. Активные неполные записи должны блокировать миграцию, а не терять replay.
+
 - TypeORM удалён из domain: универсальный `delete(FindOptionsWhere)` заменён на `deleteByKey(key)`; cleanup уже использует `deleteExpiredBatch({expiresBefore, limit})`, поэтому отдельный `deleteExpiredBefore` не нужен.
 - Domain business errors наследуются от `Error`, не содержат `HttpStatus`/`httpCode`; HTTP mapping находится в business-error filter.
 - Health use case возвращает `Promise<void>` без transport-типа.
@@ -64,7 +69,7 @@ api/composition ──> usecases ──> domain
 | Приоритет | Статус | Изменение | Основной риск сейчас |
 | --- | --- | --- | --- |
 | P0 | ✅ Реализовано в рабочем дереве; tests и typecheck подтверждены пользователем | Сделать идемпотентность атомарной | Mixed-version rollout не даёт полной атомарности до drain старых инстансов |
-| P1 | 🟡 Переход начат; legacy transport data временно сохранены для expand/contract | Убрать transport data из идемпотентности | Старые поля нельзя удалить до завершения compatibility window |
+| P1 | 🟡 Код очищен; contract migration отдельным этапом после выкладки | Убрать transport data из идемпотентности | Старые колонки сохраняются до остановки предыдущих инстансов |
 | P1 | ✅ Реализовано | Убрать TypeORM из domain/usecases | Удаление по ключу и пакетный cleanup имеют предметные интерфейсы |
 | P1 | 🟡 Частично: unknown errors получили единый `INTERNAL_ERROR`; `55P03` оставлен infrastructure error | Ввести единый контракт ожидаемых и неожиданных ошибок | Не все ожидаемые outcomes ещё отражены в `Output` use cases |
 | P1 | ✅ Реализовано | Убрать HTTP status из domain | HTTP mapping находится в transport filter |
@@ -145,6 +150,8 @@ HTTP глобально регистрирует только validation/busines
 Текущие unit/DB-backed проверки покрывают новый ключ, последовательный replay и hash mismatch, но не запускают два `execute` конкурентно: [`idempotency.usecase.test.ts`](../../backend/src/usecases/shared/__tests__/idempotency.usecase.test.ts#L69). HTTP E2E также отправляет повторы последовательно. Поэтому существующие зелёные тесты не опровергают гонку.
 
 ### 5.1. Idempotency interface содержит transport data и небезопасно восстанавливает типы
+
+Текущий статус: transport data и legacy fallback удалены из рабочего кода. Стабильный operation ID и versioned codec сохраняют форму успешного replay. Legacy-колонки остаются только в persistence metadata до отдельной contract migration; исходное описание проблемы ниже относится к состоянию на дату аудита.
 
 `IdempotentInput` требует `url`, HTTP передаёт `request.url`, а gRPC вынужден придумывать строки вида `grpc:CreateEvent`: [`idempotency.usecase.ts`](../../backend/src/usecases/shared/idempotency.usecase.ts#L11), [`user.controller.ts`](../../backend/src/api/grpc/user/user.controller.ts#L73). Domain entity также хранит `statusCode`, хотя use case всегда записывает HTTP-подобное значение `200`: [`idempotency-key.entity.ts`](../../backend/src/domain/entities/idempotency-key.entity.ts#L1), [`idempotency.usecase.ts`](../../backend/src/usecases/shared/idempotency.usecase.ts#L53). Это transport concerns внутри use case/domain interface.
 
@@ -237,8 +244,8 @@ gRPC controller и request DTO импортируют HTTP DTO, например
 ### Этап 1. Закрыть гонку идемпотентности (P0)
 
 1. Спроектировать один idempotency module interface, скрывающий reservation/replay/hash mismatch.
-2. Заменить transport URL на стабильный operation key и определить versioned response codec, сохраняющий runtime shape.
-3. Убрать HTTP `statusCode` из domain record; transport определяет статус по результату операции.
+2. ✅ Transport URL удалён из API/usecases; стабильный operation key и versioned response codec сохраняют runtime shape.
+3. ✅ HTTP `statusCode` удалён из domain record; transport определяет статус по результату операции. Legacy DB-колонки удаляются отдельной contract migration после выкладки первого этапа.
 4. Реализовать атомарность в PostgreSQL adapter и перевод `23505` без утечки TypeORM.
 5. Сохранить успешный response в той же согласованной lifecycle-модели; определить recovery для `in_progress` после падения процесса.
 6. Добавить DB-backed concurrency tests для одинакового и различного hash.

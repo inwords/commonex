@@ -6,10 +6,6 @@ import {createTestRelationalDataService, truncateAllTables} from '#test-support/
 
 const buildKey = (overrides: Partial<IIdempotencyKey> = {}): IIdempotencyKey => ({
   key: 'key-1',
-  url: '/user/event',
-  legacyRequestHash: 'legacy-hash-1',
-  legacyResponse: {result: 'success', value: {id: 'event-1'}},
-  statusCode: 200,
   operationId: 'event.create.v1',
   requestHash: 'hash-1',
   response: {id: 'event-1'},

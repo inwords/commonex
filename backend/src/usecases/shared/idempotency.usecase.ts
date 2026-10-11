@@ -11,8 +11,6 @@ import {IDEMPOTENCY_KEY_TTL_MS, IdempotencyKeyValueObject} from '#domain/value-o
 
 export interface IdempotentInput {
   idempotencyKey?: string | undefined;
-  /** Remove after the expand/contract window; old backend instances still fingerprint this transport identifier. */
-  legacyOperationId?: string | undefined;
 }
 
 export const IdempotencyOperation = {
@@ -33,11 +31,6 @@ interface EncodedDate {
   type: typeof DATE_TYPE;
   value: string;
 }
-interface LegacySuccessResponse {
-  result?: unknown;
-  value?: unknown;
-}
-
 const normalizeForJson = (value: unknown): unknown => {
   if (value instanceof Date) {
     return value.toISOString();
@@ -95,7 +88,6 @@ export class IdempotencySharedUseCase {
   async execute<TValue extends object, TError>(
     key: string | undefined,
     operationId: IdempotencyOperationId,
-    legacyOperationId: string | undefined,
     body: object,
     fn: (trx: ITransaction) => Promise<Result<TValue, TError>>,
   ): Promise<Result<TValue, TError | IdempotencyError>> {
@@ -103,21 +95,8 @@ export class IdempotencySharedUseCase {
       if (!key) {
         return fn(trx);
       }
-      if (!legacyOperationId) {
-        throw new Error('Legacy operation identifier is required for idempotent requests during migration');
-      }
-
       const requestHash = this.computeHash(operationId, body);
-      const legacyRequestHash = this.computeLegacyHash(legacyOperationId, body);
-      const replay = await this.findReplay(
-        key,
-        operationId,
-        requestHash,
-        legacyOperationId,
-        legacyRequestHash,
-        false,
-        trx,
-      );
+      const replay = await this.findReplay(key, operationId, requestHash, false, trx);
       if (replay !== null) {
         return replay as Result<TValue, IdempotencyError>;
       }
@@ -127,15 +106,7 @@ export class IdempotencySharedUseCase {
         return error(new IdempotencyRequestInProgressError());
       }
 
-      const replayAfterLock = await this.findReplay(
-        key,
-        operationId,
-        requestHash,
-        legacyOperationId,
-        legacyRequestHash,
-        true,
-        trx,
-      );
+      const replayAfterLock = await this.findReplay(key, operationId, requestHash, true, trx);
       if (replayAfterLock !== null) {
         return replayAfterLock as Result<TValue, IdempotencyError>;
       }
@@ -152,10 +123,6 @@ export class IdempotencySharedUseCase {
 
       const record = new IdempotencyKeyValueObject({
         key,
-        url: legacyOperationId,
-        legacyRequestHash,
-        legacyResponse: result,
-        statusCode: 200,
         operationId,
         requestHash,
         response,
@@ -172,8 +139,6 @@ export class IdempotencySharedUseCase {
     key: string,
     operationId: IdempotencyOperationId,
     requestHash: string,
-    legacyOperationId: string,
-    legacyRequestHash: string,
     deleteExpired: boolean,
     trx: ITransaction,
   ): Promise<Result<object, IdempotencyHashMismatchError> | null> {
@@ -193,49 +158,18 @@ export class IdempotencySharedUseCase {
       return null;
     }
 
-    const hasVersionedFields =
-      existing.operationId !== null &&
-      existing.requestHash !== null &&
-      existing.response !== null &&
-      existing.responseVersion !== null;
-    if (hasVersionedFields) {
-      if (existing.operationId !== operationId || existing.requestHash !== requestHash) {
-        return error(new IdempotencyHashMismatchError());
-      }
-      if (existing.responseVersion !== RESPONSE_VERSION) {
-        throw new Error(`Unsupported idempotency response version: ${existing.responseVersion}`);
-      }
-
-      return success(decodeResponse(existing.response) as object);
-    }
-
-    const hasLegacyFields =
-      existing.url !== null && existing.legacyRequestHash !== null && existing.legacyResponse !== null;
-    if (!hasLegacyFields) {
-      throw new Error('Incomplete idempotency record');
-    }
-    if (existing.url !== legacyOperationId || existing.legacyRequestHash !== legacyRequestHash) {
+    if (existing.operationId !== operationId || existing.requestHash !== requestHash) {
       return error(new IdempotencyHashMismatchError());
     }
-
-    const legacyResponse = existing.legacyResponse as LegacySuccessResponse;
-    if (
-      legacyResponse.result !== 'success' ||
-      legacyResponse.value === null ||
-      typeof legacyResponse.value !== 'object'
-    ) {
-      throw new Error('Unsupported legacy idempotency response');
+    if (existing.responseVersion !== RESPONSE_VERSION) {
+      throw new Error(`Unsupported idempotency response version: ${existing.responseVersion}`);
     }
 
-    return success(legacyResponse.value);
+    return success(decodeResponse(existing.response) as object);
   }
 
   private computeHash(operationId: IdempotencyOperationId, body: object): string {
     const canonicalRequest = JSON.stringify(normalizeForJson({operationId, body}));
     return createHash('sha256').update(canonicalRequest).digest('hex');
-  }
-
-  private computeLegacyHash(url: string, body: object): string {
-    return createHash('sha256').update(JSON.stringify({url, body})).digest('hex');
   }
 }
