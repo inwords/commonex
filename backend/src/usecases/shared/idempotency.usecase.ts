@@ -188,7 +188,7 @@ export class IdempotencySharedUseCase {
     );
     if (effectiveExpiresAt <= Date.now()) {
       if (deleteExpired) {
-        await this.rDataService.idempotencyKey.delete({key}, trx);
+        await this.rDataService.idempotencyKey.deleteByKey(key, trx);
       }
       return null;
     }

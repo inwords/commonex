@@ -1,5 +1,3 @@
-import {FindOptionsWhere} from 'typeorm';
-
 import {IQueryDetails, ITransaction} from '#domain/abstracts/relational-data-service/types';
 import {IIdempotencyKey} from '#domain/entities/idempotency-key.entity';
 
@@ -24,8 +22,8 @@ export abstract class IdempotencyKeyRepositoryAbstract {
     trx: ITransaction,
   ) => Promise<[acquired: boolean, queryDetails: IQueryDetails]>;
 
-  abstract delete: (
-    criteria: FindOptionsWhere<IIdempotencyKey>,
+  abstract deleteByKey: (
+    key: IIdempotencyKey['key'],
     trx?: ITransaction,
   ) => Promise<[result: undefined, queryDetails: IQueryDetails]>;
 

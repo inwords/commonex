@@ -18,12 +18,12 @@ exports[`IdempotencyKeyRepository deletes at most one ordered batch of expired k
 }
 `;
 
-exports[`IdempotencyKeyRepository deletes only the keys matching the criteria 1`] = `
+exports[`IdempotencyKeyRepository deletes only the specified key 1`] = `
 {
   "queryParameters": {
-    "orm_param_0": 2026-01-01T00:00:00.000Z,
+    "orm_param_0": "expired",
   },
-  "queryString": "DELETE FROM "idempotency_keys" WHERE "expires_at" < :orm_param_0",
+  "queryString": "DELETE FROM "idempotency_keys" WHERE "key" = :orm_param_0",
 }
 `;
 
