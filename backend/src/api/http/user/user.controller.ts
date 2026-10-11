@@ -1,6 +1,5 @@
-import {Body, Controller, Delete, Get, Headers, HttpCode, HttpStatus, Param, Post, Query, Req} from '@nestjs/common';
+import {Body, Controller, Delete, Get, Headers, HttpCode, HttpStatus, Param, Post, Query} from '@nestjs/common';
 import {ApiResponse, ApiTags} from '@nestjs/swagger';
-import {FastifyRequest} from 'fastify';
 
 import {DeleteEventUseCase} from '#usecases/users/delete-event.usecase';
 import {GetEventExpensesUseCase} from '#usecases/users/get-event-expenses.usecase';
@@ -41,11 +40,10 @@ export class UserController {
   async createEvent(
     @Body() body: CreateEventRequestDto,
     @Headers('idempotency-key') idempotencyKey: string | undefined,
-    @Req() request: FastifyRequest,
   ): Promise<CreateEventResponseDto> {
     const {users, ...event} = body;
 
-    const result = await this.saveEventUseCase.execute({users, event, idempotencyKey, legacyOperationId: request.url});
+    const result = await this.saveEventUseCase.execute({users, event, idempotencyKey});
 
     return unwrapResult(result);
   }
@@ -80,13 +78,11 @@ export class UserController {
     @Param() {eventId}: AddUsersToEventParamsDto,
     @Body() body: AddUsersToEventRequestDto,
     @Headers('idempotency-key') idempotencyKey: string | undefined,
-    @Req() request: FastifyRequest,
   ): Promise<AddUsersToEventResponseDto[]> {
     const result = await this.saveUsersToEventUseCase.execute({
       eventId,
       ...body,
       idempotencyKey,
-      legacyOperationId: request.url,
     });
 
     return unwrapResult(result);
@@ -106,7 +102,6 @@ export class UserController {
     @Body() expense: CreateExpenseRequestV1Dto,
     @Param() {eventId}: CreateExpenseParamsDto,
     @Headers('idempotency-key') idempotencyKey: string | undefined,
-    @Req() request: FastifyRequest,
   ): Promise<CreateExpenseResponseDto> {
     const result = await this.saveEventExpenseUseCase.execute({
       ...expense,
@@ -114,7 +109,6 @@ export class UserController {
       isCustomRate: false,
       splitInformation: expense.splitInformation.map(({userId, amount}) => ({userId, amount, exchangedAmount: amount})),
       idempotencyKey,
-      legacyOperationId: request.url,
     });
 
     return unwrapResult(result);

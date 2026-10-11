@@ -7,17 +7,18 @@ export class IdempotencyKeyEntity implements IIdempotencyKey {
   @PrimaryColumn({type: 'varchar'})
   key!: IIdempotencyKey['key'];
 
-  @Column({type: 'varchar', nullable: true})
-  url!: IIdempotencyKey['url'];
+  // Retained until the separate contract migration; excluded from application reads and writes.
+  @Column({type: 'varchar', nullable: true, select: false, insert: false, update: false})
+  url!: string | null;
 
-  @Column({name: 'request_hash', type: 'varchar', nullable: true})
-  legacyRequestHash!: IIdempotencyKey['legacyRequestHash'];
+  @Column({name: 'request_hash', type: 'varchar', nullable: true, select: false, insert: false, update: false})
+  legacyRequestHash!: string | null;
 
-  @Column({name: 'response', type: 'jsonb', nullable: true})
-  legacyResponse!: IIdempotencyKey['legacyResponse'];
+  @Column({name: 'response', type: 'jsonb', nullable: true, select: false, insert: false, update: false})
+  legacyResponse!: object | null;
 
-  @Column({type: 'integer', nullable: true})
-  statusCode!: IIdempotencyKey['statusCode'];
+  @Column({type: 'integer', nullable: true, select: false, insert: false, update: false})
+  statusCode!: number | null;
 
   @Column({type: 'varchar', nullable: true})
   operationId!: IIdempotencyKey['operationId'];

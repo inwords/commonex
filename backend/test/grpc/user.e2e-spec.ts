@@ -190,6 +190,32 @@ describe('gRPC UserService', () => {
     expect(events).toHaveLength(1);
   });
 
+  it('replays an HTTP-created event through gRPC with the same operation key', async () => {
+    const request = {name: 'Trip', currencyId: usdId, pinCode: '1234', users: [{name: 'Alice'}]};
+    const metadata = new Metadata();
+    metadata.set('idempotency-key', 'cross-transport-key');
+
+    const first = await testApp.app.inject({
+      method: 'POST',
+      url: '/user/event',
+      headers: {'idempotency-key': 'cross-transport-key'},
+      payload: request,
+    });
+    const replay = await callUnary<EventResponse>(client, 'CreateEvent', request, metadata);
+    const [events] = await testApp.rDataService.event.findAll({limit: 10});
+
+    expect(first.statusCode).toBe(201);
+    const httpEvent = first.json<EventResponse>();
+    expect(replay).toEqual({
+      id: httpEvent.id,
+      name: 'Trip',
+      currencyId: usdId,
+      pinCode: '1234',
+      users: httpEvent.users.map(({id, name, eventId}) => ({id, name, eventId})),
+    });
+    expect(events).toHaveLength(1);
+  });
+
   it('maps an in-progress idempotency key to ABORTED', async () => {
     const metadata = new Metadata();
     metadata.set('idempotency-key', 'grpc-key-in-progress');

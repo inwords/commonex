@@ -645,7 +645,6 @@ describe('SaveEventExpenseV2UseCase', () => {
       ],
       pinCode: '1234',
       idempotencyKey: 'key-1',
-      legacyOperationId: '/v2/user/event/event-1/expense',
     };
 
     it('replays the stored response and inserts nothing on a repeated key', async () => {

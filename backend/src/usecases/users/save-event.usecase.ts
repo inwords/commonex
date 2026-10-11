@@ -35,13 +35,9 @@ export class SaveEventUseCase implements UseCase<Input, Output> {
   ) {}
 
   public async execute(input: Input): Promise<Output> {
-    const {idempotencyKey, legacyOperationId, ...core} = input;
-    return this.idempotencyUseCase.execute(
-      idempotencyKey,
-      IdempotencyOperation.CREATE_EVENT_V1,
-      legacyOperationId,
-      core,
-      (trx) => this.executeCore(core, trx),
+    const {idempotencyKey, ...core} = input;
+    return this.idempotencyUseCase.execute(idempotencyKey, IdempotencyOperation.CREATE_EVENT_V1, core, (trx) =>
+      this.executeCore(core, trx),
     );
   }
 

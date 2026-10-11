@@ -1,6 +1,5 @@
-import {Body, Controller, Headers, HttpCode, HttpStatus, Param, Post, Req} from '@nestjs/common';
+import {Body, Controller, Headers, HttpCode, HttpStatus, Param, Post} from '@nestjs/common';
 import {ApiResponse, ApiTags} from '@nestjs/swagger';
-import {FastifyRequest} from 'fastify';
 
 import {
   CreateEventShareTokenV2UseCase,
@@ -61,13 +60,11 @@ export class UserV2Controller {
     @Param() {eventId}: AddUsersToEventParamsDto,
     @Body() body: AddUsersToEventRequestDto,
     @Headers('idempotency-key') idempotencyKey: string | undefined,
-    @Req() request: FastifyRequest,
   ): Promise<AddUsersToEventResponseDto[]> {
     const result = await this.saveUsersToEventV2UseCase.execute({
       eventId,
       ...body,
       idempotencyKey,
-      legacyOperationId: request.url,
     });
 
     return unwrapResult(result);
@@ -91,13 +88,11 @@ export class UserV2Controller {
     @Body() expense: CreateExpenseRequestV2Dto,
     @Param() {eventId}: CreateExpenseParamsDto,
     @Headers('idempotency-key') idempotencyKey: string | undefined,
-    @Req() request: FastifyRequest,
   ): Promise<CreateExpenseResponseDto> {
     const result = await this.saveEventExpenseV2UseCase.execute({
       ...expense,
       eventId,
       idempotencyKey,
-      legacyOperationId: request.url,
     });
 
     return unwrapResult(result);

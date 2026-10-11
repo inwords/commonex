@@ -93,10 +93,6 @@ describe('value objects', () => {
   it('expires an idempotency key after 5 minutes', () => {
     const {value} = new IdempotencyKeyValueObject({
       key: 'k',
-      url: '/user/event',
-      legacyRequestHash: 'legacy-h',
-      legacyResponse: {result: 'success', value: {}},
-      statusCode: 200,
       operationId: 'event.create.v1',
       requestHash: 'h',
       response: {},
