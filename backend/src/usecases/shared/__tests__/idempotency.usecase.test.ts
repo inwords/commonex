@@ -129,20 +129,9 @@ describe('IdempotencySharedUseCase', () => {
       .digest('hex');
     await relationalDataService.dataSource.query(
       `INSERT INTO idempotency_keys
-        (key, url, request_hash, response, status_code, operation_id, request_hash_v2, response_v2,
-         response_version, created_at, expires_at)
-       VALUES ($1, $2, $3, $4, 200, $5, $6, $7, 1, $8, $9)`,
-      [
-        KEY,
-        '/old/url',
-        'old-hash',
-        success(VALUE),
-        OPERATION,
-        requestHash,
-        VALUE,
-        mockNow,
-        new Date(mockNow.getTime() + 60_000),
-      ],
+        (key, operation_id, request_hash_v2, response_v2, response_version, created_at, expires_at)
+       VALUES ($1, $2, $3, $4, 1, $5, $6)`,
+      [KEY, OPERATION, requestHash, VALUE, mockNow, new Date(mockNow.getTime() + 60_000)],
     );
     const operation = jest.fn(() => Promise.resolve(success({id: 'duplicate'})));
 
@@ -156,25 +145,32 @@ describe('IdempotencySharedUseCase', () => {
     await useCase.execute(KEY, OPERATION, BODY, () => Promise.resolve(success(VALUE)));
 
     const records = await relationalDataService.dataSource.query<
-      {
-        url: string | null;
-        request_hash: string | null;
-        response: object | null;
-        status_code: number | null;
-      }[]
-    >('SELECT url, request_hash, response, status_code FROM idempotency_keys WHERE key = $1', [KEY]);
+      {operation_id: string; request_hash_v2: string; response_v2: object; response_version: number}[]
+    >('SELECT operation_id, request_hash_v2, response_v2, response_version FROM idempotency_keys WHERE key = $1', [
+      KEY,
+    ]);
 
-    expect(records).toEqual([{url: null, request_hash: null, response: null, status_code: null}]);
+    expect(records).toEqual([
+      {
+        operation_id: OPERATION,
+        request_hash_v2: createHash('sha256')
+          .update(JSON.stringify({body: BODY, operationId: OPERATION}))
+          .digest('hex'),
+        response_v2: VALUE,
+        response_version: 1,
+      },
+    ]);
   });
 
-  it('replaces a legacy-only record whose effective five-minute TTL has elapsed', async () => {
+  it('replaces a versioned record whose effective five-minute TTL has elapsed', async () => {
     await relationalDataService.dataSource.query(
       `INSERT INTO idempotency_keys
-        (key, url, request_hash, response, status_code, created_at, expires_at)
-       VALUES ($1, '/old/url', 'old-hash', $2, 200, $3, $4)`,
+        (key, operation_id, request_hash_v2, response_v2, response_version, created_at, expires_at)
+       VALUES ($1, $2, 'old-hash', $3, 1, $4, $5)`,
       [
         KEY,
-        success({id: 'old-expense'}),
+        OPERATION,
+        {id: 'old-expense'},
         new Date(mockNow.getTime() - 5 * 60 * 1000),
         new Date(mockNow.getTime() + 24 * 60 * 60 * 1000),
       ],

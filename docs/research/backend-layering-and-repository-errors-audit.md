@@ -24,8 +24,10 @@ P0-срез атомарной идемпотентности реализова
 
 - Пользователь подтвердил завершение compatibility window старой идемпотентности. Согласована двухэтапная поставка: сначала код без legacy reads/writes, затем отдельная contract migration после выкладки этого кода и остановки предыдущих инстансов.
 - Первый этап реализован: `legacyOperationId`, transport URL/status, legacy hash и legacy replay удалены из API/domain/usecases. Новые записи сохраняют только versioned operation ID/hash/response/schema version. Versioned records предыдущей версии продолжают replay; codec с `Date`, advisory lock и эффективный TTL 5 минут сохранены.
-- Старые nullable-колонки пока сохранены только в persistence entity с `select/insert/update: false`; схема БД не меняется. Domain versioned-поля обязательны, DB `NOT NULL` откладывается до contract migration.
-- Второй этап ещё не выполнен: после выкладки первого этапа удалить истёкшие legacy-only записи и колонки `url`, `request_hash`, `response`, `status_code`, затем установить DB `NOT NULL` для versioned-полей. Имена `request_hash_v2`/`response_v2` сохраняются; живые versioned records не удалять. Активные неполные записи должны блокировать миграцию, а не терять replay.
+- Первый этап не менял схему: старые nullable-колонки оставались только в persistence entity с `select/insert/update: false`.
+- 11.10.2026 пользователь подтвердил выкладку первого этапа и остановку всех предыдущих экземпляров с dual-write; второй этап согласован.
+- Второй этап подготовлен в рабочем дереве: [contract migration](../../backend/migrations/default/1791727440000-IdempotencyContract.ts) удаляет только истёкшие legacy-only записи (все четыре versioned-поля `NULL`), удаляет `url`, `request_hash`, `response`, `status_code` и устанавливает `NOT NULL` для `operation_id`, `request_hash_v2`, `response_v2`, `response_version`. Persistence entity приведена к этой схеме. Имена `request_hash_v2`/`response_v2` и все полностью заполненные versioned records сохраняются, включая просроченные.
+- Критерий истечения совпадает с runtime: `LEAST(expires_at, created_at + INTERVAL '5 minutes') <= CURRENT_TIMESTAMP`. Миграция берёт `ACCESS EXCLUSIVE` lock; существующий runner выполняет каждую миграцию в transaction. Любая оставшаяся неполная запись блокирует миграцию с явной ошибкой, включая активную legacy-only и просроченную частично versioned; cleanup и DDL откатываются вместе. `down` возвращает nullable expand-схему, но не восстанавливает удалённые legacy payloads и записи. Production-применение второго этапа в этой сессии не выполнялось.
 
 - TypeORM удалён из domain: универсальный `delete(FindOptionsWhere)` заменён на `deleteByKey(key)`; cleanup уже использует `deleteExpiredBatch({expiresBefore, limit})`, поэтому отдельный `deleteExpiredBefore` не нужен.
 - Domain business errors наследуются от `Error`, не содержат `HttpStatus`/`httpCode`; HTTP mapping находится в business-error filter.
@@ -37,6 +39,29 @@ P0-срез атомарной идемпотентности реализова
 - Удаление `queryDetails` остаётся несогласованным предложением; реализация не начата.
 - Share-token invariant подтверждён пользователем и реализован: не более одной записи на событие, unique index по `eventId`, создание/переиспользование в `READ COMMITTED` transaction с блокировкой события. Истёкшая запись заменяется; TTL остаётся 14 дней.
 - Миграция share tokens сохраняет максимальный `expiresAt`; при равенстве — максимальный `createdAt`, затем минимальный `token`. Остальные записи удаляются, их ссылки перестают работать. `down` удаляет индекс, но не восстанавливает удалённые записи. При rolling deployment старые инстансы могут получить unique conflict до их drain; новые инстансы сериализуют создание и возвращают один token.
+
+Проверка второго этапа в этой сессии: `db:migrate` применён к локальной тестовой БД; 295 unit/DB тестов, 51 SQL snapshot и 63 E2E (включая 7 новых migration-сценариев) прошли последовательно. `typecheck`, `lint:check`, `format:check`, `build` прошли. Read-only `typeorm schema:log` подтвердил отсутствие расхождений entity metadata и применённой схемы. [Тесты миграции](../../backend/test/idempotency-contract-migration.e2e-spec.ts) проверяют сохранность payload/Date codec, имена и nullability колонок, блокировку неполных записей, atomic rollback и восстановление expand-схемы через `down`.
+
+Read-only preflight перед production-применением второго этапа (выполнять с `search_path` целевой схемы до удаления legacy-колонок):
+
+```sql
+WITH records AS (
+  SELECT
+    operation_id IS NULL AND request_hash_v2 IS NULL
+      AND response_v2 IS NULL AND response_version IS NULL AS legacy_only,
+    operation_id IS NOT NULL AND request_hash_v2 IS NOT NULL
+      AND response_v2 IS NOT NULL AND response_version IS NOT NULL AS complete,
+    LEAST(expires_at, created_at + INTERVAL '5 minutes') <= CURRENT_TIMESTAMP AS expired
+  FROM idempotency_keys
+)
+SELECT
+  COUNT(*) FILTER (WHERE legacy_only AND expired) AS expired_legacy_only,
+  COUNT(*) FILTER (WHERE complete AND NOT expired) AS live_versioned,
+  COUNT(*) FILTER (WHERE NOT complete AND NOT (legacy_only AND expired)) AS blocking_incomplete
+FROM records;
+```
+
+`blocking_incomplete` должен быть равен нулю. Preflight не заменяет проверку внутри transaction миграции; production-запрос в этой сессии не выполнялся.
 
 Остальные пункты остаются планом. Исходные формулировки находок ниже сохранены как снимок состояния на дату аудита; текущий статус выше имеет приоритет.
 
@@ -69,7 +94,7 @@ api/composition ──> usecases ──> domain
 | Приоритет | Статус | Изменение | Основной риск сейчас |
 | --- | --- | --- | --- |
 | P0 | ✅ Реализовано в рабочем дереве; tests и typecheck подтверждены пользователем | Сделать идемпотентность атомарной | Mixed-version rollout не даёт полной атомарности до drain старых инстансов |
-| P1 | 🟡 Код очищен; contract migration отдельным этапом после выкладки | Убрать transport data из идемпотентности | Старые колонки сохраняются до остановки предыдущих инстансов |
+| P1 | ✅ Код очищен; contract migration подготовлена и проверена локально | Убрать transport data из идемпотентности | Production-применение второго этапа ещё не подтверждено |
 | P1 | ✅ Реализовано | Убрать TypeORM из domain/usecases | Удаление по ключу и пакетный cleanup имеют предметные интерфейсы |
 | P1 | 🟡 Частично: unknown errors получили единый `INTERNAL_ERROR`; `55P03` оставлен infrastructure error | Ввести единый контракт ожидаемых и неожиданных ошибок | Не все ожидаемые outcomes ещё отражены в `Output` use cases |
 | P1 | ✅ Реализовано | Убрать HTTP status из domain | HTTP mapping находится в transport filter |
@@ -151,7 +176,7 @@ HTTP глобально регистрирует только validation/busines
 
 ### 5.1. Idempotency interface содержит transport data и небезопасно восстанавливает типы
 
-Текущий статус: transport data и legacy fallback удалены из рабочего кода. Стабильный operation ID и versioned codec сохраняют форму успешного replay. Legacy-колонки остаются только в persistence metadata до отдельной contract migration; исходное описание проблемы ниже относится к состоянию на дату аудита.
+Текущий статус: transport data и legacy fallback удалены из рабочего кода. Стабильный operation ID и versioned codec сохраняют форму успешного replay. Legacy-колонки удалены из persistence metadata; отдельная contract migration подготовлена и проверена локально. Исходное описание проблемы ниже относится к состоянию на дату аудита.
 
 `IdempotentInput` требует `url`, HTTP передаёт `request.url`, а gRPC вынужден придумывать строки вида `grpc:CreateEvent`: [`idempotency.usecase.ts`](../../backend/src/usecases/shared/idempotency.usecase.ts#L11), [`user.controller.ts`](../../backend/src/api/grpc/user/user.controller.ts#L73). Domain entity также хранит `statusCode`, хотя use case всегда записывает HTTP-подобное значение `200`: [`idempotency-key.entity.ts`](../../backend/src/domain/entities/idempotency-key.entity.ts#L1), [`idempotency.usecase.ts`](../../backend/src/usecases/shared/idempotency.usecase.ts#L53). Это transport concerns внутри use case/domain interface.
 
@@ -245,7 +270,7 @@ gRPC controller и request DTO импортируют HTTP DTO, например
 
 1. Спроектировать один idempotency module interface, скрывающий reservation/replay/hash mismatch.
 2. ✅ Transport URL удалён из API/usecases; стабильный operation key и versioned response codec сохраняют runtime shape.
-3. ✅ HTTP `statusCode` удалён из domain record; transport определяет статус по результату операции. Legacy DB-колонки удаляются отдельной contract migration после выкладки первого этапа.
+3. ✅ HTTP `statusCode` удалён из domain record; transport определяет статус по результату операции. Отдельная contract migration подготовлена после подтверждения выкладки первого этапа и drain старых экземпляров.
 4. Реализовать атомарность в PostgreSQL adapter и перевод `23505` без утечки TypeORM.
 5. Сохранить успешный response в той же согласованной lifecycle-модели; определить recovery для `in_progress` после падения процесса.
 6. Добавить DB-backed concurrency tests для одинакового и различного hash.
