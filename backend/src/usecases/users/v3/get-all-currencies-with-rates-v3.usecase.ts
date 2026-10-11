@@ -4,6 +4,7 @@ import {getCurrentDateWithoutTimeUTC} from '#packages/date-utils';
 import {Result, error, success} from '#packages/result';
 import {UseCase} from '#packages/use-case';
 
+import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-service/relational-data-service';
 import {SupportedCurrencyServiceAbstract} from '#domain/abstracts/supported-currency-service/supported-currency-service';
 import {CurrencyCode} from '#domain/entities/currency.entity';
 import {CurrencyRateNotFoundError} from '#domain/errors';
@@ -29,25 +30,28 @@ type Output = Result<
 
 @Injectable()
 export class GetAllCurrenciesWithRatesUseCaseV3 implements UseCase<void, Output> {
-  constructor(private readonly supportedCurrencyService: SupportedCurrencyServiceAbstract) {}
+  constructor(
+    private readonly rDataService: RelationalDataServiceAbstract,
+    private readonly supportedCurrencyService: SupportedCurrencyServiceAbstract,
+  ) {}
 
   public async execute(): Promise<Output> {
     const currentDate = getCurrentDateWithoutTimeUTC();
-    const [currencies, currencyRate] = await Promise.all([
-      this.supportedCurrencyService.findAll({
+    const [[currencies], [currencyRate]] = await Promise.all([
+      this.rDataService.currency.findAll({
         orderBy: 'code',
         orderDirection: 'ASC',
       }),
-      this.supportedCurrencyService.findRateByDate(currentDate),
+      this.rDataService.currencyRate.findByDate(currentDate),
     ]);
 
     if (!currencyRate) {
       return error(new CurrencyRateNotFoundError());
     }
 
-    const exchangeRate: SupportedExchangeRateMap = currencyRate.rate;
+    const exchangeRate: SupportedExchangeRateMap = this.supportedCurrencyService.filterRates(currencyRate.rate);
     const response = {
-      currencies: currencies.map((currency) => ({
+      currencies: this.supportedCurrencyService.filterCurrencies(currencies).map((currency) => ({
         id: currency.id,
         code: currency.code,
         updatedAt: currency.updatedAt,

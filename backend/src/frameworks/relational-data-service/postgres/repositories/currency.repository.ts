@@ -7,8 +7,6 @@ import {ICurrency} from '#domain/entities/currency.entity';
 import {CurrencyEntity} from '#frameworks/relational-data-service/postgres/entities/currency.entity';
 import {BaseRepository} from '#frameworks/relational-data-service/postgres/repositories/base.repository';
 
-import {createSupportedCurrencyCodesFilter} from './supported-currency-codes-filter';
-
 export class CurrencyRepository extends BaseRepository implements CurrencyRepositoryAbstract {
   readonly dataSource: DataSource;
 
@@ -28,20 +26,6 @@ export class CurrencyRepository extends BaseRepository implements CurrencyReposi
     query = query.where(`${this.queryName}.id = :id`, {
       id,
     });
-
-    const queryDetails = this.getQueryDetails(query);
-    const result = await query.getOne();
-
-    return [result, queryDetails];
-  };
-
-  readonly findSupportedById: CurrencyRepositoryAbstract['findSupportedById'] = async (id, trx) => {
-    const supportedCurrencyFilter = createSupportedCurrencyCodesFilter(this.queryName);
-    let query = this.getRepository(this.dataSource, CurrencyEntity, trx).createQueryBuilder(this.queryName);
-
-    query = query
-      .where(`${this.queryName}.id = :id`, {id})
-      .andWhere(supportedCurrencyFilter.condition, supportedCurrencyFilter.parameters);
 
     const queryDetails = this.getQueryDetails(query);
     const result = await query.getOne();
@@ -71,21 +55,6 @@ export class CurrencyRepository extends BaseRepository implements CurrencyReposi
     const result = await query.getMany();
 
     return [result, queryDetails];
-  };
-
-  readonly findAllSupported: CurrencyRepositoryAbstract['findAllSupported'] = async (input = {}, trx) => {
-    const {limit, orderBy, orderDirection} = input;
-    const supportedCurrencyFilter = createSupportedCurrencyCodesFilter(this.queryName);
-
-    return this.findAll(
-      {
-        limit,
-        codes: supportedCurrencyFilter.parameters['supportedCurrencyCodes'],
-        orderBy,
-        orderDirection,
-      },
-      trx,
-    );
   };
 
   readonly insert: CurrencyRepositoryAbstract['insert'] = async (

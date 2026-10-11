@@ -76,13 +76,14 @@ HTTP/gRPC -> use case -> repository port -> PostgreSQL adapter -> database
 Но source-level зависимости при dependency inversion не должны быть той же линейной стрелкой. Рекомендуемая модель:
 
 ```text
-api/composition ──> usecases ──> domain
-       │                            ▲
-       └────────> frameworks ───────┘
+api        ──> usecases, frameworks, domain
+usecases   ──> frameworks, domain
+frameworks ──> domain
+domain     ──> свои разделы, чистые packages
 ```
 
-- `domain` не импортирует Nest, TypeORM, API или use cases;
-- `usecases` импортирует domain-типы и порты, но не TypeORM и transport-типы;
+- `domain` не импортирует Nest, TypeORM, API, usecases или frameworks;
+- По уточнённому решению пользователя `usecases` может импортировать frameworks/domain и внешние зависимости; запрещён импорт API.
 - `frameworks` реализует порты, определённые внутренним слоем, поэтому импорт `frameworks -> domain` корректен;
 - `api` переводит transport DTO/status/metadata в интерфейс use case;
 - composition root связывает реализации с портами. Он может знать обо всех слоях, но не должен заставлять бизнес-код знать конкретный адаптер.
@@ -96,12 +97,12 @@ api/composition ──> usecases ──> domain
 | P0 | ✅ Реализовано в рабочем дереве; tests и typecheck подтверждены пользователем | Сделать идемпотентность атомарной | Mixed-version rollout не даёт полной атомарности до drain старых инстансов |
 | P1 | ✅ Код очищен; contract migration подготовлена и проверена локально | Убрать transport data из идемпотентности | Production-применение второго этапа ещё не подтверждено |
 | P1 | ✅ Реализовано | Убрать TypeORM из domain/usecases | Удаление по ключу и пакетный cleanup имеют предметные интерфейсы |
-| P1 | ✅ Проверенные business outcomes отражены в `Output`; unknown errors получают `INTERNAL_ERROR` | Ввести единый контракт ожидаемых и неожиданных ошибок | Часть gRPC outcomes пока проверяется только на уровне filter |
+| P1 | ✅ Проверенные business outcomes отражены в `Output`; unknown errors получают `INTERNAL_ERROR` | Ввести единый контракт ожидаемых и неожиданных ошибок | Контракт проверен для 10 business errors; новые outcomes требуют отдельного решения |
 | P1 | ✅ Реализовано | Убрать HTTP status из domain | HTTP mapping находится в transport filter |
-| P1 | Отложено до завершения рефакторинга | Автоматически проверять импорты между слоями | Текущий ESLint защищает только production от `test-support` |
+| P1 | ✅ Scoped ESLint gate добавлен по согласованной модели | Автоматически проверять импорты между слоями | Статические импорты защищены; dynamic import/require не входят в этот gate |
 | P2 | ✅ Реализован fail-fast handle | Сделать транзакционный seam fail-safe | Неверный, чужой или завершённый handle отклоняется |
 | P2 | Подтверждённая проблема интерфейса | Убрать `queryDetails` из domain-портов | Production-интерфейс каждого репозитория расширен только ради adapter-тестов |
-| P2 | Подтверждённая проблема интерфейса | Разделить общий `RelationalDataServiceAbstract` на capability ports | Каждый use case получает service locator со всеми репозиториями и lifecycle-методами |
+| P2 | Отменено пользователем 11.10.2026 | Разделить общий `RelationalDataServiceAbstract` на capability ports | Текущий общий порт сохраняется; дальнейшее сужение не планируется |
 | P3 | ✅ Реализовано для активных business errors | Унифицировать классы ошибок и barrel exports | Классы наследуют `Error`, barrel экспортирует активные типы |
 | P3 | Вариант дизайна | Переместить чистые event rules из frameworks | Единственная реализация абстракции создаёт неглубокий, гипотетический seam |
 | P3 | Вариант дизайна | Развязать gRPC DTO от HTTP DTO | Два transport-адаптера меняются совместно |
@@ -212,24 +213,29 @@ Callback получает transaction-scoped набор портов, поэто
 
 План углубления seam:
 
-- use case получает узкие capability ports (`EventReader`, `ExpenseWriter`, `TransactionRunner`), сгруппированные по согласованной операции, а не обязательно один CRUD-interface на таблицу;
+- Выделение capability ports отменено пользователем 11.10.2026; текущий `RelationalDataServiceAbstract` сохраняется.
 - `initialize`/`destroy` остаются в текущем domain data interface по решению пользователя от 11.10.2026; отдельный lifecycle refactor не планируется;
 - health получает отдельный `HealthProbe` port;
 - не создавать по интерфейсу на каждый метод: интерфейс должен скрывать сложность операции и иметь реальную заменяемость либо отчётливую test seam.
 
 ### 9. Границы слоёв не проверяются автоматически
 
-В production-настройках ESLint `no-restricted-imports` запрещает только `test-support`: [`eslint.config.js`](../../backend/eslint.config.js#L82). Поэтому импорты TypeORM в domain/usecases проходят CI.
+Текущий статус: [ESLint config](../../backend/eslint.config.js) содержит production-scoped `no-restricted-imports` для принятой модели зависимостей:
 
-После согласования модели зависимостей добавить scoped rules минимум для:
+- `src/domain/**`: запрет `#api`, `#usecases`, `#frameworks`, Nest, TypeORM (включая subpaths), gRPC, Fastify/Express и transport validation/serialization packages;
+- `src/usecases/**`: запрет только API; frameworks/domain, Nest, TypeORM и внешние зависимости разрешены. `UseCasesModule` подчиняется тем же правилам, отдельное wiring-исключение не нужно;
+- `src/frameworks/**`: запрет API/usecases, разрешены domain ports и собственные infrastructure dependencies;
+- `src/api/**`: импорты всех production-слоёв разрешены;
+- внутри каждого слоя импорты разрешены. Domain может импортировать собственные entities/value objects/abstracts/errors и чистые `#packages`; запрет между его разделами не вводится.
+- существующий production-запрет `test-support` сохранён во всех scoped configs, включая wiring;
+- alias и относительные пути проверяются одинаково; production imports с `..` внутри repo-alias запрещены, чтобы `#domain/../api/...` не обходил границы; type-only imports и reexports также запрещаются. Внешний пакет `@opentelemetry/api` не считается repo-слоем `api`;
+- `*.test.ts`, `*.spec.ts`, `__tests__`, `src/test-support` и `test/` освобождены от production restrictions. Gate проверяет статические imports/reexports; dynamic import и CommonJS require не входят в этот срез.
 
-- `src/domain/**`: запрет `#api`, `#usecases`, `#frameworks`, Nest, TypeORM и transport packages;
-- `src/usecases/**`: запрет `#api`, конкретных `#frameworks/**`, TypeORM и transport DTO packages; отдельно решить, временно ли допускается `@Injectable`;
-- `src/frameworks/**`: запрет `#api` и `#usecases`;
-- production: уже действующий запрет `test-support` сохранить;
-- relative imports должны проверяться на тот же escape path, иначе aliases можно обойти через `../../`.
+[Regression suite](../../backend/src/__tests__/layer-imports.spec.ts) читает эффективный ESLint config для synthetic file paths и проверяет запрещённые и разрешённые imports; fixtures не создаются на диске, type-aware parser service отключён только внутри fixture linter. Parser/config errors не могут пройти как разрешённый import.
 
-По решению от 03.10.2026 ESLint-ограничения для слоёв отложены до завершения всего рефакторинга из этого плана. После очистки известных нарушений их следует включить последним CI gate, чтобы не поддерживать временные исключения и не оставлять красный baseline.
+Проверки gate: 58 regression-кейсов (разрешённые/запрещённые imports) прошли; полный прогон — 363 unit/DB теста, 51 SQL snapshot и 70 E2E. DB suites и E2E запускались последовательно. `typecheck`, `lint:check`, `format:check`, `build`, `git diff --check` прошли. Production-файлы не менялись.
+
+Решение от 03.10.2026 откладывало ESLint-ограничения до завершения рефакторинга. 11.10.2026 пользователь согласовал включение gate сейчас, затем уточнил модель: API импортирует все слои; usecases — все, кроме API; frameworks — все, кроме API/usecases; domain чист от внешних слоёв и инфраструктуры, внутренние импорты разрешены. Прежние узкие DI/wiring-исключения сняты; дальнейшие структурные предложения не блокируют gate.
 
 ### 10. Публичный интерфей error-модуля синхронизирован
 
@@ -254,9 +260,9 @@ Barrel [`domain/errors/index.ts`](../../backend/src/domain/errors/index.ts#L1) �
 | Validation failure | Transport DTO validation, вне `Output` use case | B4006 | 400 | INVALID_ARGUMENT |
 | Unexpected infrastructure/invariant failure | Exceptions, включая lock unavailable/timeout | B4007 | 500 | INTERNAL |
 
-Покрытие контрактов: [HTTP business filter tests](../../backend/src/api/http/filters/__tests__/business-error.filter.spec.ts) и [gRPC business filter tests](../../backend/src/api/grpc/filters/__tests__/grpc-business-error.filter.spec.ts) проверяют все 10 business errors с явно заданными status/code/message; gRPC также проверяет metadata `error-code`. HTTP E2E покрывают все 10 business errors. gRPC E2E покрывают EventNotFound, EventDeleted, InvalidPinCode, TokenExpired и обе idempotency errors. InvalidToken, CurrencyNotFound, CurrencyRateNotFound и InconsistentExchangedAmount в gRPC пока покрыты filter unit tests; E2E для этих четырёх outcomes остаются отдельным возможным срезом. [HTTP V2](../../backend/test/http/user-v2.e2e-spec.ts) и [gRPC](../../backend/test/grpc/user.e2e-spec.ts) проверяют expiry token на реальной БД; gRPC mismatch дополнительно проверяет отсутствие второго события.
+Покрытие контрактов: [HTTP business filter tests](../../backend/src/api/http/filters/__tests__/business-error.filter.spec.ts) и [gRPC business filter tests](../../backend/src/api/grpc/filters/__tests__/grpc-business-error.filter.spec.ts) проверяют все 10 business errors с явно заданными status/code/message; gRPC также проверяет metadata `error-code`. HTTP и gRPC E2E покрывают все 10 business errors. Последний gRPC срез добавляет InvalidToken через GetEventInfoV2, CurrencyNotFound через CreateEvent, CurrencyRateNotFound и InconsistentExchangedAmount через CreateExpenseV2; все сценарии используют реальную БД и проверяют status, details и metadata business code. [HTTP V2](../../backend/test/http/user-v2.e2e-spec.ts) и [gRPC](../../backend/test/grpc/user.e2e-spec.ts) проверяют expiry token на реальной БД; gRPC mismatch дополнительно проверяет отсутствие второго события.
 
-Проверки этого среза: 305 unit/DB тестов, 51 SQL snapshot и 66 E2E прошли; DB suites и E2E запускались последовательно. `typecheck`, `lint:check`, `format:check`, `build` и `git diff --check` прошли. Изменены только тесты и этот аудит; production behavior сохранено.
+Проверки этого среза: 305 unit/DB тестов, 51 SQL snapshot и 70 E2E прошли; DB suites и E2E запускались последовательно. `typecheck`, `lint:check`, `format:check`, `build` и `git diff --check` прошли. Изменены только тесты и этот аудит; production behavior сохранено.
 
 Retry semantics: для in-progress допустим повтор после завершения текущего запроса; для mismatch нельзя повторно использовать тот же ключ с изменённым body/operation. Остальные business outcomes требуют исправления запроса, доступа или изменения состояния; автоматический retry contract для них не добавляется. `INTERNAL_ERROR` не гарантирует retry safety, поэтому клиент не должен считать любую неизвестную ошибку основанием повторить mutation без её существующих гарантий идемпотентности.
 
@@ -266,9 +272,15 @@ Retry semantics: для in-progress допустим повтор после з�
 
 `EventService` проверяет существование, soft delete и PIN, не использует инфраструктуру и имеет одну реализацию: [`event-service.ts`](../../backend/src/frameworks/event-service/event-service.ts#L9). Абстракция в domain плюс единственный framework adapter образуют гипотетический seam. Предпочтительно переместить реализацию правил в domain как обычный глубокий модуль/функции и внедрять только то, что реально меняется или имеет внешний side effect.
 
-### Supported-currency policy смешан с adapter orchestration
+### Supported-currency policy отделён от DB orchestration
 
-`SupportedCurrencyService` находится в frameworks, фильтрует поддерживаемые коды и оркестрирует два repository ports: [`supported-currency-service.ts`](../../backend/src/frameworks/supported-currency-service/supported-currency-service.ts#L12). Это бизнес-политика, а не внешний adapter. Её следует либо перенести в domain/usecases, либо сформировать отдельный query port, чья PostgreSQL-реализация сразу возвращает поддерживаемые данные. Выбор зависит от того, должна ли политика одинаково работать поверх нескольких adapters.
+По согласованному решению пользователя от 11.10.2026 `SupportedCurrencyService` остаётся в frameworks как чистый сервис: проверяет поддержку валюты, фильтрует переданные валюты и курсы и предоставляет поддерживаемые коды. Зависимость от data service и асинхронные repository-обёртки удалены.
+
+Пять usecases самостоятельно читают currency/currency-rate repository ports, сохраняя transaction context и прежние business errors. Полный V3-ответ получает все валюты в порядке code и фильтрует их чистым сервисом; курсы также фильтруются без изменения входных данных. V3 version usecase передаёт выбранные сервисом коды в общий `findCurrenciesWithRatesVersionByDate(date, codes, trx)`: лёгкий запрос возвращает только timestamps, без загрузки rate JSON. Форма validator и порядок timestamps для `200`/`304` сохранены.
+
+Из repositories удалены `findSupportedById`, `findAllSupported` и helper с hardcoded policy. Вместо них используются `findById`/`findAll` и явные параметры фильтра. PostgreSQL-repositories остаются в frameworks; перенос EventService, lifecycle и bootstrap composition в этот срез не входит. SQL snapshots обновляются только для удалённых запросов и нового параметризованного запроса метаданных.
+
+Проверки среза: 366 unit/DB тестов, 50 SQL snapshots и 70 E2E прошли; DB suites и E2E запускались последовательно. `typecheck`, `lint:check`, `format:check`, `build` и `git diff --check` прошли. Чистый сервис отдельно проверен на поддержку/missing currency, порядок отбора, пустые данные и отсутствие мутации rates.
 
 ### gRPC зависит от HTTP DTO
 
@@ -314,9 +326,9 @@ gRPC controller и request DTO импортируют HTTP DTO, например
 3. ✅ Убрать `HttpStatus`/`httpCode` из domain errors; добавить полную HTTP mapping рядом с gRPC mapping.
 4. ✅ Сделать health output transport-neutral.
 5. Исключено по решению пользователя от 11.10.2026: сохранить wiring в `UseCasesModule`.
-6. После завершения всех этапов рефакторинга добавить ESLint restrictions для слоёв и regression fixtures/tests для запрещённых импортов как финальный CI gate.
+6. ✅ Scoped ESLint restrictions и regression fixtures включены сейчас по решению от 11.10.2026; правила приведены к уточнённой модели пользователя, отдельные DI/wiring-исключения не нужны.
 
-Критерий готовности: `domain` не импортирует Nest/TypeORM; `usecases` не импортирует TypeORM/transport types/concrete frameworks, кроме принятого wiring в `UseCasesModule`; CI предотвращает возврат нарушений.
+Критерий готовности: `domain` не импортирует Nest/TypeORM; `usecases` не импортирует API, `frameworks` не импортирует API/usecases; CI защищает уточнённую пользователем модель.
 
 ### Этап 3. Унифицировать ошибки (P1)
 
@@ -325,7 +337,7 @@ gRPC controller и request DTO импортируют HTTP DTO, например
 3. ✅ Idempotency mismatch и in-progress возвращаются через `Result` и включены в mutation `Output`.
 4. ✅ HTTP/gRPC catch-all filters возвращают безопасный `INTERNAL_ERROR` и логируют неизвестную ошибку; текущее observability поведение сохраняется.
 5. ✅ Убрать повторяющийся `if (isError) throw` из HTTP V1/V2/V3 и gRPC controllers через общий API helper `unwrapResult`.
-6. ✅ Текущая error matrix записана; HTTP/gRPC filter tests покрывают все 10 business errors. E2E coverage и оставшиеся gRPC пробелы перечислены рядом с матрицей.
+6. ✅ Текущая error matrix записана; HTTP/gRPC filter tests покрывают все 10 business errors. HTTP/gRPC E2E покрывают все 10 business errors; детали перечислены рядом с матрицей.
 
 Критерий готовности: каждый ожидаемый отказ виден в типе use case; неизвестная DB-ошибка имеет одинаковый безопасный внешний контракт в HTTP и gRPC.
 
@@ -333,7 +345,7 @@ gRPC controller и request DTO импортируют HTTP DTO, например
 
 1. ✅ Реализован fail-fast context через framework-internal registry transaction handles.
 2. Исключено по решению пользователя от 11.10.2026: сохранить `initialize`/`destroy` в domain data interface. Текущие use cases их не вызывают; польза отдельной правки не оправдывает изменения wiring.
-3. Выделять capability ports по use case, начиная с idempotency и event mutation paths; не переписывать все семь repositories одним большим PR.
+3. Исключено по решению пользователя от 11.10.2026: capability ports не выделяются, общий `RelationalDataServiceAbstract` сохраняется.
 4. Убрать `queryDetails` из production interfaces, сохранив SQL snapshot tests через framework-internal hook.
 5. После каждого slice запускать repository, use case и E2E tests затронутого потока.
 
@@ -342,7 +354,7 @@ gRPC controller и request DTO импортируют HTTP DTO, например
 ### Этап 5. Локальные улучшения структуры (P3)
 
 1. Переместить чистые event rules из frameworks после удаления гипотетической абстракции.
-2. Определить место supported-currency policy.
+2. ✅ Supported-currency policy оставлен чистым сервисом в frameworks; DB orchestration перенесён в usecases, repositories принимают явные фильтры.
 3. Разделить gRPC и HTTP DTO, оставив общим use case contract.
 4. ✅ Зафиксирован строгий share-token invariant; добавлены unique index, transaction и concurrency tests.
 5. Консолидировать V1/V2 core только после решения о legacy compatibility.

@@ -3,6 +3,33 @@ const tsPlugin = require('@typescript-eslint/eslint-plugin');
 const prettier = require('eslint-config-prettier/flat');
 const globals = require('globals');
 
+const productionTestFiles = ['**/*.test.ts', '**/*.spec.ts', '**/__tests__/**/*.ts', 'src/test-support/**/*.ts'];
+const testSupportPatterns = [
+  {regex: '^#test-support/', message: 'Test helpers must not be imported from production code.'},
+  {regex: '(^|/)test-support/', message: 'Test helpers must not be imported from production code.'},
+];
+const transportPattern = {
+  regex: '^(typeorm|@grpc/[^/]+|@fastify/[^/]+|fastify|express|class-validator|class-transformer)(/|$)',
+  message: 'Persistence and transport dependencies belong in adapters.',
+};
+const layerPattern = (layers) => ({
+  regex: `^(?:#(?:${layers})(/|$)|\\.{1,2}/(?:[^/]+/)*(?:${layers})(/|$))`,
+  message: 'This layer must not import the specified layer.',
+});
+const restrictedImports = (patterns) => [
+  'error',
+  {
+    patterns: [
+      ...testSupportPatterns,
+      {
+        regex: '^#(api|domain|usecases|frameworks|packages|test-support)/(?:[^/]+/)*\\.\\.(/|$)',
+        message: 'Use a canonical alias path without parent traversal so layer restrictions cannot be bypassed.',
+      },
+      ...patterns,
+    ],
+  },
+];
+
 module.exports = defineConfig([
   {
     ignores: ['dist/**', 'coverage/**'],
@@ -79,22 +106,39 @@ module.exports = defineConfig([
   },
   {
     files: ['src/**/*.ts'],
-    ignores: ['**/*.test.ts', '**/*.spec.ts', '**/__tests__/**/*.ts', 'src/test-support/**/*.ts'],
+    ignores: productionTestFiles,
 
     rules: {
       // Test helpers must never reach production code; the build exclude alone does not stop an import.
       // `regex` is required here: plain string patterns are matched gitignore-style, so a leading `#` would be
       // read as a comment and the rule would silently never fire. The second pattern closes the relative-path
       // escape hatch (`../../test-support/db`).
-      'no-restricted-imports': [
-        'error',
-        {
-          patterns: [
-            {regex: '^#test-support/', message: 'Test helpers must not be imported from production code.'},
-            {regex: '(^|/)test-support/', message: 'Test helpers must not be imported from production code.'},
-          ],
-        },
-      ],
+      'no-restricted-imports': restrictedImports([]),
+    },
+  },
+  {
+    files: ['src/domain/**/*.ts'],
+    ignores: productionTestFiles,
+    rules: {
+      'no-restricted-imports': restrictedImports([
+        layerPattern('api|usecases|frameworks'),
+        transportPattern,
+        {regex: '^@nestjs(/|$)', message: 'Domain must not depend on Nest.'},
+      ]),
+    },
+  },
+  {
+    files: ['src/usecases/**/*.ts'],
+    ignores: productionTestFiles,
+    rules: {
+      'no-restricted-imports': restrictedImports([layerPattern('api')]),
+    },
+  },
+  {
+    files: ['src/frameworks/**/*.ts'],
+    ignores: productionTestFiles,
+    rules: {
+      'no-restricted-imports': restrictedImports([layerPattern('api|usecases')]),
     },
   },
   {

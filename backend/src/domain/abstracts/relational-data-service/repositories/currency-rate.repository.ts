@@ -8,8 +8,9 @@ export abstract class CurrencyRateRepositoryAbstract {
     trx?: ITransactionWithLock,
   ) => Promise<[result: ICurrencyRate | null, queryDetails: IQueryDetails]>;
 
-  abstract findSupportedCurrenciesWithRatesVersionByDate: (
+  abstract findCurrenciesWithRatesVersionByDate: (
     date: string,
+    codes: ICurrency['code'][],
     trx?: ITransactionWithLock,
   ) => Promise<
     [

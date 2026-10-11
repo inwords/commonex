@@ -27,6 +27,7 @@ describe('gRPC UserService', () => {
   let testApp: TestApp;
   let client: UserServiceClient;
   let usdId: string;
+  let eurId: string;
 
   beforeAll(async () => {
     testApp = await createTestApp({grpc: true});
@@ -48,6 +49,7 @@ describe('gRPC UserService', () => {
   beforeEach(async () => {
     await testApp.reset();
     usdId = await findCurrencyIdByCode(testApp.rDataService, CurrencyCode.USD);
+    eurId = await findCurrencyIdByCode(testApp.rDataService, CurrencyCode.EUR);
   });
 
   it('creates an event and returns its users with string event ids', async () => {
@@ -60,6 +62,29 @@ describe('gRPC UserService', () => {
 
     expect(response).toMatchObject({name: 'Trip', currencyId: usdId, pinCode: '1234'});
     expect(response.users).toEqual([expect.objectContaining({name: 'Alice', eventId: response.id})]);
+  });
+
+  it('maps an unknown share token to UNAUTHENTICATED with B4008', async () => {
+    const event = await createEvent(testApp.app, {currencyId: usdId});
+
+    const error = await expectGrpcError(
+      callUnary(client, 'GetEventInfoV2', {eventId: event.id, token: 'unknown-token'}),
+    );
+
+    expect(error).toEqual({code: status.UNAUTHENTICATED, details: 'Invalid token', errorCode: 'B4008'});
+  });
+
+  it('maps an unknown currency to NOT_FOUND with B4004', async () => {
+    const error = await expectGrpcError(
+      callUnary(client, 'CreateEvent', {
+        name: 'Trip',
+        currencyId: 'unknown-currency-id',
+        pinCode: '1234',
+        users: [{name: 'Alice'}],
+      }),
+    );
+
+    expect(error).toEqual({code: status.NOT_FOUND, details: 'Currency not found', errorCode: 'B4004'});
   });
 
   it('maps a wrong pin code to PERMISSION_DENIED with the domain error code in metadata', async () => {
@@ -150,6 +175,51 @@ describe('gRPC UserService', () => {
     expect(response.splitInformation).toEqual([{userId: alice?.id, amount: 40.5, exchangedAmount: 40.5}]);
     expect(response.createdAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
     expect(stored[0]?.expenseType).toBe('expense');
+  });
+
+  it('maps a missing current currency rate to NOT_FOUND with B4005', async () => {
+    const event = await createEvent(testApp.app, {currencyId: usdId});
+    const [alice] = event.users;
+
+    const error = await expectGrpcError(
+      callUnary(client, 'CreateExpenseV2', {
+        eventId: event.id,
+        pinCode: '1234',
+        description: 'Dinner',
+        userWhoPaidId: alice?.id,
+        currencyId: eurId,
+        expenseType: 'expense',
+        splitInformation: [{userId: alice?.id, amount: 40}],
+      }),
+    );
+
+    expect(error).toEqual({code: status.NOT_FOUND, details: 'Currency rate not found', errorCode: 'B4005'});
+  });
+
+  it('maps a partially custom exchange amount to INVALID_ARGUMENT with B4010', async () => {
+    const event = await createEvent(testApp.app, {currencyId: usdId});
+    const [alice, bob] = event.users;
+
+    const error = await expectGrpcError(
+      callUnary(client, 'CreateExpenseV2', {
+        eventId: event.id,
+        pinCode: '1234',
+        description: 'Dinner',
+        userWhoPaidId: alice?.id,
+        currencyId: eurId,
+        expenseType: 'expense',
+        splitInformation: [
+          {userId: alice?.id, amount: 40, exchangedAmount: 50},
+          {userId: bob?.id, amount: 60},
+        ],
+      }),
+    );
+
+    expect(error).toEqual({
+      code: status.INVALID_ARGUMENT,
+      details: 'All splitInfo must have exchangedAmount when custom rate is used',
+      errorCode: 'B4010',
+    });
   });
 
   it('returns a share token with an ISO expiry on CreateEventShareTokenV2', async () => {

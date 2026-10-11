@@ -2,7 +2,7 @@ import {DataSource} from 'typeorm';
 
 import {ITransaction} from '#domain/abstracts/relational-data-service/types';
 import {ICurrencyRate} from '#domain/entities/currency-rate.entity';
-import {ICurrency} from '#domain/entities/currency.entity';
+import {CurrencyCode, ICurrency} from '#domain/entities/currency.entity';
 import {IEventShareToken} from '#domain/entities/event-share-token.entity';
 import {IEvent} from '#domain/entities/event.entity';
 import {IExpense} from '#domain/entities/expense.entity';
@@ -36,16 +36,14 @@ describe('PostgreSQL repository transaction context contract', () => {
   const cases: RepositoryContractCase[] = [
     ['CurrencyRate.findByDate', ({currencyRate}, trx): Promise<unknown> => currencyRate.findByDate('2026-01-01', trx)],
     [
-      'CurrencyRate.findSupportedCurrenciesWithRatesVersionByDate',
+      'CurrencyRate.findCurrenciesWithRatesVersionByDate',
       ({currencyRate}, trx): Promise<unknown> =>
-        currencyRate.findSupportedCurrenciesWithRatesVersionByDate('2026-01-01', trx),
+        currencyRate.findCurrenciesWithRatesVersionByDate('2026-01-01', [CurrencyCode.USD], trx),
     ],
     ['CurrencyRate.findAll', ({currencyRate}, trx): Promise<unknown> => currencyRate.findAll({limit: 1}, trx)],
     ['CurrencyRate.insert', ({currencyRate}, trx): Promise<unknown> => currencyRate.insert({} as ICurrencyRate, trx)],
     ['Currency.findById', ({currency}, trx): Promise<unknown> => currency.findById('USD', trx)],
-    ['Currency.findSupportedById', ({currency}, trx): Promise<unknown> => currency.findSupportedById('USD', trx)],
-    ['Currency.findAll', ({currency}, trx): Promise<unknown> => currency.findAll({}, trx)],
-    ['Currency.findAllSupported', ({currency}, trx): Promise<unknown> => currency.findAllSupported({}, trx)],
+    ['Currency.findAll', ({currency}, trx): Promise<unknown> => currency.findAll({codes: [CurrencyCode.USD]}, trx)],
     ['Currency.insert', ({currency}, trx): Promise<unknown> => currency.insert({} as ICurrency, trx)],
     [
       'EventShareToken.findByToken',

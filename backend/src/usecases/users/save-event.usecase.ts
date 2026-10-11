@@ -42,9 +42,9 @@ export class SaveEventUseCase implements UseCase<Input, Output> {
   }
 
   private async executeCore({event, users}: InputCore, trx: ITransaction): Promise<Output> {
-    const currency = await this.supportedCurrencyService.findById(event.currencyId, trx);
+    const [currency] = await this.rDataService.currency.findById(event.currencyId, trx);
 
-    if (!currency) {
+    if (!this.supportedCurrencyService.isSupported(currency)) {
       return error(new CurrencyNotFoundError());
     }
 

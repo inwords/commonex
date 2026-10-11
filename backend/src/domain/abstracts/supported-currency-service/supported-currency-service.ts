@@ -1,25 +1,9 @@
-import {ITransaction, ITransactionWithLock} from '#domain/abstracts/relational-data-service/types';
 import {ICurrencyRate} from '#domain/entities/currency-rate.entity';
-import {ICurrency} from '#domain/entities/currency.entity';
-
-export interface SupportedCurrenciesVersion {
-  rateUpdatedAt: ICurrencyRate['updatedAt'];
-  currenciesUpdatedAt: ICurrency['updatedAt'][];
-}
+import {CurrencyCode, ICurrency} from '#domain/entities/currency.entity';
 
 export abstract class SupportedCurrencyServiceAbstract {
-  abstract findById: (currencyId: ICurrency['id'], trx?: ITransactionWithLock) => Promise<ICurrency | null>;
-  abstract findAll: (
-    input?: {
-      limit?: number;
-      orderBy?: 'id' | 'code' | 'createdAt' | 'updatedAt';
-      orderDirection?: 'ASC' | 'DESC';
-    },
-    trx?: ITransaction,
-  ) => Promise<ICurrency[]>;
-  abstract findRateByDate: (date: ICurrencyRate['date'], trx?: ITransactionWithLock) => Promise<ICurrencyRate | null>;
-  abstract findVersionByDate: (
-    date: ICurrencyRate['date'],
-    trx?: ITransactionWithLock,
-  ) => Promise<SupportedCurrenciesVersion | null>;
+  abstract readonly supportedCodes: readonly CurrencyCode[];
+  abstract isSupported: (currency: ICurrency | null) => currency is ICurrency;
+  abstract filterCurrencies: (currencies: readonly ICurrency[]) => ICurrency[];
+  abstract filterRates: (rates: ICurrencyRate['rate']) => ICurrencyRate['rate'];
 }

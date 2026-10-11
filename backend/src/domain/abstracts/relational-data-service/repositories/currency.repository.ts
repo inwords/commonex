@@ -6,24 +6,12 @@ export abstract class CurrencyRepositoryAbstract {
     currencyId: ICurrency['id'],
     trx?: ITransactionWithLock,
   ) => Promise<[result: ICurrency | null, queryDetails: IQueryDetails]>;
-  abstract findSupportedById: (
-    currencyId: ICurrency['id'],
-    trx?: ITransactionWithLock,
-  ) => Promise<[result: ICurrency | null, queryDetails: IQueryDetails]>;
   abstract findAll: (
     input: {
       limit?: number | undefined;
       codes?: ICurrency['code'][] | undefined;
       orderBy?: 'id' | 'code' | 'createdAt' | 'updatedAt' | undefined;
       orderDirection?: 'ASC' | 'DESC' | undefined;
-    },
-    trx?: ITransaction,
-  ) => Promise<[result: ICurrency[], queryDetails: IQueryDetails]>;
-  abstract findAllSupported: (
-    input?: {
-      limit?: number;
-      orderBy?: 'id' | 'code' | 'createdAt' | 'updatedAt';
-      orderDirection?: 'ASC' | 'DESC';
     },
     trx?: ITransaction,
   ) => Promise<[result: ICurrency[], queryDetails: IQueryDetails]>;
