@@ -90,6 +90,27 @@ describe('HTTP /v2/user', () => {
     expect(response.json()).toEqual({statusCode: 401, code: 'B4008', message: 'Invalid token'});
   });
 
+  it('rejects an expired share token with 401 B4009', async () => {
+    const event = await createEvent(testApp.app, {currencyId: usdId});
+    const token = 'a'.repeat(64);
+    const now = new Date();
+    await testApp.rDataService.eventShareToken.insert({
+      token,
+      eventId: event.id,
+      expiresAt: new Date(now.getTime() - 60_000),
+      createdAt: new Date(now.getTime() - 24 * 60 * 60 * 1000),
+    });
+
+    const response = await testApp.app.inject({
+      method: 'POST',
+      url: `/v2/user/event/${event.id}`,
+      payload: {token},
+    });
+
+    expect(response.statusCode).toBe(401);
+    expect(response.json()).toEqual({statusCode: 401, code: 'B4009', message: 'Token has expired'});
+  });
+
   it('converts an expense in another currency using the rate of the day', async () => {
     await insertTodayRate(testApp.rDataService, {USD: 1, EUR: 0.85});
     const event = await createEvent(testApp.app, {currencyId: usdId});

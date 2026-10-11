@@ -76,6 +76,22 @@ describe('gRPC UserService', () => {
     expect(error).toEqual({code: status.NOT_FOUND, details: 'Event not found', errorCode: 'B4001'});
   });
 
+  it('maps an expired share token to UNAUTHENTICATED with B4009', async () => {
+    const event = await createEvent(testApp.app, {currencyId: usdId});
+    const token = 'b'.repeat(64);
+    const now = new Date();
+    await testApp.rDataService.eventShareToken.insert({
+      token,
+      eventId: event.id,
+      expiresAt: new Date(now.getTime() - 60_000),
+      createdAt: new Date(now.getTime() - 24 * 60 * 60 * 1000),
+    });
+
+    const error = await expectGrpcError(callUnary(client, 'GetEventInfoV2', {eventId: event.id, token}));
+
+    expect(error).toEqual({code: status.UNAUTHENTICATED, details: 'Token has expired', errorCode: 'B4009'});
+  });
+
   it('deletes an event and then reports it as deleted', async () => {
     const event = await createEvent(testApp.app, {currencyId: usdId});
 
@@ -214,6 +230,24 @@ describe('gRPC UserService', () => {
       users: httpEvent.users.map(({id, name, eventId}) => ({id, name, eventId})),
     });
     expect(events).toHaveLength(1);
+  });
+
+  it('rejects an idempotency key reused with a different body as FAILED_PRECONDITION', async () => {
+    const metadata = new Metadata();
+    metadata.set('idempotency-key', 'grpc-key-hash-mismatch');
+    const request = {name: 'Trip', currencyId: usdId, pinCode: '1234', users: [{name: 'Alice'}]};
+    const first = await callUnary<EventResponse>(client, 'CreateEvent', request, metadata);
+
+    const error = await expectGrpcError(callUnary(client, 'CreateEvent', {...request, name: 'Other trip'}, metadata));
+    const [events] = await testApp.rDataService.event.findAll({limit: 10});
+
+    expect(error).toEqual({
+      code: status.FAILED_PRECONDITION,
+      details: 'Idempotency key reused with different request body',
+      errorCode: 'B4011',
+    });
+    expect(events).toHaveLength(1);
+    expect(events[0]?.id).toBe(first.id);
   });
 
   it('maps an in-progress idempotency key to ABORTED', async () => {
