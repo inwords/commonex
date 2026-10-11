@@ -1,6 +1,20 @@
 services:
   db:
     image: postgres:17-alpine3.24
+    command:
+      - postgres
+      - -c
+      - shared_preload_libraries=pg_stat_statements
+      - -c
+      - compute_query_id=auto
+      - -c
+      - pg_stat_statements.track=top
+      - -c
+      - pg_stat_statements.track_planning=off
+      - -c
+      - pg_stat_statements.track_utility=off
+      - -c
+      - pg_stat_statements.max=5000
     deploy:
       resources:
         limits:
@@ -150,6 +164,10 @@ services:
     command: [ "--config=/etc/otel-collector-config.yaml", "--feature-gates=+extension.healthcheck.useComponentStatus" ]
     environment:
       - GOMEMLIMIT=150MiB
+      - POSTGRES_DATABASE=${POSTGRES_DATABASE}
+      - PGDATABASE=${POSTGRES_DATABASE}
+      - POSTGRES_MONITOR_PASSWORD=${POSTGRES_MONITOR_PASSWORD:-}
+      - PGPASSWORD=${POSTGRES_MONITOR_PASSWORD:-}
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:13133/"]
       interval: 30s
@@ -158,9 +176,11 @@ services:
       start_period: 10s
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
+      - postgres_data:/var/lib/postgresql/data:ro
     networks:
       - app-network
       - monitoring-network
+      - db-network
 
   victoriametrics:
     image: victoriametrics/victoria-metrics:v1.151.0

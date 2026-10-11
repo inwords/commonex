@@ -12,6 +12,7 @@ COMPOSE_FILE = REPOSITORY_ROOT / "infra" / "docker-compose-prod.yml"
 class ProductionComposeTests(unittest.TestCase):
     def test_environment_routing_preserves_topology_and_persistent_storage(self) -> None:
         environment = os.environ.copy()
+        environment["POSTGRES_MONITOR_PASSWORD"] = "monitor-test-secret"
         for key in ("COMMONEX_WEB_HOSTS", "COMMONEX_API_HOST", "COMMONEX_GRPC_HOST",
                     "COMMONEX_GRAFANA_HOST", "GF_SERVER_ROOT_URL"):
             environment.pop(key, None)
@@ -51,6 +52,22 @@ class ProductionComposeTests(unittest.TestCase):
                          "https://staging-gf.commonex.ru/")
         self.assertEqual(staging["services"]["nginx"]["ports"], production["services"]["nginx"]["ports"])
 
+        collector = production["services"]["otel-collector"]
+        self.assertIn("db-network", collector["networks"])
+        self.assertEqual(collector["environment"]["POSTGRES_MONITOR_PASSWORD"], "monitor-test-secret")
+        self.assertNotIn("POSTGRES_PASSWORD", collector["environment"])
+        volume = next(v for v in collector["volumes"] if v["target"] == "/var/lib/postgresql/data")
+        self.assertEqual(volume["source"], "postgres_data")
+        self.assertTrue(volume["read_only"])
+        self.assertNotIn("ports", production["services"]["db"])
+        self.assertEqual(production["services"]["db"]["command"], [
+            "postgres", "-c", "shared_preload_libraries=pg_stat_statements",
+            "-c", "compute_query_id=auto", "-c", "pg_stat_statements.track=top",
+            "-c", "pg_stat_statements.track_planning=off",
+            "-c", "pg_stat_statements.track_utility=off",
+            "-c", "pg_stat_statements.max=5000",
+        ])
+
     def test_stack_has_no_certbot_service_in_any_profile(self) -> None:
         environment = os.environ.copy()
         environment.update(
@@ -67,6 +84,7 @@ class ProductionComposeTests(unittest.TestCase):
                 "POSTGRES_DB": "test",
                 "POSTGRES_HOST": "db",
                 "POSTGRES_PASSWORD": "test",
+                "POSTGRES_MONITOR_PASSWORD": "monitor-test-secret",
                 "POSTGRES_PORT": "5432",
                 "POSTGRES_SCHEMA": "public",
                 "POSTGRES_USER": "test",

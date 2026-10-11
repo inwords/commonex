@@ -22,6 +22,7 @@ RUNTIME_KEYS = (
     "GF_SECURITY_ADMIN_USER",
     "GF_SECURITY_ADMIN_PASSWORD",
 )
+OPTIONAL_RUNTIME_KEYS = ("POSTGRES_MONITOR_PASSWORD",)
 STAGING_ROUTES = {
     "COMMONEX_WEB_HOSTS": "staging.commonex.ru",
     "COMMONEX_API_HOST": "staging.commonex.ru",
@@ -37,9 +38,11 @@ def write_runtime_environment(
     if environment not in {"staging", "production"}:
         raise ValueError("invalid deployment environment")
     entries = {}
-    for key in RUNTIME_KEYS:
+    for key in RUNTIME_KEYS + OPTIONAL_RUNTIME_KEYS:
         value = values.get(key)
-        if value is None or (environment == "staging" and not value):
+        if key in OPTIONAL_RUNTIME_KEYS and value is None:
+            continue
+        if value is None or (not value and (environment == "staging" or key in OPTIONAL_RUNTIME_KEYS)):
             raise ValueError(f"missing runtime input: {key}")
         if any(character in value for character in ("\r", "\n", "\x00")):
             raise ValueError(f"invalid runtime input: {key}")
@@ -58,7 +61,11 @@ def write_runtime_environment(
     )
     with os.fdopen(descriptor, "w", encoding="utf-8", newline="\n") as output:
         destination.chmod(0o600)
-        output.write("".join(f"{key}={value}\n" for key, value in entries.items()))
+        for key, value in entries.items():
+            if key in OPTIONAL_RUNTIME_KEYS:
+                escaped = value.replace("\\", "\\\\").replace('"', '\\"').replace("$", "$$")
+                value = f'"{escaped}"'
+            output.write(f"{key}={value}\n")
 
 
 def main(arguments: Optional[Sequence[str]] = None) -> int:
