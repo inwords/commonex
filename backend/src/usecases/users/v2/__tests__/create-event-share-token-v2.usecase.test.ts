@@ -26,6 +26,19 @@ describe('CreateEventShareTokenV2UseCase', () => {
 
   const mockNow = new Date('2026-01-01T00:00:00.000Z');
   const mockExpiry = new Date('2026-01-15T00:00:00.000Z');
+  const initialState = {
+    events: [
+      {
+        id: 'event-1',
+        name: 'Test Event',
+        currencyId: 'currency-1',
+        pinCode: '1234',
+        createdAt: new Date('2023-01-01T00:00:00Z'),
+        updatedAt: new Date('2023-01-01T00:00:00Z'),
+        deletedAt: null,
+      },
+    ],
+  };
 
   beforeAll(async () => {
     relationalDataService = new RelationalDataService({
@@ -176,6 +189,49 @@ describe('CreateEventShareTokenV2UseCase', () => {
       relationalStateChanges: {},
     },
   ];
+
+  it('returns the same token to concurrent requests', async () => {
+    await prepareInitRelationalState({
+      rDataService: relationalDataService,
+      initState: initialState,
+    });
+
+    const results = await Promise.all(
+      Array.from({length: 8}, () => useCase.execute({eventId: 'event-1', pinCode: '1234'})),
+    );
+    const [tokens] = await relationalDataService.eventShareToken.findAll({limit: 10});
+
+    expect(tokens).toHaveLength(1);
+    for (const result of results) {
+      expect(result).toEqual(success({token: tokens[0]?.token, expiresAt: mockExpiry.toISOString()}));
+    }
+  });
+
+  it('replaces an expired token instead of retaining a second record', async () => {
+    await prepareInitRelationalState({
+      rDataService: relationalDataService,
+      initState: {
+        ...initialState,
+        eventShareTokens: [
+          {
+            token: 'expired-token',
+            eventId: 'event-1',
+            createdAt: new Date('2025-01-01T00:00:00Z'),
+            expiresAt: new Date('2025-01-15T00:00:00Z'),
+          },
+        ],
+      },
+    });
+
+    const result = await useCase.execute({eventId: 'event-1', pinCode: '1234'});
+    const [tokens] = await relationalDataService.eventShareToken.findAll({limit: 10});
+    const [expired] = await relationalDataService.eventShareToken.findByToken('expired-token');
+
+    expect(tokens).toHaveLength(1);
+    expect(expired).toBeNull();
+    expect(tokens[0]?.token).not.toBe('expired-token');
+    expect(result).toEqual(success({token: tokens[0]?.token, expiresAt: mockExpiry.toISOString()}));
+  });
 
   testCases.forEach((testCase) => {
     it(testCase.name, async () => {

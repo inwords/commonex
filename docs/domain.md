@@ -73,7 +73,8 @@ This document defines core domain terms and the primary sources of truth for the
 - Fields: token, eventId, expiresAt, createdAt.
 - Token default: 32 random bytes encoded as hex (64 chars).
 - Default expiry: 14 days from creation.
-- Existing active token is reused when creating a new share token for the same event.
+- An event stores at most one share token. Existing active tokens are reused, including across concurrent HTTP/gRPC requests.
+- Creating a token after expiry replaces the expired record; default expiry remains 14 days from the new creation.
 - Exchanged for permanent PIN code upon successful join via token.
 - Canonical model: `backend/src/domain/entities/event-share-token.entity.ts`.
 

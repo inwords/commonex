@@ -35,7 +35,7 @@ describe('GetAllCurrenciesWithRatesUseCaseV3', () => {
       showQueryDetails: false,
     });
 
-    useCase = new GetAllCurrenciesWithRatesUseCaseV3(new SupportedCurrencyService(relationalDataService));
+    useCase = new GetAllCurrenciesWithRatesUseCaseV3(relationalDataService, new SupportedCurrencyService());
 
     await relationalDataService.initialize();
   });

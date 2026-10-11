@@ -32,6 +32,33 @@ exports[`EventShareTokenRepository findAll should respect limit parameter 1`] = 
 }
 `;
 
+exports[`EventShareTokenRepository findByEventId returns the expired token for replacement 1`] = `
+{
+  "queryParameters": {
+    "eventId": "event-1",
+  },
+  "queryString": "SELECT "event_share_token"."token" AS "event_share_token_token", "event_share_token"."event_id" AS "event_share_token_event_id", "event_share_token"."expires_at" AS "event_share_token_expires_at", "event_share_token"."created_at" AS "event_share_token_created_at" FROM "event_share_token" "event_share_token" WHERE "event_share_token"."event_id" = :eventId LIMIT 1",
+}
+`;
+
+exports[`EventShareTokenRepository findByEventId should find active token by event id 1`] = `
+{
+  "queryParameters": {
+    "eventId": "event-1",
+  },
+  "queryString": "SELECT "event_share_token"."token" AS "event_share_token_token", "event_share_token"."event_id" AS "event_share_token_event_id", "event_share_token"."expires_at" AS "event_share_token_expires_at", "event_share_token"."created_at" AS "event_share_token_created_at" FROM "event_share_token" "event_share_token" WHERE "event_share_token"."event_id" = :eventId LIMIT 1",
+}
+`;
+
+exports[`EventShareTokenRepository findByEventId should return null for non-existent event 1`] = `
+{
+  "queryParameters": {
+    "eventId": "non-existent",
+  },
+  "queryString": "SELECT "event_share_token"."token" AS "event_share_token_token", "event_share_token"."event_id" AS "event_share_token_event_id", "event_share_token"."expires_at" AS "event_share_token_expires_at", "event_share_token"."created_at" AS "event_share_token_created_at" FROM "event_share_token" "event_share_token" WHERE "event_share_token"."event_id" = :eventId LIMIT 1",
+}
+`;
+
 exports[`EventShareTokenRepository findByToken should find event share token by token 1`] = `
 {
   "queryParameters": {
@@ -47,46 +74,6 @@ exports[`EventShareTokenRepository findByToken should return null for non-existe
     "token": "non-existent-token",
   },
   "queryString": "SELECT "event_share_token"."token" AS "event_share_token_token", "event_share_token"."event_id" AS "event_share_token_event_id", "event_share_token"."expires_at" AS "event_share_token_expires_at", "event_share_token"."created_at" AS "event_share_token_created_at" FROM "event_share_token" "event_share_token" WHERE "event_share_token"."token" = :token",
-}
-`;
-
-exports[`EventShareTokenRepository findOneActiveByEventId should find active token by event id 1`] = `
-{
-  "queryParameters": {
-    "eventId": "event-1",
-    "now": 2024-02-01T00:00:00.000Z,
-  },
-  "queryString": "SELECT "event_share_token"."token" AS "event_share_token_token", "event_share_token"."event_id" AS "event_share_token_event_id", "event_share_token"."expires_at" AS "event_share_token_expires_at", "event_share_token"."created_at" AS "event_share_token_created_at" FROM "event_share_token" "event_share_token" WHERE "event_share_token"."event_id" = :eventId AND "event_share_token"."expires_at" >= :now ORDER BY "event_share_token"."expires_at" DESC LIMIT 1",
-}
-`;
-
-exports[`EventShareTokenRepository findOneActiveByEventId should return most recent active token when multiple exist 1`] = `
-{
-  "queryParameters": {
-    "eventId": "event-1",
-    "now": 2024-02-01T00:00:00.000Z,
-  },
-  "queryString": "SELECT "event_share_token"."token" AS "event_share_token_token", "event_share_token"."event_id" AS "event_share_token_event_id", "event_share_token"."expires_at" AS "event_share_token_expires_at", "event_share_token"."created_at" AS "event_share_token_created_at" FROM "event_share_token" "event_share_token" WHERE "event_share_token"."event_id" = :eventId AND "event_share_token"."expires_at" >= :now ORDER BY "event_share_token"."expires_at" DESC LIMIT 1",
-}
-`;
-
-exports[`EventShareTokenRepository findOneActiveByEventId should return null for expired token 1`] = `
-{
-  "queryParameters": {
-    "eventId": "event-1",
-    "now": 2024-02-01T00:00:00.000Z,
-  },
-  "queryString": "SELECT "event_share_token"."token" AS "event_share_token_token", "event_share_token"."event_id" AS "event_share_token_event_id", "event_share_token"."expires_at" AS "event_share_token_expires_at", "event_share_token"."created_at" AS "event_share_token_created_at" FROM "event_share_token" "event_share_token" WHERE "event_share_token"."event_id" = :eventId AND "event_share_token"."expires_at" >= :now ORDER BY "event_share_token"."expires_at" DESC LIMIT 1",
-}
-`;
-
-exports[`EventShareTokenRepository findOneActiveByEventId should return null for non-existent event 1`] = `
-{
-  "queryParameters": {
-    "eventId": "non-existent",
-    "now": 2024-02-01T00:00:00.000Z,
-  },
-  "queryString": "SELECT "event_share_token"."token" AS "event_share_token_token", "event_share_token"."event_id" AS "event_share_token_event_id", "event_share_token"."expires_at" AS "event_share_token_expires_at", "event_share_token"."created_at" AS "event_share_token_created_at" FROM "event_share_token" "event_share_token" WHERE "event_share_token"."event_id" = :eventId AND "event_share_token"."expires_at" >= :now ORDER BY "event_share_token"."expires_at" DESC LIMIT 1",
 }
 `;
 

@@ -106,8 +106,10 @@ npm run db:migrate:new
 - Backend line-length enforcement is `160` characters via ESLint `max-len`.
 - Keep HTTP guards/filters adapter-agnostic: avoid direct `fastify`/`express` request-response types; prefer
   `HttpAdapterHost`/`AbstractHttpAdapter`.
-- When a user-facing flow needs currencies or currency-version metadata subject to support gating,
-  inject `SupportedCurrencyServiceAbstract` instead of reading raw repositories in the use case.
+- Use cases load currencies, rates and version metadata through repository ports. Keep
+  `SupportedCurrencyServiceAbstract` pure: it selects supported currencies/rates from supplied data and provides
+  supported codes for query filters; it must not access the data service or database. PostgreSQL repositories apply
+  caller-supplied filters without choosing supported codes.
 - For user-facing conditional GET routes, keep one shared version/validator shape for ETag generation and add tests that
   prove the `304` path emits the same validator as the `200` path for the same DB state.
 - Keep changes minimal and focused on root causes.

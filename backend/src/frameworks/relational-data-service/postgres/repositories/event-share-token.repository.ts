@@ -32,17 +32,13 @@ export class EventShareTokenRepository extends BaseRepository implements EventSh
     return [result, queryDetails];
   };
 
-  readonly findOneActiveByEventId: EventShareTokenRepositoryAbstract['findOneActiveByEventId'] = async (
+  readonly findByEventId: EventShareTokenRepositoryAbstract['findByEventId'] = async (
     eventId: string,
     trx,
   ): Promise<[result: IEventShareToken | null, queryDetails: IQueryDetails]> => {
     let query = this.getRepository(this.dataSource, EventShareTokenEntity, trx).createQueryBuilder(this.queryName);
 
-    query = query
-      .where(`${this.queryName}.event_id = :eventId`, {eventId})
-      .andWhere(`${this.queryName}.expires_at >= :now`, {now: new Date()})
-      .orderBy(`${this.queryName}.expires_at`, 'DESC')
-      .limit(1);
+    query = query.where(`${this.queryName}.event_id = :eventId`, {eventId}).limit(1);
 
     const queryDetails = this.getQueryDetails(query);
     const result = await query.getOne();

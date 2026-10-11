@@ -2,8 +2,6 @@ import {Metadata} from '@grpc/grpc-js';
 import {Body, Controller, UseFilters, UsePipes} from '@nestjs/common';
 import {Ctx, GrpcMethod} from '@nestjs/microservices';
 
-import {isError} from '#packages/result';
-
 import {DeleteEventUseCase} from '#usecases/users/delete-event.usecase';
 import {GetEventExpensesUseCase} from '#usecases/users/get-event-expenses.usecase';
 import {GetEventInfoUseCase} from '#usecases/users/get-event-info.usecase';
@@ -22,6 +20,7 @@ import {AddUsersToEventResponseWithUsersDto} from '#api/http/user/dto/add-users-
 import {CreateEventShareTokenResponseDto} from '#api/http/user/dto/create-event-share-token.dto';
 import {CreateEventRequestDto, CreateEventResponseDto} from '#api/http/user/dto/create-event.dto';
 import {GetEventInfoResponseDto} from '#api/http/user/dto/get-event-info.dto';
+import {unwrapResult} from '#api/unwrap-result';
 import {createValidationPipe} from '#api/validation-pipe';
 
 import {GrpcBusinessErrorFilter} from '../filters/grpc-business-error.filter';
@@ -79,25 +78,16 @@ export class UserController {
       users,
       event,
       idempotencyKey: getIdempotencyKey(context),
-      legacyOperationId: 'grpc:CreateEvent',
     });
 
-    if (isError(result)) {
-      throw result.error;
-    }
-
-    return result.value;
+    return unwrapResult(result);
   }
 
   @GrpcMethod('UserService', 'GetEventInfo')
   async getEventInfo(@Body() {eventId, pinCode}: GetEventInfoGrpcRequestDto): Promise<GetEventInfoResponseDto> {
     const result = await this.getEventInfoUseCase.execute({eventId, pinCode});
 
-    if (isError(result)) {
-      throw result.error;
-    }
-
-    return result.value;
+    return unwrapResult(result);
   }
 
   @GrpcMethod('UserService', 'DeleteEvent')
@@ -105,11 +95,7 @@ export class UserController {
     const {eventId, pinCode} = body;
     const result = await this.deleteEventUseCase.execute({eventId, pinCode});
 
-    if (isError(result)) {
-      throw result.error;
-    }
-
-    return toDeleteEventGrpcResponse(result.value);
+    return toDeleteEventGrpcResponse(unwrapResult(result));
   }
 
   @GrpcMethod('UserService', 'AddUsersToEvent')
@@ -123,25 +109,16 @@ export class UserController {
       eventId,
       ...rest,
       idempotencyKey: getIdempotencyKey(context),
-      legacyOperationId: 'grpc:AddUsersToEvent',
     });
 
-    if (isError(result)) {
-      throw result.error;
-    }
-
-    return {users: result.value};
+    return {users: unwrapResult(result)};
   }
 
   @GrpcMethod('UserService', 'GetAllEventExpenses')
   async getAllEventExpenses(@Body() {eventId}: GetEventExpensesGrpcRequestDto): Promise<ExpensesGrpcResponseDto> {
     const result = await this.getEventExpensesUseCase.execute({eventId});
 
-    if (isError(result)) {
-      throw result.error;
-    }
-
-    return {expenses: result.value.map(toExpenseGrpcResponse)};
+    return {expenses: unwrapResult(result).map(toExpenseGrpcResponse)};
   }
 
   @GrpcMethod('UserService', 'CreateExpense')
@@ -154,14 +131,9 @@ export class UserController {
       isCustomRate: false,
       splitInformation: expense.splitInformation.map(({userId, amount}) => ({userId, amount, exchangedAmount: amount})),
       idempotencyKey: getIdempotencyKey(context),
-      legacyOperationId: 'grpc:CreateExpense',
     });
 
-    if (isError(result)) {
-      throw result.error;
-    }
-
-    return toExpenseGrpcResponse(result.value);
+    return toExpenseGrpcResponse(unwrapResult(result));
   }
 
   @GrpcMethod('UserService', 'GetEventInfoV2')
@@ -170,11 +142,7 @@ export class UserController {
   ): Promise<GetEventInfoResponseDto> {
     const result = await this.getEventInfoV2UseCase.execute({eventId, pinCode, token});
 
-    if (isError(result)) {
-      throw result.error;
-    }
-
-    return result.value;
+    return unwrapResult(result);
   }
 
   @GrpcMethod('UserService', 'AddUsersToEventV2')
@@ -188,14 +156,9 @@ export class UserController {
       eventId,
       ...rest,
       idempotencyKey: getIdempotencyKey(context),
-      legacyOperationId: 'grpc:AddUsersToEventV2',
     });
 
-    if (isError(result)) {
-      throw result.error;
-    }
-
-    return {users: result.value};
+    return {users: unwrapResult(result)};
   }
 
   @GrpcMethod('UserService', 'GetAllEventExpensesV2')
@@ -204,11 +167,7 @@ export class UserController {
   ): Promise<ExpensesGrpcResponseDto> {
     const result = await this.getEventExpensesV2UseCase.execute({eventId, pinCode});
 
-    if (isError(result)) {
-      throw result.error;
-    }
-
-    return {expenses: result.value.map(toExpenseGrpcResponse)};
+    return {expenses: unwrapResult(result).map(toExpenseGrpcResponse)};
   }
 
   @GrpcMethod('UserService', 'CreateExpenseV2')
@@ -219,14 +178,9 @@ export class UserController {
     const result = await this.saveEventExpenseV2UseCase.execute({
       ...expense,
       idempotencyKey: getIdempotencyKey(context),
-      legacyOperationId: 'grpc:CreateExpenseV2',
     });
 
-    if (isError(result)) {
-      throw result.error;
-    }
-
-    return toExpenseGrpcResponse(result.value);
+    return toExpenseGrpcResponse(unwrapResult(result));
   }
 
   @GrpcMethod('UserService', 'CreateEventShareTokenV2')
@@ -235,10 +189,6 @@ export class UserController {
   ): Promise<CreateEventShareTokenResponseDto> {
     const result = await this.createEventShareTokenV2UseCase.execute({eventId, pinCode});
 
-    if (isError(result)) {
-      throw result.error;
-    }
-
-    return result.value;
+    return unwrapResult(result);
   }
 }

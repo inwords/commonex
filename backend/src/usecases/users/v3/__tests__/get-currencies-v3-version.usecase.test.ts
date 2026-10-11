@@ -35,9 +35,9 @@ describe('GetCurrenciesV3VersionUseCase', () => {
       showQueryDetails: false,
     });
 
-    const supportedCurrencyService = new SupportedCurrencyService(relationalDataService);
-    versionUseCase = new GetCurrenciesV3VersionUseCase(supportedCurrencyService);
-    fullUseCase = new GetAllCurrenciesWithRatesUseCaseV3(supportedCurrencyService);
+    const supportedCurrencyService = new SupportedCurrencyService();
+    versionUseCase = new GetCurrenciesV3VersionUseCase(relationalDataService, supportedCurrencyService);
+    fullUseCase = new GetAllCurrenciesWithRatesUseCaseV3(relationalDataService, supportedCurrencyService);
 
     await relationalDataService.initialize();
   });

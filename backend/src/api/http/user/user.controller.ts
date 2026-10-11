@@ -1,8 +1,5 @@
-import {Body, Controller, Delete, Get, Headers, HttpCode, HttpStatus, Param, Post, Query, Req} from '@nestjs/common';
+import {Body, Controller, Delete, Get, Headers, HttpCode, HttpStatus, Param, Post, Query} from '@nestjs/common';
 import {ApiResponse, ApiTags} from '@nestjs/swagger';
-import {FastifyRequest} from 'fastify';
-
-import {isError} from '#packages/result';
 
 import {DeleteEventUseCase} from '#usecases/users/delete-event.usecase';
 import {GetEventExpensesUseCase} from '#usecases/users/get-event-expenses.usecase';
@@ -10,6 +7,8 @@ import {GetEventInfoUseCase} from '#usecases/users/get-event-info.usecase';
 import {SaveEventExpenseUseCase} from '#usecases/users/save-event-expense.usecase';
 import {SaveEventUseCase} from '#usecases/users/save-event.usecase';
 import {SaveUsersToEventUseCase} from '#usecases/users/save-users-to-event.usecase';
+
+import {unwrapResult} from '#api/unwrap-result';
 
 import {
   AddUsersToEventParamsDto,
@@ -41,17 +40,12 @@ export class UserController {
   async createEvent(
     @Body() body: CreateEventRequestDto,
     @Headers('idempotency-key') idempotencyKey: string | undefined,
-    @Req() request: FastifyRequest,
   ): Promise<CreateEventResponseDto> {
     const {users, ...event} = body;
 
-    const result = await this.saveEventUseCase.execute({users, event, idempotencyKey, legacyOperationId: request.url});
+    const result = await this.saveEventUseCase.execute({users, event, idempotencyKey});
 
-    if (isError(result)) {
-      throw result.error;
-    }
-
-    return result.value;
+    return unwrapResult(result);
   }
 
   @Get(UserRoutes.getEventInfo)
@@ -62,11 +56,7 @@ export class UserController {
   ): Promise<GetEventInfoResponseDto> {
     const result = await this.getEventInfoUseCase.execute({eventId, pinCode: query.pinCode});
 
-    if (isError(result)) {
-      throw result.error;
-    }
-
-    return result.value;
+    return unwrapResult(result);
   }
 
   @Delete(UserRoutes.deleteEvent)
@@ -78,11 +68,7 @@ export class UserController {
   ): Promise<DeleteEventResponseDto> {
     const result = await this.deleteEventUseCase.execute({eventId, pinCode: body.pinCode});
 
-    if (isError(result)) {
-      throw result.error;
-    }
-
-    return result.value;
+    return unwrapResult(result);
   }
 
   @Post(UserRoutes.addUsersToEvent)
@@ -92,20 +78,14 @@ export class UserController {
     @Param() {eventId}: AddUsersToEventParamsDto,
     @Body() body: AddUsersToEventRequestDto,
     @Headers('idempotency-key') idempotencyKey: string | undefined,
-    @Req() request: FastifyRequest,
   ): Promise<AddUsersToEventResponseDto[]> {
     const result = await this.saveUsersToEventUseCase.execute({
       eventId,
       ...body,
       idempotencyKey,
-      legacyOperationId: request.url,
     });
 
-    if (isError(result)) {
-      throw result.error;
-    }
-
-    return result.value;
+    return unwrapResult(result);
   }
 
   @Get(UserRoutes.getAllEventExpenses)
@@ -113,11 +93,7 @@ export class UserController {
   async getAllEventExpenses(@Param() {eventId}: GetEventExpensesParamsDto): Promise<GetEventExpensesResponseDto[]> {
     const result = await this.getEventExpensesUseCase.execute({eventId});
 
-    if (isError(result)) {
-      throw result.error;
-    }
-
-    return result.value;
+    return unwrapResult(result);
   }
 
   @Post(UserRoutes.createExpense)
@@ -126,7 +102,6 @@ export class UserController {
     @Body() expense: CreateExpenseRequestV1Dto,
     @Param() {eventId}: CreateExpenseParamsDto,
     @Headers('idempotency-key') idempotencyKey: string | undefined,
-    @Req() request: FastifyRequest,
   ): Promise<CreateExpenseResponseDto> {
     const result = await this.saveEventExpenseUseCase.execute({
       ...expense,
@@ -134,13 +109,8 @@ export class UserController {
       isCustomRate: false,
       splitInformation: expense.splitInformation.map(({userId, amount}) => ({userId, amount, exchangedAmount: amount})),
       idempotencyKey,
-      legacyOperationId: request.url,
     });
 
-    if (isError(result)) {
-      throw result.error;
-    }
-
-    return result.value;
+    return unwrapResult(result);
   }
 }

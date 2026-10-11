@@ -35,20 +35,16 @@ export class SaveEventUseCase implements UseCase<Input, Output> {
   ) {}
 
   public async execute(input: Input): Promise<Output> {
-    const {idempotencyKey, legacyOperationId, ...core} = input;
-    return this.idempotencyUseCase.execute(
-      idempotencyKey,
-      IdempotencyOperation.CREATE_EVENT_V1,
-      legacyOperationId,
-      core,
-      (trx) => this.executeCore(core, trx),
+    const {idempotencyKey, ...core} = input;
+    return this.idempotencyUseCase.execute(idempotencyKey, IdempotencyOperation.CREATE_EVENT_V1, core, (trx) =>
+      this.executeCore(core, trx),
     );
   }
 
   private async executeCore({event, users}: InputCore, trx: ITransaction): Promise<Output> {
-    const currency = await this.supportedCurrencyService.findById(event.currencyId, trx);
+    const [currency] = await this.rDataService.currency.findById(event.currencyId, trx);
 
-    if (!currency) {
+    if (!this.supportedCurrencyService.isSupported(currency)) {
       return error(new CurrencyNotFoundError());
     }
 

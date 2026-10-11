@@ -29,10 +29,6 @@ describe('CleanupExpiredDataUseCase', () => {
   it('cleans expired records in bounded batches under one job lock', async () => {
     const expiredKeys = Array.from({length: 501}, (_, index) => ({
       key: `expired-${index.toString().padStart(3, '0')}`,
-      url: '/user/event',
-      legacyRequestHash: 'legacy-h',
-      legacyResponse: {result: 'success', value: {}},
-      statusCode: 200,
       operationId: 'event.create.v1',
       requestHash: 'h',
       response: {},
@@ -42,7 +38,7 @@ describe('CleanupExpiredDataUseCase', () => {
     }));
     const expiredTokens = Array.from({length: 501}, (_, index) => ({
       token: `expired-${index.toString().padStart(3, '0')}`,
-      eventId: 'event-1',
+      eventId: `event-${index}`,
       expiresAt: new Date('2025-01-01T00:00:00Z'),
       createdAt: new Date('2024-01-01T00:00:00Z'),
     }));
@@ -51,10 +47,6 @@ describe('CleanupExpiredDataUseCase', () => {
       ...expiredKeys,
       {
         key: 'live',
-        url: '/user/event',
-        legacyRequestHash: 'legacy-h',
-        legacyResponse: {result: 'success', value: {}},
-        statusCode: 200,
         operationId: 'event.create.v1',
         requestHash: 'h',
         response: {},
@@ -67,7 +59,7 @@ describe('CleanupExpiredDataUseCase', () => {
       ...expiredTokens,
       {
         token: 'live',
-        eventId: 'event-1',
+        eventId: 'live-event',
         expiresAt: new Date('2099-01-01T00:00:00Z'),
         createdAt: new Date('2024-01-01T00:00:00Z'),
       },

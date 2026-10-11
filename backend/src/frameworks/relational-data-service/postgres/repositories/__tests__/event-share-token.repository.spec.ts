@@ -73,9 +73,9 @@ describe('EventShareTokenRepository', () => {
     });
   });
 
-  describe('findOneActiveByEventId', () => {
+  describe('findByEventId', () => {
     it('should limit the active token lookup to one database row', async () => {
-      const [, queryDetails] = await relationalDataService.eventShareToken.findOneActiveByEventId('event-1');
+      const [, queryDetails] = await relationalDataService.eventShareToken.findByEventId('event-1');
 
       expect(queryDetails.queryString).toContain('LIMIT 1');
     });
@@ -93,13 +93,13 @@ describe('EventShareTokenRepository', () => {
 
       await relationalDataService.eventShareToken.insert(eventShareToken);
 
-      const [result, queryDetails] = await relationalDataService.eventShareToken.findOneActiveByEventId('event-1');
+      const [result, queryDetails] = await relationalDataService.eventShareToken.findByEventId('event-1');
 
       expect(result).toMatchObject(eventShareToken);
       expect(queryDetails).toMatchSnapshot();
     });
 
-    it('should return null for expired token', async () => {
+    it('returns the expired token for replacement', async () => {
       const pastDate = new Date();
       pastDate.setFullYear(pastDate.getFullYear() - 1);
 
@@ -112,44 +112,31 @@ describe('EventShareTokenRepository', () => {
 
       await relationalDataService.eventShareToken.insert(eventShareToken);
 
-      const [result, queryDetails] = await relationalDataService.eventShareToken.findOneActiveByEventId('event-1');
+      const [result, queryDetails] = await relationalDataService.eventShareToken.findByEventId('event-1');
 
-      expect(result).toBeNull();
+      expect(result).toMatchObject(eventShareToken);
       expect(queryDetails).toMatchSnapshot();
     });
 
-    it('should return most recent active token when multiple exist', async () => {
-      const futureDate1 = new Date();
-      futureDate1.setFullYear(futureDate1.getFullYear() + 1);
-
-      const futureDate2 = new Date();
-      futureDate2.setFullYear(futureDate2.getFullYear() + 2);
-
-      const eventShareToken1 = {
-        token: 'test-token-1',
+    it('rejects a second token for the same event', async () => {
+      const token = {
+        token: 'first-token',
         eventId: 'event-1',
-        expiresAt: futureDate1,
+        expiresAt: new Date('2025-01-01T00:00:00Z'),
         createdAt: new Date('2023-01-01T00:00:00Z'),
       };
+      await relationalDataService.eventShareToken.insert(token);
 
-      const eventShareToken2 = {
-        token: 'test-token-2',
-        eventId: 'event-1',
-        expiresAt: futureDate2,
-        createdAt: new Date('2023-01-02T00:00:00Z'),
-      };
+      await expect(
+        relationalDataService.eventShareToken.insert({...token, token: 'second-token'}),
+      ).rejects.toMatchObject({driverError: {code: '23505'}});
+      const [remaining] = await relationalDataService.eventShareToken.findAll({limit: 10});
 
-      await relationalDataService.eventShareToken.insert(eventShareToken1);
-      await relationalDataService.eventShareToken.insert(eventShareToken2);
-
-      const [result, queryDetails] = await relationalDataService.eventShareToken.findOneActiveByEventId('event-1');
-
-      expect(result).toMatchObject(eventShareToken2);
-      expect(queryDetails).toMatchSnapshot();
+      expect(remaining).toEqual([token]);
     });
 
     it('should return null for non-existent event', async () => {
-      const [result, queryDetails] = await relationalDataService.eventShareToken.findOneActiveByEventId('non-existent');
+      const [result, queryDetails] = await relationalDataService.eventShareToken.findByEventId('non-existent');
 
       expect(result).toBeNull();
       expect(queryDetails).toMatchSnapshot();
@@ -252,19 +239,19 @@ describe('EventShareTokenRepository', () => {
         },
         {
           token: 'expired-2',
-          eventId: 'event-1',
+          eventId: 'event-2',
           expiresAt: new Date('2023-01-02T00:00:00Z'),
           createdAt: new Date('2022-01-01T00:00:00Z'),
         },
         {
           token: 'expired-3',
-          eventId: 'event-1',
+          eventId: 'event-3',
           expiresAt: new Date('2023-01-03T00:00:00Z'),
           createdAt: new Date('2022-01-01T00:00:00Z'),
         },
         {
           token: 'live',
-          eventId: 'event-1',
+          eventId: 'event-4',
           expiresAt: new Date('2025-01-01T00:00:00Z'),
           createdAt: new Date('2022-01-01T00:00:00Z'),
         },

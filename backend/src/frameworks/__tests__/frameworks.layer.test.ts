@@ -27,7 +27,10 @@ describe('initOrUpdateCurrencies', () => {
   it('seeds every supported currency into an empty table', async () => {
     await initOrUpdateCurrencies(relationalDataService);
 
-    const [currencies] = await relationalDataService.currency.findAllSupported({orderBy: 'code'});
+    const [currencies] = await relationalDataService.currency.findAll({
+      codes: CURRENCIES_LIST.map(({code}) => code),
+      orderBy: 'code',
+    });
 
     expect(currencies.map(({code}) => code)).toEqual(expectedCodes);
   });
@@ -42,7 +45,10 @@ describe('initOrUpdateCurrencies', () => {
 
     await initOrUpdateCurrencies(relationalDataService);
 
-    const [currencies] = await relationalDataService.currency.findAllSupported({orderBy: 'code'});
+    const [currencies] = await relationalDataService.currency.findAll({
+      codes: CURRENCIES_LIST.map(({code}) => code),
+      orderBy: 'code',
+    });
     const usd = currencies.find(({code}) => code === CurrencyCode.USD);
 
     expect(currencies.map(({code}) => code)).toEqual(expectedCodes);
@@ -51,10 +57,16 @@ describe('initOrUpdateCurrencies', () => {
 
   it('changes nothing when every currency exists', async () => {
     await initOrUpdateCurrencies(relationalDataService);
-    const [before] = await relationalDataService.currency.findAllSupported({orderBy: 'code'});
+    const [before] = await relationalDataService.currency.findAll({
+      codes: CURRENCIES_LIST.map(({code}) => code),
+      orderBy: 'code',
+    });
 
     await initOrUpdateCurrencies(relationalDataService);
-    const [after] = await relationalDataService.currency.findAllSupported({orderBy: 'code'});
+    const [after] = await relationalDataService.currency.findAll({
+      codes: CURRENCIES_LIST.map(({code}) => code),
+      orderBy: 'code',
+    });
 
     expect(after).toEqual(before);
   });

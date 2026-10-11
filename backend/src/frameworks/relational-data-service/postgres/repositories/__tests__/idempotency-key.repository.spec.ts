@@ -1,5 +1,3 @@
-import {LessThan} from 'typeorm';
-
 import {IIdempotencyKey} from '#domain/entities/idempotency-key.entity';
 
 import {RelationalDataService} from '#frameworks/relational-data-service/postgres/relational-data-service';
@@ -8,10 +6,6 @@ import {createTestRelationalDataService, truncateAllTables} from '#test-support/
 
 const buildKey = (overrides: Partial<IIdempotencyKey> = {}): IIdempotencyKey => ({
   key: 'key-1',
-  url: '/user/event',
-  legacyRequestHash: 'legacy-hash-1',
-  legacyResponse: {result: 'success', value: {id: 'event-1'}},
-  statusCode: 200,
   operationId: 'event.create.v1',
   requestHash: 'hash-1',
   response: {id: 'event-1'},
@@ -85,7 +79,7 @@ describe('IdempotencyKeyRepository', () => {
     expect(details).toMatchSnapshot();
   });
 
-  it('deletes only the keys matching the criteria', async () => {
+  it('deletes only the specified key', async () => {
     await relationalDataService.idempotencyKey.insert(
       buildKey({key: 'expired', expiresAt: new Date('2025-12-31T00:00:00Z')}),
     );
@@ -93,9 +87,7 @@ describe('IdempotencyKeyRepository', () => {
       buildKey({key: 'valid', expiresAt: new Date('2026-12-31T00:00:00Z')}),
     );
 
-    const [, details] = await relationalDataService.idempotencyKey.delete({
-      expiresAt: LessThan(new Date('2026-01-01T00:00:00Z')),
-    });
+    const [, details] = await relationalDataService.idempotencyKey.deleteByKey('expired');
     const [remaining] = await relationalDataService.idempotencyKey.findAll({limit: 10});
 
     expect(remaining.map((record) => record.key)).toEqual(['valid']);
@@ -123,10 +115,10 @@ describe('IdempotencyKeyRepository', () => {
     expect(details).toMatchSnapshot();
   });
 
-  it('rejects empty criteria instead of deleting every key', async () => {
+  it('preserves every key when deleting an unknown key', async () => {
     await relationalDataService.idempotencyKey.insert(buildKey({key: 'kept'}));
 
-    await expect(relationalDataService.idempotencyKey.delete({})).rejects.toThrow('Empty criteria');
+    await relationalDataService.idempotencyKey.deleteByKey('missing');
     const [remaining] = await relationalDataService.idempotencyKey.findAll({limit: 10});
 
     expect(remaining.map((record) => record.key)).toEqual(['kept']);

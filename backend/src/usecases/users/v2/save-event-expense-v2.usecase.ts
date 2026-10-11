@@ -56,13 +56,9 @@ export class SaveEventExpenseV2UseCase implements UseCase<Input, Output> {
   ) {}
 
   public async execute(input: Input): Promise<Output> {
-    const {idempotencyKey, legacyOperationId, ...core} = input;
-    return this.idempotencyUseCase.execute(
-      idempotencyKey,
-      IdempotencyOperation.CREATE_EVENT_EXPENSE_V2,
-      legacyOperationId,
-      core,
-      (trx) => this.executeCore(core, trx),
+    const {idempotencyKey, ...core} = input;
+    return this.idempotencyUseCase.execute(idempotencyKey, IdempotencyOperation.CREATE_EVENT_EXPENSE_V2, core, (trx) =>
+      this.executeCore(core, trx),
     );
   }
 
@@ -131,10 +127,13 @@ export class SaveEventExpenseV2UseCase implements UseCase<Input, Output> {
         return success(expense);
       } else {
         // Автоматический курс (существующая логика)
-        const expenseCurrency = await this.supportedCurrencyService.findById(restInput.currencyId, trx);
-        const eventCurrency = await this.supportedCurrencyService.findById(event.currencyId, trx);
+        const [expenseCurrency] = await this.rDataService.currency.findById(restInput.currencyId, trx);
+        const [eventCurrency] = await this.rDataService.currency.findById(event.currencyId, trx);
 
-        if (!eventCurrency || !expenseCurrency) {
+        if (
+          !this.supportedCurrencyService.isSupported(eventCurrency) ||
+          !this.supportedCurrencyService.isSupported(expenseCurrency)
+        ) {
           return error(new CurrencyNotFoundError());
         }
 
@@ -142,7 +141,7 @@ export class SaveEventExpenseV2UseCase implements UseCase<Input, Output> {
           ? getDateWithoutTimeUTC(new Date(restInput.createdAt))
           : getCurrentDateWithoutTimeUTC();
 
-        const currencyRate = await this.supportedCurrencyService.findRateByDate(getDateForExchangeRate, trx);
+        const [currencyRate] = await this.rDataService.currencyRate.findByDate(getDateForExchangeRate, trx);
 
         if (!currencyRate) {
           return error(new CurrencyRateNotFoundError());
