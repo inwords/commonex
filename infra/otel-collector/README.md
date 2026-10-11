@@ -16,6 +16,9 @@ come from the backend's existing instrumentation. The dashboard definition is
   the database, mounted read-only in the Collector. No host-root mount or host
   PID namespace is required. Capacity belongs to the backing filesystem, not
   exclusively to PostgreSQL: other files on that filesystem consume it too.
+  `include_virtual_filesystems: true` is required because the filesystem library
+  otherwise skips Docker volume bind mounts, including real ext4 filesystems.
+  The strict mount-point filter still excludes every mount except the DB volume.
 - The read-only mount mode is a Collector access restriction, not an indication
   that the database's own mount is read-only. The Collector can read the volume
   contents, so retain its trusted-image/security boundary.
@@ -141,6 +144,8 @@ Tests are run by the repository owner:
 ```bash
 python3 -m unittest infra.deploy.test_write_runtime_environment infra.deploy.test_docker_compose_prod
 python3 -m unittest discover -s infra/deploy -p 'test_*.py'
+# Optional runtime regression test with an already built custom Collector image:
+COMMONEX_COLLECTOR_TEST_IMAGE=commonex-otel-db-monitoring:validation python3 -m unittest infra.deploy.test_postgresql_filesystem
 ```
 
 The custom image build runs `otelcol-custom validate` with dummy values, without
