@@ -2,8 +2,6 @@ import {Body, Controller, Headers, HttpCode, HttpStatus, Param, Post, Req} from 
 import {ApiResponse, ApiTags} from '@nestjs/swagger';
 import {FastifyRequest} from 'fastify';
 
-import {isError} from '#packages/result';
-
 import {
   CreateEventShareTokenV2UseCase,
   GetEventExpensesV2UseCase,
@@ -11,6 +9,8 @@ import {
   SaveEventExpenseV2UseCase,
   SaveUsersToEventV2UseCase,
 } from '#usecases/users/v2';
+
+import {unwrapResult} from '#api/unwrap-result';
 
 import {
   AddUsersToEventParamsDto,
@@ -51,11 +51,7 @@ export class UserV2Controller {
   ): Promise<GetEventInfoResponseDto> {
     const result = await this.getEventInfoV2UseCase.execute({eventId, pinCode: body.pinCode, token: body.token});
 
-    if (isError(result)) {
-      throw result.error;
-    }
-
-    return result.value;
+    return unwrapResult(result);
   }
 
   @Post(UserV2Routes.addUsersToEvent)
@@ -74,11 +70,7 @@ export class UserV2Controller {
       legacyOperationId: request.url,
     });
 
-    if (isError(result)) {
-      throw result.error;
-    }
-
-    return result.value;
+    return unwrapResult(result);
   }
 
   @Post(UserV2Routes.getAllEventExpenses)
@@ -90,11 +82,7 @@ export class UserV2Controller {
   ): Promise<GetEventExpensesResponseDto[]> {
     const result = await this.getEventExpensesV2UseCase.execute({eventId, pinCode: body.pinCode});
 
-    if (isError(result)) {
-      throw result.error;
-    }
-
-    return result.value;
+    return unwrapResult(result);
   }
 
   @Post(UserV2Routes.createExpense)
@@ -112,11 +100,7 @@ export class UserV2Controller {
       legacyOperationId: request.url,
     });
 
-    if (isError(result)) {
-      throw result.error;
-    }
-
-    return result.value;
+    return unwrapResult(result);
   }
 
   @Post(UserV2Routes.createShareToken)
@@ -128,10 +112,6 @@ export class UserV2Controller {
   ): Promise<CreateEventShareTokenResponseDto> {
     const result = await this.createEventShareTokenV2UseCase.execute({eventId, pinCode: body.pinCode});
 
-    if (isError(result)) {
-      throw result.error;
-    }
-
-    return result.value;
+    return unwrapResult(result);
   }
 }

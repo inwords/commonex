@@ -1,14 +1,14 @@
 import {Controller, Get, Headers, HttpStatus, Res} from '@nestjs/common';
 import {ApiResponse, ApiTags} from '@nestjs/swagger';
 
-import {isError} from '#packages/result';
-
 import {GetAllCurrenciesWithRatesUseCaseV3, GetCurrenciesV3VersionUseCase} from '#usecases/users/v3';
 import {
   CurrenciesV3Version,
   isCurrenciesV3NotModified,
   setCurrenciesV3CacheHeaders,
 } from '#usecases/users/v3/currencies-v3-cache';
+
+import {unwrapResult} from '#api/unwrap-result';
 
 import {GetAllCurrenciesWithRatesResponseDto} from './dto/get-all-currencies.dto';
 import {UserV3Routes} from './user.constants';
@@ -71,20 +71,12 @@ export class UserV3Controller {
   private async getVersionOrThrow(): Promise<CurrenciesV3Version> {
     const result = await this.getCurrenciesV3VersionUseCase.execute();
 
-    if (isError(result)) {
-      throw result.error;
-    }
-
-    return result.value;
+    return unwrapResult(result);
   }
 
   private async getAllCurrenciesOrThrow(): Promise<GetAllCurrenciesRouteData> {
     const result = await this.getAllCurrenciesWithRatesUseCase.execute();
 
-    if (isError(result)) {
-      throw result.error;
-    }
-
-    return result.value;
+    return unwrapResult(result);
   }
 }
