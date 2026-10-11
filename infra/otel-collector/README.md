@@ -55,7 +55,7 @@ application-table DML privileges; do not additionally grant table access.
 
 Set matching GitHub Actions secrets:
 
-- Production: `POSTGRES_MONITOR_PASSWORD`.
+- Production environment secret: `POSTGRES_MONITOR_PASSWORD`.
 - Staging: `STAGING_POSTGRES_MONITOR_PASSWORD`.
 
 The workflow writes the selected value into the private release environment as
@@ -69,6 +69,14 @@ DB-only test Compose does not require it.
 The SQL receiver uses `PGPASSWORD` and `PGDATABASE` environment variables rather
 than interpolating credentials into a DSN. The native receiver gets the same
 dedicated password. Neither receives `POSTGRES_PASSWORD`.
+
+When rotating the monitoring password, update the `commonex_monitor` role and
+the matching GitHub environment secret together, then deliver a new application
+release with a new Git SHA. Restarting the existing Collector does not update its
+environment. Release inputs are immutable: rerunning delivery for an already
+staged SHA cannot replace its `.env` with the rotated secret. An empty commit is
+also insufficient to trigger this workflow because its push trigger filters
+changed paths; use a reviewed change covered by the application workflow.
 
 ## Prepare pg_stat_statements before the release
 
