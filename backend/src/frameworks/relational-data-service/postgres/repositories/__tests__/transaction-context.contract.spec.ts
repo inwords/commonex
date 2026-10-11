@@ -86,7 +86,7 @@ describe('PostgreSQL repository transaction context contract', () => {
       'IdempotencyKey.tryAcquireLock',
       ({idempotencyKey}, trx): Promise<unknown> => idempotencyKey.tryAcquireLock('key', trx),
     ],
-    ['IdempotencyKey.delete', ({idempotencyKey}, trx): Promise<unknown> => idempotencyKey.delete({key: 'key'}, trx)],
+    ['IdempotencyKey.deleteByKey', ({idempotencyKey}, trx): Promise<unknown> => idempotencyKey.deleteByKey('key', trx)],
     [
       'IdempotencyKey.deleteExpiredBatch',
       ({idempotencyKey}, trx): Promise<unknown> =>

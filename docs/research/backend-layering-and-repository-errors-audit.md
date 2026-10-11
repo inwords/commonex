@@ -1,6 +1,6 @@
 # Аудит слоёв backend и ошибок репозиториев
 
-Проверено: 23.09.2026. Статус реализации обновлён: 04.10.2026.
+Проверено: 23.09.2026. Статус реализации обновлён: 11.10.2026.
 
 ## Цель и границы
 
@@ -20,7 +20,15 @@ P0-срез атомарной идемпотентности реализова
 - hash mismatch и request-in-progress входят в `Result`; transport-слои отображают in-progress в HTTP `409` / business code `B4016` и gRPC `ABORTED`;
 - добавлена миграция и тестовые сценарии; тесты и typecheck прошли в пользовательском окружении, агент повторно их не запускал.
 
-Остальные этапы аудита остаются планом. Исходные формулировки находок ниже сохранены как снимок состояния на дату аудита.
+Дополнительный статус на 11.10.2026:
+
+- TypeORM удалён из domain: универсальный `delete(FindOptionsWhere)` заменён на `deleteByKey(key)`; cleanup уже использует `deleteExpiredBatch({expiresBefore, limit})`, поэтому отдельный `deleteExpiredBefore` не нужен.
+- Domain business errors наследуются от `Error`, не содержат `HttpStatus`/`httpCode`; HTTP mapping находится в business-error filter.
+- Health use case возвращает `Promise<void>` без transport-типа.
+- Transaction handle разрешается через framework-internal registry; некорректные, чужие и завершённые handles отклоняются, а не отключают транзакцию.
+- Следующий шаг этапа 2 — перенести wiring из `UseCasesModule`, который всё ещё импортирует `FrameworksLayer`, в явный composition root.
+
+Остальные пункты остаются планом. Исходные формулировки находок ниже сохранены как снимок состояния на дату аудита; текущий статус выше имеет приоритет.
 
 ## Сначала уточнить правило зависимостей
 
@@ -52,14 +60,14 @@ api/composition ──> usecases ──> domain
 | --- | --- | --- | --- |
 | P0 | ✅ Реализовано в рабочем дереве; tests и typecheck подтверждены пользователем | Сделать идемпотентность атомарной | Mixed-version rollout не даёт полной атомарности до drain старых инстансов |
 | P1 | 🟡 Переход начат; legacy transport data временно сохранены для expand/contract | Убрать transport data из идемпотентности | Старые поля нельзя удалить до завершения compatibility window |
-| P1 | Подтверждённая проблема | Убрать TypeORM из domain/usecases | Внутренние слои знают ORM query DSL, dependency rule уже нарушен |
+| P1 | ✅ Реализовано | Убрать TypeORM из domain/usecases | Удаление по ключу и пакетный cleanup имеют предметные интерфейсы |
 | P1 | 🟡 Частично: unknown errors получили единый `INTERNAL_ERROR`; `55P03` оставлен infrastructure error | Ввести единый контракт ожидаемых и неожиданных ошибок | Не все ожидаемые outcomes ещё отражены в `Output` use cases |
-| P1 | Подтверждённая проблема | Убрать HTTP status из domain | Domain зависит от Nest/HTTP, хотя gRPC использует другую семантику |
+| P1 | ✅ Реализовано | Убрать HTTP status из domain | HTTP mapping находится в transport filter |
 | P1 | Отложено до завершения рефакторинга | Автоматически проверять импорты между слоями | Текущий ESLint защищает только production от `test-support` |
-| P2 | Подтверждённая проблема | Сделать транзакционный seam fail-safe | Неверный `ctx` молча отключает транзакцию |
+| P2 | ✅ Реализован fail-fast handle | Сделать транзакционный seam fail-safe | Неверный, чужой или завершённый handle отклоняется |
 | P2 | Подтверждённая проблема интерфейса | Убрать `queryDetails` из domain-портов | Production-интерфейс каждого репозитория расширен только ради adapter-тестов |
 | P2 | Подтверждённая проблема интерфейса | Разделить общий `RelationalDataServiceAbstract` на capability ports | Каждый use case получает service locator со всеми репозиториями и lifecycle-методами |
-| P3 | Подтверждённый долг | Унифицировать классы ошибок и barrel exports | Plain objects теряют stack/cause; публичный export неполон |
+| P3 | ✅ Реализовано для активных business errors | Унифицировать классы ошибок и barrel exports | Классы наследуют `Error`, barrel экспортирует активные типы |
 | P3 | Вариант дизайна | Переместить чистые event rules из frameworks | Единственная реализация абстракции создаёт неглубокий, гипотетический seam |
 | P3 | Вариант дизайна | Развязать gRPC DTO от HTTP DTO | Два transport-адаптера меняются совместно |
 | P3 | Требует подтверждения инварианта | Атомарно переиспользовать один активный share token | Конкурентные вызовы могут создать несколько активных токенов |
@@ -235,10 +243,10 @@ gRPC controller и request DTO импортируют HTTP DTO, например
 
 ### Этап 2. Очистить dependency rule (P1)
 
-1. Заменить `delete(FindOptionsWhere)` на `deleteExpiredBefore(Date)`.
-2. Убрать `LessThan` из use case и TypeORM из domain.
-3. Убрать `HttpStatus`/`httpCode` из domain errors; добавить полную HTTP mapping рядом с gRPC mapping.
-4. Сделать health output transport-neutral.
+1. ✅ Заменить `delete(FindOptionsWhere)` на `deleteByKey(key)`; для cleanup сохранить существующий `deleteExpiredBatch({expiresBefore, limit})`.
+2. ✅ Убрать `LessThan` из use case и TypeORM из domain.
+3. ✅ Убрать `HttpStatus`/`httpCode` из domain errors; добавить полную HTTP mapping рядом с gRPC mapping.
+4. ✅ Сделать health output transport-neutral.
 5. Перенести Nest module composition из `UseCasesModule` в явный composition root, если принята строгая модель.
 6. После завершения всех этапов рефакторинга добавить ESLint restrictions для слоёв и regression fixtures/tests для запрещённых импортов как финальный CI gate.
 
@@ -257,7 +265,7 @@ gRPC controller и request DTO импортируют HTTP DTO, например
 
 ### Этап 4. Углубить repository/transaction modules (P2)
 
-1. Перейти к transaction-scoped repositories либо branded fail-fast context.
+1. ✅ Реализован fail-fast context через framework-internal registry transaction handles.
 2. Убрать lifecycle methods из domain data interface.
 3. Выделять capability ports по use case, начиная с idempotency и event mutation paths; не переписывать все семь repositories одним большим PR.
 4. Убрать `queryDetails` из production interfaces, сохранив SQL snapshot tests через framework-internal hook.

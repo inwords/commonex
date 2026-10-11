@@ -60,16 +60,11 @@ export class IdempotencyKeyRepository extends BaseRepository implements Idempote
     return [result?.acquired === true, {queryString, queryParameters}];
   };
 
-  readonly delete: IdempotencyKeyRepositoryAbstract['delete'] = async (criteria, trx) => {
-    // Repository.delete() refuses empty criteria; the query builder would run an unfiltered DELETE instead.
-    if (Object.keys(criteria).length === 0) {
-      throw new Error('Empty criteria are not allowed for the delete method');
-    }
-
+  readonly deleteByKey: IdempotencyKeyRepositoryAbstract['deleteByKey'] = async (key, trx) => {
     const query = this.getRepository(this.dataSource, IdempotencyKeyEntity, trx)
       .createQueryBuilder()
       .delete()
-      .where(criteria);
+      .where({key});
 
     const queryDetails = this.getQueryDetails(query);
 
