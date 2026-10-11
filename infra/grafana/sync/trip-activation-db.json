@@ -1,0 +1,946 @@
+{
+  "apiVersion": "dashboard.grafana.app/v2",
+  "kind": "Dashboard",
+  "metadata": {
+    "name": "trip-activation-db-v1"
+  },
+  "spec": {
+    "annotations": [
+      {
+        "kind": "AnnotationQuery",
+        "spec": {
+          "builtIn": true,
+          "enable": true,
+          "hide": true,
+          "iconColor": "rgba(0, 211, 255, 1)",
+          "name": "Annotations \u0026 Alerts",
+          "query": {
+            "datasource": {
+              "name": "-- Grafana --"
+            },
+            "group": "grafana",
+            "kind": "DataQuery",
+            "spec": {},
+            "version": "v0"
+          }
+        }
+      }
+    ],
+    "cursorSync": "Crosshair",
+    "description": "Активация по сохранённым положительным расходам за первые 48 часов. Когорты по созданию события; только полное окно наблюдения. Не CAT и не клиентская воронка.",
+    "editable": true,
+    "elements": {
+      "panel-1": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [],
+              "queryOptions": {},
+              "transformations": []
+            }
+          },
+          "description": "Источник — сохранённые записи PostgreSQL. «Положительный расход»: expense_type = 'expense' и сумма exchangedAmount в split_information \u003e 0; нулевые, пустые и отрицательные записи исключены. Возвраты не учитываются. Последующая отмена положительного расхода не удаляет исходную запись из расчёта: связи отмены с оригиналом нет. Даты расходов могут задаваться клиентом; это не время отправки или синхронизации. Дни — UTC. Удалённые события включены, чтобы не исключать их из исторических когорт. Будущие записи исключены, граница наблюдения — минимум текущего времени и конца выбранного периода. Период выбирает дату создания поездки. В расчёт входят только поездки с полными 48 часами наблюдения; успех — расход в интервале [создание; создание + 48 часов). Расходы до создания поездки исключены. Доля при пустой когорте — «Нет данных». Это этапы по записям БД, не воронка кликов и не CAT.",
+          "id": 1,
+          "links": [],
+          "title": "Как читать дашборд",
+          "vizConfig": {
+            "group": "text",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {},
+                "overrides": []
+              },
+              "options": {
+                "content": "Источник — сохранённые записи PostgreSQL. «Положительный расход»: expense_type = 'expense' и сумма exchangedAmount в split_information \u003e 0; нулевые, пустые и отрицательные записи исключены. Возвраты не учитываются. Последующая отмена положительного расхода не удаляет исходную запись из расчёта: связи отмены с оригиналом нет. Даты расходов могут задаваться клиентом; это не время отправки или синхронизации. Дни — UTC. Удалённые события включены, чтобы не исключать их из исторических когорт. Будущие записи исключены, граница наблюдения — минимум текущего времени и конца выбранного периода. Период выбирает дату создания поездки. В расчёт входят только поездки с полными 48 часами наблюдения; успех — расход в интервале [создание; создание + 48 часов). Расходы до создания поездки исключены. Доля при пустой когорте — «Нет данных». Это этапы по записям БД, не воронка кликов и не CAT.",
+                "mode": "markdown"
+              }
+            },
+            "version": "13.2.1"
+          }
+        }
+      },
+      "panel-2": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "dfzndqwico7i8e"
+                      },
+                      "group": "postgres",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "format": "table",
+                        "rawQuery": true,
+                        "rawSql": "WITH params AS (SELECT LEAST(NOW(), $__timeTo()::timestamptz) AS observed_at),\npositive_expenses AS (\n  SELECT e.id, e.event_id, e.user_who_paid_id, e.created_at\n  FROM \"${postgres_schema}\".expense e\n  CROSS JOIN params p\n  WHERE e.expense_type = 'expense' AND e.created_at \u003c= p.observed_at\n    AND (SELECT COALESCE(SUM((s-\u003e\u003e'exchangedAmount')::numeric), 0)\n         FROM jsonb_array_elements(e.split_information) s) \u003e 0\n),\ncohort AS (\n  SELECT ev.id, ev.created_at, ev.deleted_at\n  FROM \"${postgres_schema}\".event ev CROSS JOIN params p\n  WHERE $__timeFilter(ev.created_at)\n    AND ev.created_at + INTERVAL '48 hours' \u003c= p.observed_at\n),\nordered AS (\n  SELECT ex.event_id, ex.created_at,\n    ROW_NUMBER() OVER (PARTITION BY ex.event_id ORDER BY ex.created_at, ex.id) AS expense_number\n  FROM positive_expenses ex JOIN cohort c ON c.id = ex.event_id\n  WHERE ex.created_at \u003e= c.created_at AND ex.created_at \u003c c.created_at + INTERVAL '48 hours'\n),\nmilestones AS (\n  SELECT c.id, c.created_at, c.deleted_at,\n    MIN(o.created_at) FILTER (WHERE o.expense_number = 1) AS first_expense_at,\n    MIN(o.created_at) FILTER (WHERE o.expense_number = 3) AS third_expense_at\n  FROM cohort c LEFT JOIN ordered o ON o.event_id = c.id\n  GROUP BY c.id, c.created_at, c.deleted_at\n)\nSELECT COUNT(*) AS \"Поездки\" FROM milestones"
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": []
+            }
+          },
+          "description": "Количество событий, созданных в выбранном периоде, для которых к границе наблюдения прошло 48 часов. Включены удалённые события. Это знаменатель долей активации.\n\nИсточник — сохранённые записи PostgreSQL. «Положительный расход»: expense_type = 'expense' и сумма exchangedAmount в split_information \u003e 0; нулевые, пустые и отрицательные записи исключены. Возвраты не учитываются. Последующая отмена положительного расхода не удаляет исходную запись из расчёта: связи отмены с оригиналом нет. Даты расходов могут задаваться клиентом; это не время отправки или синхронизации. Дни — UTC. Удалённые события включены, чтобы не исключать их из исторических когорт. Будущие записи исключены, граница наблюдения — минимум текущего времени и конца выбранного периода. Период выбирает дату создания поездки. В расчёт входят только поездки с полными 48 часами наблюдения; успех — расход в интервале [создание; создание + 48 часов). Расходы до создания поездки исключены. Доля при пустой когорте — «Нет данных». Это этапы по записям БД, не воронка кликов и не CAT.",
+          "id": 2,
+          "links": [],
+          "title": "Поездки с полными 48 часами",
+          "vizConfig": {
+            "group": "stat",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "thresholds"
+                  },
+                  "decimals": 0,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "blue",
+                        "value": 0
+                      }
+                    ]
+                  },
+                  "unit": "short"
+                },
+                "overrides": []
+              },
+              "options": {
+                "colorMode": "value",
+                "graphMode": "none",
+                "justifyMode": "center",
+                "orientation": "auto",
+                "percentChangeColorMode": "standard",
+                "reduceOptions": {
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "",
+                  "values": false
+                },
+                "showPercentChange": false,
+                "textMode": "auto",
+                "wideLayout": true
+              }
+            },
+            "version": "13.2.1"
+          }
+        }
+      },
+      "panel-3": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "dfzndqwico7i8e"
+                      },
+                      "group": "postgres",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "format": "table",
+                        "rawQuery": true,
+                        "rawSql": "WITH params AS (SELECT LEAST(NOW(), $__timeTo()::timestamptz) AS observed_at),\npositive_expenses AS (\n  SELECT e.id, e.event_id, e.user_who_paid_id, e.created_at\n  FROM \"${postgres_schema}\".expense e\n  CROSS JOIN params p\n  WHERE e.expense_type = 'expense' AND e.created_at \u003c= p.observed_at\n    AND (SELECT COALESCE(SUM((s-\u003e\u003e'exchangedAmount')::numeric), 0)\n         FROM jsonb_array_elements(e.split_information) s) \u003e 0\n),\ncohort AS (\n  SELECT ev.id, ev.created_at, ev.deleted_at\n  FROM \"${postgres_schema}\".event ev CROSS JOIN params p\n  WHERE $__timeFilter(ev.created_at)\n    AND ev.created_at + INTERVAL '48 hours' \u003c= p.observed_at\n),\nordered AS (\n  SELECT ex.event_id, ex.created_at,\n    ROW_NUMBER() OVER (PARTITION BY ex.event_id ORDER BY ex.created_at, ex.id) AS expense_number\n  FROM positive_expenses ex JOIN cohort c ON c.id = ex.event_id\n  WHERE ex.created_at \u003e= c.created_at AND ex.created_at \u003c c.created_at + INTERVAL '48 hours'\n),\nmilestones AS (\n  SELECT c.id, c.created_at, c.deleted_at,\n    MIN(o.created_at) FILTER (WHERE o.expense_number = 1) AS first_expense_at,\n    MIN(o.created_at) FILTER (WHERE o.expense_number = 3) AS third_expense_at\n  FROM cohort c LEFT JOIN ordered o ON o.event_id = c.id\n  GROUP BY c.id, c.created_at, c.deleted_at\n)\nSELECT ROUND(100.0 * COUNT(first_expense_at) / NULLIF(COUNT(*), 0), 1) AS \"Первая трата, %\" FROM milestones"
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": []
+            }
+          },
+          "description": "Доля зрелой когорты с хотя бы одним положительным расходом в первые 48 часов. Знаменатель включает поездки без расходов. При отсутствии зрелых поездок — нет данных.\n\nИсточник — сохранённые записи PostgreSQL. «Положительный расход»: expense_type = 'expense' и сумма exchangedAmount в split_information \u003e 0; нулевые, пустые и отрицательные записи исключены. Возвраты не учитываются. Последующая отмена положительного расхода не удаляет исходную запись из расчёта: связи отмены с оригиналом нет. Даты расходов могут задаваться клиентом; это не время отправки или синхронизации. Дни — UTC. Удалённые события включены, чтобы не исключать их из исторических когорт. Будущие записи исключены, граница наблюдения — минимум текущего времени и конца выбранного периода. Период выбирает дату создания поездки. В расчёт входят только поездки с полными 48 часами наблюдения; успех — расход в интервале [создание; создание + 48 часов). Расходы до создания поездки исключены. Доля при пустой когорте — «Нет данных». Это этапы по записям БД, не воронка кликов и не CAT.",
+          "id": 3,
+          "links": [],
+          "title": "Первая трата за 48 часов, %",
+          "vizConfig": {
+            "group": "stat",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "thresholds"
+                  },
+                  "decimals": 1,
+                  "max": 100,
+                  "min": 0,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "blue",
+                        "value": 0
+                      }
+                    ]
+                  },
+                  "unit": "percent"
+                },
+                "overrides": []
+              },
+              "options": {
+                "colorMode": "value",
+                "graphMode": "none",
+                "justifyMode": "center",
+                "orientation": "auto",
+                "percentChangeColorMode": "standard",
+                "reduceOptions": {
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "",
+                  "values": false
+                },
+                "showPercentChange": false,
+                "textMode": "auto",
+                "wideLayout": true
+              }
+            },
+            "version": "13.2.1"
+          }
+        }
+      },
+      "panel-4": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "dfzndqwico7i8e"
+                      },
+                      "group": "postgres",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "format": "table",
+                        "rawQuery": true,
+                        "rawSql": "WITH params AS (SELECT LEAST(NOW(), $__timeTo()::timestamptz) AS observed_at),\npositive_expenses AS (\n  SELECT e.id, e.event_id, e.user_who_paid_id, e.created_at\n  FROM \"${postgres_schema}\".expense e\n  CROSS JOIN params p\n  WHERE e.expense_type = 'expense' AND e.created_at \u003c= p.observed_at\n    AND (SELECT COALESCE(SUM((s-\u003e\u003e'exchangedAmount')::numeric), 0)\n         FROM jsonb_array_elements(e.split_information) s) \u003e 0\n),\ncohort AS (\n  SELECT ev.id, ev.created_at, ev.deleted_at\n  FROM \"${postgres_schema}\".event ev CROSS JOIN params p\n  WHERE $__timeFilter(ev.created_at)\n    AND ev.created_at + INTERVAL '48 hours' \u003c= p.observed_at\n),\nordered AS (\n  SELECT ex.event_id, ex.created_at,\n    ROW_NUMBER() OVER (PARTITION BY ex.event_id ORDER BY ex.created_at, ex.id) AS expense_number\n  FROM positive_expenses ex JOIN cohort c ON c.id = ex.event_id\n  WHERE ex.created_at \u003e= c.created_at AND ex.created_at \u003c c.created_at + INTERVAL '48 hours'\n),\nmilestones AS (\n  SELECT c.id, c.created_at, c.deleted_at,\n    MIN(o.created_at) FILTER (WHERE o.expense_number = 1) AS first_expense_at,\n    MIN(o.created_at) FILTER (WHERE o.expense_number = 3) AS third_expense_at\n  FROM cohort c LEFT JOIN ordered o ON o.event_id = c.id\n  GROUP BY c.id, c.created_at, c.deleted_at\n)\nSELECT ROUND(100.0 * COUNT(third_expense_at) / NULLIF(COUNT(*), 0), 1) AS \"Три траты, %\" FROM milestones"
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": []
+            }
+          },
+          "description": "Доля зрелой когорты с минимум тремя положительными расходами в первые 48 часов. Повторные расходы одного плательщика считаются. Это не CAT: активность разных авторов действий в БД не хранится.\n\nИсточник — сохранённые записи PostgreSQL. «Положительный расход»: expense_type = 'expense' и сумма exchangedAmount в split_information \u003e 0; нулевые, пустые и отрицательные записи исключены. Возвраты не учитываются. Последующая отмена положительного расхода не удаляет исходную запись из расчёта: связи отмены с оригиналом нет. Даты расходов могут задаваться клиентом; это не время отправки или синхронизации. Дни — UTC. Удалённые события включены, чтобы не исключать их из исторических когорт. Будущие записи исключены, граница наблюдения — минимум текущего времени и конца выбранного периода. Период выбирает дату создания поездки. В расчёт входят только поездки с полными 48 часами наблюдения; успех — расход в интервале [создание; создание + 48 часов). Расходы до создания поездки исключены. Доля при пустой когорте — «Нет данных». Это этапы по записям БД, не воронка кликов и не CAT.",
+          "id": 4,
+          "links": [],
+          "title": "Три траты за 48 часов, %",
+          "vizConfig": {
+            "group": "stat",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "thresholds"
+                  },
+                  "decimals": 1,
+                  "max": 100,
+                  "min": 0,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "blue",
+                        "value": 0
+                      }
+                    ]
+                  },
+                  "unit": "percent"
+                },
+                "overrides": []
+              },
+              "options": {
+                "colorMode": "value",
+                "graphMode": "none",
+                "justifyMode": "center",
+                "orientation": "auto",
+                "percentChangeColorMode": "standard",
+                "reduceOptions": {
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "",
+                  "values": false
+                },
+                "showPercentChange": false,
+                "textMode": "auto",
+                "wideLayout": true
+              }
+            },
+            "version": "13.2.1"
+          }
+        }
+      },
+      "panel-5": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "dfzndqwico7i8e"
+                      },
+                      "group": "postgres",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "format": "table",
+                        "rawQuery": true,
+                        "rawSql": "WITH params AS (SELECT LEAST(NOW(), $__timeTo()::timestamptz) AS observed_at),\npositive_expenses AS (\n  SELECT e.id, e.event_id, e.user_who_paid_id, e.created_at\n  FROM \"${postgres_schema}\".expense e\n  CROSS JOIN params p\n  WHERE e.expense_type = 'expense' AND e.created_at \u003c= p.observed_at\n    AND (SELECT COALESCE(SUM((s-\u003e\u003e'exchangedAmount')::numeric), 0)\n         FROM jsonb_array_elements(e.split_information) s) \u003e 0\n),\ncohort AS (\n  SELECT ev.id, ev.created_at, ev.deleted_at\n  FROM \"${postgres_schema}\".event ev CROSS JOIN params p\n  WHERE $__timeFilter(ev.created_at)\n    AND ev.created_at + INTERVAL '48 hours' \u003c= p.observed_at\n),\nordered AS (\n  SELECT ex.event_id, ex.created_at,\n    ROW_NUMBER() OVER (PARTITION BY ex.event_id ORDER BY ex.created_at, ex.id) AS expense_number\n  FROM positive_expenses ex JOIN cohort c ON c.id = ex.event_id\n  WHERE ex.created_at \u003e= c.created_at AND ex.created_at \u003c c.created_at + INTERVAL '48 hours'\n),\nmilestones AS (\n  SELECT c.id, c.created_at, c.deleted_at,\n    MIN(o.created_at) FILTER (WHERE o.expense_number = 1) AS first_expense_at,\n    MIN(o.created_at) FILTER (WHERE o.expense_number = 3) AS third_expense_at\n  FROM cohort c LEFT JOIN ordered o ON o.event_id = c.id\n  GROUP BY c.id, c.created_at, c.deleted_at\n)\nSELECT\n  ROUND((PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY EXTRACT(EPOCH FROM (first_expense_at - created_at))/3600) FILTER (WHERE first_expense_at IS NOT NULL))::numeric, 2) AS \"До первой\",\n  ROUND((PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY EXTRACT(EPOCH FROM (third_expense_at - created_at))/3600) FILTER (WHERE third_expense_at IS NOT NULL))::numeric, 2) AS \"До третьей\"\nFROM milestones"
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": []
+            }
+          },
+          "description": "Медиана часов от создания события до первой и третьей положительной траты в первые 48 часов. Каждая медиана считается только среди достигших соответствующего этапа. Поездки без успеха не входят, поэтому это не среднее ожидание всех поездок.\n\nИсточник — сохранённые записи PostgreSQL. «Положительный расход»: expense_type = 'expense' и сумма exchangedAmount в split_information \u003e 0; нулевые, пустые и отрицательные записи исключены. Возвраты не учитываются. Последующая отмена положительного расхода не удаляет исходную запись из расчёта: связи отмены с оригиналом нет. Даты расходов могут задаваться клиентом; это не время отправки или синхронизации. Дни — UTC. Удалённые события включены, чтобы не исключать их из исторических когорт. Будущие записи исключены, граница наблюдения — минимум текущего времени и конца выбранного периода. Период выбирает дату создания поездки. В расчёт входят только поездки с полными 48 часами наблюдения; успех — расход в интервале [создание; создание + 48 часов). Расходы до создания поездки исключены. Доля при пустой когорте — «Нет данных». Это этапы по записям БД, не воронка кликов и не CAT.",
+          "id": 5,
+          "links": [],
+          "title": "Медиана до первой / третьей траты",
+          "vizConfig": {
+            "group": "stat",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "thresholds"
+                  },
+                  "decimals": 2,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "blue",
+                        "value": 0
+                      }
+                    ]
+                  },
+                  "unit": "h"
+                },
+                "overrides": []
+              },
+              "options": {
+                "colorMode": "value",
+                "graphMode": "none",
+                "justifyMode": "center",
+                "orientation": "auto",
+                "percentChangeColorMode": "standard",
+                "reduceOptions": {
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "",
+                  "values": false
+                },
+                "showPercentChange": false,
+                "textMode": "auto",
+                "wideLayout": true
+              }
+            },
+            "version": "13.2.1"
+          }
+        }
+      },
+      "panel-6": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "dfzndqwico7i8e"
+                      },
+                      "group": "postgres",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "format": "time_series",
+                        "rawQuery": true,
+                        "rawSql": "WITH params AS (SELECT LEAST(NOW(), $__timeTo()::timestamptz) AS observed_at),\npositive_expenses AS (\n  SELECT e.id, e.event_id, e.user_who_paid_id, e.created_at\n  FROM \"${postgres_schema}\".expense e\n  CROSS JOIN params p\n  WHERE e.expense_type = 'expense' AND e.created_at \u003c= p.observed_at\n    AND (SELECT COALESCE(SUM((s-\u003e\u003e'exchangedAmount')::numeric), 0)\n         FROM jsonb_array_elements(e.split_information) s) \u003e 0\n),\ncohort AS (\n  SELECT ev.id, ev.created_at, ev.deleted_at\n  FROM \"${postgres_schema}\".event ev CROSS JOIN params p\n  WHERE $__timeFilter(ev.created_at)\n    AND ev.created_at + INTERVAL '48 hours' \u003c= p.observed_at\n),\nordered AS (\n  SELECT ex.event_id, ex.created_at,\n    ROW_NUMBER() OVER (PARTITION BY ex.event_id ORDER BY ex.created_at, ex.id) AS expense_number\n  FROM positive_expenses ex JOIN cohort c ON c.id = ex.event_id\n  WHERE ex.created_at \u003e= c.created_at AND ex.created_at \u003c c.created_at + INTERVAL '48 hours'\n),\nmilestones AS (\n  SELECT c.id, c.created_at, c.deleted_at,\n    MIN(o.created_at) FILTER (WHERE o.expense_number = 1) AS first_expense_at,\n    MIN(o.created_at) FILTER (WHERE o.expense_number = 3) AS third_expense_at\n  FROM cohort c LEFT JOIN ordered o ON o.event_id = c.id\n  GROUP BY c.id, c.created_at, c.deleted_at\n)\nSELECT date_trunc('day', created_at AT TIME ZONE 'UTC') AT TIME ZONE 'UTC' AS time,\n ROUND(100.0 * COUNT(first_expense_at) / COUNT(*), 1) AS \"Первая трата, %\",\n ROUND(100.0 * COUNT(third_expense_at) / COUNT(*), 1) AS \"Три траты, %\"\nFROM milestones GROUP BY 1 ORDER BY 1"
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": []
+            }
+          },
+          "description": "Дневные когорты создания: доля с первой и третьей положительной тратой за 48 часов. Все точки основаны на полных окнах наблюдения. Дни без зрелых созданных поездок отсутствуют; проценты между днями не усредняются в легенде.\n\nИсточник — сохранённые записи PostgreSQL. «Положительный расход»: expense_type = 'expense' и сумма exchangedAmount в split_information \u003e 0; нулевые, пустые и отрицательные записи исключены. Возвраты не учитываются. Последующая отмена положительного расхода не удаляет исходную запись из расчёта: связи отмены с оригиналом нет. Даты расходов могут задаваться клиентом; это не время отправки или синхронизации. Дни — UTC. Удалённые события включены, чтобы не исключать их из исторических когорт. Будущие записи исключены, граница наблюдения — минимум текущего времени и конца выбранного периода. Период выбирает дату создания поездки. В расчёт входят только поездки с полными 48 часами наблюдения; успех — расход в интервале [создание; создание + 48 часов). Расходы до создания поездки исключены. Доля при пустой когорте — «Нет данных». Это этапы по записям БД, не воронка кликов и не CAT.",
+          "id": 6,
+          "links": [],
+          "title": "Активация по дню создания",
+          "vizConfig": {
+            "group": "timeseries",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "line",
+                    "fillOpacity": 15,
+                    "gradientMode": "opacity",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "linear",
+                    "lineWidth": 2,
+                    "pointSize": 4,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "auto",
+                    "showValues": false,
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "decimals": 1,
+                  "max": 100,
+                  "min": 0,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": 0
+                      }
+                    ]
+                  },
+                  "unit": "percent"
+                },
+                "overrides": []
+              },
+              "options": {
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom",
+                  "showLegend": true
+                },
+                "tooltip": {
+                  "hideZeros": false,
+                  "mode": "multi",
+                  "sort": "none"
+                }
+              }
+            },
+            "version": "13.2.1"
+          }
+        }
+      },
+      "panel-7": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "dfzndqwico7i8e"
+                      },
+                      "group": "postgres",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "format": "time_series",
+                        "rawQuery": true,
+                        "rawSql": "WITH params AS (SELECT LEAST(NOW(), $__timeTo()::timestamptz) AS observed_at),\npositive_expenses AS (\n  SELECT e.id, e.event_id, e.user_who_paid_id, e.created_at\n  FROM \"${postgres_schema}\".expense e\n  CROSS JOIN params p\n  WHERE e.expense_type = 'expense' AND e.created_at \u003c= p.observed_at\n    AND (SELECT COALESCE(SUM((s-\u003e\u003e'exchangedAmount')::numeric), 0)\n         FROM jsonb_array_elements(e.split_information) s) \u003e 0\n),\ncohort AS (\n  SELECT ev.id, ev.created_at, ev.deleted_at\n  FROM \"${postgres_schema}\".event ev CROSS JOIN params p\n  WHERE $__timeFilter(ev.created_at)\n    AND ev.created_at + INTERVAL '48 hours' \u003c= p.observed_at\n),\nordered AS (\n  SELECT ex.event_id, ex.created_at,\n    ROW_NUMBER() OVER (PARTITION BY ex.event_id ORDER BY ex.created_at, ex.id) AS expense_number\n  FROM positive_expenses ex JOIN cohort c ON c.id = ex.event_id\n  WHERE ex.created_at \u003e= c.created_at AND ex.created_at \u003c c.created_at + INTERVAL '48 hours'\n),\nmilestones AS (\n  SELECT c.id, c.created_at, c.deleted_at,\n    MIN(o.created_at) FILTER (WHERE o.expense_number = 1) AS first_expense_at,\n    MIN(o.created_at) FILTER (WHERE o.expense_number = 3) AS third_expense_at\n  FROM cohort c LEFT JOIN ordered o ON o.event_id = c.id\n  GROUP BY c.id, c.created_at, c.deleted_at\n)\nSELECT date_trunc('day', created_at AT TIME ZONE 'UTC') AT TIME ZONE 'UTC' AS time,\n COUNT(*) AS \"Все зрелые поездки\", COUNT(first_expense_at) AS \"С первой тратой\", COUNT(third_expense_at) AS \"С третьей тратой\"\nFROM milestones GROUP BY 1 ORDER BY 1"
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": []
+            }
+          },
+          "description": "Количество созданных поездок с полными 48 часами и число достигших первой/третьей траты, по дню создания. Этапы вложены друг в друга; их нельзя складывать.\n\nИсточник — сохранённые записи PostgreSQL. «Положительный расход»: expense_type = 'expense' и сумма exchangedAmount в split_information \u003e 0; нулевые, пустые и отрицательные записи исключены. Возвраты не учитываются. Последующая отмена положительного расхода не удаляет исходную запись из расчёта: связи отмены с оригиналом нет. Даты расходов могут задаваться клиентом; это не время отправки или синхронизации. Дни — UTC. Удалённые события включены, чтобы не исключать их из исторических когорт. Будущие записи исключены, граница наблюдения — минимум текущего времени и конца выбранного периода. Период выбирает дату создания поездки. В расчёт входят только поездки с полными 48 часами наблюдения; успех — расход в интервале [создание; создание + 48 часов). Расходы до создания поездки исключены. Доля при пустой когорте — «Нет данных». Это этапы по записям БД, не воронка кликов и не CAT.",
+          "id": 7,
+          "links": [],
+          "title": "Размер когорт и достигнутые этапы",
+          "vizConfig": {
+            "group": "timeseries",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "line",
+                    "fillOpacity": 15,
+                    "gradientMode": "opacity",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "linear",
+                    "lineWidth": 2,
+                    "pointSize": 4,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "auto",
+                    "showValues": false,
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "decimals": 0,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": 0
+                      }
+                    ]
+                  },
+                  "unit": "short"
+                },
+                "overrides": []
+              },
+              "options": {
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom",
+                  "showLegend": true
+                },
+                "tooltip": {
+                  "hideZeros": false,
+                  "mode": "multi",
+                  "sort": "none"
+                }
+              }
+            },
+            "version": "13.2.1"
+          }
+        }
+      },
+      "panel-8": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "dfzndqwico7i8e"
+                      },
+                      "group": "postgres",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "format": "table",
+                        "rawQuery": true,
+                        "rawSql": "WITH params AS (SELECT LEAST(NOW(), $__timeTo()::timestamptz) AS observed_at),\npositive_expenses AS (\n  SELECT e.id, e.event_id, e.user_who_paid_id, e.created_at\n  FROM \"${postgres_schema}\".expense e\n  CROSS JOIN params p\n  WHERE e.expense_type = 'expense' AND e.created_at \u003c= p.observed_at\n    AND (SELECT COALESCE(SUM((s-\u003e\u003e'exchangedAmount')::numeric), 0)\n         FROM jsonb_array_elements(e.split_information) s) \u003e 0\n),\ncohort AS (\n  SELECT ev.id, ev.created_at, ev.deleted_at\n  FROM \"${postgres_schema}\".event ev CROSS JOIN params p\n  WHERE $__timeFilter(ev.created_at)\n    AND ev.created_at + INTERVAL '48 hours' \u003c= p.observed_at\n),\nordered AS (\n  SELECT ex.event_id, ex.created_at,\n    ROW_NUMBER() OVER (PARTITION BY ex.event_id ORDER BY ex.created_at, ex.id) AS expense_number\n  FROM positive_expenses ex JOIN cohort c ON c.id = ex.event_id\n  WHERE ex.created_at \u003e= c.created_at AND ex.created_at \u003c c.created_at + INTERVAL '48 hours'\n),\nmilestones AS (\n  SELECT c.id, c.created_at, c.deleted_at,\n    MIN(o.created_at) FILTER (WHERE o.expense_number = 1) AS first_expense_at,\n    MIN(o.created_at) FILTER (WHERE o.expense_number = 3) AS third_expense_at\n  FROM cohort c LEFT JOIN ordered o ON o.event_id = c.id\n  GROUP BY c.id, c.created_at, c.deleted_at\n)\nSELECT\n CASE WHEN first_expense_at IS NULL THEN '0 расходов' WHEN third_expense_at IS NULL THEN '1–2 расхода' ELSE '3+ расхода' END AS \"Этап\",\n COUNT(*) AS \"Поездки\", ROUND(100.0 * COUNT(*) / NULLIF(SUM(COUNT(*)) OVER (), 0), 1) AS \"Доля, %\"\nFROM milestones GROUP BY 1 ORDER BY MIN(CASE WHEN first_expense_at IS NULL THEN 0 WHEN third_expense_at IS NULL THEN 1 ELSE 2 END)"
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": []
+            }
+          },
+          "description": "Взаимоисключающие группы: нет положительных расходов, 1–2 расхода, минимум 3 расхода в первые 48 часов. Доля каждой группы рассчитана от всех зрелых поездок выбранной когорты.\n\nИсточник — сохранённые записи PostgreSQL. «Положительный расход»: expense_type = 'expense' и сумма exchangedAmount в split_information \u003e 0; нулевые, пустые и отрицательные записи исключены. Возвраты не учитываются. Последующая отмена положительного расхода не удаляет исходную запись из расчёта: связи отмены с оригиналом нет. Даты расходов могут задаваться клиентом; это не время отправки или синхронизации. Дни — UTC. Удалённые события включены, чтобы не исключать их из исторических когорт. Будущие записи исключены, граница наблюдения — минимум текущего времени и конца выбранного периода. Период выбирает дату создания поездки. В расчёт входят только поездки с полными 48 часами наблюдения; успех — расход в интервале [создание; создание + 48 часов). Расходы до создания поездки исключены. Доля при пустой когорте — «Нет данных». Это этапы по записям БД, не воронка кликов и не CAT.",
+          "id": 8,
+          "links": [],
+          "title": "Результат первых 48 часов",
+          "vizConfig": {
+            "group": "table",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "thresholds"
+                  },
+                  "custom": {
+                    "align": "auto",
+                    "cellOptions": {
+                      "type": "auto"
+                    },
+                    "footer": {
+                      "reducers": []
+                    },
+                    "inspect": false
+                  },
+                  "decimals": 1,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": 0
+                      }
+                    ]
+                  },
+                  "unit": "short"
+                },
+                "overrides": []
+              },
+              "options": {
+                "cellHeight": "sm",
+                "showHeader": true
+              }
+            },
+            "version": "13.2.1"
+          }
+        }
+      },
+      "panel-9": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "dfzndqwico7i8e"
+                      },
+                      "group": "postgres",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "format": "table",
+                        "rawQuery": true,
+                        "rawSql": "WITH params AS (SELECT LEAST(NOW(), $__timeTo()::timestamptz) AS observed_at),\npositive_expenses AS (\n  SELECT e.id, e.event_id, e.user_who_paid_id, e.created_at\n  FROM \"${postgres_schema}\".expense e\n  CROSS JOIN params p\n  WHERE e.expense_type = 'expense' AND e.created_at \u003c= p.observed_at\n    AND (SELECT COALESCE(SUM((s-\u003e\u003e'exchangedAmount')::numeric), 0)\n         FROM jsonb_array_elements(e.split_information) s) \u003e 0\n),\ncohort AS (\n  SELECT ev.id, ev.created_at, ev.deleted_at\n  FROM \"${postgres_schema}\".event ev CROSS JOIN params p\n  WHERE $__timeFilter(ev.created_at)\n    AND ev.created_at + INTERVAL '48 hours' \u003c= p.observed_at\n),\nordered AS (\n  SELECT ex.event_id, ex.created_at,\n    ROW_NUMBER() OVER (PARTITION BY ex.event_id ORDER BY ex.created_at, ex.id) AS expense_number\n  FROM positive_expenses ex JOIN cohort c ON c.id = ex.event_id\n  WHERE ex.created_at \u003e= c.created_at AND ex.created_at \u003c c.created_at + INTERVAL '48 hours'\n),\nmilestones AS (\n  SELECT c.id, c.created_at, c.deleted_at,\n    MIN(o.created_at) FILTER (WHERE o.expense_number = 1) AS first_expense_at,\n    MIN(o.created_at) FILTER (WHERE o.expense_number = 3) AS third_expense_at\n  FROM cohort c LEFT JOIN ordered o ON o.event_id = c.id\n  GROUP BY c.id, c.created_at, c.deleted_at\n)\nSELECT date_trunc('week', created_at AT TIME ZONE 'UTC')::date AS \"Неделя создания\",\n COUNT(*) AS \"Зрелые поездки\", COUNT(first_expense_at) AS \"Первая трата\", COUNT(third_expense_at) AS \"Три траты\",\n ROUND(100.0 * COUNT(first_expense_at) / COUNT(*), 1) AS \"Первая, %\",\n ROUND(100.0 * COUNT(third_expense_at) / COUNT(*), 1) AS \"Три, %\"\nFROM milestones GROUP BY 1 ORDER BY 1 DESC"
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": []
+            }
+          },
+          "description": "Когорты по неделе создания (понедельник, UTC). Показаны знаменатель, успешные поездки и доли за 48 часов. Недели на границах периода и последняя неделя могут содержать только часть созданных поездок; у каждой включённой поездки полное окно 48 часов.\n\nИсточник — сохранённые записи PostgreSQL. «Положительный расход»: expense_type = 'expense' и сумма exchangedAmount в split_information \u003e 0; нулевые, пустые и отрицательные записи исключены. Возвраты не учитываются. Последующая отмена положительного расхода не удаляет исходную запись из расчёта: связи отмены с оригиналом нет. Даты расходов могут задаваться клиентом; это не время отправки или синхронизации. Дни — UTC. Удалённые события включены, чтобы не исключать их из исторических когорт. Будущие записи исключены, граница наблюдения — минимум текущего времени и конца выбранного периода. Период выбирает дату создания поездки. В расчёт входят только поездки с полными 48 часами наблюдения; успех — расход в интервале [создание; создание + 48 часов). Расходы до создания поездки исключены. Доля при пустой когорте — «Нет данных». Это этапы по записям БД, не воронка кликов и не CAT.",
+          "id": 9,
+          "links": [],
+          "title": "Недельные когорты активации",
+          "vizConfig": {
+            "group": "table",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "thresholds"
+                  },
+                  "custom": {
+                    "align": "auto",
+                    "cellOptions": {
+                      "type": "auto"
+                    },
+                    "footer": {
+                      "reducers": []
+                    },
+                    "inspect": false
+                  },
+                  "decimals": 1,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": 0
+                      }
+                    ]
+                  },
+                  "unit": "short"
+                },
+                "overrides": []
+              },
+              "options": {
+                "cellHeight": "sm",
+                "showHeader": true
+              }
+            },
+            "version": "13.2.1"
+          }
+        }
+      }
+    },
+    "layout": {
+      "kind": "GridLayout",
+      "spec": {
+        "items": [
+          {
+            "kind": "GridLayoutItem",
+            "spec": {
+              "element": {
+                "kind": "ElementReference",
+                "name": "panel-1"
+              },
+              "height": 5,
+              "width": 24,
+              "x": 0,
+              "y": 0
+            }
+          },
+          {
+            "kind": "GridLayoutItem",
+            "spec": {
+              "element": {
+                "kind": "ElementReference",
+                "name": "panel-2"
+              },
+              "height": 4,
+              "width": 6,
+              "x": 0,
+              "y": 5
+            }
+          },
+          {
+            "kind": "GridLayoutItem",
+            "spec": {
+              "element": {
+                "kind": "ElementReference",
+                "name": "panel-3"
+              },
+              "height": 4,
+              "width": 6,
+              "x": 6,
+              "y": 5
+            }
+          },
+          {
+            "kind": "GridLayoutItem",
+            "spec": {
+              "element": {
+                "kind": "ElementReference",
+                "name": "panel-4"
+              },
+              "height": 4,
+              "width": 6,
+              "x": 12,
+              "y": 5
+            }
+          },
+          {
+            "kind": "GridLayoutItem",
+            "spec": {
+              "element": {
+                "kind": "ElementReference",
+                "name": "panel-5"
+              },
+              "height": 4,
+              "width": 6,
+              "x": 18,
+              "y": 5
+            }
+          },
+          {
+            "kind": "GridLayoutItem",
+            "spec": {
+              "element": {
+                "kind": "ElementReference",
+                "name": "panel-6"
+              },
+              "height": 10,
+              "width": 12,
+              "x": 0,
+              "y": 9
+            }
+          },
+          {
+            "kind": "GridLayoutItem",
+            "spec": {
+              "element": {
+                "kind": "ElementReference",
+                "name": "panel-7"
+              },
+              "height": 10,
+              "width": 12,
+              "x": 12,
+              "y": 9
+            }
+          },
+          {
+            "kind": "GridLayoutItem",
+            "spec": {
+              "element": {
+                "kind": "ElementReference",
+                "name": "panel-8"
+              },
+              "height": 10,
+              "width": 12,
+              "x": 0,
+              "y": 19
+            }
+          },
+          {
+            "kind": "GridLayoutItem",
+            "spec": {
+              "element": {
+                "kind": "ElementReference",
+                "name": "panel-9"
+              },
+              "height": 10,
+              "width": 12,
+              "x": 12,
+              "y": 19
+            }
+          }
+        ]
+      }
+    },
+    "links": [],
+    "liveNow": false,
+    "preload": false,
+    "tags": [
+      "analytics",
+      "business",
+      "trips",
+      "database"
+    ],
+    "timeSettings": {
+      "autoRefresh": "1h",
+      "autoRefreshIntervals": [
+        "5s",
+        "10s",
+        "30s",
+        "1m",
+        "5m",
+        "15m",
+        "30m",
+        "1h",
+        "2h",
+        "1d"
+      ],
+      "fiscalYearStartMonth": 0,
+      "from": "now-90d",
+      "hideTimepicker": false,
+      "timezone": "utc",
+      "to": "now"
+    },
+    "title": "Trip Activation — DB",
+    "variables": [
+      {
+        "kind": "TextVariable",
+        "spec": {
+          "current": {
+            "text": "public",
+            "value": "public"
+          },
+          "description": "PostgreSQL schema (POSTGRES_SCHEMA env var value)",
+          "hide": "dontHide",
+          "label": "DB Schema",
+          "name": "postgres_schema",
+          "query": "public",
+          "skipUrlSync": false
+        }
+      }
+    ]
+  }
+}
