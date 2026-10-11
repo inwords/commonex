@@ -2,14 +2,14 @@ import {Body, Controller, Delete, Get, Headers, HttpCode, HttpStatus, Param, Pos
 import {ApiResponse, ApiTags} from '@nestjs/swagger';
 import {FastifyRequest} from 'fastify';
 
-import {isError} from '#packages/result';
-
 import {DeleteEventUseCase} from '#usecases/users/delete-event.usecase';
 import {GetEventExpensesUseCase} from '#usecases/users/get-event-expenses.usecase';
 import {GetEventInfoUseCase} from '#usecases/users/get-event-info.usecase';
 import {SaveEventExpenseUseCase} from '#usecases/users/save-event-expense.usecase';
 import {SaveEventUseCase} from '#usecases/users/save-event.usecase';
 import {SaveUsersToEventUseCase} from '#usecases/users/save-users-to-event.usecase';
+
+import {unwrapResult} from '#api/unwrap-result';
 
 import {
   AddUsersToEventParamsDto,
@@ -47,11 +47,7 @@ export class UserController {
 
     const result = await this.saveEventUseCase.execute({users, event, idempotencyKey, legacyOperationId: request.url});
 
-    if (isError(result)) {
-      throw result.error;
-    }
-
-    return result.value;
+    return unwrapResult(result);
   }
 
   @Get(UserRoutes.getEventInfo)
@@ -62,11 +58,7 @@ export class UserController {
   ): Promise<GetEventInfoResponseDto> {
     const result = await this.getEventInfoUseCase.execute({eventId, pinCode: query.pinCode});
 
-    if (isError(result)) {
-      throw result.error;
-    }
-
-    return result.value;
+    return unwrapResult(result);
   }
 
   @Delete(UserRoutes.deleteEvent)
@@ -78,11 +70,7 @@ export class UserController {
   ): Promise<DeleteEventResponseDto> {
     const result = await this.deleteEventUseCase.execute({eventId, pinCode: body.pinCode});
 
-    if (isError(result)) {
-      throw result.error;
-    }
-
-    return result.value;
+    return unwrapResult(result);
   }
 
   @Post(UserRoutes.addUsersToEvent)
@@ -101,11 +89,7 @@ export class UserController {
       legacyOperationId: request.url,
     });
 
-    if (isError(result)) {
-      throw result.error;
-    }
-
-    return result.value;
+    return unwrapResult(result);
   }
 
   @Get(UserRoutes.getAllEventExpenses)
@@ -113,11 +97,7 @@ export class UserController {
   async getAllEventExpenses(@Param() {eventId}: GetEventExpensesParamsDto): Promise<GetEventExpensesResponseDto[]> {
     const result = await this.getEventExpensesUseCase.execute({eventId});
 
-    if (isError(result)) {
-      throw result.error;
-    }
-
-    return result.value;
+    return unwrapResult(result);
   }
 
   @Post(UserRoutes.createExpense)
@@ -137,10 +117,6 @@ export class UserController {
       legacyOperationId: request.url,
     });
 
-    if (isError(result)) {
-      throw result.error;
-    }
-
-    return result.value;
+    return unwrapResult(result);
   }
 }

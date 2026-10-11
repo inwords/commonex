@@ -26,7 +26,8 @@ P0-срез атомарной идемпотентности реализова
 - Domain business errors наследуются от `Error`, не содержат `HttpStatus`/`httpCode`; HTTP mapping находится в business-error filter.
 - Health use case возвращает `Promise<void>` без transport-типа.
 - Transaction handle разрешается через framework-internal registry; некорректные, чужие и завершённые handles отклоняются, а не отключают транзакцию.
-- Следующий шаг этапа 2 — перенести wiring из `UseCasesModule`, который всё ещё импортирует `FrameworksLayer`, в явный composition root.
+- По решению пользователя от 11.10.2026 wiring остаётся в `UseCasesModule`; отдельный composition-модуль не вводится.
+- HTTP V1/V2/V3 и gRPC controllers используют общий API helper `unwrapResult`: успешное значение возвращается без изменений, исходная business error бросается для существующих transport filters.
 
 Остальные пункты остаются планом. Исходные формулировки находок ниже сохранены как снимок состояния на дату аудита; текущий статус выше имеет приоритет.
 
@@ -52,7 +53,7 @@ api/composition ──> usecases ──> domain
 - `api` переводит transport DTO/status/metadata в интерфейс use case;
 - composition root связывает реализации с портами. Он может знать обо всех слоях, но не должен заставлять бизнес-код знать конкретный адаптер.
 
-Сейчас wiring размещён в [`UseCasesModule`](../../backend/src/usecases/usecases.layer.ts#L1), который импортирует `FrameworksLayer`. Это соответствует буквальной цепочке пользователя, но смешивает бизнес-слой и composition root. Для строгого dependency rule связывание следует поднять в `AppModule` или отдельный composition-модуль. При этом сами use case-классы уже зависят в основном от domain-портов, а PostgreSQL-реализации корректно зависят от их интерфейсов.
+Сейчас wiring размещён в [`UseCasesModule`](../../backend/src/usecases/usecases.layer.ts#L1), который импортирует `FrameworksLayer`. Это соответствует буквальной цепочке пользователя, но смешивает бизнес-слой и composition root. По решению пользователя от 11.10.2026 текущий wiring сохраняется; перенос в отдельный composition-модуль исключён из плана. При этом сами use case-классы уже зависят в основном от domain-портов, а PostgreSQL-реализации корректно зависят от их интерфейсов.
 
 ## Резюме находок
 
@@ -247,10 +248,10 @@ gRPC controller и request DTO импортируют HTTP DTO, например
 2. ✅ Убрать `LessThan` из use case и TypeORM из domain.
 3. ✅ Убрать `HttpStatus`/`httpCode` из domain errors; добавить полную HTTP mapping рядом с gRPC mapping.
 4. ✅ Сделать health output transport-neutral.
-5. Перенести Nest module composition из `UseCasesModule` в явный composition root, если принята строгая модель.
+5. Исключено по решению пользователя от 11.10.2026: сохранить wiring в `UseCasesModule`.
 6. После завершения всех этапов рефакторинга добавить ESLint restrictions для слоёв и regression fixtures/tests для запрещённых импортов как финальный CI gate.
 
-Критерий готовности: `domain` не импортирует Nest/TypeORM; `usecases` не импортирует TypeORM/transport types/concrete frameworks; CI предотвращает возврат нарушений.
+Критерий готовности: `domain` не импортирует Nest/TypeORM; `usecases` не импортирует TypeORM/transport types/concrete frameworks, кроме принятого wiring в `UseCasesModule`; CI предотвращает возврат нарушений.
 
 ### Этап 3. Унифицировать ошибки (P1)
 
@@ -258,7 +259,7 @@ gRPC controller и request DTO импортируют HTTP DTO, например
 2. Сохранить lock conflicts и lock timeouts как infrastructure failures; не добавлять отдельную клиентскую реакцию без нового доказанного business contract.
 3. Перевести idempotency mismatch в тот же выбранный путь.
 4. Добавить catch-all HTTP/gRPC filters только для unknown errors, с безопасным `INTERNAL_ERROR`, логированием и correlation id.
-5. Убрать повторяющийся `if (isError) throw` из controllers через один transport helper/interceptor.
+5. ✅ Убрать повторяющийся `if (isError) throw` из HTTP V1/V2/V3 и gRPC controllers через общий API helper `unwrapResult`.
 6. Проверить snapshot/contract tests для каждой строки error matrix.
 
 Критерий готовности: каждый ожидаемый отказ виден в типе use case; неизвестная DB-ошибка имеет одинаковый безопасный внешний контракт в HTTP и gRPC.
