@@ -50,7 +50,7 @@ describe('SaveEventExpenseV2UseCase', () => {
     useCase = new SaveEventExpenseV2UseCase(
       relationalDataService,
       eventService,
-      new SupportedCurrencyService(relationalDataService),
+      new SupportedCurrencyService(),
       idempotencySharedUseCase,
     );
 

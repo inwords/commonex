@@ -52,7 +52,10 @@ describe('application bootstrap against an empty database', () => {
     const testApp = await createTestApp();
 
     try {
-      const [currencies] = await testApp.rDataService.currency.findAllSupported({orderBy: 'code'});
+      const [currencies] = await testApp.rDataService.currency.findAll({
+        codes: CURRENCIES_LIST.map(({code}) => code),
+        orderBy: 'code',
+      });
 
       expect(currencies.map((currency) => currency.code)).toEqual(CURRENCIES_LIST.map(({code}) => code).sort());
     } finally {

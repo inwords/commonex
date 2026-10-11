@@ -80,10 +80,13 @@ export class SaveEventExpenseUseCase implements UseCase<Input, Output> {
 
       return success(expense);
     } else {
-      const expenseCurrency = await this.supportedCurrencyService.findById(input.currencyId, trx);
-      const eventCurrency = await this.supportedCurrencyService.findById(event.currencyId, trx);
+      const [expenseCurrency] = await this.rDataService.currency.findById(input.currencyId, trx);
+      const [eventCurrency] = await this.rDataService.currency.findById(event.currencyId, trx);
 
-      if (!eventCurrency || !expenseCurrency) {
+      if (
+        !this.supportedCurrencyService.isSupported(eventCurrency) ||
+        !this.supportedCurrencyService.isSupported(expenseCurrency)
+      ) {
         return error(new CurrencyNotFoundError());
       }
 
@@ -91,7 +94,7 @@ export class SaveEventExpenseUseCase implements UseCase<Input, Output> {
         ? getDateWithoutTimeUTC(new Date(input.createdAt))
         : getCurrentDateWithoutTimeUTC();
 
-      const currencyRate = await this.supportedCurrencyService.findRateByDate(getDateForExchangeRate, trx);
+      const [currencyRate] = await this.rDataService.currencyRate.findByDate(getDateForExchangeRate, trx);
 
       if (!currencyRate) {
         return error(new CurrencyRateNotFoundError());

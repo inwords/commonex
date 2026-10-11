@@ -192,8 +192,8 @@ describe('CurrencyRateRepository', () => {
     });
   });
 
-  describe('findSupportedCurrenciesWithRatesVersionByDate', () => {
-    it('returns the rate timestamp and supported currency timestamps ordered by code', async () => {
+  describe('findCurrenciesWithRatesVersionByDate', () => {
+    it('returns the rate timestamp and supplied currency timestamps ordered by code', async () => {
       await relationalDataService.currency.insert([
         {
           id: 'c-usd',
@@ -221,9 +221,9 @@ describe('CurrencyRateRepository', () => {
         updatedAt: new Date('2026-01-06T12:00:00Z'),
       });
 
-      const [version, details] = await relationalDataService.currencyRate.findSupportedCurrenciesWithRatesVersionByDate(
+      const [version, details] = await relationalDataService.currencyRate.findCurrenciesWithRatesVersionByDate(
         '2026-01-06',
-        undefined,
+        [CurrencyCode.USD, CurrencyCode.EUR],
       );
 
       expect(version).toEqual({
@@ -233,11 +233,50 @@ describe('CurrencyRateRepository', () => {
       expect(details).toMatchSnapshot();
     });
 
+    it('includes an arbitrary supplied currency code', async () => {
+      await relationalDataService.currency.insert({
+        id: 'c-xxx',
+        code: 'XXX' as CurrencyCode,
+        createdAt: new Date('2023-01-03T00:00:00Z'),
+        updatedAt: new Date('2023-01-03T00:00:00Z'),
+      });
+      await relationalDataService.currencyRate.insert({
+        date: '2026-01-06',
+        rate: {XXX: 1},
+        createdAt: new Date('2026-01-06T12:00:00Z'),
+        updatedAt: new Date('2026-01-06T12:00:00Z'),
+      });
+
+      const [version] = await relationalDataService.currencyRate.findCurrenciesWithRatesVersionByDate('2026-01-06', [
+        'XXX' as CurrencyCode,
+      ]);
+
+      expect(version).toEqual({
+        rateUpdatedAt: new Date('2026-01-06T12:00:00Z'),
+        currenciesUpdatedAt: [new Date('2023-01-03T00:00:00Z')],
+      });
+    });
+
+    it('returns an empty currency timestamp list when no codes are supplied', async () => {
+      await relationalDataService.currencyRate.insert({
+        date: '2026-01-06',
+        rate: {USD: 1},
+        createdAt: new Date('2026-01-06T12:00:00Z'),
+        updatedAt: new Date('2026-01-06T12:00:00Z'),
+      });
+
+      const [version] = await relationalDataService.currencyRate.findCurrenciesWithRatesVersionByDate('2026-01-06', []);
+
+      expect(version).toEqual({
+        rateUpdatedAt: new Date('2026-01-06T12:00:00Z'),
+        currenciesUpdatedAt: [],
+      });
+    });
+
     it('returns null when no rate exists for the date', async () => {
-      const [version] = await relationalDataService.currencyRate.findSupportedCurrenciesWithRatesVersionByDate(
-        '2026-01-06',
-        undefined,
-      );
+      const [version] = await relationalDataService.currencyRate.findCurrenciesWithRatesVersionByDate('2026-01-06', [
+        CurrencyCode.EUR,
+      ]);
 
       expect(version).toBeNull();
     });

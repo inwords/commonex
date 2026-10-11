@@ -1,14 +1,12 @@
 import {DataSource} from 'typeorm';
 
 import {CurrencyRateRepositoryAbstract} from '#domain/abstracts/relational-data-service/repositories/currency-rate.repository';
-import {IQueryDetails, ITransactionWithLock} from '#domain/abstracts/relational-data-service/types';
+import {IQueryDetails} from '#domain/abstracts/relational-data-service/types';
 import {ICurrencyRate} from '#domain/entities/currency-rate.entity';
 
 import {CurrencyRateEntity} from '#frameworks/relational-data-service/postgres/entities/currency-rate.entity';
 import {CurrencyEntity} from '#frameworks/relational-data-service/postgres/entities/currency.entity';
 import {BaseRepository} from '#frameworks/relational-data-service/postgres/repositories/base.repository';
-
-import {createSupportedCurrencyCodesFilter} from './supported-currency-codes-filter';
 
 export class CurrencyRateRepository extends BaseRepository implements CurrencyRateRepositoryAbstract {
   readonly dataSource: DataSource;
@@ -36,26 +34,24 @@ export class CurrencyRateRepository extends BaseRepository implements CurrencyRa
     return [result, queryDetails];
   };
 
-  readonly findSupportedCurrenciesWithRatesVersionByDate: CurrencyRateRepositoryAbstract['findSupportedCurrenciesWithRatesVersionByDate'] =
-    async (date: string, trx: ITransactionWithLock | undefined) => {
-      const supportedCurrencyFilter = createSupportedCurrencyCodesFilter(
-        'currency',
-        'supportedCurrencyCodesForVersion',
-      );
-
+  readonly findCurrenciesWithRatesVersionByDate: CurrencyRateRepositoryAbstract['findCurrenciesWithRatesVersionByDate'] =
+    async (date, codes, trx) => {
       let query = this.getRepository(this.dataSource, CurrencyRateEntity, trx)
         .createQueryBuilder(this.queryName)
         .select(`${this.queryName}.updatedAt`, 'rateUpdatedAt')
         .addSelect((subQuery) => {
-          return subQuery
+          let currencyQuery = subQuery
             .select(`COALESCE(json_agg(currency.updatedAt ORDER BY currency.code ASC), '[]'::json)`)
-            .from(CurrencyEntity, 'currency')
-            .where(supportedCurrencyFilter.condition, supportedCurrencyFilter.parameters);
+            .from(CurrencyEntity, 'currency');
+
+          currencyQuery = currencyQuery.where(codes.length > 0 ? 'currency.code IN (:...codes)' : '1 = 0', {
+            codes,
+          });
+
+          return currencyQuery;
         }, 'currenciesUpdatedAt');
 
-      query = query.where(`${this.queryName}.date = :date`, {
-        date,
-      });
+      query = query.where(`${this.queryName}.date = :date`, {date});
 
       const queryDetails = this.getQueryDetails(query);
       const result = await query.getRawOne<{

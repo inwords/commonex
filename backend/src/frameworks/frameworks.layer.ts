@@ -17,7 +17,10 @@ import {RelationalDataService} from './relational-data-service/postgres/relation
 
 export const initOrUpdateCurrencies = async (rDataService: RelationalDataServiceAbstract): Promise<void> => {
   await rDataService.transaction('REPEATABLE READ', async (trx) => {
-    const [currencies] = await rDataService.currency.findAllSupported(undefined, trx);
+    const [currencies] = await rDataService.currency.findAll(
+      {codes: [...new SupportedCurrencyService().supportedCodes]},
+      trx,
+    );
 
     if (!currencies.length) {
       const currencies = CURRENCIES_LIST.map((currency) => new CurrencyValueObject(currency).value);
@@ -63,10 +66,7 @@ export const providers: Provider[] = [
   },
   {
     provide: SupportedCurrencyServiceAbstract,
-    useFactory: (relationalDataService: RelationalDataServiceAbstract): SupportedCurrencyService => {
-      return new SupportedCurrencyService(relationalDataService);
-    },
-    inject: [RelationalDataServiceAbstract],
+    useClass: SupportedCurrencyService,
   },
 ];
 

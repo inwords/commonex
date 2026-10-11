@@ -28,11 +28,7 @@ describe('SaveEventUseCase', () => {
     });
 
     idempotencySharedUseCase = new IdempotencySharedUseCase(relationalDataService);
-    useCase = new SaveEventUseCase(
-      relationalDataService,
-      new SupportedCurrencyService(relationalDataService),
-      idempotencySharedUseCase,
-    );
+    useCase = new SaveEventUseCase(relationalDataService, new SupportedCurrencyService(), idempotencySharedUseCase);
 
     await relationalDataService.initialize();
   });

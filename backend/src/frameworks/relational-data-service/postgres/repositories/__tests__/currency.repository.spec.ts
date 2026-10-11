@@ -170,27 +170,22 @@ describe('CurrencyRepository', () => {
     });
   });
 
-  describe('supported currencies', () => {
-    const unsupported = {id: 'c-xxx', code: 'XXX' as CurrencyCode, createdAt: new Date(), updatedAt: new Date()};
-    const usd = {id: 'c-usd', code: CurrencyCode.USD, createdAt: new Date(), updatedAt: new Date()};
+  describe('findAll with supplied codes', () => {
+    it('filters by any supplied code', async () => {
+      const customCurrency = {
+        id: 'c-xxx',
+        code: 'XXX' as CurrencyCode,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      await relationalDataService.currency.insert([
+        customCurrency,
+        {id: 'c-usd', code: CurrencyCode.USD, createdAt: new Date(), updatedAt: new Date()},
+      ]);
 
-    it('excludes codes outside SUPPORTED_CURRENCY_CODES from findAllSupported', async () => {
-      await relationalDataService.currency.insert([usd, unsupported]);
+      const [found, details] = await relationalDataService.currency.findAll({codes: ['XXX' as CurrencyCode]});
 
-      const [found, details] = await relationalDataService.currency.findAllSupported();
-
-      expect(found.map((currency) => currency.id)).toEqual(['c-usd']);
-      expect(details).toMatchSnapshot();
-    });
-
-    it('returns null from findSupportedById for an unsupported code', async () => {
-      await relationalDataService.currency.insert([usd, unsupported]);
-
-      const [found, details] = await relationalDataService.currency.findSupportedById('c-xxx');
-      const [foundUsd] = await relationalDataService.currency.findSupportedById('c-usd');
-
-      expect(found).toBeNull();
-      expect(foundUsd).toMatchObject({id: 'c-usd'});
+      expect(found).toMatchObject([customCurrency]);
       expect(details).toMatchSnapshot();
     });
   });
