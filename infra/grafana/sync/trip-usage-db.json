@@ -1,0 +1,975 @@
+{
+  "apiVersion": "dashboard.grafana.app/v2",
+  "kind": "Dashboard",
+  "metadata": {
+    "name": "trip-usage-db-v1"
+  },
+  "spec": {
+    "annotations": [
+      {
+        "kind": "AnnotationQuery",
+        "spec": {
+          "builtIn": true,
+          "enable": true,
+          "hide": true,
+          "iconColor": "rgba(0, 211, 255, 1)",
+          "name": "Annotations \u0026 Alerts",
+          "query": {
+            "datasource": {
+              "name": "-- Grafana --"
+            },
+            "group": "grafana",
+            "kind": "DataQuery",
+            "spec": {},
+            "version": "v0"
+          }
+        }
+      }
+    ],
+    "cursorSync": "Crosshair",
+    "description": "Использование поездок по сохранённым положительным расходам: плательщики, дни с тратами и интенсивность. Период по дате расхода; удалённые события включены.",
+    "editable": true,
+    "elements": {
+      "panel-1": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [],
+              "queryOptions": {},
+              "transformations": []
+            }
+          },
+          "description": "Источник — сохранённые записи PostgreSQL. «Положительный расход»: expense_type = 'expense' и сумма exchangedAmount в split_information \u003e 0; нулевые, пустые и отрицательные записи исключены. Возвраты не учитываются. Последующая отмена положительного расхода не удаляет исходную запись из расчёта: связи отмены с оригиналом нет. Даты расходов могут задаваться клиентом; это не время отправки или синхронизации. Дни — UTC. Удалённые события включены, чтобы не исключать их из исторических когорт. Будущие записи исключены, граница наблюдения — минимум текущего времени и конца выбранного периода. Период выбирает дату расхода. «Поездка с расходами» — событие с хотя бы одним положительным расходом; «плательщик» — ID участника события, не автор действия. Число плательщиков не является числом пользователей приложения. Крайние дни выбранного периода могут быть неполными.",
+          "id": 1,
+          "links": [],
+          "title": "Как читать дашборд",
+          "vizConfig": {
+            "group": "text",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {},
+                "overrides": []
+              },
+              "options": {
+                "content": "Источник — сохранённые записи PostgreSQL. «Положительный расход»: expense_type = 'expense' и сумма exchangedAmount в split_information \u003e 0; нулевые, пустые и отрицательные записи исключены. Возвраты не учитываются. Последующая отмена положительного расхода не удаляет исходную запись из расчёта: связи отмены с оригиналом нет. Даты расходов могут задаваться клиентом; это не время отправки или синхронизации. Дни — UTC. Удалённые события включены, чтобы не исключать их из исторических когорт. Будущие записи исключены, граница наблюдения — минимум текущего времени и конца выбранного периода. Период выбирает дату расхода. «Поездка с расходами» — событие с хотя бы одним положительным расходом; «плательщик» — ID участника события, не автор действия. Число плательщиков не является числом пользователей приложения. Крайние дни выбранного периода могут быть неполными.",
+                "mode": "markdown"
+              }
+            },
+            "version": "13.2.1"
+          }
+        }
+      },
+      "panel-2": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "dfzndqwico7i8e"
+                      },
+                      "group": "postgres",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "format": "table",
+                        "rawQuery": true,
+                        "rawSql": "WITH params AS (SELECT LEAST(NOW(), $__timeTo()::timestamptz) AS observed_at),\npositive_expenses AS (\n  SELECT e.id, e.event_id, e.user_who_paid_id, e.created_at\n  FROM \"${postgres_schema}\".expense e\n  CROSS JOIN params p\n  WHERE e.expense_type = 'expense' AND e.created_at \u003c= p.observed_at\n    AND (SELECT COALESCE(SUM((s-\u003e\u003e'exchangedAmount')::numeric), 0)\n         FROM jsonb_array_elements(e.split_information) s) \u003e 0\n),\nperiod_expenses AS (\n  SELECT ex.* FROM positive_expenses ex\n  JOIN \"${postgres_schema}\".event ev ON ev.id = ex.event_id\n  WHERE $__timeFilter(ex.created_at)\n),\nevent_days AS (\n  SELECT event_id, date_trunc('day', created_at AT TIME ZONE 'UTC') AT TIME ZONE 'UTC' AS day,\n    COUNT(*) AS expenses, COUNT(DISTINCT user_who_paid_id) AS payers\n  FROM period_expenses GROUP BY 1, 2\n)\nSELECT COUNT(DISTINCT event_id) AS \"Поездки\" FROM period_expenses"
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": []
+            }
+          },
+          "description": "Число разных event_id с хотя бы одним положительным расходом в выбранном периоде. Это поездки с записями расходов, не посещённые поездки.\n\nИсточник — сохранённые записи PostgreSQL. «Положительный расход»: expense_type = 'expense' и сумма exchangedAmount в split_information \u003e 0; нулевые, пустые и отрицательные записи исключены. Возвраты не учитываются. Последующая отмена положительного расхода не удаляет исходную запись из расчёта: связи отмены с оригиналом нет. Даты расходов могут задаваться клиентом; это не время отправки или синхронизации. Дни — UTC. Удалённые события включены, чтобы не исключать их из исторических когорт. Будущие записи исключены, граница наблюдения — минимум текущего времени и конца выбранного периода. Период выбирает дату расхода. «Поездка с расходами» — событие с хотя бы одним положительным расходом; «плательщик» — ID участника события, не автор действия. Число плательщиков не является числом пользователей приложения. Крайние дни выбранного периода могут быть неполными.",
+          "id": 2,
+          "links": [],
+          "title": "Поездки с расходами",
+          "vizConfig": {
+            "group": "stat",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "thresholds"
+                  },
+                  "decimals": 0,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "blue",
+                        "value": 0
+                      }
+                    ]
+                  },
+                  "unit": "short"
+                },
+                "overrides": []
+              },
+              "options": {
+                "colorMode": "value",
+                "graphMode": "none",
+                "justifyMode": "center",
+                "orientation": "auto",
+                "percentChangeColorMode": "standard",
+                "reduceOptions": {
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "",
+                  "values": false
+                },
+                "showPercentChange": false,
+                "textMode": "auto",
+                "wideLayout": true
+              }
+            },
+            "version": "13.2.1"
+          }
+        }
+      },
+      "panel-3": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "dfzndqwico7i8e"
+                      },
+                      "group": "postgres",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "format": "table",
+                        "rawQuery": true,
+                        "rawSql": "WITH params AS (SELECT LEAST(NOW(), $__timeTo()::timestamptz) AS observed_at),\npositive_expenses AS (\n  SELECT e.id, e.event_id, e.user_who_paid_id, e.created_at\n  FROM \"${postgres_schema}\".expense e\n  CROSS JOIN params p\n  WHERE e.expense_type = 'expense' AND e.created_at \u003c= p.observed_at\n    AND (SELECT COALESCE(SUM((s-\u003e\u003e'exchangedAmount')::numeric), 0)\n         FROM jsonb_array_elements(e.split_information) s) \u003e 0\n),\nperiod_expenses AS (\n  SELECT ex.* FROM positive_expenses ex\n  JOIN \"${postgres_schema}\".event ev ON ev.id = ex.event_id\n  WHERE $__timeFilter(ex.created_at)\n),\nevent_days AS (\n  SELECT event_id, date_trunc('day', created_at AT TIME ZONE 'UTC') AT TIME ZONE 'UTC' AS day,\n    COUNT(*) AS expenses, COUNT(DISTINCT user_who_paid_id) AS payers\n  FROM period_expenses GROUP BY 1, 2\n)\nSELECT COUNT(DISTINCT (event_id, user_who_paid_id)) AS \"Плательщики\" FROM period_expenses"
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": []
+            }
+          },
+          "description": "Количество уникальных пар (event_id, user_who_paid_id) в положительных расходах выбранного периода. Один участник с несколькими расходами в одной поездке считается один раз; один человек в нескольких поездках может считаться несколько раз.\n\nИсточник — сохранённые записи PostgreSQL. «Положительный расход»: expense_type = 'expense' и сумма exchangedAmount в split_information \u003e 0; нулевые, пустые и отрицательные записи исключены. Возвраты не учитываются. Последующая отмена положительного расхода не удаляет исходную запись из расчёта: связи отмены с оригиналом нет. Даты расходов могут задаваться клиентом; это не время отправки или синхронизации. Дни — UTC. Удалённые события включены, чтобы не исключать их из исторических когорт. Будущие записи исключены, граница наблюдения — минимум текущего времени и конца выбранного периода. Период выбирает дату расхода. «Поездка с расходами» — событие с хотя бы одним положительным расходом; «плательщик» — ID участника события, не автор действия. Число плательщиков не является числом пользователей приложения. Крайние дни выбранного периода могут быть неполными.",
+          "id": 3,
+          "links": [],
+          "title": "Плательщики в поездках",
+          "vizConfig": {
+            "group": "stat",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "thresholds"
+                  },
+                  "decimals": 0,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "blue",
+                        "value": 0
+                      }
+                    ]
+                  },
+                  "unit": "short"
+                },
+                "overrides": []
+              },
+              "options": {
+                "colorMode": "value",
+                "graphMode": "none",
+                "justifyMode": "center",
+                "orientation": "auto",
+                "percentChangeColorMode": "standard",
+                "reduceOptions": {
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "",
+                  "values": false
+                },
+                "showPercentChange": false,
+                "textMode": "auto",
+                "wideLayout": true
+              }
+            },
+            "version": "13.2.1"
+          }
+        }
+      },
+      "panel-4": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "dfzndqwico7i8e"
+                      },
+                      "group": "postgres",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "format": "table",
+                        "rawQuery": true,
+                        "rawSql": "WITH params AS (SELECT LEAST(NOW(), $__timeTo()::timestamptz) AS observed_at),\npositive_expenses AS (\n  SELECT e.id, e.event_id, e.user_who_paid_id, e.created_at\n  FROM \"${postgres_schema}\".expense e\n  CROSS JOIN params p\n  WHERE e.expense_type = 'expense' AND e.created_at \u003c= p.observed_at\n    AND (SELECT COALESCE(SUM((s-\u003e\u003e'exchangedAmount')::numeric), 0)\n         FROM jsonb_array_elements(e.split_information) s) \u003e 0\n),\nperiod_expenses AS (\n  SELECT ex.* FROM positive_expenses ex\n  JOIN \"${postgres_schema}\".event ev ON ev.id = ex.event_id\n  WHERE $__timeFilter(ex.created_at)\n),\nevent_days AS (\n  SELECT event_id, date_trunc('day', created_at AT TIME ZONE 'UTC') AT TIME ZONE 'UTC' AS day,\n    COUNT(*) AS expenses, COUNT(DISTINCT user_who_paid_id) AS payers\n  FROM period_expenses GROUP BY 1, 2\n)\nSELECT COUNT(*) AS \"Расходы\" FROM period_expenses"
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": []
+            }
+          },
+          "description": "Количество сохранённых положительных расходов в выбранном периоде, включая исходные расходы, позже компенсированные возвратом. Нулевые, пустые и отрицательные записи исключены.\n\nИсточник — сохранённые записи PostgreSQL. «Положительный расход»: expense_type = 'expense' и сумма exchangedAmount в split_information \u003e 0; нулевые, пустые и отрицательные записи исключены. Возвраты не учитываются. Последующая отмена положительного расхода не удаляет исходную запись из расчёта: связи отмены с оригиналом нет. Даты расходов могут задаваться клиентом; это не время отправки или синхронизации. Дни — UTC. Удалённые события включены, чтобы не исключать их из исторических когорт. Будущие записи исключены, граница наблюдения — минимум текущего времени и конца выбранного периода. Период выбирает дату расхода. «Поездка с расходами» — событие с хотя бы одним положительным расходом; «плательщик» — ID участника события, не автор действия. Число плательщиков не является числом пользователей приложения. Крайние дни выбранного периода могут быть неполными.",
+          "id": 4,
+          "links": [],
+          "title": "Положительные расходы",
+          "vizConfig": {
+            "group": "stat",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "thresholds"
+                  },
+                  "decimals": 0,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "blue",
+                        "value": 0
+                      }
+                    ]
+                  },
+                  "unit": "short"
+                },
+                "overrides": []
+              },
+              "options": {
+                "colorMode": "value",
+                "graphMode": "none",
+                "justifyMode": "center",
+                "orientation": "auto",
+                "percentChangeColorMode": "standard",
+                "reduceOptions": {
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "",
+                  "values": false
+                },
+                "showPercentChange": false,
+                "textMode": "auto",
+                "wideLayout": true
+              }
+            },
+            "version": "13.2.1"
+          }
+        }
+      },
+      "panel-5": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "dfzndqwico7i8e"
+                      },
+                      "group": "postgres",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "format": "table",
+                        "rawQuery": true,
+                        "rawSql": "WITH params AS (SELECT LEAST(NOW(), $__timeTo()::timestamptz) AS observed_at),\npositive_expenses AS (\n  SELECT e.id, e.event_id, e.user_who_paid_id, e.created_at\n  FROM \"${postgres_schema}\".expense e\n  CROSS JOIN params p\n  WHERE e.expense_type = 'expense' AND e.created_at \u003c= p.observed_at\n    AND (SELECT COALESCE(SUM((s-\u003e\u003e'exchangedAmount')::numeric), 0)\n         FROM jsonb_array_elements(e.split_information) s) \u003e 0\n),\nperiod_expenses AS (\n  SELECT ex.* FROM positive_expenses ex\n  JOIN \"${postgres_schema}\".event ev ON ev.id = ex.event_id\n  WHERE $__timeFilter(ex.created_at)\n),\nevent_days AS (\n  SELECT event_id, date_trunc('day', created_at AT TIME ZONE 'UTC') AT TIME ZONE 'UTC' AS day,\n    COUNT(*) AS expenses, COUNT(DISTINCT user_who_paid_id) AS payers\n  FROM period_expenses GROUP BY 1, 2\n)\nSELECT ROUND(SUM(expenses)::numeric / NULLIF(COUNT(*), 0), 2) AS \"Расходов / день поездки\" FROM event_days"
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": []
+            }
+          },
+          "description": "Общее число положительных расходов / число пар (поездка, день UTC), где был хотя бы один такой расход. Это взвешенная по дням интенсивность, не среднее на календарный день и не среднее по всем поездкам. Дни без расходов исключены; при пустом периоде — нет данных.\n\nИсточник — сохранённые записи PostgreSQL. «Положительный расход»: expense_type = 'expense' и сумма exchangedAmount в split_information \u003e 0; нулевые, пустые и отрицательные записи исключены. Возвраты не учитываются. Последующая отмена положительного расхода не удаляет исходную запись из расчёта: связи отмены с оригиналом нет. Даты расходов могут задаваться клиентом; это не время отправки или синхронизации. Дни — UTC. Удалённые события включены, чтобы не исключать их из исторических когорт. Будущие записи исключены, граница наблюдения — минимум текущего времени и конца выбранного периода. Период выбирает дату расхода. «Поездка с расходами» — событие с хотя бы одним положительным расходом; «плательщик» — ID участника события, не автор действия. Число плательщиков не является числом пользователей приложения. Крайние дни выбранного периода могут быть неполными.",
+          "id": 5,
+          "links": [],
+          "title": "Расходов на день поездки с тратами",
+          "vizConfig": {
+            "group": "stat",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "thresholds"
+                  },
+                  "decimals": 2,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "blue",
+                        "value": 0
+                      }
+                    ]
+                  },
+                  "unit": "short"
+                },
+                "overrides": []
+              },
+              "options": {
+                "colorMode": "value",
+                "graphMode": "none",
+                "justifyMode": "center",
+                "orientation": "auto",
+                "percentChangeColorMode": "standard",
+                "reduceOptions": {
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "",
+                  "values": false
+                },
+                "showPercentChange": false,
+                "textMode": "auto",
+                "wideLayout": true
+              }
+            },
+            "version": "13.2.1"
+          }
+        }
+      },
+      "panel-6": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "dfzndqwico7i8e"
+                      },
+                      "group": "postgres",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "format": "time_series",
+                        "rawQuery": true,
+                        "rawSql": "WITH params AS (SELECT LEAST(NOW(), $__timeTo()::timestamptz) AS observed_at),\npositive_expenses AS (\n  SELECT e.id, e.event_id, e.user_who_paid_id, e.created_at\n  FROM \"${postgres_schema}\".expense e\n  CROSS JOIN params p\n  WHERE e.expense_type = 'expense' AND e.created_at \u003c= p.observed_at\n    AND (SELECT COALESCE(SUM((s-\u003e\u003e'exchangedAmount')::numeric), 0)\n         FROM jsonb_array_elements(e.split_information) s) \u003e 0\n),\nperiod_expenses AS (\n  SELECT ex.* FROM positive_expenses ex\n  JOIN \"${postgres_schema}\".event ev ON ev.id = ex.event_id\n  WHERE $__timeFilter(ex.created_at)\n),\nevent_days AS (\n  SELECT event_id, date_trunc('day', created_at AT TIME ZONE 'UTC') AT TIME ZONE 'UTC' AS day,\n    COUNT(*) AS expenses, COUNT(DISTINCT user_who_paid_id) AS payers\n  FROM period_expenses GROUP BY 1, 2\n)\n,\ndays AS (\n SELECT generate_series(\n   date_trunc('day', $__timeFrom()::timestamptz AT TIME ZONE 'UTC'),\n   date_trunc('day', p.observed_at AT TIME ZONE 'UTC'),\n   INTERVAL '1 day') AT TIME ZONE 'UTC' AS day FROM params p\n),\ndaily AS (\n SELECT date_trunc('day', created_at AT TIME ZONE 'UTC') AT TIME ZONE 'UTC' AS day,\n COUNT(DISTINCT event_id) AS trips, COUNT(DISTINCT (event_id, user_who_paid_id)) AS payers\n FROM period_expenses GROUP BY 1\n)\nSELECT d.day AS time, COALESCE(a.trips,0) AS \"Поездки\", COALESCE(a.payers,0) AS \"Плательщики\"\nFROM days d LEFT JOIN daily a USING(day) ORDER BY 1"
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": []
+            }
+          },
+          "description": "По дням UTC: число поездок с расходами и уникальных пар (поездка, плательщик). Календарная сетка включает нули для дней без расходов. Один плательщик может повторяться в разные дни; сумма дневных значений не равна числу уникальных за период.\n\nИсточник — сохранённые записи PostgreSQL. «Положительный расход»: expense_type = 'expense' и сумма exchangedAmount в split_information \u003e 0; нулевые, пустые и отрицательные записи исключены. Возвраты не учитываются. Последующая отмена положительного расхода не удаляет исходную запись из расчёта: связи отмены с оригиналом нет. Даты расходов могут задаваться клиентом; это не время отправки или синхронизации. Дни — UTC. Удалённые события включены, чтобы не исключать их из исторических когорт. Будущие записи исключены, граница наблюдения — минимум текущего времени и конца выбранного периода. Период выбирает дату расхода. «Поездка с расходами» — событие с хотя бы одним положительным расходом; «плательщик» — ID участника события, не автор действия. Число плательщиков не является числом пользователей приложения. Крайние дни выбранного периода могут быть неполными.",
+          "id": 6,
+          "links": [],
+          "title": "Поездки и плательщики по дням",
+          "vizConfig": {
+            "group": "timeseries",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "line",
+                    "fillOpacity": 15,
+                    "gradientMode": "opacity",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "linear",
+                    "lineWidth": 2,
+                    "pointSize": 4,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "auto",
+                    "showValues": false,
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "decimals": 0,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": 0
+                      }
+                    ]
+                  },
+                  "unit": "short"
+                },
+                "overrides": []
+              },
+              "options": {
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom",
+                  "showLegend": true
+                },
+                "tooltip": {
+                  "hideZeros": false,
+                  "mode": "multi",
+                  "sort": "none"
+                }
+              }
+            },
+            "version": "13.2.1"
+          }
+        }
+      },
+      "panel-7": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "dfzndqwico7i8e"
+                      },
+                      "group": "postgres",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "format": "time_series",
+                        "rawQuery": true,
+                        "rawSql": "WITH params AS (SELECT LEAST(NOW(), $__timeTo()::timestamptz) AS observed_at),\npositive_expenses AS (\n  SELECT e.id, e.event_id, e.user_who_paid_id, e.created_at\n  FROM \"${postgres_schema}\".expense e\n  CROSS JOIN params p\n  WHERE e.expense_type = 'expense' AND e.created_at \u003c= p.observed_at\n    AND (SELECT COALESCE(SUM((s-\u003e\u003e'exchangedAmount')::numeric), 0)\n         FROM jsonb_array_elements(e.split_information) s) \u003e 0\n),\nperiod_expenses AS (\n  SELECT ex.* FROM positive_expenses ex\n  JOIN \"${postgres_schema}\".event ev ON ev.id = ex.event_id\n  WHERE $__timeFilter(ex.created_at)\n),\nevent_days AS (\n  SELECT event_id, date_trunc('day', created_at AT TIME ZONE 'UTC') AT TIME ZONE 'UTC' AS day,\n    COUNT(*) AS expenses, COUNT(DISTINCT user_who_paid_id) AS payers\n  FROM period_expenses GROUP BY 1, 2\n)\nSELECT day AS time,\n ROUND(SUM(expenses)::numeric / COUNT(*), 2) AS \"Расходов / поездку с тратами\"\nFROM event_days GROUP BY 1 ORDER BY 1"
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": []
+            }
+          },
+          "description": "По дням UTC: число положительных расходов / число поездок с такими расходами в этот день. Дни без расходов отсутствуют: интенсивность для них не определена. Поездки без расходов не входят в знаменатель.\n\nИсточник — сохранённые записи PostgreSQL. «Положительный расход»: expense_type = 'expense' и сумма exchangedAmount в split_information \u003e 0; нулевые, пустые и отрицательные записи исключены. Возвраты не учитываются. Последующая отмена положительного расхода не удаляет исходную запись из расчёта: связи отмены с оригиналом нет. Даты расходов могут задаваться клиентом; это не время отправки или синхронизации. Дни — UTC. Удалённые события включены, чтобы не исключать их из исторических когорт. Будущие записи исключены, граница наблюдения — минимум текущего времени и конца выбранного периода. Период выбирает дату расхода. «Поездка с расходами» — событие с хотя бы одним положительным расходом; «плательщик» — ID участника события, не автор действия. Число плательщиков не является числом пользователей приложения. Крайние дни выбранного периода могут быть неполными.",
+          "id": 7,
+          "links": [],
+          "title": "Интенсивность в дни с расходами",
+          "vizConfig": {
+            "group": "timeseries",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "line",
+                    "fillOpacity": 15,
+                    "gradientMode": "opacity",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "linear",
+                    "lineWidth": 2,
+                    "pointSize": 4,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "auto",
+                    "showValues": false,
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "decimals": 2,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": 0
+                      }
+                    ]
+                  },
+                  "unit": "short"
+                },
+                "overrides": []
+              },
+              "options": {
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom",
+                  "showLegend": true
+                },
+                "tooltip": {
+                  "hideZeros": false,
+                  "mode": "multi",
+                  "sort": "none"
+                }
+              }
+            },
+            "version": "13.2.1"
+          }
+        }
+      },
+      "panel-8": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "dfzndqwico7i8e"
+                      },
+                      "group": "postgres",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "format": "time_series",
+                        "rawQuery": true,
+                        "rawSql": "WITH params AS (SELECT LEAST(NOW(), $__timeTo()::timestamptz) AS observed_at),\npositive_expenses AS (\n  SELECT e.id, e.event_id, e.user_who_paid_id, e.created_at\n  FROM \"${postgres_schema}\".expense e\n  CROSS JOIN params p\n  WHERE e.expense_type = 'expense' AND e.created_at \u003c= p.observed_at\n    AND (SELECT COALESCE(SUM((s-\u003e\u003e'exchangedAmount')::numeric), 0)\n         FROM jsonb_array_elements(e.split_information) s) \u003e 0\n),\nperiod_expenses AS (\n  SELECT ex.* FROM positive_expenses ex\n  JOIN \"${postgres_schema}\".event ev ON ev.id = ex.event_id\n  WHERE $__timeFilter(ex.created_at)\n),\nevent_days AS (\n  SELECT event_id, date_trunc('day', created_at AT TIME ZONE 'UTC') AT TIME ZONE 'UTC' AS day,\n    COUNT(*) AS expenses, COUNT(DISTINCT user_who_paid_id) AS payers\n  FROM period_expenses GROUP BY 1, 2\n)\nSELECT day AS time,\n ROUND(100.0 * COUNT(*) FILTER (WHERE payers \u003e= 2) / COUNT(*), 1) AS \"2+ плательщика, %\"\nFROM event_days GROUP BY 1 ORDER BY 1"
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": []
+            }
+          },
+          "description": "По дням UTC: доля поездок с расходами, где в этот день указаны минимум два разных плательщика. Знаменатель — все поездки с положительными расходами в день. Это разнообразие плательщиков, а не совместная активность авторов действий. Дни без расходов отсутствуют.\n\nИсточник — сохранённые записи PostgreSQL. «Положительный расход»: expense_type = 'expense' и сумма exchangedAmount в split_information \u003e 0; нулевые, пустые и отрицательные записи исключены. Возвраты не учитываются. Последующая отмена положительного расхода не удаляет исходную запись из расчёта: связи отмены с оригиналом нет. Даты расходов могут задаваться клиентом; это не время отправки или синхронизации. Дни — UTC. Удалённые события включены, чтобы не исключать их из исторических когорт. Будущие записи исключены, граница наблюдения — минимум текущего времени и конца выбранного периода. Период выбирает дату расхода. «Поездка с расходами» — событие с хотя бы одним положительным расходом; «плательщик» — ID участника события, не автор действия. Число плательщиков не является числом пользователей приложения. Крайние дни выбранного периода могут быть неполными.",
+          "id": 8,
+          "links": [],
+          "title": "Поездки с несколькими плательщиками",
+          "vizConfig": {
+            "group": "timeseries",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "palette-classic"
+                  },
+                  "custom": {
+                    "axisBorderShow": false,
+                    "axisCenteredZero": false,
+                    "axisColorMode": "text",
+                    "axisLabel": "",
+                    "axisPlacement": "auto",
+                    "barAlignment": 0,
+                    "barWidthFactor": 0.6,
+                    "drawStyle": "line",
+                    "fillOpacity": 15,
+                    "gradientMode": "opacity",
+                    "hideFrom": {
+                      "legend": false,
+                      "tooltip": false,
+                      "viz": false
+                    },
+                    "insertNulls": false,
+                    "lineInterpolation": "linear",
+                    "lineWidth": 2,
+                    "pointSize": 4,
+                    "scaleDistribution": {
+                      "type": "linear"
+                    },
+                    "showPoints": "auto",
+                    "showValues": false,
+                    "spanNulls": false,
+                    "stacking": {
+                      "group": "A",
+                      "mode": "none"
+                    },
+                    "thresholdsStyle": {
+                      "mode": "off"
+                    }
+                  },
+                  "decimals": 1,
+                  "max": 100,
+                  "min": 0,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": 0
+                      }
+                    ]
+                  },
+                  "unit": "percent"
+                },
+                "overrides": []
+              },
+              "options": {
+                "legend": {
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom",
+                  "showLegend": true
+                },
+                "tooltip": {
+                  "hideZeros": false,
+                  "mode": "multi",
+                  "sort": "none"
+                }
+              }
+            },
+            "version": "13.2.1"
+          }
+        }
+      },
+      "panel-9": {
+        "kind": "Panel",
+        "spec": {
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "hidden": false,
+                    "query": {
+                      "datasource": {
+                        "name": "dfzndqwico7i8e"
+                      },
+                      "group": "postgres",
+                      "kind": "DataQuery",
+                      "spec": {
+                        "format": "table",
+                        "rawQuery": true,
+                        "rawSql": "WITH params AS (SELECT LEAST(NOW(), $__timeTo()::timestamptz) AS observed_at),\npositive_expenses AS (\n  SELECT e.id, e.event_id, e.user_who_paid_id, e.created_at\n  FROM \"${postgres_schema}\".expense e\n  CROSS JOIN params p\n  WHERE e.expense_type = 'expense' AND e.created_at \u003c= p.observed_at\n    AND (SELECT COALESCE(SUM((s-\u003e\u003e'exchangedAmount')::numeric), 0)\n         FROM jsonb_array_elements(e.split_information) s) \u003e 0\n),\nperiod_expenses AS (\n  SELECT ex.* FROM positive_expenses ex\n  JOIN \"${postgres_schema}\".event ev ON ev.id = ex.event_id\n  WHERE $__timeFilter(ex.created_at)\n),\nevent_days AS (\n  SELECT event_id, date_trunc('day', created_at AT TIME ZONE 'UTC') AT TIME ZONE 'UTC' AS day,\n    COUNT(*) AS expenses, COUNT(DISTINCT user_who_paid_id) AS payers\n  FROM period_expenses GROUP BY 1, 2\n)\n,\nparticipants AS (SELECT event_id, COUNT(*) AS members FROM \"${postgres_schema}\".user_info GROUP BY event_id),\nper_trip AS (\n SELECT event_id, COUNT(*) AS expenses, COUNT(DISTINCT user_who_paid_id) AS payers,\n COUNT(DISTINCT (created_at AT TIME ZONE 'UTC')::date) AS days\n FROM period_expenses GROUP BY event_id\n)\nSELECT\n CASE WHEN COALESCE(p.members,0)=0 THEN '0 участников'\n      WHEN p.members=1 THEN '1 участник'\n      WHEN p.members=2 THEN '2 участника'\n      WHEN p.members\u003c=5 THEN '3–5 участников' ELSE '6+ участников' END AS \"Размер группы\",\n COUNT(*) AS \"Поездки\", ROUND(AVG(t.payers),2) AS \"Плательщиков / поездку\",\n ROUND(AVG(t.days),2) AS \"Дней с расходами / поездку\", SUM(t.expenses) AS \"Расходы\"\nFROM per_trip t LEFT JOIN participants p USING(event_id)\nGROUP BY 1 ORDER BY MIN(COALESCE(p.members,0))"
+                      },
+                      "version": "v0"
+                    },
+                    "refId": "A"
+                  }
+                }
+              ],
+              "queryOptions": {},
+              "transformations": []
+            }
+          },
+          "description": "Для поездок с положительными расходами выбранного периода: группировка по текущему числу записей участников (1, 2, 3–5, 6+; 0 отдельно). Показаны число поездок, среднее число плательщиков в периоде, среднее число дней с расходами и общее число расходов. Участники берутся из текущего состояния БД, не из исторического снимка. Один человек в разных событиях может учитываться повторно.\n\nИсточник — сохранённые записи PostgreSQL. «Положительный расход»: expense_type = 'expense' и сумма exchangedAmount в split_information \u003e 0; нулевые, пустые и отрицательные записи исключены. Возвраты не учитываются. Последующая отмена положительного расхода не удаляет исходную запись из расчёта: связи отмены с оригиналом нет. Даты расходов могут задаваться клиентом; это не время отправки или синхронизации. Дни — UTC. Удалённые события включены, чтобы не исключать их из исторических когорт. Будущие записи исключены, граница наблюдения — минимум текущего времени и конца выбранного периода. Период выбирает дату расхода. «Поездка с расходами» — событие с хотя бы одним положительным расходом; «плательщик» — ID участника события, не автор действия. Число плательщиков не является числом пользователей приложения. Крайние дни выбранного периода могут быть неполными.",
+          "id": 9,
+          "links": [],
+          "title": "Размер группы и использование",
+          "vizConfig": {
+            "group": "table",
+            "kind": "VizConfig",
+            "spec": {
+              "fieldConfig": {
+                "defaults": {
+                  "color": {
+                    "mode": "thresholds"
+                  },
+                  "custom": {
+                    "align": "auto",
+                    "cellOptions": {
+                      "type": "auto"
+                    },
+                    "footer": {
+                      "reducers": []
+                    },
+                    "inspect": false
+                  },
+                  "decimals": 2,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "green",
+                        "value": 0
+                      }
+                    ]
+                  },
+                  "unit": "short"
+                },
+                "overrides": []
+              },
+              "options": {
+                "cellHeight": "sm",
+                "showHeader": true
+              }
+            },
+            "version": "13.2.1"
+          }
+        }
+      }
+    },
+    "layout": {
+      "kind": "GridLayout",
+      "spec": {
+        "items": [
+          {
+            "kind": "GridLayoutItem",
+            "spec": {
+              "element": {
+                "kind": "ElementReference",
+                "name": "panel-1"
+              },
+              "height": 5,
+              "width": 24,
+              "x": 0,
+              "y": 0
+            }
+          },
+          {
+            "kind": "GridLayoutItem",
+            "spec": {
+              "element": {
+                "kind": "ElementReference",
+                "name": "panel-2"
+              },
+              "height": 4,
+              "width": 6,
+              "x": 0,
+              "y": 5
+            }
+          },
+          {
+            "kind": "GridLayoutItem",
+            "spec": {
+              "element": {
+                "kind": "ElementReference",
+                "name": "panel-3"
+              },
+              "height": 4,
+              "width": 6,
+              "x": 6,
+              "y": 5
+            }
+          },
+          {
+            "kind": "GridLayoutItem",
+            "spec": {
+              "element": {
+                "kind": "ElementReference",
+                "name": "panel-4"
+              },
+              "height": 4,
+              "width": 6,
+              "x": 12,
+              "y": 5
+            }
+          },
+          {
+            "kind": "GridLayoutItem",
+            "spec": {
+              "element": {
+                "kind": "ElementReference",
+                "name": "panel-5"
+              },
+              "height": 4,
+              "width": 6,
+              "x": 18,
+              "y": 5
+            }
+          },
+          {
+            "kind": "GridLayoutItem",
+            "spec": {
+              "element": {
+                "kind": "ElementReference",
+                "name": "panel-6"
+              },
+              "height": 10,
+              "width": 12,
+              "x": 0,
+              "y": 9
+            }
+          },
+          {
+            "kind": "GridLayoutItem",
+            "spec": {
+              "element": {
+                "kind": "ElementReference",
+                "name": "panel-7"
+              },
+              "height": 10,
+              "width": 12,
+              "x": 12,
+              "y": 9
+            }
+          },
+          {
+            "kind": "GridLayoutItem",
+            "spec": {
+              "element": {
+                "kind": "ElementReference",
+                "name": "panel-8"
+              },
+              "height": 10,
+              "width": 12,
+              "x": 0,
+              "y": 19
+            }
+          },
+          {
+            "kind": "GridLayoutItem",
+            "spec": {
+              "element": {
+                "kind": "ElementReference",
+                "name": "panel-9"
+              },
+              "height": 10,
+              "width": 12,
+              "x": 12,
+              "y": 19
+            }
+          }
+        ]
+      }
+    },
+    "links": [],
+    "liveNow": false,
+    "preload": false,
+    "tags": [
+      "analytics",
+      "business",
+      "trips",
+      "database"
+    ],
+    "timeSettings": {
+      "autoRefresh": "1h",
+      "autoRefreshIntervals": [
+        "5s",
+        "10s",
+        "30s",
+        "1m",
+        "5m",
+        "15m",
+        "30m",
+        "1h",
+        "2h",
+        "1d"
+      ],
+      "fiscalYearStartMonth": 0,
+      "from": "now-90d",
+      "hideTimepicker": false,
+      "timezone": "utc",
+      "to": "now"
+    },
+    "title": "Trip Usage — DB",
+    "variables": [
+      {
+        "kind": "TextVariable",
+        "spec": {
+          "current": {
+            "text": "public",
+            "value": "public"
+          },
+          "description": "PostgreSQL schema (POSTGRES_SCHEMA env var value)",
+          "hide": "dontHide",
+          "label": "DB Schema",
+          "name": "postgres_schema",
+          "query": "public",
+          "skipUrlSync": false
+        }
+      }
+    ]
+  }
+}
