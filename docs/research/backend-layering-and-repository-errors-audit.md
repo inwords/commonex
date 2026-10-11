@@ -96,7 +96,7 @@ api/composition ──> usecases ──> domain
 | P0 | ✅ Реализовано в рабочем дереве; tests и typecheck подтверждены пользователем | Сделать идемпотентность атомарной | Mixed-version rollout не даёт полной атомарности до drain старых инстансов |
 | P1 | ✅ Код очищен; contract migration подготовлена и проверена локально | Убрать transport data из идемпотентности | Production-применение второго этапа ещё не подтверждено |
 | P1 | ✅ Реализовано | Убрать TypeORM из domain/usecases | Удаление по ключу и пакетный cleanup имеют предметные интерфейсы |
-| P1 | 🟡 Частично: unknown errors получили единый `INTERNAL_ERROR`; `55P03` оставлен infrastructure error | Ввести единый контракт ожидаемых и неожиданных ошибок | Не все ожидаемые outcomes ещё отражены в `Output` use cases |
+| P1 | ✅ Проверенные business outcomes отражены в `Output`; unknown errors получают `INTERNAL_ERROR` | Ввести единый контракт ожидаемых и неожиданных ошибок | Часть gRPC outcomes пока проверяется только на уровне filter |
 | P1 | ✅ Реализовано | Убрать HTTP status из domain | HTTP mapping находится в transport filter |
 | P1 | Отложено до завершения рефакторинга | Автоматически проверять импорты между слоями | Текущий ESLint защищает только production от `test-support` |
 | P2 | ✅ Реализован fail-fast handle | Сделать транзакционный seam fail-safe | Неверный, чужой или завершённый handle отклоняется |
@@ -127,6 +127,8 @@ Domain должен владеть стабильным business code, имен�
 
 ### 3. Модель ошибок смешивает `Result` и исключения
 
+Проверка текущего кода от 11.10.2026: для всех user-facing use cases V1/V2/V3 возвращаемые business errors, включая ошибки `EventService` и `IdempotencySharedUseCase`, входят в `Output`. Пропущенных ожидаемых ошибок не найдено; прежняя формулировка резюме о неполных `Output` устарела. Controllers используют общий `unwrapResult`. Оставшиеся exceptions при fetch failure, некорректной форме replay или неподдерживаемой версии codec относятся к сбоям инфраструктуры/инвариантов, а не к новым business outcomes. Исходное описание ниже сохранено как историческая находка.
+
 Большинство use cases объявляет `Result<Value, BusinessError>` и возвращает ожидаемые отказы как значение. Затем HTTP/gRPC controllers повторяют `if (isError(result)) throw result.error`, например [`user.controller.ts`](../../backend/src/api/http/user/user.controller.ts#L48).
 
 Текущее состояние:
@@ -146,6 +148,8 @@ Domain должен владеть стабильным business code, имен�
 Альтернатива — бросать типизированные application exceptions для всех ожидаемых отказов. Она тоже может быть последовательной, но смешивать оба подхода в одном интерфейсе не следует.
 
 ### 4. Неожиданные repository errors не имеют стабильного transport-контракта
+
+Текущий статус: HTTP/gRPC catch-all filters реализованы; неизвестные ошибки и PostgreSQL lock failures получают безопасный `INTERNAL_ERROR / B4007`, подробности логируются внутри процесса. Исходное описание ниже относится к дате аудита.
 
 Кроме `55P03` при `nowait`, write-методы выполняют `query.execute()` без перевода ошибок, например [`event.repository.ts`](../../backend/src/frameworks/relational-data-service/postgres/repositories/event.repository.ts#L79) и [`idempotency-key.repository.ts`](../../backend/src/frameworks/relational-data-service/postgres/repositories/idempotency-key.repository.ts#L42). Тест event repository явно закрепляет raw `QueryFailedError` для другого lock timeout: [`event.repository.spec.ts`](../../backend/src/frameworks/relational-data-service/postgres/repositories/__tests__/event.repository.spec.ts#L158).
 
@@ -231,6 +235,31 @@ Callback получает transaction-scoped набор портов, поэто
 
 Barrel [`domain/errors/index.ts`](../../backend/src/domain/errors/index.ts#L1) экспортирует активные business-error типы, включая idempotency errors. Удалённый `EventOperationConflictError` больше не входит в публичный interface и `BUSINESS_ERROR_CLASSES`. Остающиеся прямые импорты `#domain/errors/errors` — вопрос единообразия, а не неполноты текущего barrel.
 
+## Текущая error matrix
+
+Матрица проверена по [business errors](../../backend/src/domain/errors/errors.ts), [HTTP filter](../../backend/src/api/http/filters/business-error.filter.ts) и [gRPC mapping](../../backend/src/api/grpc/filters/grpc-status.map.ts). В HTTP business code находится в JSON `code`, в gRPC — в metadata `error-code`. Указаны существующие outcomes; новые отказы для FK/unique conflicts не вводятся.
+
+| Outcome | Где возвращается | Code | HTTP | gRPC |
+| --- | --- | --- | --- | --- |
+| EventNotFound | Чтение/изменение события, пользователи, расходы, share token | B4001 | 404 | NOT_FOUND |
+| EventDeleted | Те же операции с удалённым событием | B4002 | 410 | FAILED_PRECONDITION |
+| InvalidPinCode | PIN-защищённые чтения и изменения | B4003 | 403 | PERMISSION_DENIED |
+| CurrencyNotFound | Создание события; расходы с автоматическим обменом | B4004 | 404 | NOT_FOUND |
+| CurrencyRateNotFound | Расходы с автоматическим обменом; currencies V3 | B4005 | 404 | NOT_FOUND |
+| InvalidToken | GetEventInfo V2: неизвестный token или token другого события | B4008 | 401 | UNAUTHENTICATED |
+| TokenExpired | GetEventInfo V2: просроченный token | B4009 | 401 | UNAUTHENTICATED |
+| InconsistentExchangedAmount | Расход V2: частично заполненные custom exchanged amounts | B4010 | 400 | INVALID_ARGUMENT |
+| IdempotencyHashMismatch | Все пять idempotent mutation paths V1/V2 | B4011 | 422 | FAILED_PRECONDITION |
+| IdempotencyRequestInProgress | Те же mutation paths при занятом advisory lock | B4016 | 409 | ABORTED |
+| Validation failure | Transport DTO validation, вне `Output` use case | B4006 | 400 | INVALID_ARGUMENT |
+| Unexpected infrastructure/invariant failure | Exceptions, включая lock unavailable/timeout | B4007 | 500 | INTERNAL |
+
+Покрытие контрактов: [HTTP business filter tests](../../backend/src/api/http/filters/__tests__/business-error.filter.spec.ts) и [gRPC business filter tests](../../backend/src/api/grpc/filters/__tests__/grpc-business-error.filter.spec.ts) проверяют все 10 business errors с явно заданными status/code/message; gRPC также проверяет metadata `error-code`. HTTP E2E покрывают все 10 business errors. gRPC E2E покрывают EventNotFound, EventDeleted, InvalidPinCode, TokenExpired и обе idempotency errors. InvalidToken, CurrencyNotFound, CurrencyRateNotFound и InconsistentExchangedAmount в gRPC пока покрыты filter unit tests; E2E для этих четырёх outcomes остаются отдельным возможным срезом. [HTTP V2](../../backend/test/http/user-v2.e2e-spec.ts) и [gRPC](../../backend/test/grpc/user.e2e-spec.ts) проверяют expiry token на реальной БД; gRPC mismatch дополнительно проверяет отсутствие второго события.
+
+Проверки этого среза: 305 unit/DB тестов, 51 SQL snapshot и 66 E2E прошли; DB suites и E2E запускались последовательно. `typecheck`, `lint:check`, `format:check`, `build` и `git diff --check` прошли. Изменены только тесты и этот аудит; production behavior сохранено.
+
+Retry semantics: для in-progress допустим повтор после завершения текущего запроса; для mismatch нельзя повторно использовать тот же ключ с изменённым body/operation. Остальные business outcomes требуют исправления запроса, доступа или изменения состояния; автоматический retry contract для них не добавляется. `INTERNAL_ERROR` не гарантирует retry safety, поэтому клиент не должен считать любую неизвестную ошибку основанием повторить mutation без её существующих гарантий идемпотентности.
+
 ## Варианты дизайна и места, требующие решения
 
 ### Чистые event rules находятся в frameworks
@@ -291,12 +320,12 @@ gRPC controller и request DTO импортируют HTTP DTO, например
 
 ### Этап 3. Унифицировать ошибки (P1)
 
-1. Ввести общий transport-neutral тип business failure и полный публичный export.
+1. ✅ `BusinessError` объединяет активные transport-neutral классы; публичный export полный.
 2. Сохранить lock conflicts и lock timeouts как infrastructure failures; не добавлять отдельную клиентскую реакцию без нового доказанного business contract.
-3. Перевести idempotency mismatch в тот же выбранный путь.
-4. Добавить catch-all HTTP/gRPC filters только для unknown errors, с безопасным `INTERNAL_ERROR`, логированием и correlation id.
+3. ✅ Idempotency mismatch и in-progress возвращаются через `Result` и включены в mutation `Output`.
+4. ✅ HTTP/gRPC catch-all filters возвращают безопасный `INTERNAL_ERROR` и логируют неизвестную ошибку; текущее observability поведение сохраняется.
 5. ✅ Убрать повторяющийся `if (isError) throw` из HTTP V1/V2/V3 и gRPC controllers через общий API helper `unwrapResult`.
-6. Проверить snapshot/contract tests для каждой строки error matrix.
+6. ✅ Текущая error matrix записана; HTTP/gRPC filter tests покрывают все 10 business errors. E2E coverage и оставшиеся gRPC пробелы перечислены рядом с матрицей.
 
 Критерий готовности: каждый ожидаемый отказ виден в типе use case; неизвестная DB-ошибка имеет одинаковый безопасный внешний контракт в HTTP и gRPC.
 
