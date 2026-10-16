@@ -34,6 +34,7 @@ fun AndroidExpensesTheme(
     }
 
     CommonExTheme(
+        darkTheme = darkTheme,
         dynamicColorScheme = dynamicColorScheme,
         content = content
     )

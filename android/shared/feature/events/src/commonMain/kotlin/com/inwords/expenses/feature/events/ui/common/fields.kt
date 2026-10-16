@@ -60,6 +60,7 @@ internal fun EventIdField(
         keyboardOptions = KeyboardOptions(
             keyboardType = KeyboardType.Text,
             capitalization = KeyboardCapitalization.Characters,
+            autoCorrectEnabled = false,
             imeAction = ImeAction.Next
         )
     )
@@ -86,6 +87,7 @@ internal fun EventAccessCodeField(
         keyboardActions = KeyboardActions(onDone = { onDone.invoke() }),
         keyboardOptions = KeyboardOptions(
             keyboardType = KeyboardType.NumberPassword,
+            autoCorrectEnabled = false,
             imeAction = ImeAction.Done
         )
     )
