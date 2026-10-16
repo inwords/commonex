@@ -15,6 +15,7 @@ object CreateEventPaneDestination : Destination
 
 internal fun EventsComponent.getCreateEventPaneNavModule(
     navigationController: NavigationController,
+    expensesPaneDestination: Destination,
 ): NavModule {
     return NavModule(CreateEventPaneDestination.serializer()) {
         entry<CreateEventPaneDestination> {
@@ -23,12 +24,17 @@ internal fun EventsComponent.getCreateEventPaneNavModule(
                     CreateEventViewModel(
                         navigationController = navigationController,
                         getCurrenciesUseCase = getCurrenciesUseCaseLazy.value,
+                        createEventFromParametersUseCase = createEventFromParametersUseCaseLazy.value,
+                        expensesScreenDestination = expensesPaneDestination,
                     )
                 }
             })
             CreateEventPane(
                 state = viewModel.state.collectAsStateWithLifecycle().value,
                 onEventNameChanged = viewModel::onEventNameChanged,
+                onOwnerNameChanged = viewModel::onOwnerNameChanged,
+                onParticipantNameChanged = viewModel::onParticipantNameChanged,
+                onAddParticipantClicked = viewModel::onAddParticipantClicked,
                 onCurrencyClicked = viewModel::onCurrencyClicked,
                 onConfirmClicked = viewModel::onConfirmClicked,
                 onNavIconClicked = viewModel::onNavIconClicked,

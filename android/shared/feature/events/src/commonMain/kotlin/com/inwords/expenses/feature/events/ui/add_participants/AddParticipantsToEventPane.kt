@@ -15,7 +15,6 @@ import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -41,9 +40,9 @@ import expenses.shared.feature.events.generated.resources.events_add_participant
 import expenses.shared.feature.events.generated.resources.events_continue_button
 import expenses.shared.feature.events.generated.resources.events_participants_label
 import expenses.shared.feature.events.generated.resources.events_participants_title
+import expenses.shared.feature.events.generated.resources.events_person_name_placeholder
 import org.jetbrains.compose.resources.stringResource
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 internal fun AddParticipantsToEventPane(
     modifier: Modifier = Modifier,
@@ -107,6 +106,8 @@ internal fun AddParticipantsToEventPane(
                                 .padding(bottom = 8.dp)
                         },
                         participantName = name,
+                        labelText = stringResource(Res.string.events_person_name_placeholder),
+                        enabled = true,
                         imeAction = ImeAction.Next,
                         onImeAction = {
                             onAddParticipantClicked.invoke()

@@ -112,7 +112,7 @@ Modular KMM project: `shared/core/` (infrastructure), `shared/feature/` (feature
 
 ### Coding Patterns
 
-See [`docs/patterns.md`](docs/patterns.md) for ViewModel, Compose UI, state modeling, form input, and architecture/wiring patterns.
+Before changing panes, destinations, ViewModels, or shared UI helpers, read [`docs/patterns.md`](docs/patterns.md) for screen ownership, state modeling, form input, and wiring rules.
 
 ### Compose Material 3 UI/UX Rules (Strict)
 
@@ -120,6 +120,7 @@ For any Compose UI change, follow the 40 mandatory rules in [`docs/compose-ui-ru
 
 ### UI Development
 
+- Before designing a mobile screen or refining its visual hierarchy, read [mobile app design principles](docs/app-design.md).
 - Follow Material 3 Expressive guidelines and design system from `shared:core:ui-design`
 - Platform-specific implementations in `androidMain`/`iosMain` source sets
 - Navigation: use Navigation 3 library with helpers from `shared:core:navigation`

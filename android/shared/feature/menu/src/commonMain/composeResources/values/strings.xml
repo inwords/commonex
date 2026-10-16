@@ -1,11 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="menu_choose_person_action">Choose participant</string>
+    <string name="menu_choose_person_action">Choose your name</string>
     <string name="menu_add_participants_action">Add participants</string>
-    <string name="menu_copy_action">Copy</string>
-    <string name="menu_join_other_event">Join another event</string>
-    <string name="menu_open_events_list">To events list</string>
+    <string name="menu_join_other_event">Join another group</string>
+    <string name="menu_open_events_list">Your groups</string>
+
     <string name="menu_share_action">Share</string>
-    <string name="menu_share_secure_message">Join the event "%1$s"!\n\n%2$s\n\nLink is valid until %3$s</string>
-    <string name="menu_share_fallback_message">Join the event "%1$s"!\n\n%2$s\n\n⚠️ This link was created in offline mode. Do not share this link with strangers — it contains permanent access code to the event</string>
+    <string name="menu_copy_action">Copy</string>
+    <string name="menu_share_secure_message">Join the group "%1$s"!\n\n%2$s\n\nThis link is valid until %3$s</string>
+    <string name="menu_share_fallback_message">Join the group "%1$s"!\n\n%2$s\n\n⚠️ This link contains the group’s permanent access code. Only share it with people you trust</string>
+
+    <string name="menu_invite_title">Invite people</string>
+    <string name="menu_invite_heading">Keep everyone\nin the loop</string>
+    <string name="menu_invite_body">Share an invite link so everyone can add expenses and see balances</string>
+    <string name="menu_invite_sync">Connect to the internet to sync your group and create an invite link</string>
+    <string name="menu_invite_back">Back</string>
 </resources>

@@ -26,6 +26,7 @@ internal fun ExpensesComponent.getExpensesPaneNavModule(
                         eventDeletionStateManager = eventDeletionStateManagerLazy.value,
                         getEventsUseCase = getEventsUseCaseLazy.value,
                         joinEventUseCase = joinEventUseCaseLazy.value,
+                        leaveEventUseCase = leaveEventUseCaseLazy.value,
                         deleteEventUseCase = deleteEventUseCaseLazy.value,
                         getExpensesDetailsUseCase = getExpensesDetailsUseCaseLazy.value,
                         requestExpensesRefreshUseCase = requestExpensesRefreshUseCaseLazy.value,
@@ -37,6 +38,8 @@ internal fun ExpensesComponent.getExpensesPaneNavModule(
             ExpensesPane(
                 state = viewModel.state.collectAsStateWithLifecycle().value,
                 onMenuClick = viewModel::onMenuClick,
+                onOpenEventsListClick = viewModel::onOpenEventsListClick,
+                onInviteClick = viewModel::onInviteClick,
                 onAddExpenseClick = viewModel::onAddExpenseClick,
                 onExpenseClick = viewModel::onExpenseClick,
                 onDebtsDetailsClick = viewModel::onDebtsDetailsClick,

@@ -8,7 +8,7 @@ This document is the canonical mobile reference for the KMM offline-first model,
 - Shared expense sync logic: `android/shared/feature/expenses/src/commonMain/kotlin/com/inwords/expenses/feature/expenses/domain/tasks/`
 - Shared remote stores: `android/shared/feature/events/src/commonMain/kotlin/com/inwords/expenses/feature/events/data/network/store/`
   and `android/shared/feature/expenses/src/commonMain/kotlin/com/inwords/expenses/feature/expenses/data/network/`
-- Mobile menu/share UI logic: `android/shared/feature/menu/src/commonMain/kotlin/com/inwords/expenses/feature/menu/ui/MenuViewModel.kt`
+- Mobile sharing presentation: `android/shared/feature/menu/src/commonMain/kotlin/com/inwords/expenses/feature/menu/ui/`.
 - Deep-link plumbing: `android/shared/core/navigation/src/**/DeeplinkProvider*.kt`,
   `android/shared/core/navigation/src/commonMain/kotlin/com/inwords/expenses/core/navigation/DeeplinkHandler.kt`,
   `android/app/src/main/AndroidManifest.xml`, `android/iosApp/iosApp/iOSApp.swift`
@@ -29,6 +29,7 @@ This document is the canonical mobile reference for the KMM offline-first model,
 
 ## Join Flows
 
+- Invitation-link entry and manual-code entry are separate navigable tasks with independent form drafts. Valid invitations enter the join flow with an event ID and credential. The join flow owns the remote request, error recovery, and navigation to participant selection.
 - The join destination is `/event/{eventId}` with optional `pinCode` or `token` query parameters.
 - `JoinEventPaneDestination` and `JoinEventViewModel` require exactly one credential:
   access code or token.
@@ -54,12 +55,13 @@ The iOS app (`applinks:commonex.ru` in `iosApp.entitlements`, `onOpenURL` / `onC
 
 ## Share Links
 
-- Mobile share text is created from the current event state in `MenuViewModel`.
+- Invitations contain a URL and optional expiry. Token-based invitations have an expiry; PIN-based invitations do not.
 - Preferred share flow:
   request a backend share token and generate `https://commonex.ru/event/{eventId}?token={token}`.
 - Fallback share flow:
   if share-token creation fails, generate `https://commonex.ru/event/{eventId}?pinCode={pinCode}`.
 - The fallback is intentionally less secure and is used only when the token request fails.
+- Share and copy actions require an event with a server ID. Cached invitations and pending requests are scoped to the selected event. See [patterns.md](patterns.md#context-bound-operations) for invalidation and result ownership rules.
 
 ## Event And Participant Sync
 

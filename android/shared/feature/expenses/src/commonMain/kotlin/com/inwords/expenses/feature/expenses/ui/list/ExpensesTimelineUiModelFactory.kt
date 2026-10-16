@@ -63,6 +63,8 @@ internal class ExpensesTimelineUiModelFactory(
             eventName = expensesDetails.event.event.name,
             currentPersonId = currentPersonId,
             currentPersonName = expensesDetails.event.persons.first { it.id == currentPersonId }.name,
+            personCount = expensesDetails.event.persons.size,
+            currencyCode = primaryCurrencyCode,
             debts = debts.asImmutableListAdapter(),
             totalSpending = formatAmount(
                 amount = expensesDetails.expenses

@@ -9,8 +9,6 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 
@@ -29,8 +27,6 @@ fun TopAppBarWithNavIconAndText(
                     .padding(end = 48.dp),
                 text = title,
                 textAlign = TextAlign.Center,
-                fontStyle = FontStyle.Italic,
-                fontWeight = FontWeight.Bold,
             )
         },
         navigationIcon = {

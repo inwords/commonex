@@ -188,6 +188,7 @@ internal class ExpensesViewModelRefreshTest {
             eventDeletionStateManager = eventDeletionStateManager,
             getEventsUseCase = getEventsUseCase,
             joinEventUseCase = joinEventUseCase,
+            leaveEventUseCase = mockk(relaxed = true),
             deleteEventUseCase = deleteEventUseCase,
             getExpensesDetailsUseCase = getExpensesDetailsUseCase,
             requestExpensesRefreshUseCase = requestExpensesRefreshUseCase,

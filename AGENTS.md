@@ -24,7 +24,7 @@ CommonEx is a multi-platform expense sharing application with Android/iOS (KMM),
 ## Cross-cutting standards
 
 - Prefer LF line endings in text files unless a file or tool explicitly requires a different EOL.
-- Keep changes minimal; preserve architecture and conventions already in place unless improving them.
+- Keep changes within the requested scope; apply the [scope review](docs/agent-workflows.md#scope-review) before reporting completion, including for small changes.
 - Before writing custom code or adding a dependency, check in order for an existing repo helper or pattern, a standard-library function, a native platform feature, and an installed dependency that meets the requirements.
 - Choose the simplest readable solution that preserves requested behavior, validation, security, accessibility, and repo conventions. Judge simplicity by maintenance burden rather than line or file count; retain abstractions justified by real module, test, or platform boundaries.
 - Avoid editing generated and build output files, `.env` and secrets (e.g., `.next/`, `build/`).
@@ -48,6 +48,7 @@ CommonEx is a multi-platform expense sharing application with Android/iOS (KMM),
 - Skills are discovered automatically from `.agents/skills/` directories. Skills may include `agents/openai.yaml` for UI metadata/discoverability.
 - Prefer `docs/README.md` for cross-project doc discovery and a project-local `docs/README.md` when that project has multiple focused docs.
 - Keep instructions short and linked rather than duplicated.
+- Write canonical docs as current contracts and reusable rules; keep investigation narratives and temporary environment conditions in local notes.
 - If you add new scoped instructions, update this file with a pointer.
 - Keep instructions up to date with any code or process changes.
 

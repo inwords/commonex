@@ -1,11 +1,11 @@
 package com.inwords.expenses.feature.events.ui.local
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.animateTo
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
@@ -18,10 +18,11 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.ZeroCornerSize
@@ -31,10 +32,11 @@ import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.MailOutline
+import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LoadingIndicator
@@ -43,6 +45,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -56,8 +59,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -74,26 +81,30 @@ import com.inwords.expenses.feature.events.ui.local.LocalEventsUiModel.LocalEven
 import expenses.shared.core.ui_design.generated.resources.agree_by_continuing
 import expenses.shared.feature.events.generated.resources.Res
 import expenses.shared.feature.events.generated.resources.events_create
-import expenses.shared.feature.events.generated.resources.events_create_join_description
 import expenses.shared.feature.events.generated.resources.events_delete_event_offline_message
 import expenses.shared.feature.events.generated.resources.events_delete_everywhere
 import expenses.shared.feature.events.generated.resources.events_delete_local_only
-import expenses.shared.feature.events.generated.resources.events_empty_illustration_content_description
 import expenses.shared.feature.events.generated.resources.events_event
 import expenses.shared.feature.events.generated.resources.events_event_deleted
 import expenses.shared.feature.events.generated.resources.events_join
 import expenses.shared.feature.events.generated.resources.events_keep_event
+import expenses.shared.feature.events.generated.resources.events_welcome_brand
+import expenses.shared.feature.events.generated.resources.events_welcome_copy
+import expenses.shared.feature.events.generated.resources.events_welcome_create_description
+import expenses.shared.feature.events.generated.resources.events_welcome_create_label
+import expenses.shared.feature.events.generated.resources.events_welcome_display
+import expenses.shared.feature.events.generated.resources.events_welcome_join_description
+import expenses.shared.feature.events.generated.resources.events_welcome_join_label
+import expenses.shared.feature.events.generated.resources.events_welcome_kicker
+import expenses.shared.feature.events.generated.resources.events_welcome_reassurance
 import expenses.shared.feature.events.generated.resources.events_your
-import expenses.shared.feature.events.generated.resources.img_events_empty_illustration
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
-import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import expenses.shared.core.ui_design.generated.resources.Res as DesignRes
 
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun LocalEventsPane(
     onCreateEventClick: () -> Unit,
@@ -144,6 +155,7 @@ fun LocalEventsPane(
             ) {
                 OutlinedButtonWithText(
                     modifier = Modifier
+                        .testTag("events_join")
                         .weight(1f)
                         .fillMaxHeight(),
                     onClick = onJoinEventClick,
@@ -152,6 +164,7 @@ fun LocalEventsPane(
                 )
                 ButtonWithIconAndText(
                     modifier = Modifier
+                        .testTag("events_create")
                         .weight(1f)
                         .fillMaxHeight(),
                     onClick = onCreateEventClick,
@@ -194,7 +207,6 @@ fun LocalEventsPane(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun LocalEventsEmptyPane(
     onCreateEventClick: () -> Unit,
@@ -202,82 +214,138 @@ fun LocalEventsEmptyPane(
     modifier: Modifier = Modifier,
 ) {
     Scaffold(
-        modifier = modifier.fillMaxSize(),
-        topBar = { TopAppBarWithText() },
+        modifier = modifier.fillMaxSize().testTag("events_welcome"),
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        text = stringResource(Res.string.events_welcome_brand),
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                },
+            )
+        },
     ) { paddingValues ->
-        Column(
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp)
                 .consumeWindowInsets(paddingValues)
                 .padding(paddingValues),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally,
+            contentAlignment = Alignment.TopCenter,
         ) {
-            Spacer(modifier = Modifier.weight(2f))
-
-            Text(
-                text = stringResource(Res.string.events_create_join_description),
-                style = MaterialTheme.typography.bodyLarge,
-                textAlign = TextAlign.Center,
+            Column(
                 modifier = Modifier
-                    .align(Alignment.CenterHorizontally)
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            ButtonWithIconAndText(
-                modifier = Modifier
-                    .fillMaxWidth(),
-                onClick = onCreateEventClick,
-                text = stringResource(Res.string.events_create),
-                imageVector = Icons.Outlined.Add,
-                minHeight = ButtonDefaults.MediumContainerHeight,
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            OutlinedButtonWithText(
-                modifier = Modifier
-                    .fillMaxWidth(),
-                onClick = onJoinEventClick,
-                text = stringResource(Res.string.events_join),
-                minHeight = ButtonDefaults.MediumContainerHeight,
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Image(
-                painter = painterResource(Res.drawable.img_events_empty_illustration),
-                contentDescription = stringResource(Res.string.events_empty_illustration_content_description),
-                modifier = Modifier
+                    .widthIn(max = 560.dp)
                     .fillMaxWidth()
-                    .sizeIn(maxWidth = 360.dp, maxHeight = 220.dp),
-                contentScale = ContentScale.Fit,
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Text(
-                modifier = Modifier
-                    .align(Alignment.CenterHorizontally),
-                text = stringResource(DesignRes.string.agree_by_continuing),
-                style = MaterialTheme.typography.bodySmall,
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            LegalBlock(
-                modifier = Modifier
-                    .align(Alignment.CenterHorizontally),
-                onPrivacyPolicyClicked = { /* No additional action needed - URL opening handled by component */ },
-                onTermsOfUseClicked = { /* No additional action needed - URL opening handled by component */ }
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Spacer(modifier = Modifier.weight(1f))
+                    .verticalScroll(rememberScrollState())
+                    .heightIn(min = maxHeight)
+                    .padding(horizontal = 24.dp, vertical = 24.dp),
+                verticalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(32.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        Text(
+                            text = stringResource(Res.string.events_welcome_kicker),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Text(
+                            text = stringResource(Res.string.events_welcome_display),
+                            style = MaterialTheme.typography.displaySmall.copy(fontFamily = FontFamily.Serif),
+                        )
+                        Text(
+                            text = stringResource(Res.string.events_welcome_copy),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        WelcomeChoice(
+                            title = stringResource(Res.string.events_welcome_create_label),
+                            description = stringResource(Res.string.events_welcome_create_description),
+                            imageVector = Icons.Outlined.Person,
+                            onClick = onCreateEventClick,
+                            modifier = Modifier.testTag("events_create"),
+                        )
+                        WelcomeChoice(
+                            title = stringResource(Res.string.events_welcome_join_label),
+                            description = stringResource(Res.string.events_welcome_join_description),
+                            imageVector = Icons.Outlined.MailOutline,
+                            onClick = onJoinEventClick,
+                            modifier = Modifier.testTag("events_join"),
+                        )
+                    }
+                }
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(top = 32.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text(
+                        text = stringResource(Res.string.events_welcome_reassurance),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                    )
+                    Text(
+                        text = stringResource(DesignRes.string.agree_by_continuing),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                    )
+                    LegalBlock(
+                        onPrivacyPolicyClicked = { /* No additional action needed - URL opening handled by component */ },
+                        onTermsOfUseClicked = { /* No additional action needed - URL opening handled by component */ },
+                    )
+                }
+            }
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun WelcomeChoice(
+    title: String,
+    description: String,
+    imageVector: ImageVector,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Card(
+        onClick = onClick,
+        modifier = modifier.fillMaxWidth().semantics { role = Role.Button },
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = imageVector,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+            )
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text(text = title, style = MaterialTheme.typography.titleMedium)
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Icon(
+                imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+            )
+        }
+    }
+}
+
 @Composable
 private fun LocalEventItem(
     event: LocalEventUiModel,
@@ -495,7 +563,7 @@ private fun SwipeMessagePanel(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun LocalEventCard(
     event: LocalEventUiModel,

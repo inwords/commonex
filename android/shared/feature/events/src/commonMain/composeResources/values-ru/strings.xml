@@ -1,37 +1,69 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="common_back">Назад</string>
-    <string name="events_event">Событие</string>
-    <string name="events_access_code_placeholder">Код доступа</string>
-    <string name="events_add_participant">Добавить участника</string>
-    <string name="events_choose_person_title">Выбор участника</string>
-    <string name="events_continue_button">К событию</string>
-    <string name="events_create_title">Создание события</string>
-    <string name="events_create">Создать</string>
-    <string name="events_join">Присоединиться</string>
-    <string name="events_create_join_description">Вы можете создать новое событие или присоединиться к существующему</string>
-    <string name="events_empty_illustration_content_description">Уютная иллюстрация, подсказывающая создать ваше первое событие с расходами</string>
-    <string name="events_currency_section_title">Валюта</string>
-    <string name="events_empty_state">Нет доступных участников</string>
-    <string name="events_error_state">Не удалось загрузить данные события</string>
-    <string name="events_id_placeholder">ID события</string>
+
+    <string name="events_event">Группы</string>
     <string name="events_info_with_person">%1$s — %2$s</string>
-    <string name="events_join_description">Введите ID события и код доступа, чтобы присоединиться</string>
-    <string name="events_join_error_invalid_credentials">Неверный ID события или код доступа</string>
-    <string name="events_join_error_invalid_token">Недействительная ссылка</string>
-    <string name="events_join_error_expired_token">Срок действия ссылки истёк. Попросите отправить вам новую ссылку или введите код события вручную</string>
-    <string name="events_name_placeholder">Название</string>
-    <string name="events_owner_label">Меня зовут</string>
-    <string name="events_participants_label">Ещё участвуют</string>
-    <string name="events_participants_title">Участники</string>
-    <string name="events_person_name_placeholder">Имя</string>
-    <string name="events_section_title">Событие</string>
+
+    <string name="events_your">Ваше</string>
+    <string name="events_create">Создать группу</string>
+    <string name="events_join">Присоединиться к группе</string>
+
+    <string name="events_welcome_brand">CommonEx</string>
+    <string name="events_welcome_kicker">Меньше расчётов, больше общения</string>
+    <string name="events_welcome_display">Хорошая компания\nПонятные расчёты</string>
+    <string name="events_welcome_copy">Поездка, общий дом или ужин\nДелите расходы по справедливости</string>
+    <string name="events_welcome_create_label">Создать группу</string>
+    <string name="events_welcome_create_description">Добавьте участников, затем первый расход</string>
+    <string name="events_welcome_join_label">У меня есть приглашение</string>
+    <string name="events_welcome_join_description">Присоединитесь к тем, с кем делите расходы</string>
+    <string name="events_welcome_reassurance">Без регистрации · Работает офлайн</string>
+
+    <string name="events_create_title">Создание группы</string>
+    <string name="events_setup_heading">Соберите всех вместе</string>
+    <string name="events_name_placeholder">Название группы</string>
+    <string name="events_setup_event_example">Поездка, ужин, домашние расходы</string>
     <string name="events_your_name_label">Ваше имя</string>
+    <string name="events_setup_add_participants">Добавить участников (необязательно)</string>
+    <string name="events_setup_add_person">Добавить участника</string>
+    <string name="events_setup_currency_label">Валюта расчётов</string>
+    <string name="events_create_event_button">Создать группу</string>
+    <string name="events_creating_event">Создаём вашу группу…</string>
+
+    <string name="events_join_title">Присоединение к группе</string>
+    <string name="events_join_event_button">Присоединиться</string>
+    <string name="events_joining_event">Присоединяемся к группе…</string>
+    <string name="events_join_link_heading">Присоединитесь по ссылке</string>
+    <string name="events_join_link_guidance">Вставьте ссылку-приглашение, которой с вами поделились</string>
+    <string name="events_join_link_label">Ссылка-приглашение</string>
+    <string name="events_join_link_placeholder">https://commonex.ru/event/…</string>
+    <string name="events_join_link_invalid">Вставьте полную ссылку-приглашение CommonEx или используйте ID и код доступа</string>
+    <string name="events_join_manual_action">Ввести ID и код доступа</string>
+    <string name="events_join_manual_heading">У вас есть код?</string>
+    <string name="events_join_description">Попросите у организатора ID группы и код доступа</string>
+    <string name="events_id_placeholder">ID группы</string>
+    <string name="events_access_code_placeholder">Код доступа</string>
+    <string name="events_join_link_action">Использовать ссылку-приглашение</string>
+    <string name="events_join_error_invalid_credentials">Проверьте ID группы и код доступа и попробуйте ещё раз</string>
+    <string name="events_join_error_invalid_token">Недействительная ссылка</string>
+    <string name="events_join_error_expired_token">Срок действия ссылки истёк. Попросите новую ссылку или используйте ID группы и код доступа</string>
+
+    <string name="events_choose_person_title">Вы в группе</string>
+    <string name="events_choose_person_heading">Кто вы в группе?</string>
+    <string name="events_choose_person_guidance">Выберите своё имя, чтобы видеть свою долю и баланс</string>
+    <string name="events_empty_state">Нет доступных участников</string>
+    <string name="events_error_state">Не удалось загрузить данные группы</string>
+
+    <string name="events_participants_title">Участники</string>
+    <string name="events_participants_label">Новые участники</string>
+    <string name="events_person_name_placeholder">Имя</string>
+    <string name="events_add_participant">Добавить участника</string>
+    <string name="events_continue_button">Добавить участников</string>
+
     <string name="events_delete_event_title">Удалить событие "%1$s"?</string>
     <string name="events_delete_event_body">Все данные события будут удалены\nОбратите внимание, что с сервера они будут удалены только если присутствует подключение к интернету</string>
     <string name="events_delete_event">Удалить событие</string>
     <string name="events_keep_event">Не удалять событие</string>
-    <string name="events_your">Ваше</string>
     <string name="events_delete_event_offline_message">Не удалось связаться с сервером</string>
     <string name="events_delete_local_only">Удалить локальную копию</string>
     <string name="events_delete_everywhere">Удалить везде</string>

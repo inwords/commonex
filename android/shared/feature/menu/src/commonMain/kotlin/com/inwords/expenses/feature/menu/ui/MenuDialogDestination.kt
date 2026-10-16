@@ -26,7 +26,7 @@ internal fun MenuComponent.getMenuDialogNavModule(
                         getCurrentEventStateUseCase = getCurrentEventStateUseCaseLazy.value,
                         leaveEventUseCase = leaveEventUseCaseLazy.value,
                         shareManagerLazy = shareManagerLazy,
-                        createShareTokenUseCaseLazy = createShareTokenUseCaseLazy,
+                        createEventInvitationUseCaseLazy = createEventInvitationUseCaseLazy,
                     )
                 }
             })

@@ -2,6 +2,8 @@
 
 This document defines core domain terms and the primary sources of truth for their shape and meaning.
 
+Mobile domain identifiers are `Event` and `Person`; `participant` and `owner` name roles. UI copy may use “group” and “people”. Backend contracts name the person entity `UserInfo`.
+
 ## Source of Truth
 
 - Backend domain models and enums live in `backend/src/domain/entities/`.
@@ -21,11 +23,16 @@ This document defines core domain terms and the primary sources of truth for the
 - Web is the browser client for direct event interaction and custom-rate entry.
 - Mobile is offline-first and keeps local IDs plus optional server IDs for sync. See `android/docs/mobile-sync-and-sharing.md` for the canonical mobile sync/share reference.
 
+### Event Invitation
+
+- A link granting access to one event. It identifies the event, not the participant who will use it.
+- An invitation carries an event share token or the event's PIN code; token and invitation are not interchangeable terms.
+
 ## Core Entities (Backend Canonical)
 
 ### Event
 
-- A group or context that expenses belong to.
+- The shared context containing participants, expenses, currencies, and access credentials. “Group” is a UI label for an event.
 - Fields: id, name, currencyId, pinCode, createdAt, updatedAt, deletedAt.
 - `deletedAt` is soft delete; non-null means the event is considered deleted.
 - ID and timestamps default to new values (ULID + now) via value objects.
@@ -33,7 +40,9 @@ This document defines core domain terms and the primary sources of truth for the
 
 ### User Info (Person)
 
-- A participant associated with an event.
+- A person is an identity within one event; the same human can have separate person identities in different events.
+- Participant describes a person's role in an event, not a separate entity or account holder.
+- Owner is the initial person named when an event is created. This creation role does not imply a separate account, administrator, or permission tier.
 - Fields: id, name, eventId, createdAt, updatedAt.
 - IDs default to ULID; timestamps default to now.
 - Canonical model: `backend/src/domain/entities/user-info.entity.ts`.
@@ -121,7 +130,7 @@ This document defines core domain terms and the primary sources of truth for the
 - Expense entities follow the same local-ID plus optional `serverId` sync model.
 - Join-by-server-ID reuses an existing local event before attempting a remote fetch.
 
-### Events and People
+### Events and Participants
 
 - `EventDetails` bundles the current event, currencies, persons, and primary currency.
 - Event creation generates a 4-digit pin code and creates the initial owner plus other persons.

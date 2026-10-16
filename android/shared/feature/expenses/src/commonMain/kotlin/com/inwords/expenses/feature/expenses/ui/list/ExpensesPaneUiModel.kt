@@ -12,6 +12,8 @@ internal sealed interface ExpensesPaneUiModel {
         val eventName: String,
         val currentPersonId: Long,
         val currentPersonName: String,
+        val personCount: Int,
+        val currencyCode: String,
         val debts: ImmutableList<DebtShortUiModel>,
         val totalSpending: String,
         val dayChips: ImmutableList<DayChipUiModel>,

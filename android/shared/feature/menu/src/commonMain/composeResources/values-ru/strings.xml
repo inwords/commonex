@@ -1,11 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="menu_choose_person_action">Выбрать участника</string>
+    <string name="menu_choose_person_action">Выбрать своё имя</string>
     <string name="menu_add_participants_action">Добавить участников</string>
-    <string name="menu_copy_action">Копировать</string>
-    <string name="menu_join_other_event">Войти в другое событие</string>
-    <string name="menu_open_events_list">К списку событий</string>
+    <string name="menu_join_other_event">Войти в другую группу</string>
+    <string name="menu_open_events_list">Ваши группы</string>
+
     <string name="menu_share_action">Поделиться</string>
-    <string name="menu_share_secure_message">Присоединяйтесь к событию "%1$s"!\n\n%2$s\n\nСсылка действительна до %3$s</string>
-    <string name="menu_share_fallback_message">Присоединяйтесь к событию "%1$s"!\n\n%2$s\n\n⚠️ Эта ссылка создана в офлайн-режиме. Не делитесь ссылкой с посторонними — в ней содержится постоянный код доступа к событию</string>
+    <string name="menu_copy_action">Копировать</string>
+    <string name="menu_share_secure_message">Присоединяйтесь к группе "%1$s"!\n\n%2$s\n\nСсылка действительна до %3$s</string>
+    <string name="menu_share_fallback_message">Присоединяйтесь к группе "%1$s"!\n\n%2$s\n\n⚠️ Эта ссылка содержит постоянный код доступа к группе. Делитесь ею только с теми, кому доверяете</string>
+
+    <string name="menu_invite_title">Пригласить участников</string>
+    <string name="menu_invite_heading">Держите всех\nв курсе</string>
+    <string name="menu_invite_body">Поделитесь ссылкой на группу, чтобы все могли добавлять расходы и видеть баланс</string>
+    <string name="menu_invite_sync">Подключитесь к интернету, чтобы синхронизировать группу и создать ссылку-приглашение</string>
+    <string name="menu_invite_back">Назад</string>
 </resources>

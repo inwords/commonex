@@ -3,17 +3,17 @@ package com.inwords.expenses.feature.menu.ui
 import app.cash.turbine.test
 import com.inwords.expenses.core.navigation.NavigationController
 import com.inwords.expenses.core.ui.utils.StringProvider
-import com.inwords.expenses.feature.events.domain.CreateShareTokenUseCase
-import com.inwords.expenses.feature.events.domain.CreateShareTokenUseCase.CreateShareTokenResult
+import com.inwords.expenses.feature.events.domain.CreateEventInvitationUseCase
 import com.inwords.expenses.feature.events.domain.GetCurrentEventStateUseCase
 import com.inwords.expenses.feature.events.domain.LeaveEventUseCase
 import com.inwords.expenses.feature.events.domain.model.Currency
 import com.inwords.expenses.feature.events.domain.model.Event
 import com.inwords.expenses.feature.events.domain.model.EventDetails
-import com.inwords.expenses.feature.events.domain.model.EventShareToken
+import com.inwords.expenses.feature.events.domain.model.EventInvitation
 import com.inwords.expenses.feature.events.domain.model.Person
 import com.inwords.expenses.feature.events.domain.model.SeededCurrencies
-import com.inwords.expenses.feature.menu.ui.MenuDialogUiModel.ShareState
+import com.inwords.expenses.feature.events.ui.join_invitation.JoinInvitationPaneDestination
+import com.inwords.expenses.feature.menu.ui.EventSharingUiModel.ShareState
 import com.inwords.expenses.feature.share.api.ShareManager
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -21,6 +21,7 @@ import io.mockk.every
 import io.mockk.justRun
 import io.mockk.mockk
 import io.mockk.verify
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -35,6 +36,7 @@ import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
@@ -52,7 +54,7 @@ internal class MenuViewModelTest {
     }
     private val leaveEventUseCase = mockk<LeaveEventUseCase>(relaxed = true)
     private val shareManager = mockk<ShareManager>(relaxed = true)
-    private val createShareTokenUseCase = mockk<CreateShareTokenUseCase>(relaxed = true)
+    private val createEventInvitationUseCase = mockk<CreateEventInvitationUseCase>()
 
     @BeforeTest
     fun setup() {
@@ -72,23 +74,23 @@ internal class MenuViewModelTest {
             getCurrentEventStateUseCase = getCurrentEventStateUseCase,
             leaveEventUseCase = leaveEventUseCase,
             shareManagerLazy = lazy { shareManager },
-            createShareTokenUseCaseLazy = lazy { createShareTokenUseCase },
+            createEventInvitationUseCaseLazy = lazy { createEventInvitationUseCase },
             viewModelScope = backgroundScope,
         )
         runCurrent()
         advanceUntilIdle()
 
         viewModel.state.test {
-            val state = awaitItem()
+            val state = awaitItem().eventSharing
             assertEquals("", state.eventName)
             val shareState = assertIs<ShareState.Idle>(state.shareState)
-            assertEquals(null, shareState.serverId)
+            assertFalse(shareState.isAvailable)
             cancelAndIgnoreRemainingEvents()
         }
     }
 
     @Test
-    fun state_whenEventEmitted_hasEventNameAndIdleWithServerId() = runTest {
+    fun state_whenEventEmitted_hasEventNameAndAvailableSharing() = runTest {
         val event = Event(1L, "ev-1", "Trip", "1234", 1L, "event-client-1")
         val details = EventDetails(
             event = event,
@@ -102,19 +104,19 @@ internal class MenuViewModelTest {
             getCurrentEventStateUseCase = getCurrentEventStateUseCase,
             leaveEventUseCase = leaveEventUseCase,
             shareManagerLazy = lazy { shareManager },
-            createShareTokenUseCaseLazy = lazy { createShareTokenUseCase },
+            createEventInvitationUseCaseLazy = lazy { createEventInvitationUseCase },
             viewModelScope = backgroundScope,
         )
         runCurrent()
         advanceUntilIdle()
 
         viewModel.state.test {
-            skipItems(1)
-            val state = awaitItem()
+            awaitItem()
+            runCurrent()
+            val state = viewModel.state.value.eventSharing
             assertEquals("Trip", state.eventName)
             val shareState = assertIs<ShareState.Idle>(state.shareState)
-            assertEquals("ev-1", shareState.serverId)
-            assertEquals("1234", shareState.pinCode)
+            assertTrue(shareState.isAvailable)
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -127,14 +129,14 @@ internal class MenuViewModelTest {
             getCurrentEventStateUseCase = getCurrentEventStateUseCase,
             leaveEventUseCase = leaveEventUseCase,
             shareManagerLazy = lazy { shareManager },
-            createShareTokenUseCaseLazy = lazy { createShareTokenUseCase },
+            createEventInvitationUseCaseLazy = lazy { createEventInvitationUseCase },
             viewModelScope = backgroundScope,
         )
 
         viewModel.onJoinEventClicked()
 
         verify(exactly = 1) { navigationController.popBackStack() }
-        verify(exactly = 1) { navigationController.navigateTo(any()) }
+        verify(exactly = 1) { navigationController.navigateTo(JoinInvitationPaneDestination) }
     }
 
     @Test
@@ -145,7 +147,7 @@ internal class MenuViewModelTest {
             getCurrentEventStateUseCase = getCurrentEventStateUseCase,
             leaveEventUseCase = leaveEventUseCase,
             shareManagerLazy = lazy { shareManager },
-            createShareTokenUseCaseLazy = lazy { createShareTokenUseCase },
+            createEventInvitationUseCaseLazy = lazy { createEventInvitationUseCase },
             viewModelScope = backgroundScope,
         )
 
@@ -166,38 +168,41 @@ internal class MenuViewModelTest {
             primaryCurrency = Currency(1L, null, "EUR", "Euro", SeededCurrencies.usdToOtherRates.getValue("EUR")),
         )
         currentEventFlow.value = details
-        coEvery { createShareTokenUseCase.createShareToken(any(), any()) } returns CreateShareTokenResult.Created(
-            EventShareToken("tok", kotlin.time.Instant.fromEpochMilliseconds(0))
+        coEvery { createEventInvitationUseCase.createInvitation("ev-1", "1234") } returns EventInvitation(
+            url = "https://commonex.ru/event/ev-1?token=tok",
+            expiresAt = kotlin.time.Instant.fromEpochMilliseconds(0),
         )
         val viewModel = MenuViewModel(
             navigationController = navigationController,
             getCurrentEventStateUseCase = getCurrentEventStateUseCase,
             leaveEventUseCase = leaveEventUseCase,
             shareManagerLazy = lazy { shareManager },
-            createShareTokenUseCaseLazy = lazy { createShareTokenUseCase },
-            stringProvider = object : StringProvider {
-                override suspend fun getString(stringResource: StringResource): String = "share_message"
-                override suspend fun getString(stringResource: StringResource, vararg formatArgs: Any): String = "share_message"
-            },
+            createEventInvitationUseCaseLazy = lazy { createEventInvitationUseCase },
+            stringProvider = formattingStringProvider,
             viewModelScope = backgroundScope,
         )
         runCurrent()
         advanceUntilIdle()
 
         viewModel.state.test {
-            skipItems(1)
             awaitItem()
+            runCurrent()
             viewModel.onShareClicked()
             runCurrent()
             advanceUntilIdle()
-            val readyItem = awaitItem()
-            val _ = assertIs<ShareState.Ready>(readyItem.shareState)
+            val readyItem = viewModel.state.value.eventSharing
+            val ready = assertIs<ShareState.Ready>(readyItem.shareState)
+            assertEquals("Trip", ready.shareText.eventName)
+            assertTrue(ready.shareText.fullText.startsWith("Trip|https://commonex.ru/event/ev-1?token=tok|"))
+            coVerify(exactly = 1) {
+                shareManager.shareText(subject = "Trip", fullText = ready.shareText.fullText)
+            }
             cancelAndIgnoreRemainingEvents()
         }
     }
 
     @Test
-    fun onCopyClicked_whenTokenCreationFails_emitsFallbackPendingClipboardCopy() = runTest {
+    fun onCopyClicked_whenInvitationHasNoExpiry_reusesFallbackAfterClipboardAcknowledgement() = runTest {
         val event = Event(1L, "ev-1", "Trip", "1234", 1L, "event-client-1")
         val details = EventDetails(
             event = event,
@@ -206,13 +211,16 @@ internal class MenuViewModelTest {
             primaryCurrency = Currency(1L, null, "EUR", "Euro", SeededCurrencies.usdToOtherRates.getValue("EUR")),
         )
         currentEventFlow.value = details
-        coEvery { createShareTokenUseCase.createShareToken("ev-1", "1234") } returns CreateShareTokenResult.RemoteFailed
+        coEvery { createEventInvitationUseCase.createInvitation("ev-1", "1234") } returns EventInvitation(
+            url = "https://commonex.ru/event/ev-1?pinCode=1234",
+            expiresAt = null,
+        )
         val viewModel = MenuViewModel(
             navigationController = navigationController,
             getCurrentEventStateUseCase = getCurrentEventStateUseCase,
             leaveEventUseCase = leaveEventUseCase,
             shareManagerLazy = lazy { shareManager },
-            createShareTokenUseCaseLazy = lazy { createShareTokenUseCase },
+            createEventInvitationUseCaseLazy = lazy { createEventInvitationUseCase },
             stringProvider = formattingStringProvider,
             viewModelScope = backgroundScope,
         )
@@ -220,20 +228,32 @@ internal class MenuViewModelTest {
         advanceUntilIdle()
 
         viewModel.state.test {
-            skipItems(1)
             awaitItem()
+            runCurrent()
 
             viewModel.onCopyClicked()
             runCurrent()
             advanceUntilIdle()
 
-            val pendingCopy = assertIs<ShareState.PendingClipboardCopy>(awaitItem().shareState)
+            val pendingCopy = assertIs<ShareState.PendingClipboardCopy>(viewModel.state.value.eventSharing.shareState)
             assertEquals("Trip", pendingCopy.shareText.eventName)
             assertEquals("Trip|https://commonex.ru/event/ev-1?pinCode=1234", pendingCopy.shareText.fullText)
+
+            viewModel.onTextCopied()
+            runCurrent()
+            advanceUntilIdle()
+            assertEquals(pendingCopy.shareText, assertIs<ShareState.Ready>(viewModel.state.value.eventSharing.shareState).shareText)
+
+            viewModel.onShareClicked()
+            runCurrent()
+            advanceUntilIdle()
+            coVerify(exactly = 1) {
+                shareManager.shareText(subject = "Trip", fullText = pendingCopy.shareText.fullText)
+            }
             cancelAndIgnoreRemainingEvents()
         }
 
-        coVerify(exactly = 1) { createShareTokenUseCase.createShareToken("ev-1", "1234") }
+        coVerify(exactly = 1) { createEventInvitationUseCase.createInvitation("ev-1", "1234") }
     }
 
     @Test
@@ -253,15 +273,20 @@ internal class MenuViewModelTest {
             primaryCurrency = Currency(1L, null, "EUR", "Euro", SeededCurrencies.usdToOtherRates.getValue("EUR")),
         )
         currentEventFlow.value = firstDetails
-        coEvery { createShareTokenUseCase.createShareToken("ev-1", "1234") } returns CreateShareTokenResult.Created(
-            EventShareToken("tok", kotlin.time.Instant.fromEpochMilliseconds(0))
+        coEvery { createEventInvitationUseCase.createInvitation("ev-1", "1234") } returns EventInvitation(
+            url = "https://commonex.ru/event/ev-1?token=tok",
+            expiresAt = kotlin.time.Instant.fromEpochMilliseconds(0),
+        )
+        coEvery { createEventInvitationUseCase.createInvitation("ev-2", "5678") } returns EventInvitation(
+            url = "https://commonex.ru/event/ev-2?pinCode=5678",
+            expiresAt = null,
         )
         val viewModel = MenuViewModel(
             navigationController = navigationController,
             getCurrentEventStateUseCase = getCurrentEventStateUseCase,
             leaveEventUseCase = leaveEventUseCase,
             shareManagerLazy = lazy { shareManager },
-            createShareTokenUseCaseLazy = lazy { createShareTokenUseCase },
+            createEventInvitationUseCaseLazy = lazy { createEventInvitationUseCase },
             stringProvider = formattingStringProvider,
             viewModelScope = backgroundScope,
         )
@@ -269,31 +294,124 @@ internal class MenuViewModelTest {
         advanceUntilIdle()
 
         viewModel.state.test {
-            skipItems(1)
-            val initialState = awaitItem()
+            awaitItem()
+            runCurrent()
+            val initialState = viewModel.state.value.eventSharing
             assertEquals("Trip", initialState.eventName)
             val initialShareState = assertIs<ShareState.Idle>(initialState.shareState)
-            assertEquals("ev-1", initialShareState.serverId)
+            assertTrue(initialShareState.isAvailable)
 
             viewModel.onShareClicked()
             runCurrent()
             advanceUntilIdle()
 
-            val readyState = assertIs<ShareState.Ready>(awaitItem().shareState)
+            val readyState = assertIs<ShareState.Ready>(viewModel.state.value.eventSharing.shareState)
             assertTrue(readyState.shareText.fullText.startsWith("Trip|https://commonex.ru/event/ev-1?token=tok|"))
 
             currentEventFlow.value = secondDetails
             runCurrent()
             advanceUntilIdle()
 
-            var resetState = awaitItem()
-            while (resetState.shareState !is ShareState.Idle) {
-                resetState = awaitItem()
-            }
+            val resetState = viewModel.state.value.eventSharing
             assertEquals("Party", resetState.eventName)
             val resetShareState = assertIs<ShareState.Idle>(resetState.shareState)
-            assertEquals("ev-2", resetShareState.serverId)
-            assertEquals("5678", resetShareState.pinCode)
+            assertTrue(resetShareState.isAvailable)
+
+            viewModel.onShareClicked()
+            runCurrent()
+            advanceUntilIdle()
+
+            coVerify(exactly = 1) {
+                shareManager.shareText(subject = "Party", fullText = "Party|https://commonex.ru/event/ev-2?pinCode=5678")
+            }
+            coVerify(exactly = 1) { createEventInvitationUseCase.createInvitation("ev-2", "5678") }
+
+            currentEventFlow.value = firstDetails
+            runCurrent()
+            viewModel.onCopyClicked()
+            runCurrent()
+
+            val pendingCopy = assertIs<ShareState.PendingClipboardCopy>(viewModel.state.value.eventSharing.shareState)
+            assertEquals(readyState.shareText, pendingCopy.shareText)
+            coVerify(exactly = 2) { createEventInvitationUseCase.createInvitation("ev-1", "1234") }
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun shareAndCopy_whenRequestIsInProgress_doesNotCreateAnotherInvitation() = runTest {
+        val currency = Currency(1L, null, "EUR", "Euro", SeededCurrencies.usdToOtherRates.getValue("EUR"))
+        currentEventFlow.value = EventDetails(
+            event = Event(1L, "ev-1", "Trip", "1234", 1L, "event-client-1"),
+            persons = emptyList(),
+            currencies = listOf(currency),
+            primaryCurrency = currency,
+        )
+        val invitation = CompletableDeferred<EventInvitation>()
+        coEvery { createEventInvitationUseCase.createInvitation("ev-1", "1234") } coAnswers { invitation.await() }
+        val viewModel = MenuViewModel(
+            navigationController = navigationController,
+            getCurrentEventStateUseCase = getCurrentEventStateUseCase,
+            leaveEventUseCase = leaveEventUseCase,
+            shareManagerLazy = lazy { shareManager },
+            createEventInvitationUseCaseLazy = lazy { createEventInvitationUseCase },
+            stringProvider = formattingStringProvider,
+            viewModelScope = backgroundScope,
+        )
+
+        viewModel.state.test {
+            awaitItem()
+            runCurrent()
+            awaitItem()
+            viewModel.onShareClicked()
+            viewModel.onCopyClicked()
+            runCurrent()
+            assertIs<ShareState.Loading>(awaitItem().eventSharing.shareState)
+
+            viewModel.onCopyClicked()
+            viewModel.onShareClicked()
+            runCurrent()
+            coVerify(exactly = 1) { createEventInvitationUseCase.createInvitation("ev-1", "1234") }
+
+            invitation.complete(EventInvitation(url = "https://commonex.ru/event/ev-1?pinCode=1234", expiresAt = null))
+            runCurrent()
+            val ready = assertIs<ShareState.Ready>(viewModel.state.value.eventSharing.shareState)
+            assertEquals("Trip|https://commonex.ru/event/ev-1?pinCode=1234", ready.shareText.fullText)
+            coVerify(exactly = 1) { shareManager.shareText(subject = "Trip", fullText = ready.shareText.fullText) }
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun shareAndCopy_whenEventIsOnlyLocal_doNotCreateInvitation() = runTest {
+        val currency = Currency(1L, null, "EUR", "Euro", SeededCurrencies.usdToOtherRates.getValue("EUR"))
+        currentEventFlow.value = EventDetails(
+            event = Event(1L, null, "Trip", "1234", 1L, "event-client-1"),
+            persons = listOf(Person(1L, "p1", "Alice", "person-client-1")),
+            currencies = listOf(currency),
+            primaryCurrency = currency,
+        )
+        val viewModel = MenuViewModel(
+            navigationController = navigationController,
+            getCurrentEventStateUseCase = getCurrentEventStateUseCase,
+            leaveEventUseCase = leaveEventUseCase,
+            shareManagerLazy = lazy { shareManager },
+            createEventInvitationUseCaseLazy = lazy { createEventInvitationUseCase },
+            viewModelScope = backgroundScope,
+        )
+
+        viewModel.state.test {
+            awaitItem()
+            runCurrent()
+            assertFalse(assertIs<ShareState.Idle>(viewModel.state.value.eventSharing.shareState).isAvailable)
+
+            viewModel.onShareClicked()
+            viewModel.onCopyClicked()
+            runCurrent()
+
+            assertIs<ShareState.Idle>(viewModel.state.value.eventSharing.shareState)
+            coVerify(exactly = 0) { createEventInvitationUseCase.createInvitation(any(), any()) }
+            coVerify(exactly = 0) { shareManager.shareText(any(), any()) }
             cancelAndIgnoreRemainingEvents()
         }
     }

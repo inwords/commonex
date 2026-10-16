@@ -3,7 +3,6 @@ package com.inwords.expenses.feature.menu.ui
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -36,9 +35,9 @@ import androidx.compose.ui.unit.dp
 import com.inwords.expenses.core.ui.design.legal.LegalBlock
 import com.inwords.expenses.core.ui.design.theme.CommonExTheme
 import com.inwords.expenses.core.ui.utils.clipEntryOf
-import com.inwords.expenses.feature.menu.ui.MenuDialogUiModel.ShareState
-import com.inwords.expenses.feature.menu.ui.MenuDialogUiModel.ShareState.Companion.canShare
-import com.inwords.expenses.feature.menu.ui.MenuDialogUiModel.ShareText
+import com.inwords.expenses.feature.menu.ui.EventSharingUiModel.ShareState
+import com.inwords.expenses.feature.menu.ui.EventSharingUiModel.ShareState.Companion.canShare
+import com.inwords.expenses.feature.menu.ui.EventSharingUiModel.ShareText
 import expenses.shared.feature.menu.generated.resources.Res
 import expenses.shared.feature.menu.generated.resources.menu_add_participants_action
 import expenses.shared.feature.menu.generated.resources.menu_choose_person_action
@@ -48,7 +47,7 @@ import expenses.shared.feature.menu.generated.resources.menu_open_events_list
 import expenses.shared.feature.menu.generated.resources.menu_share_action
 import org.jetbrains.compose.resources.stringResource
 
-@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 internal fun MenuDialog(
     state: MenuDialogUiModel,
@@ -63,10 +62,11 @@ internal fun MenuDialog(
     onTermsOfUseClicked: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val eventSharing = state.eventSharing
     val clipboard = LocalClipboard.current
-    (state.shareState as? ShareState.PendingClipboardCopy)?.let { pendingCopy ->
+    (eventSharing.shareState as? ShareState.PendingClipboardCopy)?.let { pendingCopy ->
         LaunchedEffect(pendingCopy.shareText) {
-            clipboard.setClipEntry(clipEntryOf(state.eventName, pendingCopy.shareText.fullText))
+            clipboard.setClipEntry(clipEntryOf(eventSharing.eventName, pendingCopy.shareText.fullText))
             onTextCopied()
         }
     }
@@ -79,7 +79,7 @@ internal fun MenuDialog(
         Row(
             modifier = Modifier
                 .clickable(
-                    enabled = state.shareState.canShare,
+                    enabled = eventSharing.shareState.canShare,
                     onClick = onShareClicked
                 )
                 .fillMaxWidth()
@@ -100,7 +100,7 @@ internal fun MenuDialog(
                 style = MaterialTheme.typography.bodyLarge
             )
 
-            val isLoading = state.shareState is ShareState.Loading
+            val isLoading = eventSharing.shareState is ShareState.Loading
             Box(
                 modifier = Modifier.align(Alignment.CenterVertically),
                 contentAlignment = Alignment.Center
@@ -111,11 +111,11 @@ internal fun MenuDialog(
                         .alpha(if (isLoading) 0f else 1f)
                         .then(if (isLoading) Modifier.clearAndSetSemantics {} else Modifier)
                         .border(
-                            border = AssistChipDefaults.assistChipBorder(enabled = state.shareState.canShare),
+                            border = AssistChipDefaults.assistChipBorder(enabled = eventSharing.shareState.canShare),
                             shape = MaterialTheme.shapes.small
                         )
                         .clickable(
-                            enabled = state.shareState.canShare,
+                            enabled = eventSharing.shareState.canShare,
                             onClick = onCopyClicked
                         )
                         .padding(8.dp),
@@ -229,10 +229,12 @@ private fun MenuDialogPreview() {
     CommonExTheme {
         MenuDialog(
             state = MenuDialogUiModel(
-                eventName = "Пример события",
-                shareState = ShareState.Idle(
-                    serverId = "ASDASD",
-                    pinCode = "1234",
+                eventSharing = EventSharingUiModel(
+                    eventName = "Пример события",
+                    shareState = ShareState.Idle(
+                        serverId = "event-id",
+                        pinCode = "1234",
+                    ),
                 ),
             ),
             onJoinEventClicked = {},
@@ -254,12 +256,14 @@ private fun MenuDialogEmptyShareUrlPreview() {
     CommonExTheme {
         MenuDialog(
             state = MenuDialogUiModel(
-                eventName = "Пример события",
-                shareState = ShareState.Ready(
-                    shareText = ShareText(
-                        eventName = "Пример события",
-                        fullText = "Пример события\n\nКакой-то текст и ссылка https://commonex.ru/event/ASDASD?pinCode=1234",
-                    )
+                eventSharing = EventSharingUiModel(
+                    eventName = "Пример события",
+                    shareState = ShareState.Ready(
+                        shareText = ShareText(
+                            eventName = "Пример события",
+                            fullText = "Пример события\n\nКакой-то текст и ссылка https://commonex.ru/event/ASDASD?pinCode=1234",
+                        )
+                    ),
                 ),
             ),
             onJoinEventClicked = {},
@@ -281,8 +285,10 @@ private fun MenuDialogLoadingPreview() {
     CommonExTheme {
         MenuDialog(
             state = MenuDialogUiModel(
-                eventName = "Пример события",
-                shareState = ShareState.Loading,
+                eventSharing = EventSharingUiModel(
+                    eventName = "Пример события",
+                    shareState = ShareState.Loading,
+                ),
             ),
             onJoinEventClicked = {},
             onLeaveEventClicked = {},
