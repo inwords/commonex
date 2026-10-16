@@ -1,32 +1,68 @@
 package ru.commonex.screens
 
 import androidx.compose.ui.test.junit4.ComposeTestRule
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToKey
 import androidx.compose.ui.test.performTextInput
-import expenses.shared.feature.events.generated.resources.Res
-import expenses.shared.feature.events.generated.resources.events_name_placeholder
-import expenses.shared.feature.events.generated.resources.events_participants_title
-import org.jetbrains.compose.resources.getString
 
 internal class CreateEventScreen : BaseScreen() {
+
     context(rule: ComposeTestRule)
-    suspend fun enterEventName(name: String): CreateEventScreen {
-        val nameLabel = getString(Res.string.events_name_placeholder)
-        rule.onNodeWithText(nameLabel).performTextInput(name)
+    fun waitUntilLoaded(): CreateEventScreen {
+        waitForElementWithTag("events_create_form")
+        return this
+    }
+
+    context(rule: ComposeTestRule)
+    fun enterEventName(name: String): CreateEventScreen {
+        rule.onNodeWithTag("events_create_name").performTextInput(name)
         return this
     }
 
     context(rule: ComposeTestRule)
     fun selectCurrency(currency: String): CreateEventScreen {
-        rule.onNodeWithText(currency).performClick()
+        scrollToItem("currency")
+        rule.onNodeWithTag("events_create_currency").performClick()
+        rule.onNodeWithText(currency, substring = true).performScrollTo().performClick()
         return this
     }
 
     context(rule: ComposeTestRule)
-    suspend fun clickContinueButton(): AddPersonsScreen {
-        val participantsLabel = getString(Res.string.events_participants_title)
-        rule.onNodeWithText(participantsLabel).performClick()
-        return AddPersonsScreen()
+    fun enterOwnerName(name: String): CreateEventScreen {
+        rule.onNodeWithTag("events_owner_name").performTextInput(name)
+        return this
+    }
+
+    context(rule: ComposeTestRule)
+    fun addParticipant(index: Int, name: String): CreateEventScreen {
+        rule.onNodeWithTag("events_add_participant").performScrollTo().performClick()
+        rule.onNodeWithTag("events_participant_$index").performTextInput(name)
+        return this
+    }
+
+    context(rule: ComposeTestRule)
+    fun verifyDraft(eventName: String, ownerName: String, participantName: String): CreateEventScreen {
+        scrollToItem("event")
+        assertElementWithTextExists(eventName)
+        scrollToItem("owner")
+        assertElementWithTextExists(ownerName)
+        scrollToItem("participant_0")
+        assertElementWithTextExists(participantName)
+        return this
+    }
+
+    context(rule: ComposeTestRule)
+    fun createEvent(): ExpensesScreen {
+        scrollToItem("confirm")
+        rule.onNodeWithTag("events_create_confirm").performClick()
+        return ExpensesScreen()
+    }
+
+    context(rule: ComposeTestRule)
+    private fun scrollToItem(key: String) {
+        rule.onNodeWithTag("events_create_form").performScrollToKey(key)
     }
 }

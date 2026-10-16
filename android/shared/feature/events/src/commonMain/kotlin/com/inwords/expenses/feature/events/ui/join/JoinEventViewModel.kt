@@ -10,6 +10,7 @@ import com.inwords.expenses.feature.events.domain.JoinEventUseCase
 import com.inwords.expenses.feature.events.domain.JoinEventUseCase.JoinEventResult
 import com.inwords.expenses.feature.events.ui.choose_person.ChoosePersonPaneDestination
 import com.inwords.expenses.feature.events.ui.join.JoinEventPaneUiModel.EventJoiningState
+import com.inwords.expenses.feature.events.ui.join_invitation.JoinInvitationPaneDestination
 import expenses.shared.core.ui_design.generated.resources.error_other
 import expenses.shared.feature.events.generated.resources.Res
 import expenses.shared.feature.events.generated.resources.events_join_error_expired_token
@@ -35,14 +36,12 @@ internal class JoinEventViewModel(
     viewModelScope: CoroutineScope = CoroutineScope(SupervisorJob() + IO),
 ) : ViewModel(viewModelScope = viewModelScope) {
 
-    private val eventIdRegex = "[0-9A-HJKMNP-TV-Z]".toRegex()
-
     private var confirmJob: Job? = null
 
     private val initialState = JoinEventPaneUiModel(
         eventId = initialEventId.filteredEventId(),
         eventAccessCode = initialPinCode.filteredPinCode(),
-        joining = EventJoiningState.None,
+        joiningState = EventJoiningState.None,
     )
     val state: StateFlow<JoinEventPaneUiModel>
         field = MutableStateFlow(initialState)
@@ -59,27 +58,45 @@ internal class JoinEventViewModel(
 
     fun onEventIdChanged(eventId: String) {
         state.update { value ->
-            value.copy(eventId = eventId.filteredEventId(), joining = EventJoiningState.None)
+            if (value.joiningState == EventJoiningState.Joining) {
+                value
+            } else {
+                value.copy(eventId = eventId.filteredEventId(), joiningState = EventJoiningState.None)
+            }
         }
     }
 
     fun onEventAccessCodeChanged(eventAccessCode: String) {
         state.update { value ->
-            value.copy(eventAccessCode = eventAccessCode.filteredPinCode(), joining = EventJoiningState.None)
+            if (value.joiningState == EventJoiningState.Joining) {
+                value
+            } else {
+                value.copy(eventAccessCode = eventAccessCode.filteredPinCode(), joiningState = EventJoiningState.None)
+            }
         }
     }
 
+    fun onUseInvitationClicked() {
+        if (confirmJob?.isActive == true) return
+
+        navigationController.navigateTo(
+            destination = JoinInvitationPaneDestination,
+            popUpTo = JoinInvitationPaneDestination,
+            launchSingleTop = true,
+        )
+    }
+
     fun onConfirmClicked(eventToken: String? = null) {
+        if (confirmJob?.isActive == true) return
+
         val currentState = state.value
         val accessCode = currentState.eventAccessCode.ifBlank { null }.takeIf { eventToken == null }
         if (currentState.eventId.isBlank() || (accessCode == null && eventToken == null)) {
             return
         }
 
-        confirmJob?.cancel()
-
         val state = state.updateAndGet { currentState ->
-            currentState.copy(joining = EventJoiningState.Joining)
+            currentState.copy(joiningState = EventJoiningState.Joining)
         }
         confirmJob = viewModelScope.launch {
             val result = joinEventUseCase.joinEvent(
@@ -106,7 +123,18 @@ internal class JoinEventViewModel(
                         }
                     )
                     this@JoinEventViewModel.state.update { currentState ->
-                        currentState.copy(joining = EventJoiningState.Error(errorMessage))
+                        currentState.copy(joiningState = EventJoiningState.Error(errorMessage))
+                    }
+                }
+            }
+        }.apply {
+            invokeOnCompletion {
+                confirmJob = null
+                this@JoinEventViewModel.state.update { currentState ->
+                    if (currentState.joiningState == EventJoiningState.Joining) {
+                        currentState.copy(joiningState = EventJoiningState.None)
+                    } else {
+                        currentState
                     }
                 }
             }
@@ -115,18 +143,6 @@ internal class JoinEventViewModel(
 
     fun onNavIconClicked() {
         navigationController.popBackStack()
-    }
-
-    private fun String.filteredEventId(): String {
-        return this.uppercase().filter { it.toString().matches(eventIdRegex) }
-    }
-
-    private fun String.filteredPinCode(): String {
-        return this.filter { it.isDigit() }
-    }
-
-    private fun String.filteredToken(): String {
-        return this.filter { it.isLetterOrDigit() }
     }
 
 }

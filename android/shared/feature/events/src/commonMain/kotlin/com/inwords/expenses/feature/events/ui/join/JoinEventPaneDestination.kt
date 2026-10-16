@@ -51,6 +51,7 @@ internal fun EventsComponent.getJoinEventPaneNavModule(
                 onEventIdChanged = viewModel::onEventIdChanged,
                 onEventAccessCodeChanged = viewModel::onEventAccessCodeChanged,
                 onConfirmClicked = viewModel::onConfirmClicked,
+                onUseInvitationClicked = viewModel::onUseInvitationClicked,
                 onNavIconClicked = viewModel::onNavIconClicked,
             )
         }

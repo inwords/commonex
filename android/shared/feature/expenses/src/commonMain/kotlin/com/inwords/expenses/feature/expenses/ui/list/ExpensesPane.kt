@@ -59,8 +59,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
-import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -83,6 +81,7 @@ import com.inwords.expenses.feature.expenses.ui.list.ExpensesTimelineVisibleDayR
 import expenses.shared.feature.expenses.generated.resources.Res
 import expenses.shared.feature.expenses.generated.resources.common_error
 import expenses.shared.feature.expenses.generated.resources.expenses_app_name
+import expenses.shared.feature.expenses.generated.resources.expenses_menu_description
 import expenses.shared.feature.expenses.generated.resources.expenses_operation
 import expenses.shared.feature.expenses.generated.resources.expenses_operations
 import expenses.shared.feature.expenses.generated.resources.expenses_paid_by
@@ -168,6 +167,8 @@ private const val STATIC_ITEMS_BEFORE_DAY_TIMELINE = 3
 internal fun ExpensesPane(
     state: SimpleScreenState<ExpensesPaneUiModel>,
     onMenuClick: () -> Unit,
+    onOpenEventsListClick: () -> Unit,
+    onInviteClick: () -> Unit,
     onAddExpenseClick: () -> Unit,
     onExpenseClick: (expense: ExpenseUiModel) -> Unit,
     onDebtsDetailsClick: () -> Unit,
@@ -186,18 +187,30 @@ internal fun ExpensesPane(
     when (state) {
         is SimpleScreenState.Success -> {
             when (val state = state.data) {
-                is ExpensesPaneUiModel.Expenses -> ExpensesPaneSuccess(
-                    state = state,
-                    onMenuClick = onMenuClick,
-                    onAddExpenseClick = onAddExpenseClick,
-                    onExpenseClick = onExpenseClick,
-                    onDebtsDetailsClick = onDebtsDetailsClick,
-                    onReplenishmentClick = onReplenishmentClick,
-                    onDayChipClick = onDayChipClick,
-                    onVisibleDayChanged = onVisibleDayChanged,
-                    onRefresh = onRefresh,
-                    modifier = modifier,
-                )
+                is ExpensesPaneUiModel.Expenses -> if (state.daySections.isEmpty()) {
+                    FirstExpensePane(
+                        state = state,
+                        onMenuClick = onMenuClick,
+                        onOpenEventsListClick = onOpenEventsListClick,
+                        onInviteClick = onInviteClick,
+                        onAddExpenseClick = onAddExpenseClick,
+                        onRefresh = onRefresh,
+                        modifier = modifier,
+                    )
+                } else {
+                    ExpensesPaneSuccess(
+                        state = state,
+                        onMenuClick = onMenuClick,
+                        onAddExpenseClick = onAddExpenseClick,
+                        onExpenseClick = onExpenseClick,
+                        onDebtsDetailsClick = onDebtsDetailsClick,
+                        onReplenishmentClick = onReplenishmentClick,
+                        onDayChipClick = onDayChipClick,
+                        onVisibleDayChanged = onVisibleDayChanged,
+                        onRefresh = onRefresh,
+                        modifier = modifier,
+                    )
+                }
 
                 is LocalEvents -> LocalEventsPane(
                     onCreateEventClick = onCreateEventClick,
@@ -264,8 +277,6 @@ private fun ExpensesPaneSuccess(
                         Text(
                             modifier = Modifier.align(Alignment.Center),
                             text = stringResource(Res.string.expenses_app_name),
-                            fontStyle = FontStyle.Italic,
-                            fontWeight = FontWeight.Bold,
                         )
 
                         IconButton(
@@ -276,7 +287,7 @@ private fun ExpensesPaneSuccess(
                         ) {
                             Icon(
                                 imageVector = Icons.Outlined.Menu,
-                                contentDescription = null,
+                                contentDescription = stringResource(Res.string.expenses_menu_description),
                             )
                         }
                     }
@@ -293,6 +304,7 @@ private fun ExpensesPaneSuccess(
                 text = stringResource(Res.string.expenses_operation),
                 imageVector = Icons.Outlined.Add,
                 onClick = onAddExpenseClick,
+                modifier = Modifier.testTag(ExpensesPaneTags.ADD_EXPENSE_BUTTON),
             )
         }
     ) { paddingValues ->
@@ -712,6 +724,8 @@ private fun ExpensesPanePreviewSuccessWithCreditors() {
         ExpensesPane(
             state = SimpleScreenState.Success(mockExpensesPaneUiModel(withDebts = true)),
             onMenuClick = {},
+            onOpenEventsListClick = {},
+            onInviteClick = {},
             onAddExpenseClick = {},
             onExpenseClick = {},
             onDebtsDetailsClick = {},
@@ -736,6 +750,8 @@ private fun ExpensesPanePreviewSuccessWithoutCreditors() {
         ExpensesPane(
             state = SimpleScreenState.Success(mockExpensesPaneUiModel(withDebts = false)),
             onMenuClick = {},
+            onOpenEventsListClick = {},
+            onInviteClick = {},
             onAddExpenseClick = {},
             onExpenseClick = {},
             onDebtsDetailsClick = {},
@@ -760,6 +776,8 @@ private fun ExpensesPanePreviewEmpty() {
         ExpensesPane(
             state = SimpleScreenState.Empty,
             onMenuClick = {},
+            onOpenEventsListClick = {},
+            onInviteClick = {},
             onAddExpenseClick = {},
             onExpenseClick = {},
             onDebtsDetailsClick = {},
@@ -784,6 +802,8 @@ private fun ExpensesPanePreviewLoading() {
         ExpensesPane(
             state = SimpleScreenState.Loading,
             onMenuClick = {},
+            onOpenEventsListClick = {},
+            onInviteClick = {},
             onAddExpenseClick = {},
             onExpenseClick = {},
             onDebtsDetailsClick = {},
@@ -801,12 +821,14 @@ private fun ExpensesPanePreviewLoading() {
     }
 }
 
-internal fun mockExpensesPaneUiModel(withDebts: Boolean): ExpensesPaneUiModel {
+internal fun mockExpensesPaneUiModel(withDebts: Boolean): ExpensesPaneUiModel.Expenses {
     return ExpensesPaneUiModel.Expenses(
         eventId = 1,
         eventName = "France trip",
         currentPersonId = 1,
         currentPersonName = "Vasiliy",
+        personCount = 3,
+        currencyCode = "EUR",
         debts = persistentListOf(
             DebtShortUiModel(
                 personId = 2,

@@ -1,42 +1,38 @@
 package ru.commonex.screens
 
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.ComposeTestRule
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeLeft
 import androidx.compose.ui.test.swipeRight
 import expenses.shared.feature.events.generated.resources.Res
-import expenses.shared.feature.events.generated.resources.events_create
-import expenses.shared.feature.events.generated.resources.events_create_join_description
 import expenses.shared.feature.events.generated.resources.events_delete_everywhere
 import expenses.shared.feature.events.generated.resources.events_delete_local_only
 import expenses.shared.feature.events.generated.resources.events_event_deleted
-import expenses.shared.feature.events.generated.resources.events_join
 import expenses.shared.feature.events.generated.resources.events_keep_event
 import org.jetbrains.compose.resources.getString
 
 internal class LocalEventsScreen : BaseScreen() {
 
     context(rule: ComposeTestRule)
-    suspend fun waitUntilLoaded(): LocalEventsScreen {
-        val createLabel = getString(Res.string.events_create)
-        waitForElementWithText(createLabel)
+    fun waitUntilLoaded(): LocalEventsScreen {
+        waitForElementWithTag("events_create")
         return this
     }
 
     context(rule: ComposeTestRule)
-    suspend fun clickCreateEvent(): CreateEventScreen {
-        val createLabel = getString(Res.string.events_create)
-        rule.onNodeWithText(createLabel).performClick()
+    fun clickCreateEvent(): CreateEventScreen {
+        rule.onNodeWithTag("events_create").performClick()
         return CreateEventScreen()
     }
 
     context(rule: ComposeTestRule)
-    suspend fun clickJoinEvent(): JoinEventScreen {
-        val joinLabel = getString(Res.string.events_join)
-        rule.onNodeWithText(joinLabel).performClick()
-        return JoinEventScreen()
+    fun clickJoinEvent(): JoinInvitationScreen {
+        rule.onNodeWithTag("events_join").performClick()
+        return JoinInvitationScreen()
     }
 
     context(rule: ComposeTestRule)
@@ -98,10 +94,9 @@ internal class LocalEventsScreen : BaseScreen() {
     }
 
     context(rule: ComposeTestRule)
-    suspend fun assertCreateJoinDescriptionVisible(): LocalEventsScreen {
-        val description = getString(Res.string.events_create_join_description)
-        waitForElementWithText(description)
-        assertElementWithTextExists(description)
+    fun assertWelcomeVisible(): LocalEventsScreen {
+        waitForElementWithTag("events_welcome")
+        rule.onNodeWithTag("events_welcome").assertIsDisplayed()
         return this
     }
 

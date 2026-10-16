@@ -11,10 +11,12 @@ import com.inwords.expenses.feature.events.domain.EventsSyncStateHolder
 import com.inwords.expenses.feature.events.domain.GetCurrentEventStateUseCase
 import com.inwords.expenses.feature.events.domain.GetEventsUseCase
 import com.inwords.expenses.feature.events.domain.JoinEventUseCase
+import com.inwords.expenses.feature.events.domain.LeaveEventUseCase
 import com.inwords.expenses.feature.events.domain.model.Currency
 import com.inwords.expenses.feature.events.domain.model.Event
 import com.inwords.expenses.feature.events.domain.model.EventDetails
 import com.inwords.expenses.feature.events.domain.model.Person
+import com.inwords.expenses.feature.events.ui.join_invitation.JoinInvitationPaneDestination
 import com.inwords.expenses.feature.expenses.domain.DebtCalculator
 import com.inwords.expenses.feature.expenses.domain.GetExpensesDetailsUseCase
 import com.inwords.expenses.feature.expenses.domain.RequestExpensesRefreshUseCase
@@ -23,13 +25,17 @@ import com.inwords.expenses.feature.expenses.domain.model.ExpenseSplitWithPerson
 import com.inwords.expenses.feature.expenses.domain.model.ExpenseType
 import com.inwords.expenses.feature.expenses.domain.model.ExpensesDetails
 import com.inwords.expenses.feature.expenses.ui.list.ExpensesPaneUiModel.Expenses
+import com.inwords.expenses.feature.menu.ui.InviteEventPaneDestination
 import com.inwords.expenses.feature.settings.api.SettingsRepository
 import com.ionspin.kotlin.bignum.decimal.BigDecimal
 import com.ionspin.kotlin.bignum.decimal.toBigDecimal
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.justRun
 import io.mockk.mockk
+import io.mockk.verify
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -164,6 +170,7 @@ internal class ExpensesViewModelTimelineTest {
         every { getEvents() } returns MutableStateFlow(emptyList())
     }
     private val joinEventUseCase = mockk<JoinEventUseCase>(relaxed = true)
+    private val leaveEventUseCase = mockk<LeaveEventUseCase>(relaxed = true)
     private val deleteEventUseCase = mockk<DeleteEventUseCase>(relaxed = true)
     private val getExpensesDetailsUseCase = mockk<GetExpensesDetailsUseCase>(relaxed = true) {
         every { getExpensesDetails(any()) } returns flowOf(Fixtures.expensesDetails)
@@ -221,6 +228,53 @@ internal class ExpensesViewModelTimelineTest {
         }
     }
 
+    @Test
+    fun `event without expenses exposes ready pane metadata`() = testScope.runTest {
+        every { getExpensesDetailsUseCase.getExpensesDetails(any()) } returns flowOf(Fixtures.expensesDetails.copy(expenses = emptyList()))
+        val viewModel = createViewModel()
+        viewModel.state.test {
+            runCurrent()
+            advanceUntilIdle()
+
+            val state = assertIs<SimpleScreenState.Success<ExpensesPaneUiModel>>(viewModel.state.value)
+            val eventExpenses = assertIs<Expenses>(state.data)
+            assertEquals(emptyList(), eventExpenses.daySections)
+            assertEquals("Trip", eventExpenses.eventName)
+            assertEquals("Alex", eventExpenses.currentPersonName)
+            assertEquals(2, eventExpenses.personCount)
+            assertEquals("EUR", eventExpenses.currencyCode)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `first use actions navigate to invite and invitation panes`() = testScope.runTest {
+        val viewModel = createViewModel()
+        viewModel.onInviteClick()
+        viewModel.onJoinEventClick()
+
+        verify { navigationController.navigateTo(InviteEventPaneDestination) }
+        verify { navigationController.navigateTo(JoinInvitationPaneDestination) }
+    }
+
+    @Test
+    fun `opening events list clears selection once while the operation is active`() = testScope.runTest {
+        val leaving = CompletableDeferred<Unit>()
+        coEvery { leaveEventUseCase.leaveEvent() } coAnswers { leaving.await() }
+        val viewModel = createViewModel()
+        viewModel.onOpenEventsListClick()
+        viewModel.onOpenEventsListClick()
+        runCurrent()
+
+        coVerify(exactly = 1) { leaveEventUseCase.leaveEvent() }
+
+        leaving.complete(Unit)
+        runCurrent()
+        viewModel.onOpenEventsListClick()
+        runCurrent()
+        coVerify(exactly = 2) { leaveEventUseCase.leaveEvent() }
+    }
+
     private fun createViewModel(): ExpensesViewModel {
         return ExpensesViewModel(
             navigationController = navigationController,
@@ -228,6 +282,7 @@ internal class ExpensesViewModelTimelineTest {
             eventDeletionStateManager = eventDeletionStateManager,
             getEventsUseCase = getEventsUseCase,
             joinEventUseCase = joinEventUseCase,
+            leaveEventUseCase = leaveEventUseCase,
             deleteEventUseCase = deleteEventUseCase,
             getExpensesDetailsUseCase = getExpensesDetailsUseCase,
             requestExpensesRefreshUseCase = requestExpensesRefreshUseCase,

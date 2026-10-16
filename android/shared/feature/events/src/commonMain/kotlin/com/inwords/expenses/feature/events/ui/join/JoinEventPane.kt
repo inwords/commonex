@@ -1,33 +1,36 @@
 package com.inwords.expenses.feature.events.ui.join
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.inwords.expenses.core.ui.design.appbar.TopAppBarWithNavIconAndText
@@ -39,11 +42,14 @@ import com.inwords.expenses.feature.events.ui.join.JoinEventPaneUiModel.EventJoi
 import expenses.shared.feature.events.generated.resources.Res
 import expenses.shared.feature.events.generated.resources.common_back
 import expenses.shared.feature.events.generated.resources.events_join_description
-import expenses.shared.feature.events.generated.resources.events_participants_title
-import expenses.shared.feature.events.generated.resources.events_section_title
+import expenses.shared.feature.events.generated.resources.events_join_event_button
+import expenses.shared.feature.events.generated.resources.events_join_link_action
+import expenses.shared.feature.events.generated.resources.events_join_manual_heading
+import expenses.shared.feature.events.generated.resources.events_join_title
+import expenses.shared.feature.events.generated.resources.events_joining_event
 import org.jetbrains.compose.resources.stringResource
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 internal fun JoinEventPane(
     modifier: Modifier = Modifier,
@@ -51,109 +57,103 @@ internal fun JoinEventPane(
     onEventIdChanged: (String) -> Unit,
     onEventAccessCodeChanged: (String) -> Unit,
     onConfirmClicked: () -> Unit,
+    onUseInvitationClicked: () -> Unit,
     onNavIconClicked: () -> Unit,
 ) {
+    val joining = state.joiningState == EventJoiningState.Joining
+    val joiningError = state.joiningState as? EventJoiningState.Error
     Scaffold(
-        modifier = modifier
-            .fillMaxSize()
-            .imePadding(),
+        modifier = modifier.fillMaxSize().imePadding(),
         topBar = {
             TopAppBarWithNavIconAndText(
                 onNavIconClicked = onNavIconClicked,
-                title = stringResource(Res.string.events_section_title),
+                title = stringResource(Res.string.events_join_title),
                 imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
                 contentDescription = stringResource(Res.string.common_back),
             )
         },
     ) { paddingValues ->
-        Column(
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
                 .consumeWindowInsets(paddingValues)
-                .padding(horizontal = 8.dp)
-                .padding(paddingValues)
+                .padding(paddingValues),
+            contentAlignment = Alignment.TopCenter,
         ) {
-            Spacer(modifier = Modifier.weight(1f))
-
-            Text(
-                text = stringResource(Res.string.events_join_description),
-                textAlign = TextAlign.Center,
-                style = MaterialTheme.typography.bodyLarge,
-                modifier = Modifier
-                    .align(Alignment.CenterHorizontally)
-                    .fillMaxWidth(0.8f)
-                    .padding(bottom = 32.dp),
-            )
-
-            val joining = state.joining == EventJoiningState.Joining
-            val joiningError = state.joining as? EventJoiningState.Error
-            EventIdField(
-                modifier = Modifier
+            Column(
+                modifier = Modifier.widthIn(max = 560.dp)
                     .fillMaxWidth()
-                    .padding(bottom = 16.dp),
-                eventId = state.eventId,
-                onEventIdChanged = onEventIdChanged,
-                enabled = !joining,
-                isError = joiningError != null,
-            )
-
-            Row(
-                modifier = Modifier
-                    .align(Alignment.End),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
+                    .verticalScroll(rememberScrollState())
+                    .heightIn(min = maxHeight)
+                    .padding(16.dp),
             ) {
-                AnimatedVisibility(
-                    modifier = Modifier
-                        .weight(1f),
-                    visible = joiningError != null,
-                    enter = fadeIn(),
-                    exit = fadeOut()
-                ) {
-                    Text(
-                        text = joiningError?.message.orEmpty(),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.error,
-                    )
-                }
-
+                Text(
+                    text = stringResource(Res.string.events_join_manual_heading),
+                    style = MaterialTheme.typography.headlineLarge,
+                    modifier = Modifier.padding(bottom = 8.dp),
+                )
+                Text(
+                    text = stringResource(Res.string.events_join_description),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 24.dp),
+                )
+                EventIdField(
+                    modifier = Modifier.fillMaxWidth().testTag("events_join_id"),
+                    eventId = state.eventId,
+                    onEventIdChanged = onEventIdChanged,
+                    enabled = !joining,
+                )
                 EventAccessCodeField(
                     modifier = Modifier
-                        .fillMaxWidth(0.5f),
+                        .fillMaxWidth()
+                        .padding(top = 16.dp)
+                        .testTag("events_join_access_code"),
                     eventAccessCode = state.eventAccessCode,
                     onDone = onConfirmClicked,
                     onEventAccessCodeChanged = onEventAccessCodeChanged,
                     enabled = !joining,
-                    isError = joiningError != null,
                 )
-            }
-
-            Spacer(modifier = Modifier.weight(1f))
-
-            Row(
-                modifier = Modifier
-                    .align(Alignment.End),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                AnimatedVisibility(
-                    visible = joining,
-                    enter = fadeIn(),
-                    exit = fadeOut()
-                ) {
-                    LoadingIndicator()
+                if (joiningError != null) {
+                    Text(
+                        text = joiningError.message,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier
+                            .padding(top = 16.dp)
+                            .semantics { liveRegion = LiveRegionMode.Polite },
+                    )
                 }
-
+                Spacer(Modifier.weight(1f).heightIn(min = 32.dp))
                 ButtonWithIconAndText(
-                    modifier = Modifier
-                        .padding(vertical = 16.dp),
+                    modifier = Modifier.fillMaxWidth().testTag("events_join_confirm"),
                     onClick = onConfirmClicked,
                     enabled = !joining && state.eventId.isNotBlank() && state.eventAccessCode.isNotBlank(),
-                    text = stringResource(Res.string.events_participants_title),
+                    text = stringResource(Res.string.events_join_event_button),
                     imageVector = Icons.AutoMirrored.Outlined.ArrowForward,
                     minHeight = ButtonDefaults.MediumContainerHeight,
                 )
+                if (joining) {
+                    Row(
+                        modifier = Modifier.padding(top = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        LoadingIndicator()
+                        Text(
+                            text = stringResource(Res.string.events_joining_event),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                        )
+                    }
+                }
+                TextButton(
+                    onClick = onUseInvitationClicked,
+                    enabled = !joining,
+                    modifier = Modifier.fillMaxWidth().testTag("events_join_use_invitation"),
+                ) {
+                    Text(stringResource(Res.string.events_join_link_action))
+                }
             }
         }
     }
@@ -167,11 +167,12 @@ private fun JoinEventPanePreview() {
             state = JoinEventPaneUiModel(
                 eventId = "",
                 eventAccessCode = "",
-                joining = EventJoiningState.None
+                joiningState = EventJoiningState.None,
             ),
             onEventIdChanged = {},
             onEventAccessCodeChanged = {},
             onConfirmClicked = {},
+            onUseInvitationClicked = {},
             onNavIconClicked = {},
         )
     }

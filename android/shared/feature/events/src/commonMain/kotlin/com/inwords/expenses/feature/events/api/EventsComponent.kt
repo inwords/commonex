@@ -14,6 +14,7 @@ import com.inwords.expenses.feature.events.data.network.store.CurrenciesRemoteSt
 import com.inwords.expenses.feature.events.data.network.store.EventsRemoteStoreImpl
 import com.inwords.expenses.feature.events.domain.AddParticipantsToCurrentEventUseCase
 import com.inwords.expenses.feature.events.domain.CreateEventFromParametersUseCase
+import com.inwords.expenses.feature.events.domain.CreateEventInvitationUseCase
 import com.inwords.expenses.feature.events.domain.CreateShareTokenUseCase
 import com.inwords.expenses.feature.events.domain.DeleteEventUseCase
 import com.inwords.expenses.feature.events.domain.EventDeletionStateManagerImpl
@@ -33,11 +34,11 @@ import com.inwords.expenses.feature.events.domain.task.EventPersonsPushTask
 import com.inwords.expenses.feature.events.domain.task.EventPullPersonsTask
 import com.inwords.expenses.feature.events.domain.task.EventPushTask
 import com.inwords.expenses.feature.events.ui.add_participants.getAddParticipantsToEventPaneNavModule
-import com.inwords.expenses.feature.events.ui.add_persons.getAddPersonsPaneNavModule
 import com.inwords.expenses.feature.events.ui.choose_person.getChoosePersonPaneNavModule
 import com.inwords.expenses.feature.events.ui.create.getCreateEventPaneNavModule
 import com.inwords.expenses.feature.events.ui.dialog.delete.getDeleteEventDialogNavModule
 import com.inwords.expenses.feature.events.ui.join.getJoinEventPaneNavModule
+import com.inwords.expenses.feature.events.ui.join_invitation.getJoinInvitationPaneNavModule
 import com.inwords.expenses.feature.settings.api.SettingsRepository
 
 class EventsComponent internal constructor(
@@ -189,9 +190,15 @@ class EventsComponent internal constructor(
 
     fun generateClientCreateId(): String = clientCreateIdGeneratorLazy.value.generate()
 
-    val createShareTokenUseCaseLazy: Lazy<CreateShareTokenUseCase> = lazy {
+    private val createShareTokenUseCaseLazy: Lazy<CreateShareTokenUseCase> = lazy {
         CreateShareTokenUseCase(
             eventsRemoteStoreLazy = eventsRemoteStore,
+        )
+    }
+
+    val createEventInvitationUseCaseLazy: Lazy<CreateEventInvitationUseCase> = lazy {
+        CreateEventInvitationUseCase(
+            createShareTokenUseCaseLazy = createShareTokenUseCaseLazy,
         )
     }
 
@@ -200,10 +207,10 @@ class EventsComponent internal constructor(
         expensesPaneDestination: Destination,
     ): List<NavModule> {
         return listOf(
+            getJoinInvitationPaneNavModule(navigationController),
             getJoinEventPaneNavModule(navigationController),
-            getCreateEventPaneNavModule(navigationController),
+            getCreateEventPaneNavModule(navigationController, expensesPaneDestination),
             getDeleteEventDialogNavModule(navigationController),
-            getAddPersonsPaneNavModule(navigationController, expensesPaneDestination),
             getChoosePersonPaneNavModule(navigationController, expensesPaneDestination),
             getAddParticipantsToEventPaneNavModule(navigationController),
         )

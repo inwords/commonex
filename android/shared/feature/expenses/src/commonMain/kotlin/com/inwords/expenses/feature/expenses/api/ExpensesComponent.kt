@@ -15,6 +15,7 @@ import com.inwords.expenses.feature.events.domain.EventsSyncStateHolder
 import com.inwords.expenses.feature.events.domain.GetCurrentEventStateUseCase
 import com.inwords.expenses.feature.events.domain.GetEventsUseCase
 import com.inwords.expenses.feature.events.domain.JoinEventUseCase
+import com.inwords.expenses.feature.events.domain.LeaveEventUseCase
 import com.inwords.expenses.feature.events.domain.store.local.CurrenciesLocalStore
 import com.inwords.expenses.feature.events.domain.store.local.EventsLocalStore
 import com.inwords.expenses.feature.expenses.data.db.ExpensesLocalStoreImpl
@@ -60,6 +61,7 @@ class ExpensesComponent(private val deps: Deps) : Component {
         val getCurrentEventStateUseCaseLazy: Lazy<GetCurrentEventStateUseCase>
         val getEventsUseCaseLazy: Lazy<GetEventsUseCase>
         val joinEventUseCaseLazy: Lazy<JoinEventUseCase>
+        val leaveEventUseCaseLazy: Lazy<LeaveEventUseCase>
         val deleteEventUseCaseLazy: Lazy<DeleteEventUseCase>
 
         val eventDeletionStateManagerLazy: Lazy<EventDeletionStateManager>
@@ -74,6 +76,7 @@ class ExpensesComponent(private val deps: Deps) : Component {
     internal val deleteEventUseCaseLazy get() = deps.deleteEventUseCaseLazy
     internal val eventsSyncStateHolderLazy get() = deps.eventsSyncStateHolderLazy
     internal val joinEventUseCaseLazy get() = deps.joinEventUseCaseLazy
+    internal val leaveEventUseCaseLazy get() = deps.leaveEventUseCaseLazy
     internal val settingsRepositoryLazy get() = deps.settingsRepositoryLazy
 
     val expensesLocalStore: Lazy<ExpensesLocalStore> = lazy {

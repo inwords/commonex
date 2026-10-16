@@ -19,11 +19,12 @@ import com.inwords.expenses.feature.events.domain.EventsSyncStateHolder
 import com.inwords.expenses.feature.events.domain.GetCurrentEventStateUseCase
 import com.inwords.expenses.feature.events.domain.GetEventsUseCase
 import com.inwords.expenses.feature.events.domain.JoinEventUseCase
+import com.inwords.expenses.feature.events.domain.LeaveEventUseCase
 import com.inwords.expenses.feature.events.domain.model.Event
 import com.inwords.expenses.feature.events.ui.choose_person.ChoosePersonPaneDestination
 import com.inwords.expenses.feature.events.ui.create.CreateEventPaneDestination
 import com.inwords.expenses.feature.events.ui.dialog.delete.DeleteEventDialogDestination
-import com.inwords.expenses.feature.events.ui.join.JoinEventPaneDestination
+import com.inwords.expenses.feature.events.ui.join_invitation.JoinInvitationPaneDestination
 import com.inwords.expenses.feature.events.ui.local.LocalEventsUiModel
 import com.inwords.expenses.feature.events.ui.local.LocalEventsUiModel.LocalEventUiModel
 import com.inwords.expenses.feature.expenses.domain.GetExpensesDetailsUseCase
@@ -36,6 +37,7 @@ import com.inwords.expenses.feature.expenses.ui.list.ExpensesPaneUiModel.Expense
 import com.inwords.expenses.feature.expenses.ui.list.ExpensesPaneUiModel.LocalEvents
 import com.inwords.expenses.feature.expenses.ui.list.bottom_sheet.item.ExpenseItemPaneDestination
 import com.inwords.expenses.feature.expenses.ui.utils.toRoundedString
+import com.inwords.expenses.feature.menu.ui.InviteEventPaneDestination
 import com.inwords.expenses.feature.menu.ui.MenuDialogDestination
 import com.inwords.expenses.feature.settings.api.SettingsRepository
 import kotlinx.collections.immutable.ImmutableList
@@ -64,6 +66,7 @@ internal class ExpensesViewModel(
     private val eventDeletionStateManager: EventDeletionStateManager,
     private val getEventsUseCase: GetEventsUseCase,
     private val joinEventUseCase: JoinEventUseCase,
+    private val leaveEventUseCase: LeaveEventUseCase,
     private val deleteEventUseCase: DeleteEventUseCase,
     private val getExpensesDetailsUseCase: GetExpensesDetailsUseCase,
     private val requestExpensesRefreshUseCase: RequestExpensesRefreshUseCase,
@@ -76,6 +79,7 @@ internal class ExpensesViewModel(
 
     private var refreshJob: Job? = null
     private var joinEventJob: Job? = null
+    private var leaveEventJob: Job? = null
     private var recentlyRemovedEventJob: Job? = null
 
     private val pullToRefreshStateManager = PullToRefreshStateManager(eventsSyncStateHolder)
@@ -208,6 +212,17 @@ internal class ExpensesViewModel(
         navigationController.navigateTo(MenuDialogDestination)
     }
 
+    fun onOpenEventsListClick() {
+        if (leaveEventJob?.isActive == true) return
+        leaveEventJob = viewModelScope.launch {
+            leaveEventUseCase.leaveEvent()
+        }
+    }
+
+    fun onInviteClick() {
+        navigationController.navigateTo(InviteEventPaneDestination)
+    }
+
     fun onAddExpenseClick() {
         navigationController.navigateTo(AddExpensePaneDestination())
     }
@@ -252,7 +267,7 @@ internal class ExpensesViewModel(
     }
 
     fun onJoinEventClick() {
-        navigationController.navigateTo(JoinEventPaneDestination())
+        navigationController.navigateTo(JoinInvitationPaneDestination)
     }
 
     fun onRefresh() {

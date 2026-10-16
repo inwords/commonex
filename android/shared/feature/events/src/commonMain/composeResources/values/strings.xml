@@ -1,37 +1,69 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="common_back">Back</string>
-    <string name="events_event">Event</string>
-    <string name="events_access_code_placeholder">Access code</string>
-    <string name="events_add_participant">Add participant</string>
-    <string name="events_choose_person_title">Choose participant</string>
-    <string name="events_continue_button">To event</string>
-    <string name="events_create_title">Create event</string>
-    <string name="events_create">Create</string>
-    <string name="events_join">Join</string>
-    <string name="events_create_join_description">You can create a new event or join an existing one</string>
-    <string name="events_empty_illustration_content_description">A cozy illustration encouraging you to create your first expense event</string>
-    <string name="events_currency_section_title">Currency</string>
-    <string name="events_empty_state">No participants available</string>
-    <string name="events_error_state">Failed to load event data</string>
-    <string name="events_id_placeholder">Event ID</string>
+
+    <string name="events_event">Groups</string>
     <string name="events_info_with_person">%1$s — %2$s</string>
-    <string name="events_join_description">Enter the event ID and access code to join</string>
-    <string name="events_join_error_invalid_credentials">Invalid event ID or access code</string>
-    <string name="events_join_error_invalid_token">Invalid link</string>
-    <string name="events_join_error_expired_token">Link has expired. Please request a new link or enter the code manually</string>
-    <string name="events_name_placeholder">Title</string>
-    <string name="events_owner_label">My name is</string>
-    <string name="events_participants_label">Also participate</string>
-    <string name="events_participants_title">Participants</string>
-    <string name="events_person_name_placeholder">Name</string>
-    <string name="events_section_title">Event</string>
+
+    <string name="events_your">Yours</string>
+    <string name="events_create">Create a group</string>
+    <string name="events_join">Join a group</string>
+
+    <string name="events_welcome_brand">CommonEx</string>
+    <string name="events_welcome_kicker">Less math, more together</string>
+    <string name="events_welcome_display">Good company\nClear balances</string>
+    <string name="events_welcome_copy">A trip, a shared home, a meal\nKeep the costs fair</string>
+    <string name="events_welcome_create_label">Create a group</string>
+    <string name="events_welcome_create_description">Add people, then your first expense</string>
+    <string name="events_welcome_join_label">I have an invite link</string>
+    <string name="events_welcome_join_description">Join the people you’re sharing with</string>
+    <string name="events_welcome_reassurance">No account needed · Works offline</string>
+
+    <string name="events_create_title">Create a group</string>
+    <string name="events_setup_heading">Bring everyone together</string>
+    <string name="events_name_placeholder">Group name</string>
+    <string name="events_setup_event_example">Weekend trip, dinner, household</string>
     <string name="events_your_name_label">Your name</string>
+    <string name="events_setup_add_participants">Add people (optional)</string>
+    <string name="events_setup_add_person">Add person</string>
+    <string name="events_setup_currency_label">Balances in</string>
+    <string name="events_create_event_button">Create group</string>
+    <string name="events_creating_event">Creating your group…</string>
+
+    <string name="events_join_title">Join a group</string>
+    <string name="events_join_event_button">Join group</string>
+    <string name="events_joining_event">Joining your group…</string>
+    <string name="events_join_link_heading">A link brings you together</string>
+    <string name="events_join_link_guidance">Paste the invite link shared with you</string>
+    <string name="events_join_link_label">Invite link</string>
+    <string name="events_join_link_placeholder">https://commonex.ru/event/…</string>
+    <string name="events_join_link_invalid">Paste a complete CommonEx invite link, or join with an ID and access code</string>
+    <string name="events_join_manual_action">Enter ID &amp; access code instead</string>
+    <string name="events_join_manual_heading">Have a code?</string>
+    <string name="events_join_description">Ask the organizer for the group ID and access code</string>
+    <string name="events_id_placeholder">Group ID</string>
+    <string name="events_access_code_placeholder">Access code</string>
+    <string name="events_join_link_action">Use an invite link instead</string>
+    <string name="events_join_error_invalid_credentials">Check the group ID and access code, then try again</string>
+    <string name="events_join_error_invalid_token">Invalid link</string>
+    <string name="events_join_error_expired_token">This link has expired. Ask for a new link or use the group ID and access code</string>
+
+    <string name="events_choose_person_title">Your place in the group</string>
+    <string name="events_choose_person_heading">Which name is yours?</string>
+    <string name="events_choose_person_guidance">Choose your name to see your share and balance</string>
+    <string name="events_empty_state">No participants available</string>
+    <string name="events_error_state">Failed to load group details</string>
+
+    <string name="events_participants_title">Participants</string>
+    <string name="events_participants_label">People to add</string>
+    <string name="events_person_name_placeholder">Name</string>
+    <string name="events_add_participant">Add participant</string>
+    <string name="events_continue_button">Add people</string>
+
     <string name="events_delete_event_title">Delete event "%1$s"?</string>
     <string name="events_delete_event_body">All event's data will be removed.\nNote that the event will only be removed from the server if an internet connection is available</string>
     <string name="events_delete_event">Delete event</string>
     <string name="events_keep_event">Keep event</string>
-    <string name="events_your">Yours</string>
     <string name="events_delete_event_offline_message">We couldn't reach the server</string>
     <string name="events_delete_local_only">Remove local copy</string>
     <string name="events_delete_everywhere">Delete everywhere</string>

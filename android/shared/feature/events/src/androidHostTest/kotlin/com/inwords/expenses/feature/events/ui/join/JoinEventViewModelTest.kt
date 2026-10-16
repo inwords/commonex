@@ -9,12 +9,15 @@ import com.inwords.expenses.feature.events.domain.model.Currency
 import com.inwords.expenses.feature.events.domain.model.Event
 import com.inwords.expenses.feature.events.domain.model.EventDetails
 import com.inwords.expenses.feature.events.domain.model.Person
+import com.inwords.expenses.feature.events.ui.join_invitation.JoinInvitationPaneDestination
 import com.ionspin.kotlin.bignum.decimal.BigDecimal
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.justRun
 import io.mockk.mockk
 import io.mockk.verify
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -80,7 +83,7 @@ internal class JoinEventViewModelTest {
             val initial = awaitItem()
             assertEquals("", initial.eventId)
             assertEquals("", initial.eventAccessCode)
-            val _ = assertIs<JoinEventPaneUiModel.EventJoiningState.None>(initial.joining)
+            val _ = assertIs<JoinEventPaneUiModel.EventJoiningState.None>(initial.joiningState)
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -162,7 +165,7 @@ internal class JoinEventViewModelTest {
             cancelAndIgnoreRemainingEvents()
         }
         val state = viewModel.state.value
-        val joining = assertIs<JoinEventPaneUiModel.EventJoiningState.Error>(state.joining)
+        val joining = assertIs<JoinEventPaneUiModel.EventJoiningState.Error>(state.joiningState)
         assertEquals("error_message", joining.message)
     }
 
@@ -178,7 +181,7 @@ internal class JoinEventViewModelTest {
         advanceUntilIdle()
 
         coVerify(exactly = 0) { joinEventUseCase.joinEvent(any(), any(), any()) }
-        assertIs<JoinEventPaneUiModel.EventJoiningState.None>(viewModel.state.value.joining)
+        assertIs<JoinEventPaneUiModel.EventJoiningState.None>(viewModel.state.value.joiningState)
     }
 
     @Test
@@ -193,7 +196,84 @@ internal class JoinEventViewModelTest {
         advanceUntilIdle()
 
         coVerify(exactly = 0) { joinEventUseCase.joinEvent(any(), any(), any()) }
-        assertIs<JoinEventPaneUiModel.EventJoiningState.None>(viewModel.state.value.joining)
+        assertIs<JoinEventPaneUiModel.EventJoiningState.None>(viewModel.state.value.joiningState)
+    }
+
+    @Test
+    fun onConfirmClicked_whileJoining_keepsOneRequestAndItsCredentials() = runTest {
+        val joining = CompletableDeferred<JoinEventResult>()
+        coEvery { joinEventUseCase.joinEvent(any(), any(), any()) } coAnswers { joining.await() }
+        val viewModel = createViewModel(viewModelScope = backgroundScope)
+        viewModel.onEventIdChanged("01ABC")
+        viewModel.onEventAccessCodeChanged("1234")
+
+        viewModel.onConfirmClicked()
+        viewModel.onConfirmClicked()
+        viewModel.onEventIdChanged("99XYZ")
+        viewModel.onEventAccessCodeChanged("5678")
+        viewModel.onUseInvitationClicked()
+        runCurrent()
+
+        assertIs<JoinEventPaneUiModel.EventJoiningState.Joining>(viewModel.state.value.joiningState)
+        assertEquals("01ABC", viewModel.state.value.eventId)
+        assertEquals("1234", viewModel.state.value.eventAccessCode)
+        coVerify(exactly = 1) { joinEventUseCase.joinEvent("01ABC", "1234", null) }
+        verify(exactly = 0) {
+            navigationController.navigateTo(JoinInvitationPaneDestination, JoinInvitationPaneDestination, true)
+        }
+
+        joining.complete(JoinEventResult.Error.InvalidAccessCode)
+        runCurrent()
+        viewModel.onEventAccessCodeChanged("5678")
+        assertIs<JoinEventPaneUiModel.EventJoiningState.None>(viewModel.state.value.joiningState)
+        assertEquals("5678", viewModel.state.value.eventAccessCode)
+    }
+
+    @Test
+    fun initialToken_autoJoinsWithoutAnAccessCode() = runTest {
+        coEvery { joinEventUseCase.joinEvent(any(), any(), any()) } returns JoinEventResult.Error.InvalidToken
+        createViewModel(initialEventId = "01ABC", initialToken = "abc123", viewModelScope = backgroundScope)
+        runCurrent()
+
+        coVerify(exactly = 1) { joinEventUseCase.joinEvent("01ABC", null, "abc123") }
+    }
+
+    @Test
+    fun onUseInvitationClicked_navigatesToInvitationEntry() = runTest {
+        val viewModel = createViewModel(viewModelScope = backgroundScope)
+        viewModel.onUseInvitationClicked()
+
+        verify {
+            navigationController.navigateTo(JoinInvitationPaneDestination, JoinInvitationPaneDestination, true)
+        }
+    }
+
+    @Test
+    fun onConfirmClicked_cancelledOperation_clearsLoadingAndAllowsRetry() = runTest {
+        coEvery { joinEventUseCase.joinEvent(any(), any(), any()) } throws CancellationException("join cancelled")
+        val viewModel = createViewModel(viewModelScope = backgroundScope)
+        viewModel.onEventIdChanged("01ABC")
+        viewModel.onEventAccessCodeChanged("1234")
+        viewModel.onConfirmClicked()
+        runCurrent()
+
+        assertIs<JoinEventPaneUiModel.EventJoiningState.None>(viewModel.state.value.joiningState)
+        coEvery { joinEventUseCase.joinEvent(any(), any(), any()) } returns JoinEventResult.Error.InvalidAccessCode
+        viewModel.onEventAccessCodeChanged("5678")
+        viewModel.onConfirmClicked()
+        runCurrent()
+
+        coVerify { joinEventUseCase.joinEvent("01ABC", "5678", null) }
+        assertIs<JoinEventPaneUiModel.EventJoiningState.Error>(viewModel.state.value.joiningState)
+    }
+
+    @Test
+    fun initialAccessCode_autoJoinsWithoutAToken() = runTest {
+        coEvery { joinEventUseCase.joinEvent(any(), any(), any()) } returns JoinEventResult.Error.InvalidAccessCode
+        createViewModel(initialEventId = "01ABC", initialPinCode = "1234", viewModelScope = backgroundScope)
+        runCurrent()
+
+        coVerify(exactly = 1) { joinEventUseCase.joinEvent("01ABC", "1234", null) }
     }
 
     @Test

@@ -13,32 +13,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import expenses.shared.feature.events.generated.resources.Res
 import expenses.shared.feature.events.generated.resources.events_access_code_placeholder
 import expenses.shared.feature.events.generated.resources.events_id_placeholder
-import expenses.shared.feature.events.generated.resources.events_name_placeholder
-import expenses.shared.feature.events.generated.resources.events_person_name_placeholder
 import org.jetbrains.compose.resources.stringResource
-
-@Composable
-internal fun EventNameField(
-    eventName: String,
-    onEventNameChanged: (String) -> Unit,
-    onDone: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    OutlinedTextField(
-        modifier = modifier,
-        value = eventName,
-        onValueChange = onEventNameChanged,
-        label = { Text(stringResource(Res.string.events_name_placeholder)) },
-        singleLine = true,
-        textStyle = MaterialTheme.typography.headlineMedium,
-        keyboardActions = KeyboardActions(onDone = { onDone() }),
-        keyboardOptions = KeyboardOptions(
-            capitalization = KeyboardCapitalization.Sentences,
-            keyboardType = KeyboardType.Text,
-            imeAction = ImeAction.Done
-        )
-    )
-}
 
 @Composable
 internal fun EventIdField(
@@ -46,7 +21,6 @@ internal fun EventIdField(
     onEventIdChanged: (String) -> Unit,
     enabled: Boolean,
     modifier: Modifier = Modifier,
-    isError: Boolean = false,
 ) {
     OutlinedTextField(
         modifier = modifier,
@@ -54,9 +28,8 @@ internal fun EventIdField(
         onValueChange = onEventIdChanged,
         label = { Text(stringResource(Res.string.events_id_placeholder)) },
         enabled = enabled,
-        isError = isError,
         singleLine = true,
-        textStyle = MaterialTheme.typography.headlineMedium,
+        textStyle = MaterialTheme.typography.bodyLarge,
         keyboardOptions = KeyboardOptions(
             keyboardType = KeyboardType.Text,
             capitalization = KeyboardCapitalization.Characters,
@@ -73,7 +46,6 @@ internal fun EventAccessCodeField(
     onDone: () -> Unit,
     enabled: Boolean,
     modifier: Modifier = Modifier,
-    isError: Boolean = false
 ) {
     OutlinedTextField(
         modifier = modifier,
@@ -81,9 +53,8 @@ internal fun EventAccessCodeField(
         onValueChange = onEventAccessCodeChanged,
         label = { Text(stringResource(Res.string.events_access_code_placeholder)) },
         enabled = enabled,
-        isError = isError,
         singleLine = true,
-        textStyle = MaterialTheme.typography.headlineMedium,
+        textStyle = MaterialTheme.typography.bodyLarge,
         keyboardActions = KeyboardActions(onDone = { onDone.invoke() }),
         keyboardOptions = KeyboardOptions(
             keyboardType = KeyboardType.NumberPassword,
@@ -96,18 +67,21 @@ internal fun EventAccessCodeField(
 @Composable
 internal fun PersonNameField(
     participantName: String,
+    labelText: String,
     imeAction: ImeAction,
     onParticipantNameChanged: (String) -> Unit,
+    onImeAction: () -> Unit,
+    enabled: Boolean,
     modifier: Modifier = Modifier,
-    onImeAction: () -> Unit = {},
 ) {
     OutlinedTextField(
         modifier = modifier,
         value = participantName,
         onValueChange = onParticipantNameChanged,
-        label = { Text(stringResource(Res.string.events_person_name_placeholder)) },
+        label = { Text(labelText) },
+        enabled = enabled,
         singleLine = true,
-        textStyle = MaterialTheme.typography.headlineMedium,
+        textStyle = MaterialTheme.typography.bodyLarge,
         keyboardActions = KeyboardActions(onAny = { onImeAction.invoke() }),
         keyboardOptions = KeyboardOptions(
             capitalization = KeyboardCapitalization.Words,

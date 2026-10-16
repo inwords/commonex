@@ -3,7 +3,7 @@ package com.inwords.expenses.feature.events.ui.join
 internal data class JoinEventPaneUiModel(
     val eventId: String,
     val eventAccessCode: String,
-    val joining: EventJoiningState,
+    val joiningState: EventJoiningState,
 ) {
 
     sealed interface EventJoiningState {

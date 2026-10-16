@@ -61,6 +61,10 @@ app/src/androidTest/kotlin/ru/commonex/
 
 ### Key Patterns
 
+- Keep screen objects stateless. Drive known routes through explicit screen transitions; an input method must not infer its route from node-presence probes or navigate to another pane implicitly.
+- Follow neighboring tests' style and reuse existing APIs and helpers. Introduce another API or abstraction only for a concrete unmet need.
+- Rely on Compose synchronization and existing wait defaults; wait at actual asynchronous boundaries. Diagnose failures before adding fallback branches, retries, or longer timeouts. Temporary dependency outages do not justify changing test behavior; validate independent paths and report blocked scenarios.
+
 1. **Context receivers for ComposeTestRule:** Screen methods use `context(rule: ComposeTestRule)` to access the test rule without explicit parameter passing:
    ```kotlin
    context(rule: ComposeTestRule)

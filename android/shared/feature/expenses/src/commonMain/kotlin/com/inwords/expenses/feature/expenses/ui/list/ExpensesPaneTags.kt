@@ -4,6 +4,9 @@ object ExpensesPaneTags {
 
     const val TOP_APP_BAR = "expenses_top_app_bar"
     const val MENU_BUTTON = "expenses_menu_button"
+    const val EMPTY_STATE = "expenses_empty_state"
+    const val ADD_EXPENSE_BUTTON = "expenses_add_expense_button"
+    const val INVITE_BUTTON = "expenses_invite_button"
     const val TIMELINE_LIST = "expenses_timeline_list"
     const val TOTAL_SPENDING_VALUE = "expenses_total_spending_value"
     const val DAY_CHIPS_ROW = "expenses_day_chips_row"

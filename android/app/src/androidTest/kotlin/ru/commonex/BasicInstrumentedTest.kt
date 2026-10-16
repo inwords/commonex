@@ -17,8 +17,8 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.RuleChain
 import org.junit.runner.RunWith
-import ru.commonex.screens.AddPersonsScreen
 import ru.commonex.screens.ChoosePersonScreen
+import ru.commonex.screens.CreateEventScreen
 import ru.commonex.screens.ExpensesScreen
 import ru.commonex.screens.LocalEventsScreen
 import ru.commonex.screens.MenuDialogScreen
@@ -44,7 +44,8 @@ class BasicInstrumentedTest {
     /**
      * Tests the complete event creation and expenses flow:
      * - Create event with multiple participants
-     * - Add expense with equal split (default)
+     * - Reach the first-expense prompt and use its action to add an equal-split expense
+     * - Verify the expense timeline replaces the first-expense prompt
      * - Add expense with custom split
      * - Open expense details pane and verify key sections/values
      * - Cancel an expense and verify revert entry
@@ -60,13 +61,12 @@ class BasicInstrumentedTest {
             .clickCreateEvent()
             .enterEventName(eventName)
             .selectCurrency("Euro")
-            .clickContinueButton()
             .enterOwnerName("Test User 1")
-            .addParticipant("Test User 2")
-            .addParticipant("Test User 3")
-            .clickContinueButton()
+            .addParticipant(index = 0, name = "Test User 2")
+            .addParticipant(index = 1, name = "Test User 3")
+            .createEvent()
             .waitUntilLoadedEmpty()
-            .verifyCurrentPerson(eventName, "Test User 1")
+            .verifyCurrentPersonInEmptyEvent(eventName, "Test User 1")
 
         // Add first expense (equal split - default)
         expensesScreen
@@ -75,6 +75,7 @@ class BasicInstrumentedTest {
             .enterAmount("120")
             .clickConfirm()
             .verifyExpenseAmount("-120")
+            .verifyTimelineReplacesEmptyState()
 
         // Add second expense with non-equal split
         expensesScreen
@@ -201,6 +202,7 @@ class BasicInstrumentedTest {
     fun testJoinExistingEvent() = composeRule.runTest {
         LocalEventsScreen()
             .clickJoinEvent()
+            .openManualEntry()
             .joinEvent("01JYC8BX30EKQYWBRTPKVX6S26", Base64.decode("NTc=").decodeToString() + Base64.decode("NTQ=").decodeToString()) // FIXME: costyl
             .waitUntilLoaded("Test User 2")
             .selectPerson("Test User 2")
@@ -237,7 +239,7 @@ class BasicInstrumentedTest {
             .waitUntilLoaded("Test User 1")
             .selectPerson("Test User 1")
             .waitUntilLoadedEmpty()
-            .verifyCurrentPerson(eventName, "Test User 1")
+            .verifyCurrentPersonInEmptyEvent(eventName, "Test User 1")
     }
 
     /**
@@ -278,7 +280,7 @@ class BasicInstrumentedTest {
             .waitUntilLoaded("Test User 1")
             .selectPerson("Test User 1")
             .waitUntilLoadedEmpty()
-            .verifyCurrentPerson(eventName, "Test User 1")
+            .verifyCurrentPersonInEmptyEvent(eventName, "Test User 1")
     }
 
     /**
@@ -330,7 +332,7 @@ class BasicInstrumentedTest {
             .clickDeleteLocalOnly()
             .assertEventNotExists(event2)
             // Verify empty state after all events deleted
-            .assertCreateJoinDescriptionVisible()
+            .assertWelcomeVisible()
     }
 
     /**
@@ -386,7 +388,7 @@ class BasicInstrumentedTest {
             // Confirm deletion in dialog
             .confirmDeletion()
             .assertEventNotExists(eventName)
-            .assertCreateJoinDescriptionVisible()
+            .assertWelcomeVisible()
     }
 
     /**
@@ -435,7 +437,7 @@ class BasicInstrumentedTest {
             .addParticipant("New Test User 2")
             .clickContinueButton()
             .waitUntilLoadedEmpty()
-            .verifyCurrentPerson(eventName, "Test User 1")
+            .verifyCurrentPersonInEmptyEvent(eventName, "Test User 1")
 
         // Verify new participants can be selected
         ExpensesScreen()
@@ -444,7 +446,7 @@ class BasicInstrumentedTest {
             .waitUntilLoaded("Test User 1")
             .selectPerson("New Test User 1")
             .waitUntilLoadedEmpty()
-            .verifyCurrentPerson(eventName, "New Test User 1")
+            .verifyCurrentPersonInEmptyEvent(eventName, "New Test User 1")
 
         ExpensesScreen()
             .openMenu()
@@ -452,7 +454,7 @@ class BasicInstrumentedTest {
             .waitUntilLoaded("New Test User 1")
             .selectPerson("New Test User 2")
             .waitUntilLoadedEmpty()
-            .verifyCurrentPerson(eventName, "New Test User 2")
+            .verifyCurrentPersonInEmptyEvent(eventName, "New Test User 2")
 
         // Verify that an equal expense can be added successfully after new participants are added
         ExpensesScreen()
@@ -467,31 +469,31 @@ class BasicInstrumentedTest {
      * Tests create-event state restoration as one coherent flow:
      * - Open create event
      * - Enter event name and choose a non-default primary currency
-     * - Continue to add participants
-     * - Recreate the activity while on the add-participants screen
+     * - Enter the creator and another participant on the same setup form
+     * - Recreate the activity and verify the complete draft is retained
      * - Finish creating the event
      * - Add an expense and verify it inherits the originally selected event currency
      */
     @Test
-    fun testCreateEventSurvivesActivityRecreationBetweenSteps() = composeRule.runTest {
+    fun testCreateEventSurvivesActivityRecreationWithCompleteDraft() = composeRule.runTest {
         val eventName = "Recreated Event"
         val expenseDescription = "Restored currency expense"
 
         LocalEventsScreen()
             .clickCreateEvent()
             .enterEventName(eventName)
+            .enterOwnerName("Test User 1")
+            .addParticipant(index = 0, name = "Test User 2")
             .selectCurrency("Japanese Yen")
-            .clickContinueButton()
-            .waitUntilLoaded()
 
         recreateActivity()
 
-        AddPersonsScreen()
+        CreateEventScreen()
             .waitUntilLoaded()
-            .enterOwnerName("Test User 1")
-            .clickContinueButton()
+            .verifyDraft(eventName, "Test User 1", "Test User 2")
+            .createEvent()
             .waitUntilLoadedEmpty()
-            .verifyCurrentPerson(eventName, "Test User 1")
+            .verifyCurrentPersonInEmptyEvent(eventName, "Test User 1")
             .clickAddExpense()
             .enterDescription(expenseDescription)
             .enterAmount("10")
@@ -541,9 +543,8 @@ class BasicInstrumentedTest {
             .clickCreateEvent()
             .enterEventName(eventName)
             .selectCurrency("Euro")
-            .clickContinueButton()
             .enterOwnerName("Test User 1")
-            .clickContinueButton()
+            .createEvent()
             .waitUntilLoadedEmpty()
     }
 

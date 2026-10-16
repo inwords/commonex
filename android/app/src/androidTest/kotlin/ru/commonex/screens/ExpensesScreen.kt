@@ -1,7 +1,6 @@
 package ru.commonex.screens
 
 import androidx.compose.ui.semantics.SemanticsProperties
-import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -14,20 +13,17 @@ import com.inwords.expenses.feature.expenses.ui.list.ExpensesPaneTags
 import expenses.shared.feature.events.generated.resources.events_info_with_person
 import expenses.shared.feature.expenses.generated.resources.Res
 import expenses.shared.feature.expenses.generated.resources.expenses_details
-import expenses.shared.feature.expenses.generated.resources.expenses_none
-import expenses.shared.feature.expenses.generated.resources.expenses_operation
+import expenses.shared.feature.expenses.generated.resources.expenses_first_identity
 import expenses.shared.feature.expenses.generated.resources.expenses_revert_description
 import org.jetbrains.compose.resources.getString
 import kotlin.math.abs
 import expenses.shared.feature.events.generated.resources.Res as EventsRes
 
-@OptIn(ExperimentalTestApi::class)
 internal class ExpensesScreen : BaseScreen() {
 
     context(rule: ComposeTestRule)
-    suspend fun waitUntilLoadedEmpty(): ExpensesScreen {
-        val noneLabel = getString(Res.string.expenses_none)
-        waitForElementWithText(noneLabel)
+    fun waitUntilLoadedEmpty(): ExpensesScreen {
+        waitForElementWithTag(ExpensesPaneTags.EMPTY_STATE)
         return this
     }
 
@@ -40,10 +36,27 @@ internal class ExpensesScreen : BaseScreen() {
     }
 
     context(rule: ComposeTestRule)
-    suspend fun clickAddExpense(): AddExpenseScreen {
-        val operationLabel = getString(Res.string.expenses_operation)
-        rule.onNodeWithText(operationLabel).performClick()
+    suspend fun verifyCurrentPersonInEmptyEvent(eventName: String, personName: String): ExpensesScreen {
+        val identityText = getString(Res.string.expenses_first_identity, personName)
+        waitForElementWithText(eventName)
+        assertElementWithTextExists(eventName)
+        assertElementWithTextExists(identityText)
+        return this
+    }
+
+    context(rule: ComposeTestRule)
+    fun clickAddExpense(): AddExpenseScreen {
+        waitForElementWithTag(ExpensesPaneTags.ADD_EXPENSE_BUTTON)
+        rule.onNodeWithTag(ExpensesPaneTags.ADD_EXPENSE_BUTTON).performClick()
         return AddExpenseScreen()
+    }
+
+    context(rule: ComposeTestRule)
+    fun verifyTimelineReplacesEmptyState(): ExpensesScreen {
+        waitForElementWithTagDoesNotExist(ExpensesPaneTags.EMPTY_STATE)
+        waitForElementWithTag(ExpensesPaneTags.TIMELINE_LIST)
+        rule.onNodeWithTag(ExpensesPaneTags.TIMELINE_LIST).assertIsDisplayed()
+        return this
     }
 
     context(rule: ComposeTestRule)

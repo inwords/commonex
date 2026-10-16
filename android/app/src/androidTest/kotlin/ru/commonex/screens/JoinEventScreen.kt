@@ -1,40 +1,33 @@
 package ru.commonex.screens
 
 import androidx.compose.ui.test.junit4.ComposeTestRule
-import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
-import expenses.shared.feature.events.generated.resources.Res
-import expenses.shared.feature.events.generated.resources.events_access_code_placeholder
-import expenses.shared.feature.events.generated.resources.events_id_placeholder
-import expenses.shared.feature.events.generated.resources.events_participants_title
-import org.jetbrains.compose.resources.getString
 
 internal class JoinEventScreen : BaseScreen() {
 
     context(rule: ComposeTestRule)
-    suspend fun enterEventId(eventId: String): JoinEventScreen {
-        val idLabel = getString(Res.string.events_id_placeholder)
-        rule.onNodeWithText(idLabel).performTextInput(eventId)
+    fun enterEventId(eventId: String): JoinEventScreen {
+        rule.onNodeWithTag("events_join_id").performScrollTo().performTextInput(eventId)
         return this
     }
 
     context(rule: ComposeTestRule)
-    suspend fun enterAccessCode(accessCode: String): JoinEventScreen {
-        val accessCodeLabel = getString(Res.string.events_access_code_placeholder)
-        rule.onNodeWithText(accessCodeLabel).performTextInput(accessCode)
+    fun enterAccessCode(accessCode: String): JoinEventScreen {
+        rule.onNodeWithTag("events_join_access_code").performScrollTo().performTextInput(accessCode)
         return this
     }
 
     context(rule: ComposeTestRule)
-    suspend fun clickConfirmButton(): ChoosePersonScreen {
-        val participantsLabel = getString(Res.string.events_participants_title)
-        rule.onNodeWithText(participantsLabel).performClick()
+    fun clickConfirmButton(): ChoosePersonScreen {
+        rule.onNodeWithTag("events_join_confirm").performScrollTo().performClick()
         return ChoosePersonScreen()
     }
 
     context(rule: ComposeTestRule)
-    suspend fun joinEvent(eventId: String, accessCode: String): ChoosePersonScreen {
+    fun joinEvent(eventId: String, accessCode: String): ChoosePersonScreen {
         enterEventId(eventId)
         enterAccessCode(accessCode)
         return clickConfirmButton()

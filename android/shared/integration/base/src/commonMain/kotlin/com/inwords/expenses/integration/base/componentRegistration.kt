@@ -151,6 +151,7 @@ private fun buildExpensesComponent(
             override val getCurrentEventStateUseCaseLazy get() = eventsComponent.value.getCurrentEventStateUseCaseLazy
             override val getEventsUseCaseLazy get() = eventsComponent.value.getEventsUseCaseLazy
             override val joinEventUseCaseLazy get() = eventsComponent.value.joinEventUseCaseLazy
+            override val leaveEventUseCaseLazy get() = eventsComponent.value.leaveEventUseCaseLazy
             override val deleteEventUseCaseLazy get() = eventsComponent.value.deleteEventUseCaseLazy
 
             override val eventDeletionStateManagerLazy get() = eventsComponent.value.eventDeletionStateManagerLazy
@@ -169,7 +170,7 @@ private fun buildMenuComponent(
         deps = object : MenuComponent.Deps {
             override val getCurrentEventStateUseCaseLazy get() = eventsComponent.value.getCurrentEventStateUseCaseLazy
             override val leaveEventUseCaseLazy get() = eventsComponent.value.leaveEventUseCaseLazy
-            override val createShareTokenUseCaseLazy get() = eventsComponent.value.createShareTokenUseCaseLazy
+            override val createEventInvitationUseCaseLazy get() = eventsComponent.value.createEventInvitationUseCaseLazy
 
             override val shareManagerLazy get() = context.shareComponent.value.shareManagerLazy
         }

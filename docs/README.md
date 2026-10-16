@@ -2,7 +2,7 @@
 
 Use these docs as the primary starting points for repo-wide knowledge:
 
-- [domain.md](domain.md) - Product model, core entities, domain rules, and client/domain alignment notes.
+- [domain.md](domain.md) - Product vocabulary, core entities and roles, domain rules, and client/domain alignment notes.
 - [network-contracts.md](network-contracts.md) - Shared HTTP and transport behavior across backend, web, and mobile clients.
 - [agent-workflows.md](agent-workflows.md) - The default Architect -> Plan -> Code -> Evaluate -> Review -> Refine -> Report workflow for non-trivial tasks.
 - [../infra/CONTEXT.md](../infra/CONTEXT.md) - Canonical production-delivery language for releases, activations, retained releases, and deployments.
