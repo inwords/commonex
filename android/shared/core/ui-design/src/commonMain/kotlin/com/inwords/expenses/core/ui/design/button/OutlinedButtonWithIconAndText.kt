@@ -31,6 +31,7 @@ fun OutlinedButtonWithIconAndText(
 ) {
     OutlinedButton(
         onClick = onClick,
+        shapes = ButtonDefaults.shapes(),
         enabled = enabled,
         modifier = modifier.heightIn(min = minHeight),
         contentPadding = ButtonDefaults.contentPaddingFor(minHeight),
@@ -76,7 +77,6 @@ private fun ButtonWithIconAndTextEnabledPreview() {
     }
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Preview
 @Composable
 private fun ButtonWithIconAndTextMediumEnabledPreview() {
