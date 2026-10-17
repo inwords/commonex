@@ -20,6 +20,8 @@ kotlin {
             dependencies {
                 implementation(project(":shared:core:ui-utils"))
 
+                implementation(shared.coroutines.core)
+
                 implementation(shared.compose.ui.multiplatform)
                 implementation(shared.compose.foundation.multiplatform)
                 implementation(shared.compose.material3.multiplatform)

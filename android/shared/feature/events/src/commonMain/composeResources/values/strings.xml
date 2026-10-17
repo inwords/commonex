@@ -27,6 +27,7 @@
     <string name="events_setup_add_participants">Add people (optional)</string>
     <string name="events_setup_add_person">Add person</string>
     <string name="events_setup_currency_label">Balances in</string>
+    <string name="events_setup_currency_picker_title">Group currency</string>
     <string name="events_create_event_button">Create group</string>
     <string name="events_creating_event">Creating your group…</string>
 

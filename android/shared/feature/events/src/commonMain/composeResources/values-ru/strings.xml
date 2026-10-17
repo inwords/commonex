@@ -27,6 +27,7 @@
     <string name="events_setup_add_participants">Добавить участников (необязательно)</string>
     <string name="events_setup_add_person">Добавить участника</string>
     <string name="events_setup_currency_label">Валюта расчётов</string>
+    <string name="events_setup_currency_picker_title">Валюта группы</string>
     <string name="events_create_event_button">Создать группу</string>
     <string name="events_creating_event">Создаём вашу группу…</string>
 
