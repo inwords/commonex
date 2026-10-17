@@ -22,11 +22,7 @@ import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.ExposedDropdownMenuAnchorType
-import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
@@ -40,6 +36,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -55,6 +52,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.inwords.expenses.core.ui.design.appbar.TopAppBarWithNavIconAndText
 import com.inwords.expenses.core.ui.design.button.ButtonWithIconAndText
+import com.inwords.expenses.core.ui.design.selection.SingleChoiceBottomSheet
+import com.inwords.expenses.core.ui.design.selection.SingleChoiceOption
 import com.inwords.expenses.core.ui.design.theme.CommonExTheme
 import com.inwords.expenses.feature.events.ui.common.PersonNameField
 import com.inwords.expenses.feature.events.ui.create.CreateEventPaneUiModel.CurrencyInfoUiModel
@@ -68,6 +67,7 @@ import expenses.shared.feature.events.generated.resources.events_person_name_pla
 import expenses.shared.feature.events.generated.resources.events_setup_add_participants
 import expenses.shared.feature.events.generated.resources.events_setup_add_person
 import expenses.shared.feature.events.generated.resources.events_setup_currency_label
+import expenses.shared.feature.events.generated.resources.events_setup_currency_picker_title
 import expenses.shared.feature.events.generated.resources.events_setup_event_example
 import expenses.shared.feature.events.generated.resources.events_setup_heading
 import expenses.shared.feature.events.generated.resources.events_your_name_label
@@ -245,7 +245,6 @@ internal fun CreateEventPane(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun SetupCurrencyField(
     currencies: List<CurrencyInfoUiModel>,
@@ -253,69 +252,64 @@ private fun SetupCurrencyField(
     onCurrencyClicked: (CurrencyInfoUiModel) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var expanded by remember { mutableStateOf(false) }
+    var isCurrencyPickerVisible by rememberSaveable { mutableStateOf(false) }
     val isEnabled = enabled && currencies.isNotEmpty()
-    ExposedDropdownMenuBox(
-        modifier = modifier.fillMaxWidth(),
-        expanded = expanded,
-        onExpandedChange = {
-            if (isEnabled) {
-                expanded = it
-            }
-        },
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .testTag("events_create_currency"),
+        onClick = { isCurrencyPickerVisible = true },
+        enabled = isEnabled,
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
     ) {
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            shape = MaterialTheme.shapes.large,
-            color = MaterialTheme.colorScheme.surfaceContainerLow,
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 48.dp)
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = isEnabled)
-                    .testTag("events_create_currency")
-                    .heightIn(min = 48.dp)
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = stringResource(Res.string.events_setup_currency_label),
-                    style = MaterialTheme.typography.bodyLarge,
-                    modifier = Modifier.weight(1f),
-                )
-                Text(
-                    text = currencies.firstOrNull { it.selected }?.currencyCode.orEmpty(),
-                    style = MaterialTheme.typography.titleMedium,
-                )
-                val iconRotation by animateFloatAsState(
-                    targetValue = if (expanded) 180f else 0f,
-                    animationSpec = MaterialTheme.motionScheme.fastSpatialSpec(),
-                )
-                Icon(
-                    imageVector = Icons.Filled.ArrowDropDown,
-                    contentDescription = null,
-                    modifier = Modifier.graphicsLayer { rotationZ = iconRotation },
-                )
-            }
+            Text(
+                text = stringResource(Res.string.events_setup_currency_label),
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.weight(1f),
+            )
+            Text(
+                text = currencies.firstOrNull { it.selected }?.currencyCode.orEmpty(),
+                style = MaterialTheme.typography.titleMedium,
+            )
+            val iconRotation by animateFloatAsState(
+                targetValue = if (isCurrencyPickerVisible) 180f else 0f,
+                animationSpec = MaterialTheme.motionScheme.fastSpatialSpec(),
+            )
+            Icon(
+                imageVector = Icons.Filled.ArrowDropDown,
+                contentDescription = null,
+                modifier = Modifier.graphicsLayer { rotationZ = iconRotation },
+            )
         }
-        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            currencies.forEach { currency ->
-                DropdownMenuItem(
-                    text = { Text("${currency.currencyCode} · ${currency.currencyName}") },
-                    modifier = Modifier.testTag("events_currency_${currency.currencyCode}"),
-                    onClick = {
-                        onCurrencyClicked(currency)
-                        expanded = false
-                    },
-                    leadingIcon = if (currency.selected) {
-                        { Icon(imageVector = Icons.Outlined.Check, contentDescription = null) }
-                    } else {
-                        null
-                    },
-                )
-            }
-        }
+    }
+    if (isCurrencyPickerVisible) {
+        SingleChoiceBottomSheet(
+            modifier = Modifier.testTag("events_currency_picker"),
+            title = stringResource(Res.string.events_setup_currency_picker_title),
+            options = remember(currencies) {
+                currencies.map { currency ->
+                    SingleChoiceOption(
+                        key = currency.currencyCode,
+                        text = currency.currencyCode,
+                        supportingText = currency.currencyName,
+                        selected = currency.selected,
+                        payload = currency,
+                        testTag = "events_currency_${currency.currencyCode}",
+                    )
+                }
+            },
+            onOptionClicked = onCurrencyClicked,
+            onDismissRequest = { isCurrencyPickerVisible = false },
+        )
     }
 }
 

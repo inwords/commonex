@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="common_close">Закрыть</string>
+
     <string name="error_other">Что-то пошло не так. Пожалуйста, попробуйте позже</string>
 
     <string name="agree_by_continuing">Продолжая, вы соглашаетесь с нашими</string>
