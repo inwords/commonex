@@ -1,11 +1,9 @@
 package com.inwords.expenses.feature.expenses.ui.add
 
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
-import com.inwords.expenses.core.navigation.BottomSheetSceneStrategy.Companion.bottomSheet
 import com.inwords.expenses.core.navigation.Destination
 import com.inwords.expenses.core.navigation.NavModule
 import com.inwords.expenses.core.navigation.NavigationController
@@ -32,12 +30,11 @@ data class AddExpensePaneDestination(
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 internal fun ExpensesComponent.getAddExpensePaneNavModule(
     navigationController: NavigationController,
 ): NavModule {
     return NavModule(AddExpensePaneDestination.serializer()) {
-        entry<AddExpensePaneDestination>(metadata = bottomSheet()) { key ->
+        entry<AddExpensePaneDestination> { key ->
             val viewModel = viewModel<AddExpenseViewModel>(factory = viewModelFactory {
                 initializer {
                     AddExpenseViewModel(
@@ -62,6 +59,7 @@ internal fun ExpensesComponent.getAddExpensePaneNavModule(
                 onSplitAmountChanged = viewModel::onSplitAmountChanged,
                 onDescriptionChanged = viewModel::onDescriptionChanged,
                 onConfirmClicked = viewModel::onConfirmClicked,
+                onNavIconClicked = viewModel::onNavIconClicked,
             )
         }
     }

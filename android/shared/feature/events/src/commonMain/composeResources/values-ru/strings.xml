@@ -2,10 +2,16 @@
 <resources>
     <string name="common_back">Назад</string>
 
-    <string name="events_event">Группы</string>
-    <string name="events_info_with_person">%1$s — %2$s</string>
+    <string name="events_your_groups">Ваши группы</string>
+    <string name="events_not_synced_yet">Ещё не синхронизирована</string>
+    <string name="events_info_identity">Вы в группе: %1$s</string>
+    <plurals name="events_info_people">
+        <item quantity="one">· %1$d участник</item>
+        <item quantity="few">· %1$d участника</item>
+        <item quantity="many">· %1$d участников</item>
+        <item quantity="other">· %1$d участника</item>
+    </plurals>
 
-    <string name="events_your">Ваше</string>
     <string name="events_create">Создать группу</string>
     <string name="events_join">Присоединиться к группе</string>
 
@@ -29,7 +35,6 @@
     <string name="events_setup_currency_label">Валюта расчётов</string>
     <string name="events_setup_currency_picker_title">Валюта группы</string>
     <string name="events_create_event_button">Создать группу</string>
-    <string name="events_creating_event">Создаём вашу группу…</string>
 
     <string name="events_join_title">Присоединение к группе</string>
     <string name="events_join_event_button">Присоединиться</string>
@@ -49,16 +54,18 @@
     <string name="events_join_error_invalid_token">Недействительная ссылка</string>
     <string name="events_join_error_expired_token">Срок действия ссылки истёк. Попросите новую ссылку или используйте ID группы и код доступа</string>
 
-    <string name="events_choose_person_title">Вы в группе</string>
+    <string name="events_choose_person_title">Выберите своё имя</string>
     <string name="events_choose_person_heading">Кто вы в группе?</string>
     <string name="events_choose_person_guidance">Выберите своё имя, чтобы видеть свою долю и баланс</string>
+    <string name="events_choose_person_current">Текущее имя</string>
     <string name="events_empty_state">Нет доступных участников</string>
     <string name="events_error_state">Не удалось загрузить данные группы</string>
 
-    <string name="events_participants_title">Участники</string>
+    <string name="events_participants_title">Добавить участников</string>
+    <string name="events_add_people_guidance">Одно имя в каждом поле</string>
     <string name="events_participants_label">Новые участники</string>
     <string name="events_person_name_placeholder">Имя</string>
-    <string name="events_add_participant">Добавить участника</string>
+    <string name="events_add_people_another">Добавить ещё участника</string>
     <string name="events_continue_button">Добавить участников</string>
 
     <string name="events_delete_event_title">Удалить событие "%1$s"?</string>

@@ -13,9 +13,9 @@ For any Android Compose UI change (new or edited pane/screen/dialog/bottom sheet
 9. **Lazy vs Scroll Containers:** Use `LazyColumn` (or other lazy containers) for dynamic/unbounded collections. Use `verticalScroll` only for bounded short forms/details.
 10. **Overlay Semantics:** Use dialog for confirmation/critical interruption, and bottom sheet for contextual details/actions.
 11. **State Coverage:** Define and handle `Loading`/`Success`/`Error`/`Empty` states where applicable. No silent blank states.
-12. **Accessibility Semantics:** Interactive icons and controls must have meaningful semantics (including `contentDescription` where needed).
+12. **Accessibility Semantics:** Interactive icons and controls must have meaningful semantics (including `contentDescription` where needed). Mark section titles consistently with `heading()`; field labels and action text retain their own semantics.
 13. **Interaction Feedback:** Long-running actions must show progress and prevent duplicate taps while in progress.
-14. **Preview and Testability:** Complex panes must have previews and stable test tags/selectors for critical actions.
+14. **Preview and Testability:** New reusable composables and complex panes must have previews with representative data and relevant surrounding UI. Provide stable test tags/selectors for critical actions.
 15. **Typography Roles:** Use `MaterialTheme.typography` role styles (`display`, `headline`, `title`, `body`, `label`) instead of arbitrary text styles.
 16. **Type Scale Discipline:** Avoid hard-coded `sp` sizes and ad-hoc line heights/letter spacing unless required for a documented one-off design reason.
 17. **Readable Font Choices:** Prefer app theme font families optimized for UI readability; avoid decorative fonts in core task flows.
@@ -28,7 +28,7 @@ For any Android Compose UI change (new or edited pane/screen/dialog/bottom sheet
 24. **Elevation Strategy:** Prefer tonal elevation and component defaults; add shadow elevation only when depth separation is necessary.
 25. **Shadow Restraint:** Keep shadows subtle and consistent; avoid stacking multiple custom shadows that reduce clarity or legibility.
 26. **Minimum Touch Targets:** Interactive controls must remain at least `48dp x 48dp` touch size.
-27. **Motion Purpose and Control:** Use animation to support comprehension (state/visibility/layout transitions), not decoration. UX must remain clear when system animation scale is reduced or disabled.
+27. **Motion Purpose and Control:** Use animation to support comprehension (state/visibility/layout transitions), not decoration. Animate expansion indicators while they remain visible, including behind a modal sheet. UX must remain clear when system animation scale is reduced or disabled. Follow [optional-content animation](patterns.md#animating-optional-content) for entering/exiting sections.
 28. **Accessibility Traversal Order:** Keep logical reading order by default; when needed, explicitly control order with semantics (`isTraversalGroup`, `traversalIndex`) so screen-reader traversal matches visual intent.
 29. **Font Scaling Robustness:** UI must remain usable at high font scales (including Android nonlinear scaling up to 200%): no clipped/overlapped critical text and no blocked primary actions.
 30. **Localization in Compose:** Do not hardcode user-facing strings in UI code; use resource APIs (`stringResource`, `pluralStringResource`) and keep default resources complete.

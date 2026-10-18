@@ -130,13 +130,15 @@ fun <T> SingleChoiceBottomSheet(
                         Text(
                             text = option.text,
                             style = MaterialTheme.typography.titleMedium,
-                            modifier = Modifier.widthIn(min = 48.dp),
+                            modifier = if (option.supportingText == null) Modifier.weight(1f) else Modifier.widthIn(min = 48.dp),
                         )
-                        Text(
-                            text = option.supportingText,
-                            style = MaterialTheme.typography.bodyLarge,
-                            modifier = Modifier.weight(1f),
-                        )
+                        if (option.supportingText != null) {
+                            Text(
+                                text = option.supportingText,
+                                style = MaterialTheme.typography.bodyLarge,
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
                         if (option.selected) {
                             Icon(imageVector = Icons.Outlined.Check, contentDescription = null)
                         }

@@ -1,46 +1,48 @@
 package com.inwords.expenses.feature.expenses.ui.list
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.sizeIn
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Person
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material.icons.outlined.Share
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.inwords.expenses.core.ui.design.button.ButtonWithIconAndText
 import com.inwords.expenses.core.ui.design.theme.CommonExTheme
 import expenses.shared.feature.expenses.generated.resources.Res
 import expenses.shared.feature.expenses.generated.resources.expenses_first_action
-import expenses.shared.feature.expenses.generated.resources.expenses_first_body
-import expenses.shared.feature.expenses.generated.resources.expenses_first_created
 import expenses.shared.feature.expenses.generated.resources.expenses_first_details
 import expenses.shared.feature.expenses.generated.resources.expenses_first_expense_hint
 import expenses.shared.feature.expenses.generated.resources.expenses_first_identity
 import expenses.shared.feature.expenses.generated.resources.expenses_first_invite
 import expenses.shared.feature.expenses.generated.resources.expenses_first_invite_hint
-import expenses.shared.feature.expenses.generated.resources.expenses_first_title
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun FirstExpensePrompt(
     eventName: String,
@@ -54,142 +56,131 @@ internal fun FirstExpensePrompt(
     Column(
         modifier = modifier
             .testTag(ExpensesPaneTags.EMPTY_STATE)
-            .padding(24.dp),
-        verticalArrangement = Arrangement.SpaceBetween,
+            .padding(vertical = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(32.dp),
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(32.dp)) {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    text = eventName,
-                    style = MaterialTheme.typography.headlineLarge,
-                )
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Person,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                    )
-                    Text(
-                        text = pluralStringResource(Res.plurals.expenses_first_details, personCount, personCount, currencyCode),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                Text(
-                    text = stringResource(Res.string.expenses_first_identity, currentPersonName),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.testTag("expenses_current_person"),
-                )
-            }
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    text = stringResource(Res.string.expenses_first_title),
-                    style = MaterialTheme.typography.headlineMedium,
-                )
-                Text(
-                    text = stringResource(Res.string.expenses_first_body),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
-                ReadyStep(
-                    title = stringResource(Res.string.expenses_first_created),
-                    description = pluralStringResource(Res.plurals.expenses_first_details, personCount, personCount, currencyCode),
-                    step = 1,
-                )
-                ReadyStep(
-                    title = stringResource(Res.string.expenses_first_action),
-                    description = stringResource(Res.string.expenses_first_expense_hint),
-                    step = 2,
-                )
-                ReadyStep(
-                    title = stringResource(Res.string.expenses_first_invite),
-                    description = stringResource(Res.string.expenses_first_invite_hint),
-                    step = 3,
-                )
-            }
-        }
         Column(
-            modifier = Modifier.padding(top = 32.dp),
+            modifier = Modifier.padding(horizontal = 24.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            ButtonWithIconAndText(
-                onClick = onAddExpenseClick,
-                text = stringResource(Res.string.expenses_first_action),
-                imageVector = Icons.Outlined.Add,
-                minHeight = ButtonDefaults.MediumContainerHeight,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag(ExpensesPaneTags.ADD_EXPENSE_BUTTON),
+            Text(
+                text = eventName,
+                style = MaterialTheme.typography.headlineLarge,
+                modifier = Modifier.semantics { heading() },
             )
-            TextButton(
-                onClick = onInviteClick,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag(ExpensesPaneTags.INVITE_BUTTON),
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(stringResource(Res.string.expenses_first_invite))
+                Icon(
+                    imageVector = Icons.Outlined.Person,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                )
+                Text(
+                    text = pluralStringResource(
+                        resource = Res.plurals.expenses_first_details,
+                        personCount, personCount, currencyCode
+                    ),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Text(
+                text = stringResource(resource = Res.string.expenses_first_identity, currentPersonName),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.testTag("expenses_current_person"),
+            )
+        }
+        val inviteLabel = stringResource(Res.string.expenses_first_invite)
+        val textMeasurer = rememberTextMeasurer()
+        // Keep the shorter action title on one line before allowing two columns.
+        val minimumTileWidth = with(LocalDensity.current) {
+            textMeasurer.measure(inviteLabel, style = MaterialTheme.typography.titleLarge, softWrap = false).size.width.toDp()
+        } + 32.dp
+        BoxWithConstraints(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+        ) {
+            val isCompact = maxWidth < minimumTileWidth * 2 + 12.dp
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                maxItemsInEachRow = 2,
+            ) {
+                val tileModifier = if (isCompact) {
+                    Modifier.fillMaxWidth()
+                } else {
+                    Modifier
+                        .weight(1f)
+                        .widthIn(min = minimumTileWidth)
+                        .fillMaxRowHeight()
+                }
+                FirstExpenseActionCard(
+                    onClick = onAddExpenseClick,
+                    title = stringResource(Res.string.expenses_first_action),
+                    description = stringResource(Res.string.expenses_first_expense_hint),
+                    imageVector = Icons.Outlined.Add,
+                    isEmphasized = true,
+                    isCompact = isCompact,
+                    modifier = tileModifier.testTag(ExpensesPaneTags.ADD_EXPENSE_BUTTON),
+                )
+                FirstExpenseActionCard(
+                    onClick = onInviteClick,
+                    title = inviteLabel,
+                    description = stringResource(Res.string.expenses_first_invite_hint),
+                    imageVector = Icons.Outlined.Share,
+                    isEmphasized = false,
+                    isCompact = isCompact,
+                    modifier = tileModifier.testTag(ExpensesPaneTags.INVITE_BUTTON),
+                )
             }
         }
     }
 }
 
 @Composable
-private fun ReadyStep(
+private fun FirstExpenseActionCard(
+    onClick: () -> Unit,
     title: String,
     description: String,
-    step: Int,
+    imageVector: ImageVector,
+    isEmphasized: Boolean,
+    isCompact: Boolean,
+    modifier: Modifier = Modifier,
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .semantics(mergeDescendants = true) {},
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
+    Card(
+        onClick = onClick,
+        modifier = modifier.heightIn(min = if (isCompact) 0.dp else 240.dp),
+        shape = MaterialTheme.shapes.extraLarge,
+        colors = CardDefaults.cardColors(
+            containerColor = if (isEmphasized) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerLow,
+            contentColor = if (isEmphasized) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
+        ),
     ) {
-        Surface(
-            shape = CircleShape,
-            color = MaterialTheme.colorScheme.secondaryContainer,
+        Column(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(if (isCompact) 24.dp else 32.dp),
         ) {
-            Box(
-                modifier = Modifier
-                    .sizeIn(minWidth = 32.dp, minHeight = 32.dp)
-                    .padding(4.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                if (step == 1) {
-                    Icon(
-                        imageVector = Icons.Outlined.Check,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                    )
-                } else {
-                    Text(
-                        text = step.toString(),
-                        style = MaterialTheme.typography.labelLarge,
-                    )
-                }
+            Icon(
+                imageVector = imageVector,
+                contentDescription = null,
+            )
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(text = title, style = MaterialTheme.typography.titleLarge)
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (isEmphasized) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
-        }
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium,
-            )
-            Text(
-                text = description,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
         }
     }
 }
 
-@Preview
+@Preview(widthDp = 400, heightDp = 800)
 @Composable
 private fun FirstExpensePromptPreview() {
     CommonExTheme {
@@ -200,6 +191,21 @@ private fun FirstExpensePromptPreview() {
             currencyCode = "EUR",
             onAddExpenseClick = {},
             onInviteClick = {},
+        )
+    }
+}
+
+@Preview(widthDp = 184, heightDp = 300)
+@Composable
+private fun FirstExpenseActionCardPreview() {
+    CommonExTheme {
+        FirstExpenseActionCard(
+            onClick = {},
+            title = stringResource(Res.string.expenses_first_action),
+            description = stringResource(Res.string.expenses_first_expense_hint),
+            imageVector = Icons.Outlined.Add,
+            isEmphasized = true,
+            isCompact = false,
         )
     }
 }

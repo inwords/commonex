@@ -3,21 +3,21 @@
     <string name="common_back">Back</string>
     <string name="common_error">Error</string>
     <string name="expenses_app_name">CommonEx</string>
-    <string name="expenses_none">None</string>
 
     <string name="expenses_your_events">Your groups</string>
     <string name="expenses_event_options">Group options</string>
     <string name="expenses_menu_description">Group options</string>
 
-    <string name="expenses_operations">Operations</string>
+    <string name="expenses_activity">Activity</string>
     <string name="expenses_total_spent">%1$s spent</string>
     <string name="expenses_today">Today</string>
     <string name="expenses_yesterday">Yesterday</string>
     <string name="expenses_no_expenses">No expenses</string>
+    <string name="expenses_original_amount">Originally %1$s</string>
+    <string name="expenses_paid_by_person">Paid by %1$s</string>
+    <string name="expenses_from_person">From %1$s</string>
+    <string name="expenses_from_you">From you</string>
 
-    <string name="expenses_first_title">You’re all set</string>
-    <string name="expenses_first_body">Add your first expense to see how it’s split</string>
-    <string name="expenses_first_created">Group created</string>
     <string name="expenses_first_identity">Sharing as %1$s</string>
     <plurals name="expenses_first_details">
         <item quantity="one">%1$d person · %2$s</item>
@@ -26,14 +26,12 @@
     <string name="expenses_first_action">Add first expense</string>
     <string name="expenses_first_expense_hint">Who paid, how much, and what for</string>
     <string name="expenses_first_invite">Invite people</string>
-    <string name="expenses_first_invite_hint">Track shared expenses together</string>
+    <string name="expenses_first_invite_hint">Share an invite link to track expenses together</string>
 
-    <string name="expenses_operation">Operation</string>
     <string name="expenses_expense">Expense</string>
-    <string name="expenses_repayment">Replenishment</string>
+    <string name="expenses_repayment">Repayment</string>
     <string name="expenses_description">Description</string>
     <string name="expenses_currency">Currency</string>
-    <string name="expenses_original_currency">Original currency</string>
     <string name="expenses_exchange_rate">Exchange rate</string>
     <string name="expenses_exchange_rate_value">1 %1$s = %2$s %3$s</string>
     <string name="expenses_date">Date</string>
@@ -43,14 +41,47 @@
     <string name="expenses_split">Split</string>
     <string name="expenses_save">Save</string>
 
+    <string name="expenses_add_title">Add expense</string>
+    <string name="expenses_add_repayment_title">Add repayment</string>
+    <string name="expenses_add_context">Balances in %1$s</string>
+    <string name="expenses_add_description">What was it for? (optional)</string>
+    <string name="expenses_add_repayment_description">Note (optional)</string>
+    <string name="expenses_add_description_hint">Dinner, groceries, tickets…</string>
+    <string name="expenses_amount_placeholder">0.00</string>
+    <string name="expenses_amount_unavailable">—</string>
+    <string name="expenses_add_from">From</string>
+    <string name="expenses_add_to">To</string>
+    <string name="expenses_add_choose_payer">Who paid?</string>
+    <string name="expenses_add_choose_sender">Who is repaying?</string>
+    <string name="expenses_add_choose_recipients">Repayment recipients</string>
+    <string name="expenses_add_split_title">Split expense</string>
+    <string name="expenses_add_by_amount">By amount</string>
+    <string name="expenses_add_split_equally">Equally · %1$s</string>
+    <string name="expenses_add_split_custom">By amount · %1$s</string>
+    <plurals name="expenses_add_people">
+        <item quantity="one">%1$d person</item>
+        <item quantity="other">%1$d people</item>
+    </plurals>
+    <string name="expenses_add_share_each">%1$s %2$s each</string>
+    <string name="expenses_add_total_custom">Total from individual amounts</string>
+    <string name="expenses_add_select_people">Choose at least one person</string>
+    <string name="expenses_add_save">Save expense</string>
+    <string name="expenses_add_save_repayment">Save repayment</string>
+    <string name="expenses_add_done">Done</string>
+    <string name="expenses_add_exchange_rate_invalid">Enter a rate greater than zero</string>
+    <string name="expenses_add_converted_total">≈ %1$s %2$s in group currency</string>
+
     <string name="expenses_expense_details">Expense details</string>
-    <string name="expenses_details">details</string>
     <string name="expenses_no_description">No description</string>
     <string name="expenses_total_amount">Total amount</string>
-    <string name="expenses_your_part">Your part: %1$s</string>
+    <string name="expenses_your_part">Your share %1$s</string>
     <string name="expenses_repayment_from">Repayment from %1$s</string>
 
     <string name="expenses_debts">Debts</string>
+    <string name="expenses_you_owe">You owe</string>
+    <string name="expenses_you_owe_nothing">You owe nothing</string>
+    <string name="expenses_all_balances">All balances</string>
+    <string name="expenses_repay_person">Repay %1$s %2$s to %3$s</string>
     <string name="expenses_between">between:</string>
     <string name="expenses_owes">owes</string>
 

@@ -1,76 +1,105 @@
 package com.inwords.expenses.feature.expenses.ui.add
 
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.expandVertically
+import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.List
 import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ButtonGroupDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Switch
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.ToggleButtonDefaults
 import androidx.compose.material3.TonalToggleButton
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.window.core.layout.WindowSizeClass
+import com.inwords.expenses.core.ui.design.appbar.TopAppBarWithNavIconAndText
 import com.inwords.expenses.core.ui.design.button.ButtonWithIconAndText
-import com.inwords.expenses.core.ui.design.group.MultiSelectConnectedButtonGroupWithFlowLayout
-import com.inwords.expenses.core.ui.design.group.ToggleButtonOption
 import com.inwords.expenses.core.ui.design.loading.DefaultProgressIndicator
+import com.inwords.expenses.core.ui.design.selection.SingleChoiceBottomSheet
+import com.inwords.expenses.core.ui.design.selection.SingleChoiceOption
 import com.inwords.expenses.core.ui.design.theme.CommonExTheme
 import com.inwords.expenses.core.ui.utils.SimpleScreenState
-import com.inwords.expenses.feature.events.domain.model.Person
+import com.inwords.expenses.core.utils.asImmutableMap
 import com.inwords.expenses.feature.expenses.domain.model.ExpenseType
 import com.inwords.expenses.feature.expenses.ui.add.AddExpensePaneUiModel.CurrencyInfoUiModel
-import com.inwords.expenses.feature.expenses.ui.add.AddExpensePaneUiModel.ExchangeRateUiModel
 import com.inwords.expenses.feature.expenses.ui.add.AddExpensePaneUiModel.ExpenseSplitWithPersonUiModel
 import com.inwords.expenses.feature.expenses.ui.add.AddExpensePaneUiModel.PersonInfoUiModel
+import expenses.shared.core.ui_design.generated.resources.common_close
 import expenses.shared.feature.expenses.generated.resources.Res
 import expenses.shared.feature.expenses.generated.resources.common_error
-import expenses.shared.feature.expenses.generated.resources.expenses_between
+import expenses.shared.feature.expenses.generated.resources.expenses_add_choose_payer
+import expenses.shared.feature.expenses.generated.resources.expenses_add_choose_recipients
+import expenses.shared.feature.expenses.generated.resources.expenses_add_choose_sender
+import expenses.shared.feature.expenses.generated.resources.expenses_add_context
+import expenses.shared.feature.expenses.generated.resources.expenses_add_description
+import expenses.shared.feature.expenses.generated.resources.expenses_add_description_hint
+import expenses.shared.feature.expenses.generated.resources.expenses_add_from
+import expenses.shared.feature.expenses.generated.resources.expenses_add_people
+import expenses.shared.feature.expenses.generated.resources.expenses_add_repayment_description
+import expenses.shared.feature.expenses.generated.resources.expenses_add_repayment_title
+import expenses.shared.feature.expenses.generated.resources.expenses_add_save
+import expenses.shared.feature.expenses.generated.resources.expenses_add_save_repayment
+import expenses.shared.feature.expenses.generated.resources.expenses_add_split_custom
+import expenses.shared.feature.expenses.generated.resources.expenses_add_split_equally
+import expenses.shared.feature.expenses.generated.resources.expenses_add_split_title
+import expenses.shared.feature.expenses.generated.resources.expenses_add_title
+import expenses.shared.feature.expenses.generated.resources.expenses_add_to
+import expenses.shared.feature.expenses.generated.resources.expenses_add_total_custom
 import expenses.shared.feature.expenses.generated.resources.expenses_currency
-import expenses.shared.feature.expenses.generated.resources.expenses_description
-import expenses.shared.feature.expenses.generated.resources.expenses_equally
-import expenses.shared.feature.expenses.generated.resources.expenses_exchange_rate
-import expenses.shared.feature.expenses.generated.resources.expenses_exchange_rate_value
 import expenses.shared.feature.expenses.generated.resources.expenses_expense
 import expenses.shared.feature.expenses.generated.resources.expenses_no_expenses
 import expenses.shared.feature.expenses.generated.resources.expenses_paid_by
 import expenses.shared.feature.expenses.generated.resources.expenses_repayment
-import expenses.shared.feature.expenses.generated.resources.expenses_save
 import expenses.shared.feature.expenses.generated.resources.expenses_split
-import expenses.shared.feature.expenses.generated.resources.expenses_total_amount
-import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
+import expenses.shared.core.ui_design.generated.resources.Res as CoreRes
 
 @Composable
 internal fun AddExpensePane(
@@ -85,32 +114,100 @@ internal fun AddExpensePane(
     onSplitAmountChanged: (ExpenseSplitWithPersonUiModel, String) -> Unit,
     onDescriptionChanged: (String) -> Unit,
     onConfirmClicked: () -> Unit,
+    onNavIconClicked: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    when (state) {
-        is SimpleScreenState.Success -> AddExpensePaneSuccess(
-            state = state.data,
-            onCurrencyClicked = onCurrencyClicked,
-            onExchangeRateChanged = onExchangeRateChanged,
-            onExpenseTypeClicked = onExpenseTypeClicked,
-            onPersonClicked = onPersonClicked,
-            onSubjectPersonClicked = onSubjectPersonClicked,
-            onEqualSplitChange = onEqualSplitChange,
-            onWholeAmountChanged = onWholeAmountChanged,
-            onSplitAmountChanged = onSplitAmountChanged,
-            onDescriptionChanged = onDescriptionChanged,
-            onConfirmClicked = onConfirmClicked,
-            modifier = modifier
-        )
+    val windowSizeClass = currentWindowAdaptiveInfoV2().windowSizeClass
+    val showSplitPane = windowSizeClass.isWidthAtLeastBreakpoint(WindowSizeClass.WIDTH_DP_MEDIUM_LOWER_BOUND) &&
+        windowSizeClass.isHeightAtLeastBreakpoint(WindowSizeClass.HEIGHT_DP_MEDIUM_LOWER_BOUND) &&
+        LocalDensity.current.fontScale < 1.5f
+    val successData = (state as? SimpleScreenState.Success)?.data
+    val isRepayment = successData?.expenseType == ExpenseType.Replenishment
+    Scaffold(
+        modifier = modifier
+            .fillMaxSize()
+            .imePadding(),
+        topBar = {
+            TopAppBarWithNavIconAndText(
+                onNavIconClicked = onNavIconClicked,
+                title = stringResource(
+                    if (isRepayment) Res.string.expenses_add_repayment_title else Res.string.expenses_add_title
+                ),
+                imageVector = Icons.Outlined.Close,
+                contentDescription = stringResource(CoreRes.string.common_close),
+            )
+        },
+        bottomBar = {
+            if (successData != null) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.surfaceContainerLow
+                ) {
+                    Column(
+                        modifier = Modifier.navigationBarsPadding(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .widthIn(max = 960.dp)
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                            contentAlignment = if (showSplitPane) Alignment.CenterEnd else Alignment.Center,
+                        ) {
+                            ButtonWithIconAndText(
+                                modifier = Modifier
+                                    .widthIn(max = if (showSplitPane) 240.dp else 480.dp)
+                                    .fillMaxWidth()
+                                    .testTag("add_expense_save_button"),
+                                onClick = onConfirmClicked,
+                                text = stringResource(
+                                    if (isRepayment) Res.string.expenses_add_save_repayment else Res.string.expenses_add_save
+                                ),
+                                imageVector = Icons.Outlined.Check,
+                                enabled = successData.canSave,
+                                minHeight = ButtonDefaults.MediumContainerHeight,
+                            )
+                        }
+                    }
+                }
+            }
+        },
+    ) { paddingValues ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .consumeWindowInsets(paddingValues),
+            contentAlignment = Alignment.TopCenter,
+        ) {
+            when (state) {
+                is SimpleScreenState.Success -> AddExpensePaneSuccess(
+                    state = state.data,
+                    isRepayment = isRepayment,
+                    showSplitPane = showSplitPane,
+                    onCurrencyClicked = onCurrencyClicked,
+                    onExchangeRateChanged = onExchangeRateChanged,
+                    onExpenseTypeClicked = onExpenseTypeClicked,
+                    onPersonClicked = onPersonClicked,
+                    onSubjectPersonClicked = onSubjectPersonClicked,
+                    onEqualSplitChange = onEqualSplitChange,
+                    onWholeAmountChanged = onWholeAmountChanged,
+                    onSplitAmountChanged = onSplitAmountChanged,
+                    onDescriptionChanged = onDescriptionChanged,
+                )
 
-        is SimpleScreenState.Loading -> AddExpensePaneLoading()
+                SimpleScreenState.Loading -> AddExpensePaneLoading()
 
-        is SimpleScreenState.Error -> {
-            Text(text = stringResource(Res.string.common_error))
-        }
+                SimpleScreenState.Error -> Text(
+                    modifier = Modifier.padding(24.dp),
+                    text = stringResource(Res.string.common_error)
+                )
 
-        SimpleScreenState.Empty -> {
-            Text(text = stringResource(Res.string.expenses_no_expenses))
+                SimpleScreenState.Empty -> Text(
+                    modifier = Modifier.padding(24.dp),
+                    text = stringResource(Res.string.expenses_no_expenses)
+                )
+            }
         }
     }
 }
@@ -128,10 +225,11 @@ private fun AddExpensePaneLoading(modifier: Modifier = Modifier) {
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun AddExpensePaneSuccess(
     state: AddExpensePaneUiModel,
+    isRepayment: Boolean,
+    showSplitPane: Boolean,
     onCurrencyClicked: (CurrencyInfoUiModel) -> Unit,
     onExchangeRateChanged: (String) -> Unit,
     onExpenseTypeClicked: (ExpenseType) -> Unit,
@@ -141,304 +239,266 @@ private fun AddExpensePaneSuccess(
     onWholeAmountChanged: (String) -> Unit,
     onSplitAmountChanged: (ExpenseSplitWithPersonUiModel, String) -> Unit,
     onDescriptionChanged: (String) -> Unit,
-    onConfirmClicked: () -> Unit,
-    modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier = modifier
-            .imePadding()
-            .verticalScroll(rememberScrollState()),
+    val people = pluralStringResource(
+        resource = Res.plurals.expenses_add_people,
+        quantity = state.selectedSubjectPersonsCount,
+        state.selectedSubjectPersonsCount
+    )
+    val splitTitle = stringResource(
+        if (isRepayment) Res.string.expenses_add_choose_recipients else Res.string.expenses_add_split_title
+    )
+
+    val expenseTypeColors = ToggleButtonDefaults.tonalToggleButtonColors(
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        checkedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+        checkedContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+    )
+
+    var isCurrencyPickerVisible by rememberSaveable { mutableStateOf(false) }
+    var isPersonPickerVisible by rememberSaveable { mutableStateOf(false) }
+    var isSplitPickerVisible by rememberSaveable { mutableStateOf(false) }
+
+    Row(
+        modifier = Modifier
+            .widthIn(max = if (showSplitPane) 960.dp else 480.dp)
+            .fillMaxSize()
+            .padding(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(24.dp),
     ) {
-        val keyboardController = LocalSoftwareKeyboardController.current
-
-        OutlinedTextField(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp),
-            textStyle = MaterialTheme.typography.headlineSmall,
-            value = state.description,
-            label = { Text(text = stringResource(Res.string.expenses_description)) },
-            onValueChange = onDescriptionChanged,
-            keyboardActions = KeyboardActions(onDone = { keyboardController?.hide() }),
-            keyboardOptions = KeyboardOptions(
-                autoCorrectEnabled = true,
-                keyboardType = KeyboardType.Text,
-                imeAction = ImeAction.Done,
-            ),
-            singleLine = true
-        )
-
-        Text(
-            modifier = Modifier
-                .padding(start = 16.dp, top = 16.dp, end = 12.dp),
-            text = stringResource(Res.string.expenses_paid_by),
-            style = MaterialTheme.typography.headlineMedium
-        )
-        MultiSelectConnectedButtonGroupWithFlowLayout(
-            modifier = Modifier
-                .padding(horizontal = 8.dp),
-            options = state.persons.map { person ->
-                ToggleButtonOption(
-                    text = person.personName,
-                    checked = person.selected,
-                    payload = person
-                )
-            },
-            onCheckedChange = { _, _, person -> onPersonClicked.invoke(person) },
-        )
-
-        Text(
-            modifier = Modifier.padding(start = 16.dp, top = 8.dp, end = 16.dp),
-            text = stringResource(Res.string.expenses_currency),
-            style = MaterialTheme.typography.headlineMedium
-        )
-        MultiSelectConnectedButtonGroupWithFlowLayout(
-            modifier = Modifier
-                .padding(horizontal = 8.dp),
-            options = state.currencies.map { currencyInfo ->
-                ToggleButtonOption(
-                    text = currencyInfo.currencyName,
-                    checked = currencyInfo.selected,
-                    payload = currencyInfo,
-                    testTag = currencyOptionTag(currencyInfo.currencyCode),
-                )
-            },
-            onCheckedChange = { _, _, currencyInfo -> onCurrencyClicked.invoke(currencyInfo) },
-        )
-
-        AnimatedContent(
-            targetState = state.exchangeRate,
-            transitionSpec = {
-                (expandVertically(expandFrom = Alignment.Top) + fadeIn())
-                    .togetherWith(shrinkVertically(shrinkTowards = Alignment.Top) + fadeOut())
-            },
-            contentKey = { exchangeRate -> exchangeRate != null },
-            label = "exchange_rate_visibility",
-        ) { exchangeRate ->
-            if (exchangeRate != null) {
-                ExchangeRateInput(
-                    exchangeRate = exchangeRate,
-                    enabled = exchangeRate == state.exchangeRate,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 8.dp, start = 8.dp, end = 8.dp, bottom = 4.dp),
-                    onExchangeRateChanged = onExchangeRateChanged,
-                )
-            }
-        }
-
-        Text(
-            modifier = Modifier
-                .padding(start = 16.dp, top = 8.dp, end = 16.dp),
-            text = stringResource(Res.string.expenses_split),
-            style = MaterialTheme.typography.headlineSmall
-        )
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                modifier = Modifier
-                    .padding(horizontal = 8.dp),
-                text = stringResource(Res.string.expenses_equally),
-                style = MaterialTheme.typography.bodyLarge
-            )
-            Switch(
-                checked = state.equalSplit,
-                onCheckedChange = onEqualSplitChange,
-                modifier = Modifier
-                    .padding(end = 8.dp)
-                    .testTag("equal_split_switch")
-            )
-            Text(
-                modifier = Modifier
-                    .padding(end = 8.dp),
-                text = stringResource(Res.string.expenses_between),
-                style = MaterialTheme.typography.bodyLarge
-            )
-        }
-        MultiSelectConnectedButtonGroupWithFlowLayout(
-            modifier = Modifier
-                .padding(horizontal = 8.dp),
-            options = state.subjectPersons.map { person ->
-                ToggleButtonOption(
-                    text = person.personName,
-                    checked = person.selected,
-                    payload = person
-                )
-            },
-            onCheckedChange = { _, _, person -> onSubjectPersonClicked.invoke(person) },
-        )
-
-        if (state.equalSplit) {
-            SplitEqualPartsInput(
-                amount = state.wholeAmount,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp),
-                onAmountChanged = onWholeAmountChanged,
-                onDoneClicked = { keyboardController?.hide() }
-            )
-        } else {
-            SplitCustomPartsInputsBLock(
-                split = state.split,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp),
-                onSplitAmountChanged = onSplitAmountChanged,
-                onDoneClicked = { keyboardController?.hide() }
-            )
-        }
-
-        Spacer(modifier = Modifier.height(14.dp))
-
-        Row(
-            modifier = Modifier
-                .padding(horizontal = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween)
+        Column(
+            modifier = Modifier.weight(1f)
+                .fillMaxHeight()
+                .verticalScroll(rememberScrollState())
+                .padding(top = 8.dp, bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
-            TonalToggleButton(
-                modifier = Modifier.weight(1f),
-                checked = state.expenseType == ExpenseType.Spending,
-                onCheckedChange = { onExpenseTypeClicked.invoke(ExpenseType.Spending) },
-                shapes = ButtonGroupDefaults.connectedLeadingButtonShapes(),
-            ) { Text(text = stringResource(Res.string.expenses_expense)) }
-            TonalToggleButton(
-                modifier = Modifier.weight(1f),
-                checked = state.expenseType == ExpenseType.Replenishment,
-                onCheckedChange = { onExpenseTypeClicked.invoke(ExpenseType.Replenishment) },
-                shapes = ButtonGroupDefaults.connectedTrailingButtonShapes(),
-            ) { Text(text = stringResource(Res.string.expenses_repayment)) }
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(state.eventName, style = MaterialTheme.typography.titleMedium)
+                Text(
+                    text = stringResource(Res.string.expenses_add_context, state.primaryCurrencyCode),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Row(
+                modifier = Modifier.height(IntrinsicSize.Min),
+                horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
+            ) {
+                TonalToggleButton(
+                    modifier = Modifier.weight(1f).fillMaxHeight(),
+                    checked = state.expenseType == ExpenseType.Spending,
+                    onCheckedChange = { onExpenseTypeClicked(ExpenseType.Spending) },
+                    colors = expenseTypeColors,
+                    shapes = ButtonGroupDefaults.connectedLeadingButtonShapes(),
+                ) { Text(text = stringResource(Res.string.expenses_expense)) }
+                TonalToggleButton(
+                    modifier = Modifier.weight(1f).fillMaxHeight(),
+                    checked = state.expenseType == ExpenseType.Replenishment,
+                    onCheckedChange = { onExpenseTypeClicked(ExpenseType.Replenishment) },
+                    colors = expenseTypeColors,
+                    shapes = ButtonGroupDefaults.connectedTrailingButtonShapes(),
+                ) { Text(text = stringResource(Res.string.expenses_repayment)) }
+            }
+            Column {
+                ExpenseAmountInput(
+                    modifier = Modifier.fillMaxWidth(),
+                    amount = if (state.equalSplit) state.wholeAmount else state.totalAmount,
+                    currencyCode = state.selectedCurrencyCode,
+                    readOnly = !state.equalSplit,
+                    isCurrencyPickerVisible = isCurrencyPickerVisible,
+                    enabled = true,
+                    onAmountChanged = onWholeAmountChanged,
+                    onCurrencyClicked = { isCurrencyPickerVisible = true },
+                )
+                if (!state.equalSplit) {
+                    Text(
+                        modifier = Modifier.padding(top = 8.dp),
+                        text = stringResource(Res.string.expenses_add_total_custom),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                val motionScheme = MaterialTheme.motionScheme
+                AnimatedContent(
+                    targetState = state.exchangeRate,
+                    modifier = Modifier.fillMaxWidth(),
+                    contentKey = { it != null },
+                    transitionSpec = {
+                        fadeIn(motionScheme.fastEffectsSpec())
+                            .togetherWith(fadeOut(motionScheme.fastEffectsSpec()))
+                            .using(SizeTransform { _, _ -> motionScheme.defaultSpatialSpec() })
+                    },
+                ) { exchangeRate ->
+                    if (exchangeRate != null) {
+                        ExpenseExchangeRateInput(
+                            modifier = Modifier.padding(top = 24.dp),
+                            exchangeRate = exchangeRate,
+                            enabled = true,
+                            onExchangeRateChanged = onExchangeRateChanged,
+                        )
+                    }
+                }
+            }
+            val keyboardController = LocalSoftwareKeyboardController.current
+            OutlinedTextField(
+                modifier = Modifier.fillMaxWidth().testTag("add_expense_description_input"),
+                value = state.description,
+                onValueChange = onDescriptionChanged,
+                label = {
+                    Text(
+                        text = stringResource(
+                            if (isRepayment) Res.string.expenses_add_repayment_description else Res.string.expenses_add_description
+                        )
+                    )
+                },
+                placeholder = {
+                    Text(text = stringResource(Res.string.expenses_add_description_hint))
+                },
+                keyboardOptions = KeyboardOptions(
+                    capitalization = KeyboardCapitalization.Sentences,
+                    autoCorrectEnabled = true,
+                    keyboardType = KeyboardType.Text,
+                    imeAction = ImeAction.Done,
+                ),
+                keyboardActions = KeyboardActions(onDone = { keyboardController?.hide() }),
+                singleLine = true,
+            )
+            Surface(
+                color = MaterialTheme.colorScheme.surfaceContainer,
+                shape = MaterialTheme.shapes.extraLarge
+            ) {
+                Column {
+                    ExpenseSettingsRow(
+                        modifier = Modifier.testTag("add_expense_payer_button"),
+                        label = stringResource(
+                            if (isRepayment) Res.string.expenses_add_from else Res.string.expenses_paid_by
+                        ),
+                        value = state.selectedPersonName,
+                        imageVector = Icons.Outlined.Person,
+                        enabled = true,
+                        onClick = { isPersonPickerVisible = true },
+                        supportingContent = null,
+                    )
+                    if (!showSplitPane) {
+                        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+                        ExpenseSettingsRow(
+                            modifier = Modifier.testTag("add_expense_split_button"),
+                            label = stringResource(
+                                if (isRepayment) Res.string.expenses_add_to else Res.string.expenses_split
+                            ),
+                            value = if (isRepayment) {
+                                if (state.selectedSubjectPersonsCount == 1) state.selectedSubjectPersonsNames else people
+                            } else {
+                                stringResource(
+                                    resource = if (state.equalSplit) {
+                                        Res.string.expenses_add_split_equally
+                                    } else {
+                                        Res.string.expenses_add_split_custom
+                                    },
+                                    people
+                                )
+                            },
+                            imageVector = Icons.AutoMirrored.Outlined.List,
+                            enabled = true,
+                            onClick = { isSplitPickerVisible = true },
+                            supportingContent = {
+                                ExpenseEqualShareSummary(
+                                    amount = state.equalShareAmount,
+                                    currencyCode = state.selectedCurrencyCode,
+                                )
+                            },
+                        )
+                    }
+                }
+            }
         }
-
-        ButtonWithIconAndText(
-            modifier = Modifier
-                .align(Alignment.End)
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 16.dp)
-                .testTag("add_expense_save_button"),
-            onClick = onConfirmClicked,
-            text = stringResource(Res.string.expenses_save),
-            imageVector = Icons.Outlined.Check,
-            enabled = state.canSave,
-            minHeight = ButtonDefaults.MediumContainerHeight,
+        if (showSplitPane) {
+            Surface(
+                modifier = Modifier.weight(0.82f)
+                    .fillMaxHeight()
+                    .padding(vertical = 8.dp),
+                color = MaterialTheme.colorScheme.surfaceContainer,
+                shape = MaterialTheme.shapes.extraLarge,
+            ) {
+                ExpenseSplitEditor(
+                    modifier = Modifier.padding(24.dp),
+                    title = splitTitle,
+                    persons = state.subjectPersons,
+                    selectedPersonsCount = state.selectedSubjectPersonsCount,
+                    lastSplitPersonId = state.lastSplitPersonId,
+                    splitByPerson = state.splitByPerson,
+                    equalSplit = state.equalSplit,
+                    totalAmount = state.totalAmount,
+                    currencyCode = state.selectedCurrencyCode,
+                    enabled = true,
+                    onSubjectPersonClicked = onSubjectPersonClicked,
+                    onEqualSplitChange = onEqualSplitChange,
+                    onSplitAmountChanged = onSplitAmountChanged,
+                    onDoneClicked = null,
+                )
+            }
+        }
+    }
+    if (isCurrencyPickerVisible) {
+        SingleChoiceBottomSheet(
+            modifier = Modifier.testTag("add_expense_currency_sheet"),
+            title = stringResource(Res.string.expenses_currency),
+            options = remember(state.currencies) {
+                state.currencies.map { currency ->
+                    SingleChoiceOption(
+                        key = currency.currencyCode,
+                        text = currency.currencyCode,
+                        supportingText = currency.currencyName,
+                        selected = currency.selected,
+                        payload = currency,
+                        testTag = "add_expense_currency_option_${currency.currencyCode}",
+                    )
+                }
+            },
+            onOptionClicked = onCurrencyClicked,
+            onDismissRequest = { isCurrencyPickerVisible = false },
+        )
+    }
+    if (isPersonPickerVisible) {
+        SingleChoiceBottomSheet(
+            modifier = Modifier.testTag("add_expense_payer_sheet"),
+            title = stringResource(
+                if (isRepayment) Res.string.expenses_add_choose_sender else Res.string.expenses_add_choose_payer
+            ),
+            options = remember(state.persons) {
+                state.persons.map { person ->
+                    SingleChoiceOption(
+                        key = person.personId.toString(),
+                        text = person.personName,
+                        supportingText = null,
+                        selected = person.selected,
+                        payload = person,
+                        testTag = "add_expense_payer_${person.personId}",
+                    )
+                }
+            },
+            onOptionClicked = onPersonClicked,
+            onDismissRequest = { isPersonPickerVisible = false },
+        )
+    }
+    if (isSplitPickerVisible && !showSplitPane) {
+        ExpenseSplitBottomSheet(
+            state = state,
+            title = splitTitle,
+            currencyCode = state.selectedCurrencyCode,
+            onSubjectPersonClicked = onSubjectPersonClicked,
+            onEqualSplitChange = onEqualSplitChange,
+            onSplitAmountChanged = onSplitAmountChanged,
+            onDismissRequest = { isSplitPickerVisible = false },
         )
     }
 }
 
-private fun currencyOptionTag(currencyCode: String): String {
-    return "add_expense_currency_option_$currencyCode"
-}
-
-@Composable
-private fun ExchangeRateInput(
-    exchangeRate: ExchangeRateUiModel,
-    onExchangeRateChanged: (String) -> Unit,
-    enabled: Boolean,
-    modifier: Modifier = Modifier,
-) {
-    OutlinedTextField(
-        modifier = modifier.testTag("add_expense_exchange_rate_input"),
-        textStyle = MaterialTheme.typography.headlineSmall,
-        value = exchangeRate.rateRaw,
-        enabled = enabled,
-        label = { Text(text = stringResource(Res.string.expenses_exchange_rate)) },
-        supportingText = {
-            if (exchangeRate.rateRaw.isNotBlank()) {
-                Text(
-                    text = stringResource(
-                        Res.string.expenses_exchange_rate_value,
-                        exchangeRate.originalCurrencyCode,
-                        exchangeRate.rateRaw,
-                        exchangeRate.primaryCurrencyCode,
-                    )
-                )
-            }
-        },
-        onValueChange = onExchangeRateChanged,
-        keyboardOptions = KeyboardOptions(
-            autoCorrectEnabled = false,
-            keyboardType = KeyboardType.Decimal,
-            imeAction = ImeAction.Done,
-        ),
-        singleLine = true,
-    )
-}
-
-@Composable
-private fun SplitEqualPartsInput(
-    amount: String,
-    onAmountChanged: (String) -> Unit,
-    onDoneClicked: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    OutlinedTextField(
-        modifier = modifier,
-        textStyle = MaterialTheme.typography.headlineSmall,
-        value = amount,
-        label = { Text(text = stringResource(Res.string.expenses_total_amount)) },
-        onValueChange = onAmountChanged,
-        keyboardActions = KeyboardActions(onDone = { onDoneClicked.invoke() }),
-        keyboardOptions = KeyboardOptions(
-            autoCorrectEnabled = false,
-            keyboardType = KeyboardType.Decimal,
-            imeAction = ImeAction.Done,
-        ),
-        singleLine = true
-    )
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun SplitCustomPartsInputsBLock(
-    split: ImmutableList<ExpenseSplitWithPersonUiModel>,
-    onSplitAmountChanged: (ExpenseSplitWithPersonUiModel, String) -> Unit,
-    onDoneClicked: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Column(
-        modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        split.forEachIndexed { i, expenseSplit ->
-            SplitCustomPartInput(
-                modifier = Modifier
-                    .fillMaxWidth(),
-                expenseSplit = expenseSplit,
-                onAmountChanged = { onSplitAmountChanged(expenseSplit, it) },
-                onDoneClicked = onDoneClicked,
-                imeAction = if (i == split.lastIndex) {
-                    ImeAction.Done
-                } else {
-                    ImeAction.Next
-                },
-            )
-        }
-    }
-}
-
-@Composable
-private fun SplitCustomPartInput(
-    expenseSplit: ExpenseSplitWithPersonUiModel,
-    onAmountChanged: (String) -> Unit,
-    onDoneClicked: () -> Unit,
-    imeAction: ImeAction,
-    modifier: Modifier = Modifier,
-) {
-    OutlinedTextField(
-        modifier = modifier,
-        textStyle = MaterialTheme.typography.headlineSmall,
-        value = expenseSplit.amount,
-        label = { Text(text = expenseSplit.person.personName) },
-        onValueChange = onAmountChanged,
-        keyboardActions = KeyboardActions(onDone = { onDoneClicked.invoke() }),
-        keyboardOptions = KeyboardOptions(
-            autoCorrectEnabled = false,
-            keyboardType = KeyboardType.Decimal,
-            imeAction = imeAction,
-        ),
-        singleLine = true
-    )
-}
-
-@Preview(showBackground = true)
+@Preview(name = "Phone", widthDp = 360, heightDp = 800)
+@Preview(name = "Large text", widthDp = 360, heightDp = 800, fontScale = 2f)
+@Preview(name = "Expanded", widthDp = 960, heightDp = 640)
 @Composable
 private fun AddExpensePaneSuccessEqualSplitPreview() {
     CommonExTheme {
@@ -453,12 +513,13 @@ private fun AddExpensePaneSuccessEqualSplitPreview() {
             onWholeAmountChanged = {},
             onSplitAmountChanged = { _, _ -> },
             onConfirmClicked = {},
-            state = SimpleScreenState.Success(mockAddExpenseScreenUiModel().copy(equalSplit = true)),
+            onNavIconClicked = {},
+            state = SimpleScreenState.Success(mockAddExpenseScreenUiModel().copy(equalSplit = true, wholeAmount = "60.00", equalShareAmount = "20.00")),
         )
     }
 }
 
-@Preview(showBackground = true)
+@Preview(widthDp = 360, heightDp = 800)
 @Composable
 private fun AddExpensePaneSuccessPreview() {
     CommonExTheme {
@@ -473,126 +534,45 @@ private fun AddExpensePaneSuccessPreview() {
             onWholeAmountChanged = {},
             onSplitAmountChanged = { _, _ -> },
             onConfirmClicked = {},
+            onNavIconClicked = {},
             state = SimpleScreenState.Success(mockAddExpenseScreenUiModel()),
         )
     }
 }
 
 internal fun mockAddExpenseScreenUiModel(): AddExpensePaneUiModel {
-    val person1 = Person(
-        id = 1,
-        serverId = "11",
-        clientCreateId = "person-1",
-        name = "Василий"
-    )
-    val person2 = Person(
-        id = 2,
-        serverId = "12",
-        clientCreateId = "person-2",
-        name = "Максим"
-    )
-    val person3 = Person(
-        id = 3,
-        serverId = "13",
-        clientCreateId = "person-3",
-        name = "Анжела"
-    )
-    val person4 = Person(
-        id = 4,
-        serverId = "14",
-        clientCreateId = "person-4",
-        name = "Саша"
+    val alex = PersonInfoUiModel(personId = 1, personName = "Alex", selected = true)
+    val sam = PersonInfoUiModel(personId = 2, personName = "Sam", selected = true)
+    val jo = PersonInfoUiModel(personId = 3, personName = "Jo", selected = true)
+    val split = persistentListOf(
+        ExpenseSplitWithPersonUiModel(person = alex, amount = "20.00"),
+        ExpenseSplitWithPersonUiModel(person = sam, amount = "20.00"),
+        ExpenseSplitWithPersonUiModel(person = jo, amount = "20.00"),
     )
     return AddExpensePaneUiModel(
-        description = "Чипсы и кола",
-        currencies = persistentListOf(
-            CurrencyInfoUiModel(
-                currencyCode = "USD",
-                currencyName = "US Dollar",
-                selected = true
-            ),
-            CurrencyInfoUiModel(
-                currencyCode = "EUR",
-                currencyName = "Euro",
-                selected = false
-            ),
-            CurrencyInfoUiModel(
-                currencyCode = "RUB",
-                currencyName = "Russian Ruble",
-                selected = false
-            ),
-            CurrencyInfoUiModel(
-                currencyCode = "AED",
-                currencyName = "UAE Dirham",
-                selected = false
-            ),
-        ),
-        exchangeRate = null,
+        eventName = "Weekend in Lisbon",
         expenseType = ExpenseType.Spending,
-        persons = persistentListOf(
-            PersonInfoUiModel(
-                personId = person1.id,
-                personName = person1.name,
-                selected = true
-            ),
-            PersonInfoUiModel(
-                personId = person2.id,
-                personName = person2.name,
-                selected = false
-            ),
-            PersonInfoUiModel(
-                personId = person3.id,
-                personName = person3.name,
-                selected = false
-            ),
-            PersonInfoUiModel(
-                personId = person4.id,
-                personName = person4.name,
-                selected = false
-            ),
+        description = "Dinner",
+        wholeAmount = "60.00",
+        totalAmount = "60.00",
+        primaryCurrencyCode = "EUR",
+        currencies = persistentListOf(
+            CurrencyInfoUiModel(currencyName = "Euro", currencyCode = "EUR", selected = true),
+            CurrencyInfoUiModel(currencyName = "US Dollar", currencyCode = "USD", selected = false),
+            CurrencyInfoUiModel(currencyName = "Russian Ruble", currencyCode = "RUB", selected = false),
         ),
-        subjectPersons = persistentListOf(
-            PersonInfoUiModel(
-                personId = person1.id,
-                personName = person1.name,
-                selected = true
-            ),
-            PersonInfoUiModel(
-                personId = person2.id,
-                personName = person2.name,
-                selected = true
-            ),
-            PersonInfoUiModel(
-                personId = person3.id,
-                personName = person3.name,
-                selected = true
-            ),
-            PersonInfoUiModel(
-                personId = person4.id,
-                personName = person4.name,
-                selected = true
-            ),
-        ),
+        selectedCurrencyCode = "EUR",
+        exchangeRate = null,
+        persons = persistentListOf(alex, sam.copy(selected = false), jo.copy(selected = false)),
+        selectedPersonName = alex.personName,
+        subjectPersons = persistentListOf(alex, sam, jo),
+        selectedSubjectPersonsCount = 3,
+        selectedSubjectPersonsNames = "Alex, Sam, Jo",
         equalSplit = false,
-        wholeAmount = "",
-        split = persistentListOf(
-            ExpenseSplitWithPersonUiModel(
-                person = PersonInfoUiModel(
-                    personId = person1.id,
-                    personName = person1.name,
-                    selected = true
-                ),
-                amount = "33"
-            ),
-            ExpenseSplitWithPersonUiModel(
-                person = PersonInfoUiModel(
-                    personId = person2.id,
-                    personName = person2.name,
-                    selected = true
-                ),
-                amount = "34"
-            ),
-        ),
+        equalShareAmount = null,
+        split = split,
+        splitByPerson = split.associateBy { it.person.personId }.asImmutableMap(),
+        lastSplitPersonId = jo.personId,
         canSave = true,
     )
 }

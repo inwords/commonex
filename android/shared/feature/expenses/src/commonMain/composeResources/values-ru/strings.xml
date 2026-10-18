@@ -3,21 +3,21 @@
     <string name="common_back">Назад</string>
     <string name="common_error">Ошибка</string>
     <string name="expenses_app_name">CommonEx</string>
-    <string name="expenses_none">Отсутствуют</string>
 
     <string name="expenses_your_events">Ваши группы</string>
     <string name="expenses_event_options">Настройки группы</string>
     <string name="expenses_menu_description">Настройки группы</string>
 
-    <string name="expenses_operations">Операции</string>
+    <string name="expenses_activity">История</string>
     <string name="expenses_total_spent">%1$s потрачено</string>
     <string name="expenses_today">Сегодня</string>
     <string name="expenses_yesterday">Вчера</string>
     <string name="expenses_no_expenses">Нет операций</string>
+    <string name="expenses_original_amount">Исходная сумма: %1$s</string>
+    <string name="expenses_paid_by_person">Оплата: %1$s</string>
+    <string name="expenses_from_person">От %1$s</string>
+    <string name="expenses_from_you">От вас</string>
 
-    <string name="expenses_first_title">Всё готово</string>
-    <string name="expenses_first_body">Добавьте первый расход, чтобы увидеть долю каждого</string>
-    <string name="expenses_first_created">Группа создана</string>
     <string name="expenses_first_identity">Вы в группе: %1$s</string>
     <plurals name="expenses_first_details">
         <item quantity="one">%1$d участник · %2$s</item>
@@ -25,17 +25,15 @@
         <item quantity="many">%1$d участников · %2$s</item>
         <item quantity="other">%1$d участника · %2$s</item>
     </plurals>
-    <string name="expenses_first_action">Добавить первый расход</string>
+    <string name="expenses_first_action">Добавить первую трату</string>
     <string name="expenses_first_expense_hint">Кто, сколько и за что заплатил</string>
-    <string name="expenses_first_invite">Пригласить участников</string>
-    <string name="expenses_first_invite_hint">Следите за общими расходами вместе</string>
+    <string name="expenses_first_invite">Пригласить людей</string>
+    <string name="expenses_first_invite_hint">Поделитесь приглашением, чтобы учитывать траты вместе</string>
 
-    <string name="expenses_operation">Операция</string>
     <string name="expenses_expense">Трата</string>
     <string name="expenses_repayment">Возврат</string>
     <string name="expenses_description">Описание</string>
     <string name="expenses_currency">Валюта</string>
-    <string name="expenses_original_currency">Исходная валюта</string>
     <string name="expenses_exchange_rate">Курс обмена</string>
     <string name="expenses_exchange_rate_value">1 %1$s = %2$s %3$s</string>
     <string name="expenses_date">Дата</string>
@@ -45,14 +43,49 @@
     <string name="expenses_split">Разделить</string>
     <string name="expenses_save">Сохранить</string>
 
+    <string name="expenses_add_title">Добавить трату</string>
+    <string name="expenses_add_repayment_title">Добавить возврат</string>
+    <string name="expenses_add_context">Расчёты в %1$s</string>
+    <string name="expenses_add_description">На что потратили? (необязательно)</string>
+    <string name="expenses_add_repayment_description">Комментарий (необязательно)</string>
+    <string name="expenses_add_description_hint">Ужин, продукты, билеты…</string>
+    <string name="expenses_amount_placeholder">0,00</string>
+    <string name="expenses_amount_unavailable">—</string>
+    <string name="expenses_add_from">От кого</string>
+    <string name="expenses_add_to">Кому</string>
+    <string name="expenses_add_choose_payer">Кто оплатил?</string>
+    <string name="expenses_add_choose_sender">Кто возвращает деньги?</string>
+    <string name="expenses_add_choose_recipients">Получатели возврата</string>
+    <string name="expenses_add_split_title">Разделить трату</string>
+    <string name="expenses_add_by_amount">По суммам</string>
+    <string name="expenses_add_split_equally">Поровну · %1$s</string>
+    <string name="expenses_add_split_custom">По суммам · %1$s</string>
+    <plurals name="expenses_add_people">
+        <item quantity="one">%1$d участник</item>
+        <item quantity="few">%1$d участника</item>
+        <item quantity="many">%1$d участников</item>
+        <item quantity="other">%1$d участника</item>
+    </plurals>
+    <string name="expenses_add_share_each">По %1$s %2$s</string>
+    <string name="expenses_add_total_custom">Сумма индивидуальных долей</string>
+    <string name="expenses_add_select_people">Выберите хотя бы одного участника</string>
+    <string name="expenses_add_save">Сохранить трату</string>
+    <string name="expenses_add_save_repayment">Сохранить возврат</string>
+    <string name="expenses_add_done">Готово</string>
+    <string name="expenses_add_exchange_rate_invalid">Курс должен быть больше нуля</string>
+    <string name="expenses_add_converted_total">≈ %1$s %2$s в валюте группы</string>
+
     <string name="expenses_expense_details">Детали операции</string>
-    <string name="expenses_details">детали</string>
     <string name="expenses_no_description">Без описания</string>
     <string name="expenses_total_amount">Общая сумма</string>
     <string name="expenses_your_part">Ваша доля: %1$s</string>
     <string name="expenses_repayment_from">Возврат от %1$s</string>
 
     <string name="expenses_debts">Долги</string>
+    <string name="expenses_you_owe">Вы должны</string>
+    <string name="expenses_you_owe_nothing">Вы никому не должны</string>
+    <string name="expenses_all_balances">Все расчёты</string>
+    <string name="expenses_repay_person">Вернуть %1$s %2$s участнику %3$s</string>
     <string name="expenses_between">между:</string>
     <string name="expenses_owes">должен</string>
 

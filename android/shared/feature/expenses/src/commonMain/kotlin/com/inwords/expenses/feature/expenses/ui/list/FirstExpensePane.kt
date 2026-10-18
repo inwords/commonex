@@ -124,6 +124,8 @@ internal fun FirstExpensePane(
 }
 
 @Preview
+@Preview(name = "Narrow large text", widthDp = 320, heightDp = 800, fontScale = 2f)
+@Preview(name = "Expanded", widthDp = 840, heightDp = 800)
 @Composable
 private fun FirstExpensePanePreview() {
     CommonExTheme {

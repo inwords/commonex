@@ -1,5 +1,7 @@
 package ru.commonex.screens
 
+import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -51,6 +53,13 @@ internal class CreateEventScreen : BaseScreen() {
         assertElementWithTextExists(ownerName)
         scrollToItem("participant_0")
         assertElementWithTextExists(participantName)
+        return this
+    }
+
+    context(rule: ComposeTestRule)
+    fun verifyCurrency(currencyCode: String): CreateEventScreen {
+        scrollToItem("currency")
+        rule.onNodeWithTag("events_create_currency").assert(hasText(currencyCode))
         return this
     }
 

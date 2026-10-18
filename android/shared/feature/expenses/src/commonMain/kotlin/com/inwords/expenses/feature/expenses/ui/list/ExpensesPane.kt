@@ -2,21 +2,20 @@ package com.inwords.expenses.feature.expenses.ui.list
 
 import androidx.compose.animation.core.FastOutLinearInEasing
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -24,17 +23,16 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Menu
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
@@ -59,9 +57,11 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.window.core.layout.WindowSizeClass
 import com.inwords.expenses.core.ui.design.appbar.TopAppBarWithText
 import com.inwords.expenses.core.ui.design.button.BasicFloatingActionButton
 import com.inwords.expenses.core.ui.design.loading.DefaultProgressIndicator
@@ -80,14 +80,11 @@ import com.inwords.expenses.feature.expenses.ui.list.ExpensesPaneUiModel.LocalEv
 import com.inwords.expenses.feature.expenses.ui.list.ExpensesTimelineVisibleDayResolver.Layout
 import expenses.shared.feature.expenses.generated.resources.Res
 import expenses.shared.feature.expenses.generated.resources.common_error
+import expenses.shared.feature.expenses.generated.resources.expenses_activity
+import expenses.shared.feature.expenses.generated.resources.expenses_add_title
 import expenses.shared.feature.expenses.generated.resources.expenses_app_name
 import expenses.shared.feature.expenses.generated.resources.expenses_menu_description
-import expenses.shared.feature.expenses.generated.resources.expenses_operation
-import expenses.shared.feature.expenses.generated.resources.expenses_operations
-import expenses.shared.feature.expenses.generated.resources.expenses_paid_by
-import expenses.shared.feature.expenses.generated.resources.expenses_paid_by_you
 import expenses.shared.feature.expenses.generated.resources.expenses_total_spent
-import expenses.shared.feature.expenses.generated.resources.expenses_your_part
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -133,13 +130,14 @@ private data class ExpensesTimelineListLayout(
 private fun rememberExpensesTimelineListLayout(
     daySections: ImmutableList<DaySectionUiModel>,
     showDayChipsRow: Boolean,
+    showSummaryPane: Boolean,
 ): ExpensesTimelineListLayout {
-    return remember(daySections, showDayChipsRow) {
+    return remember(daySections, showDayChipsRow, showSummaryPane) {
         if (daySections.isEmpty()) {
             return@remember ExpensesTimelineListLayout.Empty
         }
 
-        var index = STATIC_ITEMS_BEFORE_DAY_TIMELINE
+        var index = if (showSummaryPane) 1 else STATIC_ITEMS_BEFORE_DAY_TIMELINE
         val dayChipsRowIndex = if (showDayChipsRow) index++ else null
         val map = HashMap<String, Int>(daySections.size)
         val dayHeaderIndices = ArrayList<Int>(daySections.size)
@@ -239,7 +237,7 @@ internal fun ExpensesPane(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun ExpensesPaneSuccess(
     state: ExpensesPaneUiModel.Expenses,
@@ -253,6 +251,10 @@ private fun ExpensesPaneSuccess(
     onRefresh: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val windowSizeClass = currentWindowAdaptiveInfoV2().windowSizeClass
+    val showSummaryPane = windowSizeClass.isWidthAtLeastBreakpoint(WindowSizeClass.WIDTH_DP_EXPANDED_LOWER_BOUND) &&
+        windowSizeClass.isHeightAtLeastBreakpoint(WindowSizeClass.HEIGHT_DP_MEDIUM_LOWER_BOUND) &&
+        LocalDensity.current.fontScale < 1.5f
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
     Scaffold(
         modifier = modifier
@@ -269,27 +271,17 @@ private fun ExpensesPaneSuccess(
             TopAppBar(
                 modifier = Modifier.testTag(ExpensesPaneTags.TOP_APP_BAR),
                 title = {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(end = 16.dp),
+                    Text(text = stringResource(Res.string.expenses_app_name))
+                },
+                actions = {
+                    IconButton(
+                        modifier = Modifier.testTag(ExpensesPaneTags.MENU_BUTTON),
+                        onClick = onMenuClick,
                     ) {
-                        Text(
-                            modifier = Modifier.align(Alignment.Center),
-                            text = stringResource(Res.string.expenses_app_name),
+                        Icon(
+                            imageVector = Icons.Outlined.Menu,
+                            contentDescription = stringResource(Res.string.expenses_menu_description),
                         )
-
-                        IconButton(
-                            modifier = Modifier
-                                .align(Alignment.CenterEnd)
-                                .testTag(ExpensesPaneTags.MENU_BUTTON),
-                            onClick = onMenuClick,
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.Menu,
-                                contentDescription = stringResource(Res.string.expenses_menu_description),
-                            )
-                        }
                     }
                 },
                 scrollBehavior = scrollBehavior,
@@ -301,7 +293,7 @@ private fun ExpensesPaneSuccess(
         },
         floatingActionButton = {
             BasicFloatingActionButton(
-                text = stringResource(Res.string.expenses_operation),
+                text = stringResource(Res.string.expenses_add_title),
                 imageVector = Icons.Outlined.Add,
                 onClick = onAddExpenseClick,
                 modifier = Modifier.testTag(ExpensesPaneTags.ADD_EXPENSE_BUTTON),
@@ -335,180 +327,231 @@ private fun ExpensesPaneSuccess(
             },
             onRefresh = onRefresh,
         ) {
-            Box(
+            Row(
                 modifier = Modifier
+                    .widthIn(max = 1200.dp)
                     .fillMaxSize()
+                    .align(Alignment.TopCenter)
                     .consumeWindowInsets(PaddingValues(bottom = bottomPadding))
             ) {
-                val showDayChipsRow = state.dayChips.size > 1
-                var dayChipsRowHeightPx by remember { mutableIntStateOf(0) }
-
-                val listLayout = rememberExpensesTimelineListLayout(state.daySections, showDayChipsRow)
-                val listState = rememberLazyListState()
-
-                val coroutineScope = rememberCoroutineScope()
-                fun scrollToDayHeader(chip: DayChipUiModel) {
-                    onDayChipClick(chip.dayKey)
-                    val itemIndex = listLayout.dayHeaderIndexByDayKey[chip.dayKey] ?: return
-                    // LazyList scroll offsets are applied "forward", so reveal the target header
-                    // below the pinned chips row by using a negative obstruction height.
-                    val dayHeaderScrollOffsetPx = if (showDayChipsRow) -dayChipsRowHeightPx else 0
-                    coroutineScope.launch {
-                        listState.animateScrollToItem(
-                            index = itemIndex,
-                            scrollOffset = dayHeaderScrollOffsetPx,
-                        )
-                    }
-                }
-
-                var inlineDayChipsTopPx by remember { mutableFloatStateOf(Float.MAX_VALUE) }
-                val showStickyDayChipsOverlay by remember(listState, listLayout, topPaddingPx) {
-                    derivedStateOf {
-                        val dayChipsRowIndex = listLayout.dayChipsRowItemIndex ?: return@derivedStateOf false
-                        when {
-                            topPaddingPx <= 0f -> false
-                            listState.firstVisibleItemIndex > dayChipsRowIndex -> true
-                            listState.firstVisibleItemIndex < dayChipsRowIndex -> false
-                            else -> inlineDayChipsTopPx <= topPaddingPx
-                        }
-                    }
-                }
-
-                LaunchedEffect(listState, listLayout) {
-                    snapshotFlow {
-                        ExpensesTimelineVisibleDayResolver.currentDayKey(
-                            visibleItems = listState.layoutInfo.visibleItemsInfo,
-                            layout = listLayout.visibleDayLayout,
-                            excludedItemIndex = listLayout.dayChipsRowItemIndex,
-                            stickyDayChipsHeightPx = dayChipsRowHeightPx,
-                            hasStickyDayChipsOverlay = showStickyDayChipsOverlay,
-                        )
-                    }
-                        .filterNotNull()
-                        .distinctUntilChanged()
-                        .collect(onVisibleDayChanged)
-                }
-
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .testTag(ExpensesPaneTags.TIMELINE_LIST),
-                    state = listState,
-                    contentPadding = PaddingValues(
-                        top = topPadding,
-                        bottom = 88.dp + bottomPadding,
-                    ),
-                ) {
-                    item {
-                        EventInfoBlock(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(bottom = 16.dp),
-                            eventName = state.eventName,
-                            currentPersonName = state.currentPersonName
-                        )
-                    }
-
-                    item {
-                        DebtsBlock(
-                            onDebtsDetailsClick = onDebtsDetailsClick,
-                            state = state,
-                            onReplenishmentClick = onReplenishmentClick,
-                        )
-                    }
-
-                    item {
-                        Row(modifier = Modifier.padding(start = 16.dp, top = 24.dp, end = 16.dp, bottom = if (showDayChipsRow) 4.dp else 8.dp)) {
-                            Text(
-                                modifier = Modifier
-                                    .alignByBaseline()
-                                    .padding(end = 16.dp),
-                                text = stringResource(Res.string.expenses_operations),
-                                style = MaterialTheme.typography.headlineMedium
-                            )
-                            Text(
-                                modifier = Modifier
-                                    .alignByBaseline()
-                                    .testTag(ExpensesPaneTags.TOTAL_SPENDING_VALUE),
-                                text = stringResource(Res.string.expenses_total_spent, state.totalSpending),
-                                style = MaterialTheme.typography.bodyLarge,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
-                    }
-
-                    if (showDayChipsRow) {
-                        item(
-                            key = STICKY_DAY_CHIPS_ITEM_KEY,
-                            contentType = "day_chips",
-                        ) {
-                            DayChipsBar(
-                                dayChips = state.dayChips,
-                                onDayChipClick = ::scrollToDayHeader,
+                if (showSummaryPane) {
+                    LazyColumn(
+                        modifier = Modifier
+                            .weight(0.85f)
+                            .fillMaxHeight(),
+                        contentPadding = PaddingValues(top = topPadding, bottom = 24.dp + bottomPadding),
+                    ) {
+                        item(key = "event_info", contentType = "event_info") {
+                            EventInfoBlock(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .onGloballyPositioned { coordinates ->
-                                        inlineDayChipsTopPx = coordinates.boundsInRoot().top
-                                        dayChipsRowHeightPx = coordinates.size.height
-                                    }
-                                    .alpha(if (showStickyDayChipsOverlay) 0f else 1f)
-                                    .then(
-                                        if (showStickyDayChipsOverlay) {
-                                            Modifier.clearAndSetSemantics {}
-                                        } else {
-                                            Modifier
-                                        }
-                                    ),
-                                rowTestTag = if (showStickyDayChipsOverlay) null else ExpensesPaneTags.DAY_CHIPS_ROW,
-                                chipTestTagPrefix = if (showStickyDayChipsOverlay) null else ExpensesPaneTags.DAY_CHIP_PREFIX,
+                                    .padding(start = 24.dp, end = 24.dp, top = 8.dp, bottom = 24.dp)
+                                    .testTag(ExpensesPaneTags.EVENT_INFO),
+                                eventName = state.eventName,
+                                currentPersonName = state.currentPersonName,
+                                personCount = state.personCount,
                             )
                         }
-                    }
-
-                    state.daySections.forEachIndexed { index, daySection ->
-                        item(
-                            key = ExpensesPaneTags.timelineDayHeaderKey(daySection.dayKey),
-                            contentType = "day_header",
-                        ) {
-                            DaySectionHeader(
-                                daySection = daySection,
+                        item(key = "personal_debts", contentType = "personal_debts") {
+                            DebtsBlock(
                                 modifier = Modifier
-                                    .padding(start = 16.dp, end = 16.dp, top = if (index == 0) 8.dp else 16.dp, bottom = 16.dp)
-                                    .fillMaxWidth(),
-                            )
-                        }
-
-                        items(
-                            items = daySection.expenses,
-                            key = { expense -> expense.expenseId },
-                            contentType = { "expense_item" },
-                        ) { expense ->
-                            ExpenseItem(
-                                expense = expense,
-                                onExpenseClick = onExpenseClick,
-                                modifier = Modifier.padding(horizontal = 8.dp),
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp),
+                                state = state,
+                                onDebtsDetailsClick = onDebtsDetailsClick,
+                                onReplenishmentClick = onReplenishmentClick,
                             )
                         }
                     }
                 }
+                Box(
+                    modifier = Modifier
+                        .weight(1.3f)
+                        .fillMaxHeight()
+                ) {
+                    val showDayChipsRow = state.dayChips.size > 1
+                    var dayChipsRowHeightPx by remember { mutableIntStateOf(0) }
 
-                if (showDayChipsRow && showStickyDayChipsOverlay) {
-                    DayChipsBar(
-                        dayChips = state.dayChips,
-                        onDayChipClick = ::scrollToDayHeader,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .align(Alignment.TopCenter)
-                            .offset(y = topPadding)
-                            .onGloballyPositioned { coordinates ->
-                                dayChipsRowHeightPx = coordinates.size.height
+                    val listLayout = rememberExpensesTimelineListLayout(state.daySections, showDayChipsRow, showSummaryPane)
+                    val listState = rememberLazyListState()
+
+                    val coroutineScope = rememberCoroutineScope()
+                    fun scrollToDayHeader(chip: DayChipUiModel) {
+                        onDayChipClick(chip.dayKey)
+                        val itemIndex = listLayout.dayHeaderIndexByDayKey[chip.dayKey] ?: return
+                        // LazyList scroll offsets are applied "forward", so reveal the target header
+                        // below the pinned chips row by using a negative obstruction height.
+                        val dayHeaderScrollOffsetPx = if (showDayChipsRow) -dayChipsRowHeightPx else 0
+                        coroutineScope.launch {
+                            listState.animateScrollToItem(
+                                index = itemIndex,
+                                scrollOffset = dayHeaderScrollOffsetPx,
+                            )
+                        }
+                    }
+
+                    var inlineDayChipsTopPx by remember { mutableFloatStateOf(Float.MAX_VALUE) }
+                    val showStickyDayChipsOverlay by remember(listState, listLayout, topPaddingPx) {
+                        derivedStateOf {
+                            val dayChipsRowIndex = listLayout.dayChipsRowItemIndex ?: return@derivedStateOf false
+                            when {
+                                topPaddingPx <= 0f -> false
+                                listState.firstVisibleItemIndex > dayChipsRowIndex -> true
+                                listState.firstVisibleItemIndex < dayChipsRowIndex -> false
+                                else -> inlineDayChipsTopPx <= topPaddingPx
                             }
-                            .clip(MaterialTheme.shapes.extraLarge)
-                            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.8f)),
-                        rowTestTag = ExpensesPaneTags.DAY_CHIPS_ROW,
-                        chipTestTagPrefix = ExpensesPaneTags.DAY_CHIP_PREFIX,
-                    )
+                        }
+                    }
+
+                    LaunchedEffect(listState, listLayout) {
+                        snapshotFlow {
+                            ExpensesTimelineVisibleDayResolver.currentDayKey(
+                                visibleItems = listState.layoutInfo.visibleItemsInfo,
+                                layout = listLayout.visibleDayLayout,
+                                excludedItemIndex = listLayout.dayChipsRowItemIndex,
+                                stickyDayChipsHeightPx = dayChipsRowHeightPx,
+                                hasStickyDayChipsOverlay = showStickyDayChipsOverlay,
+                            )
+                        }
+                            .filterNotNull()
+                            .distinctUntilChanged()
+                            .collect(onVisibleDayChanged)
+                    }
+
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .testTag(ExpensesPaneTags.TIMELINE_LIST),
+                        state = listState,
+                        contentPadding = PaddingValues(
+                            top = topPadding,
+                            bottom = 88.dp + bottomPadding,
+                        ),
+                    ) {
+                        if (!showSummaryPane) {
+                            item(key = "event_info", contentType = "event_info") {
+                                EventInfoBlock(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(start = 24.dp, end = 24.dp, top = 8.dp, bottom = 24.dp)
+                                        .testTag(ExpensesPaneTags.EVENT_INFO),
+                                    eventName = state.eventName,
+                                    currentPersonName = state.currentPersonName,
+                                    personCount = state.personCount,
+                                )
+                            }
+
+                            item(key = "personal_debts", contentType = "personal_debts") {
+                                DebtsBlock(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp),
+                                    onDebtsDetailsClick = onDebtsDetailsClick,
+                                    state = state,
+                                    onReplenishmentClick = onReplenishmentClick,
+                                )
+                            }
+                        }
+
+                        item(key = "activity_heading", contentType = "activity_heading") {
+                            FlowRow(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(start = 24.dp, top = 24.dp, end = 24.dp, bottom = 8.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalArrangement = Arrangement.spacedBy(4.dp),
+                            ) {
+                                Text(
+                                    modifier = Modifier
+                                        .alignByBaseline()
+                                        .padding(end = 16.dp)
+                                        .semantics { heading() },
+                                    text = stringResource(Res.string.expenses_activity),
+                                    style = MaterialTheme.typography.titleLarge,
+                                )
+                                Text(
+                                    modifier = Modifier
+                                        .alignByBaseline()
+                                        .testTag(ExpensesPaneTags.TOTAL_SPENDING_VALUE),
+                                    text = stringResource(Res.string.expenses_total_spent, state.totalSpending),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+
+                        if (showDayChipsRow) {
+                            item(
+                                key = STICKY_DAY_CHIPS_ITEM_KEY,
+                                contentType = "day_chips",
+                            ) {
+                                DayChipsBar(
+                                    dayChips = state.dayChips,
+                                    onDayChipClick = ::scrollToDayHeader,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .onGloballyPositioned { coordinates ->
+                                            inlineDayChipsTopPx = coordinates.boundsInRoot().top
+                                            dayChipsRowHeightPx = coordinates.size.height
+                                        }
+                                        .alpha(if (showStickyDayChipsOverlay) 0f else 1f)
+                                        .then(
+                                            if (showStickyDayChipsOverlay) {
+                                                Modifier.clearAndSetSemantics {}
+                                            } else {
+                                                Modifier
+                                            }
+                                        ),
+                                    rowTestTag = if (showStickyDayChipsOverlay) null else ExpensesPaneTags.DAY_CHIPS_ROW,
+                                    chipTestTagPrefix = if (showStickyDayChipsOverlay) null else ExpensesPaneTags.DAY_CHIP_PREFIX,
+                                )
+                            }
+                        }
+
+                        state.daySections.forEachIndexed { index, daySection ->
+                            item(
+                                key = ExpensesPaneTags.timelineDayHeaderKey(daySection.dayKey),
+                                contentType = "day_header",
+                            ) {
+                                DaySectionHeader(
+                                    daySection = daySection,
+                                    modifier = Modifier
+                                        .padding(start = 24.dp, end = 24.dp, top = if (index == 0) 8.dp else 16.dp, bottom = 8.dp)
+                                        .fillMaxWidth(),
+                                )
+                            }
+
+                            items(
+                                items = daySection.expenses,
+                                key = { expense -> expense.expenseId },
+                                contentType = { "expense_item" },
+                            ) { expense ->
+                                ExpenseItem(
+                                    expense = expense,
+                                    onExpenseClick = onExpenseClick,
+                                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 4.dp),
+                                )
+                            }
+                        }
+                    }
+
+                    if (showDayChipsRow && showStickyDayChipsOverlay) {
+                        DayChipsBar(
+                            dayChips = state.dayChips,
+                            onDayChipClick = ::scrollToDayHeader,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .align(Alignment.TopCenter)
+                                .offset(y = topPadding)
+                                .onGloballyPositioned { coordinates ->
+                                    dayChipsRowHeightPx = coordinates.size.height
+                                }
+                                .clip(MaterialTheme.shapes.extraLarge)
+                                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.8f)),
+                            rowTestTag = ExpensesPaneTags.DAY_CHIPS_ROW,
+                            chipTestTagPrefix = ExpensesPaneTags.DAY_CHIP_PREFIX,
+                        )
+                    }
                 }
             }
         }
@@ -539,7 +582,7 @@ private fun DayChipsBar(
             .fillMaxWidth()
             .then(if (rowTestTag == null) Modifier else Modifier.testTag(rowTestTag)),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
-        contentPadding = PaddingValues(all = 8.dp),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
     ) {
         items(
             items = dayChips,
@@ -566,28 +609,51 @@ private fun DaySectionHeader(
     daySection: DaySectionUiModel,
     modifier: Modifier = Modifier,
 ) {
-    Row(
+    FlowRow(
         modifier = modifier.testTag(ExpensesPaneTags.dayHeader(daySection.dayKey)),
         horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
+        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         Text(
+            modifier = Modifier.alignByBaseline()
+                .padding(end = 12.dp)
+                .semantics { heading() },
             text = daySection.headerLabel,
-            style = MaterialTheme.typography.bodyLarge,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         daySection.spendingTotal?.let { spendingTotal ->
             Text(
-                modifier = Modifier.testTag(ExpensesPaneTags.dayHeaderTotal(daySection.dayKey)),
+                modifier = Modifier.alignByBaseline().testTag(ExpensesPaneTags.dayHeaderTotal(daySection.dayKey)),
                 text = spendingTotal,
-                style = MaterialTheme.typography.bodyLarge,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@Preview
+@Composable
+private fun DayChipsBarPreview() {
+    CommonExTheme {
+        DayChipsBar(
+            dayChips = mockExpensesPaneUiModel(withDebts = false).dayChips,
+            onDayChipClick = {},
+            rowTestTag = null,
+            chipTestTagPrefix = null,
+        )
+    }
+}
+
+@Preview(fontScale = 2f, widthDp = 320)
+@Composable
+private fun DaySectionHeaderPreview() {
+    CommonExTheme {
+        DaySectionHeader(daySection = mockExpensesPaneUiModel(withDebts = false).daySections.first())
+    }
+}
+
 @Composable
 private fun ExpensesPaneLoading(
     modifier: Modifier = Modifier,
@@ -608,116 +674,10 @@ private fun ExpensesPaneLoading(
     }
 }
 
-@Composable
-private fun ExpenseItem(
-    expense: ExpenseUiModel,
-    onExpenseClick: (expense: ExpenseUiModel) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp)
-            .clip(MaterialTheme.shapes.medium)
-            .clickable { onExpenseClick.invoke(expense) },
-        shape = MaterialTheme.shapes.medium,
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            val amountColor = when (expense.expenseType) {
-                ExpenseType.Spending -> MaterialTheme.colorScheme.onSurface
-                ExpenseType.Replenishment -> MaterialTheme.colorScheme.primary
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top,
-            ) {
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    Text(
-                        text = expense.currencyText,
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Text(
-                        text = expense.totalAmount,
-                        style = MaterialTheme.typography.headlineSmall,
-                        maxLines = 1,
-                        color = amountColor,
-                    )
-                }
-
-                Spacer(modifier = Modifier.width(12.dp))
-
-                Column(
-                    horizontalAlignment = Alignment.End,
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            text = if (expense.isPaidByCurrentPerson) {
-                                stringResource(Res.string.expenses_paid_by_you)
-                            } else {
-                                "${stringResource(Res.string.expenses_paid_by)}:"
-                            },
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                        )
-                        if (!expense.isPaidByCurrentPerson) {
-                            Text(
-                                text = expense.personName,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
-                    }
-                    Text(
-                        text = expense.timeText,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1
-                    )
-                }
-            }
-
-            expense.currentPersonPartAmount?.let { currentPersonPart ->
-                Text(
-                    text = stringResource(Res.string.expenses_your_part, currentPersonPart),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-            Text(
-                text = expense.description,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        }
-    }
-}
 
 @Preview
+@Preview(name = "Expanded", widthDp = 1000, heightDp = 800)
+@Preview(name = "Large text", widthDp = 320, fontScale = 2f)
 @Composable
 private fun ExpensesPanePreviewSuccessWithCreditors() {
     CommonExTheme {
@@ -838,6 +798,7 @@ internal fun mockExpensesPaneUiModel(withDebts: Boolean): ExpensesPaneUiModel.Ex
                 amount = "100",
             ),
         ).takeIf { withDebts } ?: persistentListOf(),
+        totalDebt = if (withDebts) "100 EUR" else "0 EUR",
         totalSpending = "180 EUR",
         dayChips = persistentListOf(
             DayChipUiModel(dayKey = "2026-03-28", label = "Today", isSelected = true),
@@ -893,7 +854,8 @@ private fun mockExpenseUiModel(
 ): ExpenseUiModel {
     return ExpenseUiModel(
         expenseId = expenseId,
-        currencyText = "Euro",
+        currencyCode = "EUR",
+        originalAmount = null,
         expenseType = expenseType,
         personName = "Vasiliy",
         isPaidByCurrentPerson = true,

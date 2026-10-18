@@ -20,6 +20,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.plus
@@ -44,7 +45,6 @@ internal class CreateEventViewModel(
     private val ownerName = MutableStateFlow("")
     private val persons = MutableStateFlow(persistentListOf<String>())
     private val selectedCurrencyCode = MutableStateFlow<String?>(null)
-    private val isCreating = MutableStateFlow(false)
 
     private var createJob: Job? = null
 
@@ -75,14 +75,11 @@ internal class CreateEventViewModel(
         initialValue = initialValue,
     )
 
-    val state: StateFlow<CreateEventPaneUiModel> = combine(
-        _state,
-        isCreating,
-    ) { model, isCreating ->
-        model.toUiModel(isCreating = isCreating)
+    val state: StateFlow<CreateEventPaneUiModel> = _state.map { model ->
+        model.toUiModel()
     }.stateInWhileSubscribed(
         scope = viewModelScope + UI,
-        initialValue = initialValue.toUiModel(isCreating = false),
+        initialValue = initialValue.toUiModel(),
     )
 
     fun onEventNameChanged(eventName: String) {
@@ -126,7 +123,6 @@ internal class CreateEventViewModel(
         val selectedCurrencyId = state.selectedCurrency?.id ?: return
         if (name.isBlank() || owner.isBlank()) return
 
-        isCreating.value = true
         createJob = viewModelScope.launch {
             createEventFromParametersUseCase.createEvent(
                 name = name,
@@ -138,10 +134,6 @@ internal class CreateEventViewModel(
                 toDestination = expensesScreenDestination,
                 inclusive = false,
             )
-        }.apply {
-            invokeOnCompletion {
-                isCreating.value = false
-            }
         }
     }
 
@@ -155,7 +147,7 @@ internal class CreateEventViewModel(
             ?: firstOrNull()
     }
 
-    private fun CreateEventPaneModel.toUiModel(isCreating: Boolean): CreateEventPaneUiModel {
+    private fun CreateEventPaneModel.toUiModel(): CreateEventPaneUiModel {
         return CreateEventPaneUiModel(
             eventName = eventName,
             ownerName = ownerName,
@@ -167,7 +159,8 @@ internal class CreateEventViewModel(
                     selected = currency.id == selectedCurrency?.id,
                 )
             }.asImmutableListAdapter(),
-            isCreating = isCreating,
+            selectedCurrencyCode = selectedCurrency?.code.orEmpty(),
+            isCurrencySelectionEnabled = currencies.isNotEmpty(),
         )
     }
 

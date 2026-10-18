@@ -1,20 +1,28 @@
 package ru.commonex.screens
 
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasAnyDescendant
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.test.performScrollToKey
 import com.inwords.expenses.feature.expenses.ui.list.ExpensesPaneTags
-import expenses.shared.feature.events.generated.resources.events_info_with_person
+import expenses.shared.feature.events.generated.resources.events_info_identity
 import expenses.shared.feature.expenses.generated.resources.Res
-import expenses.shared.feature.expenses.generated.resources.expenses_details
+import expenses.shared.feature.expenses.generated.resources.expenses_all_balances
 import expenses.shared.feature.expenses.generated.resources.expenses_first_identity
 import expenses.shared.feature.expenses.generated.resources.expenses_revert_description
+import expenses.shared.feature.expenses.generated.resources.expenses_you_owe_nothing
 import org.jetbrains.compose.resources.getString
 import kotlin.math.abs
 import expenses.shared.feature.events.generated.resources.Res as EventsRes
@@ -28,10 +36,13 @@ internal class ExpensesScreen : BaseScreen() {
     }
 
     context(rule: ComposeTestRule)
+    @OptIn(ExperimentalTestApi::class)
     suspend fun verifyCurrentPerson(eventName: String, personName: String): ExpensesScreen {
-        val titleText = getString(EventsRes.string.events_info_with_person, eventName, personName)
-        waitForElementWithText(titleText)
-        assertElementWithTextExists(titleText)
+        val identityText = getString(EventsRes.string.events_info_identity, personName)
+        val matcher = hasTestTag(ExpensesPaneTags.EVENT_INFO) and
+            hasAnyDescendant(hasText(eventName)) and hasAnyDescendant(hasText(identityText))
+        rule.waitUntilAtLeastOneExists(matcher, timeoutMillis = 10000)
+        rule.onNode(matcher).assertIsDisplayed()
         return this
     }
 
@@ -49,6 +60,12 @@ internal class ExpensesScreen : BaseScreen() {
         waitForElementWithTag(ExpensesPaneTags.ADD_EXPENSE_BUTTON)
         rule.onNodeWithTag(ExpensesPaneTags.ADD_EXPENSE_BUTTON).performClick()
         return AddExpenseScreen()
+    }
+
+    context(rule: ComposeTestRule)
+    fun clickInvite(): InviteEventScreen {
+        rule.onNodeWithTag(ExpensesPaneTags.INVITE_BUTTON).performScrollTo().performClick()
+        return InviteEventScreen()
     }
 
     context(rule: ComposeTestRule)
@@ -75,7 +92,7 @@ internal class ExpensesScreen : BaseScreen() {
 
     context(rule: ComposeTestRule)
     suspend fun clickDebtDetails(): DebtsListScreen {
-        val detailsLabel = getString(Res.string.expenses_details)
+        val detailsLabel = getString(Res.string.expenses_all_balances)
         rule.onNodeWithText(detailsLabel).performClick()
         return DebtsListScreen()
     }
@@ -91,6 +108,29 @@ internal class ExpensesScreen : BaseScreen() {
     fun verifyExpenseExists(description: String): ExpensesScreen {
         waitForElementWithText(description)
         assertElementWithTextExists(description)
+        return this
+    }
+
+    context(rule: ComposeTestRule)
+    fun verifyPersonalDebt(personName: String, amount: String): ExpensesScreen {
+        waitForElementWithText(amount)
+        rule.onNode(hasText(personName) and hasText(amount) and hasAnyAncestor(hasTestTag(ExpensesPaneTags.PERSONAL_DEBTS)))
+            .assertIsDisplayed()
+        return this
+    }
+
+    context(rule: ComposeTestRule)
+    fun repayPersonalDebt(personName: String): AddExpenseScreen {
+        rule.onNode(hasText(personName) and hasAnyAncestor(hasTestTag(ExpensesPaneTags.PERSONAL_DEBTS)))
+            .performClick()
+        return AddExpenseScreen()
+    }
+
+    context(rule: ComposeTestRule)
+    suspend fun verifyNoPersonalDebts(): ExpensesScreen {
+        val text = getString(Res.string.expenses_you_owe_nothing)
+        waitForElementWithText(text)
+        rule.onNode(hasText(text) and hasAnyAncestor(hasTestTag(ExpensesPaneTags.PERSONAL_DEBTS))).assertIsDisplayed()
         return this
     }
 
@@ -153,8 +193,7 @@ internal class ExpensesScreen : BaseScreen() {
     context(rule: ComposeTestRule)
     fun verifyDayChipSelected(dayKey: String): ExpensesScreen {
         rule.onNodeWithTag(ExpensesPaneTags.dayChip(dayKey))
-            .fetchSemanticsNode()
-            .config[SemanticsProperties.Selected]
+            .assertIsSelected()
         return this
     }
 

@@ -11,6 +11,8 @@ Detailed testing strategy, architecture, and patterns for the Android/KMM projec
 - **Instrumented tests (Compose UI E2E tests):** Android Tests with JUnit 4 and Marathon. Prefer Marathon over `:app:connectedAutotestAndroidTest` for local UI-test validation because it matches the retried/sharded runner used in CI. Use `connectedAutotestAndroidTest` only for narrow targeted debugging when Marathon is unavailable or would be unnecessary overhead. Run against the real backend; avoid mocks and hardcoded remote fixtures by creating required data in-test.
 - **Device fallback for targeted UI validation:** If `:app:connectedAutotestAndroidTest` is blocked by `No connected devices!`, use the managed-device path `:app:pixel6Api36AtdAutotestAndroidTest` for the same targeted test before reporting completion.
 - **Completion bar for UI work:** If you change Compose UI behavior or add/edit instrumented UI flows, do not report completion from compile/host tests alone. Run at least one relevant instrumented UI path and report the exact command and scope that were validated.
+- **Device data:** Run fixture-clearing scenarios on a disposable emulator or a device reserved for tests. Preserve the user's existing app data and restore settings changed for layout checks.
+- **Fresh validation:** If a multi-task Gradle invocation stops on a failure, confirm which required tasks actually ran and run skipped checks separately. Existing reports do not establish results for the current changes.
 - **Deterministic expense timestamps in instrumented tests:** To pin creation time when driving the real add-expense flow, use `com.inwords.expenses.feature.expenses.domain.ExpenseTimeBackdoor.overrideForTests(Instant?)` in a try/finally reset to `null`. Add-expense use cases read this for persisted `timestamp`; referencing a non-existent helper type breaks `:app:compileAutotestAndroidTestKotlin`.
 - **Room tests:** use `androidx.room:room-testing`/`MigrationTestHelper` for migration validation only (example `MigrationTest.kt` in `androidDeviceTest` source set).
 - **Device testing:** Managed devices configured in `pixel6Api36*` tasks
@@ -61,9 +63,11 @@ app/src/androidTest/kotlin/ru/commonex/
 
 ### Key Patterns
 
-- Keep screen objects stateless. Drive known routes through explicit screen transitions; an input method must not infer its route from node-presence probes or navigate to another pane implicitly.
+- Keep screen objects stateless. Each screen or sheet owns its controls; return its screen object at a transition and let that object perform the next interactions. Drive known routes explicitly; an input method must not infer its route from node-presence probes or navigate to another pane implicitly.
 - Follow neighboring tests' style and reuse existing APIs and helpers. Introduce another API or abstraction only for a concrete unmet need.
-- Rely on Compose synchronization and existing wait defaults; wait at actual asynchronous boundaries. Diagnose failures before adding fallback branches, retries, or longer timeouts. Temporary dependency outages do not justify changing test behavior; validate independent paths and report blocked scenarios.
+- Rely on Compose synchronization and existing wait defaults; wait at actual asynchronous boundaries. Establish whether a failure is caused by app behavior, the route, scrolling, or an asynchronous boundary before changing synchronization. Remove speculative test changes that do not address the reproduced cause. Temporary dependency outages do not justify fallback branches, retries, or longer timeouts; validate independent paths and report blocked scenarios.
+- Extend coherent user flows to cover new selections, incomplete or invalid drafts, recovery, persistence, and critical navigation outcomes. Reuse existing coverage instead of duplicating ViewModel branch tests in the UI suite.
+- Assert the expected semantic value, such as selected, checked, or enabled, rather than only reading the property or checking that it exists.
 
 1. **Context receivers for ComposeTestRule:** Screen methods use `context(rule: ComposeTestRule)` to access the test rule without explicit parameter passing:
    ```kotlin
@@ -106,3 +110,4 @@ app/src/androidTest/kotlin/ru/commonex/
 
 5. **Selectors:** Prefer test tags for new selectors, fall back to resource strings, and avoid raw literals unless unavoidable. For overlays (dialogs/bottom sheets), scope checks to overlay-specific tags; do not rely on global text waits that can match
    underlying screens.
+   When verifying related labels, such as a group title and current-person identity, scope both the wait and assertion to the same container. Finding each label elsewhere on the screen does not verify their relationship.
