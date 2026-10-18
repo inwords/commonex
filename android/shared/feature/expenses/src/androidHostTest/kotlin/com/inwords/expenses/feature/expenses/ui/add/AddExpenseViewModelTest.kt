@@ -23,6 +23,7 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.justRun
 import io.mockk.mockk
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -124,9 +125,14 @@ internal class AddExpenseViewModelTest {
             val uiModel = awaitSuccess()
 
             assertEquals("", uiModel.description)
+            assertEquals("Trip", uiModel.eventName)
+            assertEquals("USD", uiModel.primaryCurrencyCode)
+            assertEquals("USD", uiModel.selectedCurrencyCode)
             assertEquals(ExpenseType.Spending, uiModel.expenseType)
             assertTrue(uiModel.currencies.byCode("USD").selected)
             assertTrue(uiModel.persons.byId(TestFixtures.person1.id).selected)
+            assertEquals(TestFixtures.person1.name, uiModel.selectedPersonName)
+            assertEquals(TestFixtures.person3.id, uiModel.lastSplitPersonId)
 
             cancelAndIgnoreRemainingEvents()
         }
@@ -189,6 +195,7 @@ internal class AddExpenseViewModelTest {
             awaitLoading()
             val initial = awaitSuccess()
             assertTrue(initial.currencies.byCode("USD").selected)
+            assertEquals("USD", initial.selectedCurrencyCode)
             assertEquals(null, initial.exchangeRate)
 
             viewModel.onCurrencyClicked(
@@ -201,6 +208,7 @@ internal class AddExpenseViewModelTest {
 
             val updated = awaitSuccess()
             assertTrue(updated.currencies.byCode("EUR").selected)
+            assertEquals("EUR", updated.selectedCurrencyCode)
             assertEquals("1.1765", updated.exchangeRate?.rateRaw)
             cancelAndIgnoreRemainingEvents()
         }
@@ -367,6 +375,7 @@ internal class AddExpenseViewModelTest {
 
             val updated = awaitSuccess()
             assertTrue(updated.persons.byId(TestFixtures.person2.id).selected)
+            assertEquals(TestFixtures.person2.name, updated.selectedPersonName)
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -384,6 +393,8 @@ internal class AddExpenseViewModelTest {
             awaitLoading()
             val initial = awaitSuccess()
             assertTrue(initial.subjectPersons.all { it.selected }) // default: all selected
+            assertEquals(3, initial.selectedSubjectPersonsCount)
+            assertEquals("Vasilii, Dania, Angela", initial.selectedSubjectPersonsNames)
 
             // Toggle off person3
             viewModel.onSubjectPersonClicked(
@@ -395,6 +406,9 @@ internal class AddExpenseViewModelTest {
             )
             val afterToggleOff = awaitSuccess()
             assertFalse(afterToggleOff.subjectPersons.byId(TestFixtures.person3.id).selected)
+            assertEquals(2, afterToggleOff.selectedSubjectPersonsCount)
+            assertEquals("Vasilii, Dania", afterToggleOff.selectedSubjectPersonsNames)
+            assertEquals(TestFixtures.person2.id, afterToggleOff.lastSplitPersonId)
 
             // Toggle person3 back on
             viewModel.onSubjectPersonClicked(
@@ -406,6 +420,9 @@ internal class AddExpenseViewModelTest {
             )
             val afterToggleOn = awaitSuccess()
             assertTrue(afterToggleOn.subjectPersons.byId(TestFixtures.person3.id).selected)
+            assertEquals(3, afterToggleOn.selectedSubjectPersonsCount)
+            assertEquals("Vasilii, Dania, Angela", afterToggleOn.selectedSubjectPersonsNames)
+            assertEquals(TestFixtures.person3.id, afterToggleOn.lastSplitPersonId)
 
             cancelAndIgnoreRemainingEvents()
         }
@@ -447,10 +464,14 @@ internal class AddExpenseViewModelTest {
             val initial = awaitSuccess()
             assertEquals(ExpenseType.Spending, initial.expenseType)
 
+            viewModel.onWholeAmountChanged("60")
+            assertEquals("20", awaitSuccess().equalShareAmount)
+
             viewModel.onExpenseTypeClicked(ExpenseType.Replenishment)
 
             val updated = awaitSuccess()
             assertEquals(ExpenseType.Replenishment, updated.expenseType)
+            assertEquals(null, updated.equalShareAmount)
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -672,6 +693,7 @@ internal class AddExpenseViewModelTest {
 
             val updatedState = awaitSuccess()
             assertEquals(0, updatedState.split.size)
+            assertEquals(null, updatedState.lastSplitPersonId)
             assertFalse(updatedState.canSave)
 
             cancelAndIgnoreRemainingEvents()
@@ -680,6 +702,127 @@ internal class AddExpenseViewModelTest {
     // endregion
 
     // region Amount Validation Tests
+
+    @Test
+    fun `should project equal shares and estimate converted total from the entered amount`() = testScope.runTest {
+        currentEventFlow.value = TestFixtures.eventDetails
+        val viewModel = createViewModel()
+
+        viewModel.state.test {
+            awaitLoading()
+            val initial = awaitSuccess()
+            assertEquals(null, initial.equalShareAmount)
+            viewModel.onCurrencyClicked(initial.currencies.byCode("EUR"))
+            awaitSuccess()
+            viewModel.onWholeAmountChanged("10")
+
+            val updated = awaitSuccess()
+            assertEquals("10", updated.totalAmount)
+            assertEquals("3.33", updated.equalShareAmount)
+            assertEquals(listOf("3.33", "3.33", "3.33"), updated.split.map { it.amount })
+            assertEquals("11.77", checkNotNull(updated.exchangeRate).convertedTotalAmount)
+
+            viewModel.onSubjectPersonClicked(updated.subjectPersons.byId(TestFixtures.person3.id))
+            val reduced = awaitSuccess()
+            assertEquals(listOf(TestFixtures.person1.id, TestFixtures.person2.id), reduced.split.map { it.person.personId })
+            assertEquals(listOf("5", "5"), reduced.split.map { it.amount })
+            assertEquals("5", reduced.equalShareAmount)
+
+            viewModel.onSubjectPersonClicked(reduced.subjectPersons.byId(TestFixtures.person1.id))
+            val remaining = awaitSuccess()
+            viewModel.onSubjectPersonClicked(remaining.subjectPersons.byId(TestFixtures.person2.id))
+            assertEquals(null, awaitSuccess().equalShareAmount)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `should project custom total from edited rows and hide incomplete totals`() = testScope.runTest {
+        currentEventFlow.value = TestFixtures.eventDetails
+        val viewModel = createViewModel()
+
+        viewModel.state.test {
+            awaitLoading()
+            awaitSuccess()
+            viewModel.onWholeAmountChanged("9")
+            awaitSuccess()
+            viewModel.onEqualSplitChange(false)
+            val custom = awaitSuccess()
+
+            viewModel.onSplitAmountChanged(custom.split.first(), "4.5")
+            val edited = awaitSuccess()
+            assertEquals("9", edited.wholeAmount)
+            assertEquals("10.5", edited.totalAmount)
+            assertEquals(null, edited.equalShareAmount)
+
+            viewModel.onSplitAmountChanged(edited.split.first(), "")
+            val incomplete = awaitSuccess()
+            assertEquals("", incomplete.totalAmount)
+            assertEquals(null, incomplete.exchangeRate?.convertedTotalAmount)
+            assertFalse(incomplete.canSave)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `should estimate conversion with a custom rate and hide it for invalid rate`() = testScope.runTest {
+        currentEventFlow.value = TestFixtures.eventDetails
+        val viewModel = createViewModel()
+
+        viewModel.state.test {
+            awaitLoading()
+            val initial = awaitSuccess()
+            viewModel.onCurrencyClicked(initial.currencies.byCode("EUR"))
+            awaitSuccess()
+            viewModel.onWholeAmountChanged("12")
+            awaitSuccess()
+            viewModel.onExchangeRateChanged("1.25")
+            val converted = awaitSuccess()
+            assertEquals("15", checkNotNull(converted.exchangeRate).convertedTotalAmount)
+            assertTrue(checkNotNull(converted.exchangeRate).isValid)
+
+            viewModel.onExchangeRateChanged("0")
+            val invalid = awaitSuccess()
+            assertEquals(null, checkNotNull(invalid.exchangeRate).convertedTotalAmount)
+            assertFalse(checkNotNull(invalid.exchangeRate).isValid)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `should navigate back when navigation icon is clicked`() = testScope.runTest {
+        createViewModel().onNavIconClicked()
+
+        coVerify(exactly = 1) { navigationController.popBackStack() }
+    }
+
+    @Test
+    fun `should ignore duplicate confirmation until expense creation completes`() = testScope.runTest {
+        currentEventFlow.value = TestFixtures.eventDetails
+        val creationCompleted = CompletableDeferred<Unit>()
+        coEvery { addEqualSplitExpenseUseCase.addExpense(any(), any(), any(), any(), any(), any(), any(), any()) } coAnswers {
+            creationCompleted.await()
+        }
+        val viewModel = createViewModel()
+
+        viewModel.state.test {
+            awaitLoading()
+            awaitSuccess()
+            viewModel.onWholeAmountChanged("12")
+            awaitSuccess()
+
+            viewModel.onConfirmClicked()
+            viewModel.onConfirmClicked()
+            runCurrent()
+            coVerify(exactly = 1) { addEqualSplitExpenseUseCase.addExpense(any(), any(), any(), any(), any(), any(), any(), any()) }
+            coVerify(exactly = 0) { navigationController.popBackStack() }
+
+            creationCompleted.complete(Unit)
+            runCurrent()
+            coVerify(exactly = 1) { navigationController.popBackStack() }
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
 
     @Test
     fun `should confirm equal split expense creation and navigate back`() = testScope.runTest {
@@ -691,7 +834,9 @@ internal class AddExpenseViewModelTest {
 
         viewModel.state.test {
             awaitLoading()
-            awaitSuccess()
+            val initial = awaitSuccess()
+            viewModel.onPersonClicked(initial.persons.byId(TestFixtures.person2.id))
+            assertEquals(TestFixtures.person2.name, awaitSuccess().selectedPersonName)
             viewModel.onEqualSplitChange(true)
             viewModel.onWholeAmountChanged("12.0")
             awaitSuccess()
@@ -709,7 +854,7 @@ internal class AddExpenseViewModelTest {
                     description = any(),
                     selectedSubjectPersons = match { it.size == 3 && it.containsAll(listOf(TestFixtures.person1, TestFixtures.person2, TestFixtures.person3)) },
                     selectedCurrency = TestFixtures.USD,
-                    selectedPerson = TestFixtures.person1,
+                    selectedPerson = TestFixtures.person2,
                     overrideRate = null,
                 )
             }
@@ -909,6 +1054,7 @@ internal class AddExpenseViewModelTest {
             assertFalse(uiModel.equalSplit)
             assertEquals(1, uiModel.split.size)
             assertEquals(TestFixtures.person3.id, uiModel.split.first().person.personId)
+            assertEquals(TestFixtures.person3.id, uiModel.lastSplitPersonId)
             assertEquals("7.5", uiModel.split.first().amount)
             assertEquals("7.5", uiModel.wholeAmount)
             assertEquals("1.1765", uiModel.exchangeRate?.rateRaw)
@@ -1043,6 +1189,7 @@ internal class AddExpenseViewModelTest {
             // Then - should store raw value
             val updated = awaitSuccess()
             assertEquals("invalid123", updated.wholeAmount)
+            assertEquals(null, updated.equalShareAmount)
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -1370,6 +1517,7 @@ internal class AddExpenseViewModelTest {
             // Should fall back to primary currency (USD)
             assertTrue(uiModel.currencies.byCode("USD").selected)
             assertFalse(uiModel.currencies.byCode("EUR").selected)
+            assertEquals("USD", uiModel.selectedCurrencyCode)
 
             cancelAndIgnoreRemainingEvents()
         }
@@ -1440,6 +1588,7 @@ internal class AddExpenseViewModelTest {
             assertEquals(4, updated.persons.size)
             assertEquals(3, updated.currencies.size)
             assertTrue(updated.persons.any { it.personName == "Bob" })
+            assertEquals("Vasilii, Dania, Angela, Bob", updated.selectedSubjectPersonsNames)
             assertTrue(updated.currencies.any { it.currencyCode == "GBP" })
 
             cancelAndIgnoreRemainingEvents()
@@ -1481,8 +1630,8 @@ internal class AddExpenseViewModelTest {
     }
 
     @Test
-    fun `should handle missing currency gracefully during confirmation`() = testScope.runTest {
-        // Given - Create scenario where no currency is selected (edge case)
+    fun `should emit Error and prevent confirmation when currencies are missing`() = testScope.runTest {
+        // Given
         currentEventFlow.value = TestFixtures.eventDetails.copy(currencies = emptyList())
         val viewModel = createViewModel()
         runCurrent()
@@ -1490,9 +1639,7 @@ internal class AddExpenseViewModelTest {
 
         viewModel.state.test {
             awaitLoading()
-            awaitSuccess()
-            viewModel.onWholeAmountChanged("10")
-            awaitSuccess()
+            awaitErrorState()
 
             // When
             viewModel.onConfirmClicked()
@@ -1502,6 +1649,18 @@ internal class AddExpenseViewModelTest {
             coVerify(exactly = 0) { addEqualSplitExpenseUseCase.addExpense(any(), any(), any(), any(), any(), any(), any(), any()) }
             coVerify(exactly = 0) { navigationController.popBackStack() }
 
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `should emit Error when primary currency fallback is unavailable`() = testScope.runTest {
+        currentEventFlow.value = TestFixtures.eventDetails.copy(currencies = listOf(TestFixtures.EUR))
+        val viewModel = createViewModel()
+
+        viewModel.state.test {
+            awaitLoading()
+            awaitErrorState()
             cancelAndIgnoreRemainingEvents()
         }
     }

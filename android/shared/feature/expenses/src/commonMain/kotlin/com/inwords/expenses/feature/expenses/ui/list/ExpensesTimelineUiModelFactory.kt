@@ -42,13 +42,12 @@ internal class ExpensesTimelineUiModelFactory(
         val timeZone = timeZoneProvider.invoke()
         val locale = localeProvider.invoke()
         val currentLocalDate = nowProvider.invoke().toLocalDateTime(timeZone).date
-        val primaryCurrencyName = expensesDetails.event.primaryCurrency.name
         val primaryCurrencyCode = expensesDetails.event.primaryCurrency.code
+        val currentPerson = expensesDetails.event.persons.first { it.id == currentPersonId }
 
         val sections = buildSections(
             expenses = expensesDetails.expenses,
             currentPersonId = currentPersonId,
-            primaryCurrencyName = primaryCurrencyName,
             primaryCurrencyCode = primaryCurrencyCode,
             timeZone = timeZone,
             locale = locale,
@@ -62,10 +61,14 @@ internal class ExpensesTimelineUiModelFactory(
             eventId = expensesDetails.event.event.id,
             eventName = expensesDetails.event.event.name,
             currentPersonId = currentPersonId,
-            currentPersonName = expensesDetails.event.persons.first { it.id == currentPersonId }.name,
+            currentPersonName = currentPerson.name,
             personCount = expensesDetails.event.persons.size,
             currencyCode = primaryCurrencyCode,
             debts = debts.asImmutableListAdapter(),
+            totalDebt = formatAmount(
+                amount = expensesDetails.debtCalculator.getBarterAccumulatedDebtForPerson(currentPerson).values.sumOf { it.barterAmount },
+                currencyCode = primaryCurrencyCode,
+            ),
             totalSpending = formatAmount(
                 amount = expensesDetails.expenses
                     .filter { it.expenseType == ExpenseType.Spending }
@@ -105,7 +108,6 @@ internal class ExpensesTimelineUiModelFactory(
     private fun buildSections(
         expenses: List<Expense>,
         currentPersonId: Long,
-        primaryCurrencyName: String,
         primaryCurrencyCode: String,
         timeZone: TimeZone,
         locale: Locale,
@@ -147,7 +149,7 @@ internal class ExpensesTimelineUiModelFactory(
             }
 
             currentSectionExpenses += expense.toUiModel(
-                primaryCurrencyName = primaryCurrencyName,
+                primaryCurrencyCode = primaryCurrencyCode,
                 currentPersonId = currentPersonId,
             )
             if (expense.expenseType == ExpenseType.Spending) {

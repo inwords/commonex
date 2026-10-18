@@ -1,19 +1,32 @@
 package com.inwords.expenses.feature.expenses.ui.common
 
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import com.inwords.expenses.core.ui.design.theme.CommonExTheme
+import expenses.shared.feature.expenses.generated.resources.Res
+import expenses.shared.feature.expenses.generated.resources.expenses_add_to
+import expenses.shared.feature.expenses.generated.resources.expenses_record_repayment
+import org.jetbrains.compose.resources.stringResource
 
 internal data class DebtShortUiModel(
     val personId: Long,
@@ -21,24 +34,63 @@ internal data class DebtShortUiModel(
     val currencyCode: String,
     val currencyName: String,
     val amount: String,
-)
+) {
+
+    val personInitial: String by lazy {
+        personName.take(1)
+    }
+}
 
 @Composable
 internal fun DebtReplenishmentButton(
     debt: DebtShortUiModel,
+    debtorName: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    FilledTonalButton(
-        modifier = modifier,
-        onClick = onClick,
+    FlowRow(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(
+                onClickLabel = stringResource(Res.string.expenses_record_repayment, debt.amount, debt.currencyCode, debtorName, debt.personName),
+                role = Role.Button,
+                onClick = onClick,
+            )
+            .heightIn(min = 80.dp)
+            .padding(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End),
+        verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
+        itemVerticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(Icons.AutoMirrored.Outlined.ArrowForward, contentDescription = null)
-        Spacer(modifier = Modifier.size(ButtonDefaults.IconSpacing))
-        Text(
-            text = "${debt.amount} ${debt.currencyName},  ${debt.personName}",
-            style = MaterialTheme.typography.bodyLarge,
-        )
+        Column(
+            modifier = Modifier.weight(1f).width(IntrinsicSize.Max),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                text = stringResource(Res.string.expenses_add_to),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(text = debt.personName, style = MaterialTheme.typography.bodyLarge)
+        }
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f, fill = false), horizontalAlignment = Alignment.End) {
+                Text(text = debt.amount, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
+                Text(
+                    text = debt.currencyCode,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Icon(
+                imageVector = Icons.AutoMirrored.Outlined.ArrowForward,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+            )
+        }
     }
 }
 
@@ -46,17 +98,24 @@ internal fun DebtReplenishmentButton(
 @Composable
 private fun DebtReplenishmentButtonPreview() {
     CommonExTheme {
-        Surface {
+        Surface(color = MaterialTheme.colorScheme.surfaceContainerLow) {
             DebtReplenishmentButton(
                 debt = DebtShortUiModel(
                     personId = 1L,
-                    personName = "Иван Иванов",
-                    currencyCode = "RUB",
-                    currencyName = "₽",
-                    amount = "1500.00",
+                    personName = "Alex",
+                    currencyCode = "EUR",
+                    currencyName = "Euro",
+                    amount = "42.50",
                 ),
+                debtorName = "Sam",
                 onClick = {}
             )
         }
     }
+}
+
+@Preview(fontScale = 2f, widthDp = 288)
+@Composable
+private fun DebtReplenishmentButtonLargeTextPreview() {
+    DebtReplenishmentButtonPreview()
 }

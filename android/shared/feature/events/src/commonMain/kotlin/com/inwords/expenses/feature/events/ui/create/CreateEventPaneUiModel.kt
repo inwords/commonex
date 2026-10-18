@@ -7,11 +7,12 @@ internal data class CreateEventPaneUiModel(
     val ownerName: String,
     val persons: ImmutableList<String>,
     val currencies: ImmutableList<CurrencyInfoUiModel>,
-    val isCreating: Boolean,
+    val selectedCurrencyCode: String,
+    val isCurrencySelectionEnabled: Boolean,
 ) {
 
     val isConfirmEnabled: Boolean by lazy {
-        eventName.isNotBlank() && ownerName.isNotBlank() && currencies.any { it.selected } && !isCreating
+        eventName.isNotBlank() && ownerName.isNotBlank() && currencies.any { it.selected }
     }
 
     data class CurrencyInfoUiModel(

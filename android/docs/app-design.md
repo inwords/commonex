@@ -22,6 +22,8 @@ Prototype and review new screen designs in the warm brand palette, a cool dynami
 
 Make the screen's purpose and primary action apparent together. Keep related fields, supporting information, and actions visually connected. Use spacing to distinguish groups and establish rhythm; size flexible gaps so the action still belongs to its content.
 
+Draft a prototype before implementing each new or redesigned screen; align it with the current app's inputs, navigation, states, and capabilities. Place derived summaries beside the control they explain, and make each label or summary add distinct information.
+
 Give secondary actions less emphasis. Use progress steps only for actual stages in the same task. Explanations earn their space by helping someone decide or complete an unfamiliar action. Prefer useful labels and examples over repeating the title or describing a later screen.
 
 ## Calm forms
@@ -32,7 +34,7 @@ Match controls to decisions: compact selectors for simple choices, text fields f
 
 ## Visible, recoverable state
 
-Show progress where the action occurs and prevent duplicate submissions. Preserve the draft during requests and provide a clear retry path for recoverable operation failures.
+Show progress where the action occurs when the wait is perceptible; a brief local save does not by itself justify a loading phase or disabling the whole form. Prevent duplicate submissions. Preserve the draft during requests and provide a clear retry path for recoverable operation failures.
 
 Attach field-validation messages to the field's supporting text and error state. Show request failures at form level when they concern the overall operation. Enabled actions must agree with visible validation. Empty states should explain the situation and offer the next useful action.
 
@@ -40,10 +42,14 @@ Attach field-validation messages to the field's supporting text and error state.
 
 Use friendly product language: “group” and “people” where natural, and specific roles where the distinction helps. Keep code terminology aligned with the [domain glossary](../../docs/domain.md).
 
+Use “invite link” consistently in English UI copy. Write idiomatically in each locale rather than translating English phrasing literally.
+
 Use short, concrete labels. Headings, labels, and short standalone phrases have no terminal full stop; prose uses normal punctuation. Use the same separator for equivalent inline lists. Group localized resources by screen and purpose, with corresponding locale ordering.
 
 ## Adaptive composition
 
 Adapt the composition to available space while preserving reading order and task hierarchy. Bound form widths on large windows; let content reflow and scroll on narrow or short ones. Keep required fields, optional controls, errors, and the primary action reachable with the keyboard open and at 200% text scaling.
+
+Choose text-dependent minimum widths and wrapping thresholds from representative content measured in the actual text style, including currency suffixes and component spacing. Scale the text budget through font metrics while keeping control padding unscaled. Use stable reference content so typing does not continually change the layout threshold; allow longer names to wrap, larger values to scroll, and fields to stack when the combined minimums do not fit.
 
 Before accepting a design, inspect its hierarchy, character, action placement, and all relevant states on compact and expanded layouts. Review implemented screens on a device or emulator, including keyboard and large-text behavior. Use the [Compose UI checklist](compose-ui-rules.md) for Android engineering and accessibility requirements.

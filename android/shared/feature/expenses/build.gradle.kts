@@ -49,6 +49,7 @@ kotlin {
 
                 implementation(shared.compose.ui.multiplatform)
                 implementation(shared.compose.material3.multiplatform)
+                implementation(shared.compose.material3.adaptive)
                 implementation(shared.compose.ui.tooling.preview.multiplatform)
                 implementation(shared.compose.components.resources.multiplatform)
 

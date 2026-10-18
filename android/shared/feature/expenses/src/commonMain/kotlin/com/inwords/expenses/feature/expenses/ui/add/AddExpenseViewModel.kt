@@ -9,6 +9,7 @@ import com.inwords.expenses.core.ui.utils.StringProvider
 import com.inwords.expenses.core.utils.IO
 import com.inwords.expenses.core.utils.UI
 import com.inwords.expenses.core.utils.asImmutableListAdapter
+import com.inwords.expenses.core.utils.asImmutableMap
 import com.inwords.expenses.core.utils.combine
 import com.inwords.expenses.core.utils.currencyRateScale
 import com.inwords.expenses.core.utils.divide
@@ -61,15 +62,18 @@ internal class AddExpenseViewModel(
 
     private data class AddExpenseScreenModel(
         val event: Event,
+        val primaryCurrencyCode: String,
         val description: String,
         val currencies: List<CurrencyInfoModel>,
+        val selectedCurrency: Currency,
         val exchangeRate: ExchangeRateModel?,
         val expenseType: ExpenseType,
         val persons: List<PersonInfoModel>,
+        val selectedPerson: Person,
         val subjectPersons: List<PersonInfoModel>,
         val equalSplit: Boolean,
         val wholeAmount: AmountModel,
-        val split: List<ExpenseSplitWithPersonModel>?,
+        val split: List<ExpenseSplitWithPersonModel>,
         val canSave: Boolean,
     ) {
 
@@ -173,7 +177,8 @@ internal class AddExpenseViewModel(
 
         val selectedCurrency = eventDetails.currencies
             .firstOrNull { it.code == selectedCurrencyCode }
-            ?: eventDetails.primaryCurrency
+            ?: eventDetails.currencies.firstOrNull { it.id == eventDetails.primaryCurrency.id }
+            ?: return@combine SimpleScreenState.Error
         val exchangeRate = selectedCurrency
             .takeIf { it.id != eventDetails.primaryCurrency.id }
             ?.let { currency ->
@@ -214,6 +219,7 @@ internal class AddExpenseViewModel(
 
         val model = AddExpenseScreenModel(
             event = eventDetails.event,
+            primaryCurrencyCode = eventDetails.primaryCurrency.code,
             description = inputDescription ?: run {
                 stringProvider.getString(Res.string.expenses_repayment_from, selectedPerson.name)
             },
@@ -223,9 +229,11 @@ internal class AddExpenseViewModel(
                     selected = currency == selectedCurrency,
                 )
             },
+            selectedCurrency = selectedCurrency,
             exchangeRate = exchangeRate,
             expenseType = selectedExpenseType,
             persons = persons,
+            selectedPerson = selectedPerson,
             subjectPersons = subjectPersons,
             equalSplit = inputEqualSplit,
             wholeAmount = inputWholeAmount,
@@ -367,6 +375,10 @@ internal class AddExpenseViewModel(
         inputDescription.value = description
     }
 
+    fun onNavIconClicked() {
+        navigationController.popBackStack()
+    }
+
     fun onConfirmClicked() {
         val state = (_state.value as? SimpleScreenState.Success)?.data ?: return
 
@@ -374,8 +386,6 @@ internal class AddExpenseViewModel(
             return
         }
         confirmJob = viewModelScope.launch {
-            val selectedCurrency = state.currencies.firstOrNull { it.selected }?.currency ?: return@launch
-            val selectedPerson = state.persons.firstOrNull { it.selected }?.person ?: return@launch
             val description = state.description.trim().ifEmpty { stringProvider.getString(Res.string.expenses_no_description) }
             val overrideRate = state.exchangeRate?.let { exchangeRate ->
                 if (!exchangeRate.isValid) {
@@ -390,20 +400,20 @@ internal class AddExpenseViewModel(
                     expenseType = state.expenseType,
                     description = description,
                     selectedSubjectPersons = state.subjectPersons.filter { it.selected }.map { it.person },
-                    selectedCurrency = selectedCurrency,
-                    selectedPerson = selectedPerson,
+                    selectedCurrency = state.selectedCurrency,
+                    selectedPerson = state.selectedPerson,
                     overrideRate = overrideRate,
                 )
             } else {
-                val personWithAmountSplit = state.split?.map {
+                val personWithAmountSplit = state.split.map {
                     PersonWithAmount(it.person.person, it.amount.amount ?: return@launch)
-                } ?: return@launch
+                }
                 addCustomSplitExpenseUseCase.addExpense(
                     event = state.event,
                     expenseType = state.expenseType,
                     description = description,
-                    selectedCurrency = selectedCurrency,
-                    selectedPerson = selectedPerson,
+                    selectedCurrency = state.selectedCurrency,
+                    selectedPerson = state.selectedPerson,
                     personWithAmountSplit = personWithAmountSplit,
                     overrideRate = overrideRate,
                 )
@@ -414,8 +424,53 @@ internal class AddExpenseViewModel(
     }
 
     private fun AddExpenseScreenModel.toUiModel(): AddExpensePaneUiModel {
+        val selectedSubjectPersons = subjectPersons.filter { it.selected }
+
+        val splitUiModels = if (equalSplit) {
+            val amount = wholeAmount.amount?.let {
+                EqualSplitCalculator.calculateDraftAmount(it, selectedSubjectPersons.size)
+            }?.toRoundedString().orEmpty()
+
+            selectedSubjectPersons.map { person ->
+                ExpenseSplitWithPersonUiModel(
+                    person = person.toUiModel(),
+                    amount = amount,
+                )
+            }
+        } else {
+            split.map { expenseSplitWithPersonModel ->
+                ExpenseSplitWithPersonUiModel(
+                    person = expenseSplitWithPersonModel.person.toUiModel(),
+                    amount = expenseSplitWithPersonModel.amount.amountRaw,
+                )
+            }
+        }.asImmutableListAdapter()
+
+        val totalAmount = if (equalSplit) {
+            wholeAmount.amount
+        } else run {
+            if (split.isEmpty()) return@run null
+
+            var total = BigDecimal.ZERO
+            for ((_, amountNullable) in split) {
+                total += (amountNullable.amount ?: return@run null)
+            }
+            total
+        }
+        val rate = exchangeRate?.normalizedInputRate
+        val convertedTotalAmount = if (totalAmount != null && rate != null && exchangeRate.isValid && selectedSubjectPersons.isNotEmpty()) {
+            (totalAmount * rate).toRoundedString()
+        } else {
+            null
+        }
+
         return AddExpensePaneUiModel(
+            eventName = event.name,
+            expenseType = this.expenseType,
             description = this.description,
+            wholeAmount = this.wholeAmount.amountRaw,
+            totalAmount = totalAmount?.toRoundedString().orEmpty(),
+            primaryCurrencyCode = primaryCurrencyCode,
             currencies = this.currencies.map { currencyInfoModel ->
                 CurrencyInfoUiModel(
                     currencyName = currencyInfoModel.currency.name,
@@ -423,42 +478,40 @@ internal class AddExpenseViewModel(
                     selected = currencyInfoModel.selected
                 )
             }.asImmutableListAdapter(),
+            selectedCurrencyCode = selectedCurrency.code,
             exchangeRate = this.exchangeRate?.let { exchangeRateModel ->
                 AddExpensePaneUiModel.ExchangeRateUiModel(
                     originalCurrencyCode = exchangeRateModel.originalCurrencyCode,
                     primaryCurrencyCode = exchangeRateModel.primaryCurrencyCode,
                     rateRaw = exchangeRateModel.input.amountRaw,
                     isCustom = exchangeRateModel.isCustom,
+                    isValid = exchangeRateModel.isValid,
+                    convertedTotalAmount = convertedTotalAmount,
                 )
             },
-            expenseType = this.expenseType,
-            persons = this.persons.map { personInfoModel ->
-                PersonInfoUiModel(
-                    personId = personInfoModel.person.id,
-                    personName = personInfoModel.person.name,
-                    selected = personInfoModel.selected
-                )
-            }.asImmutableListAdapter(),
-            subjectPersons = this.subjectPersons.map { personInfoModel ->
-                PersonInfoUiModel(
-                    personId = personInfoModel.person.id,
-                    personName = personInfoModel.person.name,
-                    selected = personInfoModel.selected
-                )
-            }.asImmutableListAdapter(),
+            persons = this.persons.map { it.toUiModel() }.asImmutableListAdapter(),
+            selectedPersonName = selectedPerson.name,
+            subjectPersons = this.subjectPersons.map { it.toUiModel() }.asImmutableListAdapter(),
+            selectedSubjectPersonsCount = selectedSubjectPersons.size,
+            selectedSubjectPersonsNames = selectedSubjectPersons.joinToString { it.person.name },
             equalSplit = this.equalSplit,
-            wholeAmount = this.wholeAmount.amountRaw,
-            split = this.split.orEmpty().map { expenseSplitWithPersonModel ->
-                ExpenseSplitWithPersonUiModel(
-                    person = PersonInfoUiModel(
-                        personId = expenseSplitWithPersonModel.person.person.id,
-                        personName = expenseSplitWithPersonModel.person.person.name,
-                        selected = expenseSplitWithPersonModel.person.selected
-                    ),
-                    amount = expenseSplitWithPersonModel.amount.amountRaw,
-                )
-            }.asImmutableListAdapter(),
+            equalShareAmount = if (expenseType == ExpenseType.Spending && equalSplit && totalAmount != null) {
+                splitUiModels.firstOrNull()?.amount
+            } else {
+                null
+            },
+            split = splitUiModels,
+            splitByPerson = splitUiModels.associateBy { it.person.personId }.asImmutableMap(),
+            lastSplitPersonId = splitUiModels.lastOrNull()?.person?.personId,
             canSave = this.canSave,
+        )
+    }
+
+    private fun PersonInfoModel.toUiModel(): PersonInfoUiModel {
+        return PersonInfoUiModel(
+            personId = person.id,
+            personName = person.name,
+            selected = selected,
         )
     }
 

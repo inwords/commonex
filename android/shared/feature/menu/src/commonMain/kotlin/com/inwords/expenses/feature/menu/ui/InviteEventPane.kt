@@ -28,6 +28,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.inwords.expenses.core.ui.design.appbar.TopAppBarWithNavIconAndText
@@ -97,6 +99,7 @@ internal fun InviteEventPane(
                         tint = MaterialTheme.colorScheme.primary
                     )
                     Text(
+                        modifier = Modifier.semantics { heading() },
                         text = stringResource(Res.string.menu_invite_heading),
                         style = MaterialTheme.typography.headlineLarge
                     )

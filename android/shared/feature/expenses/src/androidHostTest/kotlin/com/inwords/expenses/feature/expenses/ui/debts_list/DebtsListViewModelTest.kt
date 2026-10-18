@@ -11,6 +11,9 @@ import com.inwords.expenses.feature.events.domain.model.EventDetails
 import com.inwords.expenses.feature.events.domain.model.Person
 import com.inwords.expenses.feature.expenses.domain.DebtCalculator
 import com.inwords.expenses.feature.expenses.domain.GetExpensesDetailsUseCase
+import com.inwords.expenses.feature.expenses.domain.model.Expense
+import com.inwords.expenses.feature.expenses.domain.model.ExpenseSplitWithPerson
+import com.inwords.expenses.feature.expenses.domain.model.ExpenseType
 import com.inwords.expenses.feature.expenses.domain.model.ExpensesDetails
 import com.inwords.expenses.feature.expenses.ui.add.AddExpensePaneDestination
 import com.inwords.expenses.feature.expenses.ui.common.DebtShortUiModel
@@ -33,7 +36,9 @@ import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertIs
 import kotlin.test.assertTrue
+import kotlin.time.Instant
 
 @OptIn(ExperimentalCoroutinesApi::class)
 internal class DebtsListViewModelTest {
@@ -89,7 +94,59 @@ internal class DebtsListViewModelTest {
             assertTrue(item is SimpleScreenState.Success, "Expected Success, got $item")
             val data = item.data
             assertEquals("Trip", data.eventName)
-            assertTrue(data.creditors.isEmpty())
+            assertEquals("EUR", data.primaryCurrencyCode)
+            assertTrue(data.debtors.isEmpty())
+        }
+    }
+
+    @Test
+    fun state_groupsAllDebtPairsAndUpdatesWhenExpensesClear() = runTest {
+        val bob = Person(2L, null, "Bob", "person-client-2")
+        val charlie = Person(3L, null, "Charlie", "person-client-3")
+        val diana = Person(4L, null, "Diana", "person-client-4")
+        val eventWithPersons = eventDetails.copy(persons = listOf(person, bob, charlie, diana))
+        val expenses = listOf(
+            createExpense(1L, person, listOf(bob to "10", charlie to "20")),
+            createExpense(2L, diana, listOf(bob to "30")),
+        )
+        val expensesFlow = MutableStateFlow(
+            ExpensesDetails(eventWithPersons, expenses, DebtCalculator(expenses, currency))
+        )
+        every { getCurrentEventStateUseCase.currentEvent } returns MutableStateFlow(eventWithPersons)
+        every { getExpensesDetailsUseCase.getExpensesDetails(any()) } returns expensesFlow
+
+        val viewModel = DebtsListViewModel(
+            navigationController = navigationController,
+            getCurrentEventStateUseCase = getCurrentEventStateUseCase,
+            getExpensesDetailsUseCase = getExpensesDetailsUseCase,
+            viewModelScope = backgroundScope,
+        )
+
+        viewModel.state.test {
+            assertEquals(SimpleScreenState.Loading, awaitItem())
+            val data = assertIs<SimpleScreenState.Success<DebtsListPaneUiModel>>(awaitItem()).data
+            assertEquals("EUR", data.primaryCurrencyCode)
+            assertEquals(2, data.debtors.size)
+            val debtors = data.debtors.associateBy { it.person.personId }
+            assertEquals(setOf(bob.id, charlie.id), debtors.keys)
+            assertEquals(
+                mapOf(
+                    person.id to DebtShortUiModel(person.id, "Alice", "EUR", "Euro", "10"),
+                    diana.id to DebtShortUiModel(diana.id, "Diana", "EUR", "Euro", "30"),
+                ),
+                debtors.getValue(bob.id).creditors.associateBy { it.personId },
+            )
+            assertEquals(
+                listOf(DebtShortUiModel(person.id, "Alice", "EUR", "Euro", "20")),
+                debtors.getValue(charlie.id).creditors,
+            )
+
+            expensesFlow.value = expensesDetails.copy(event = eventWithPersons)
+
+            val settledData = assertIs<SimpleScreenState.Success<DebtsListPaneUiModel>>(awaitItem()).data
+            assertEquals("Trip", settledData.eventName)
+            assertEquals("EUR", settledData.primaryCurrencyCode)
+            assertTrue(settledData.debtors.isEmpty())
         }
     }
 
@@ -144,5 +201,28 @@ internal class DebtsListViewModelTest {
         assertTrue(dest.replenishment != null)
         assertTrue(dest.replenishment.fromPersonId == 1L && dest.replenishment.toPersonId == 2L)
         assertTrue(dest.replenishment.currencyCode == "EUR" && dest.replenishment.amount == "10")
+    }
+
+    private fun createExpense(id: Long, payer: Person, splits: List<Pair<Person, String>>): Expense {
+        return Expense(
+            expenseId = id,
+            serverId = null,
+            currency = currency,
+            expenseType = ExpenseType.Spending,
+            person = payer,
+            subjectExpenseSplitWithPersons = splits.mapIndexed { index, (subject, amount) ->
+                ExpenseSplitWithPerson(
+                    expenseSplitId = id * 100 + index,
+                    expenseId = id,
+                    person = subject,
+                    originalAmount = BigDecimal.parseString(amount),
+                    exchangedAmount = BigDecimal.parseString(amount),
+                )
+            },
+            isCustomRate = false,
+            timestamp = Instant.fromEpochSeconds(0),
+            description = "Test expense",
+            clientCreateId = "expense-$id",
+        )
     }
 }

@@ -29,7 +29,8 @@ multi-project tasks.
 Before reporting completion on any task, review the complete diff against the original task baseline:
 
 - Justify every changed block by the requested behavior, a change necessary to support it, or a separately authorized fix. General claims such as cleaner, safer, or more consistent are insufficient on their own.
-- Preserve existing architecture, conventions, and behavior outside the requested change, including timing, loading indicators, caching, and navigation.
+- When review feedback exposes a reusable issue, inspect analogous cases in the affected change set and related callers, and fix confirmed instances rather than only the cited line.
+- Preserve existing architecture, conventions, and behavior outside the requested change, including timing (such as debounce), loading indicators, caching, and navigation.
 - Validate discovered bugs through the [debug workflow](#debug-workflow) before adding defensive logic. Discuss unrelated fixes separately before including them in the task.
 - Remove incidental changes, including code moves, renames, helper extractions, and timing changes that lack a task-specific reason. Perform this review yourself rather than relying on the user to identify them.
 - Treat passing tests as correctness evidence, not scope authorization. Keep tests tied to the intended contract; tests for an added defense do not establish that the defense belongs in the task.

@@ -32,14 +32,14 @@ internal class ExpenseToUiModelTest {
                     expenseId = 10L,
                     person = currentPerson,
                     originalAmount = 50.toBigDecimal(),
-                    exchangedAmount = 50.toBigDecimal(),
+                    exchangedAmount = 45.toBigDecimal(),
                 ),
                 ExpenseSplitWithPerson(
                     expenseSplitId = 2,
                     expenseId = 10L,
                     person = anotherPerson,
                     originalAmount = 70.toBigDecimal(),
-                    exchangedAmount = 70.toBigDecimal(),
+                    exchangedAmount = 63.toBigDecimal(),
                 )
             ),
             isCustomRate = false,
@@ -48,9 +48,12 @@ internal class ExpenseToUiModelTest {
             clientCreateId = "expense-10",
         )
 
-        val uiModel = expense.toUiModel(primaryCurrencyName = "Euro", currentPersonId = currentPerson.id)
+        val uiModel = expense.toUiModel(primaryCurrencyCode = "EUR", currentPersonId = currentPerson.id)
 
-        assertEquals("-50", uiModel.currentPersonPartAmount)
+        assertEquals("EUR", uiModel.currencyCode)
+        assertEquals("-108", uiModel.totalAmount)
+        assertEquals("120 USD", uiModel.originalAmount)
+        assertEquals("-45", uiModel.currentPersonPartAmount)
         assertTrue(uiModel.timeText.isNotBlank())
     }
 
@@ -80,8 +83,10 @@ internal class ExpenseToUiModelTest {
             clientCreateId = "expense-11",
         )
 
-        val uiModel = expense.toUiModel(primaryCurrencyName = "Euro", currentPersonId = 999L)
+        val uiModel = expense.toUiModel(primaryCurrencyCode = "USD", currentPersonId = 999L)
 
+        assertEquals("USD", uiModel.currencyCode)
+        assertNull(uiModel.originalAmount)
         assertNull(uiModel.currentPersonPartAmount)
     }
 }

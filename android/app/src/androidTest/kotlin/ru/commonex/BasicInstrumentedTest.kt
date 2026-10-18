@@ -17,6 +17,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.RuleChain
 import org.junit.runner.RunWith
+import ru.commonex.screens.AddExpenseScreen
 import ru.commonex.screens.ChoosePersonScreen
 import ru.commonex.screens.CreateEventScreen
 import ru.commonex.screens.ExpensesScreen
@@ -50,7 +51,8 @@ class BasicInstrumentedTest {
      * - Open expense details pane and verify key sections/values
      * - Cancel an expense and verify revert entry
      * - Add converted-currency expense and verify exchange-rate section in details pane
-     * - Verify debt calculations
+     * - Verify both debtor-creditor pairs in balances
+     * - Discard a prefilled repayment, then settle both debts and verify all-settled without changing spending
      * - Switch to a different person and verify view updates
      */
     @Test
@@ -82,7 +84,9 @@ class BasicInstrumentedTest {
             .clickAddExpense()
             .enterDescription("Хот-дог")
             .enterAmount("180")
-            .clickEqualSplitSwitch()
+            .openSplitEditor()
+            .selectCustomSplit()
+            .clickDone()
             .clickConfirm()
             .verifyExpenseAmount("-180")
 
@@ -98,12 +102,25 @@ class BasicInstrumentedTest {
             .confirmRevertExpense()
             .verifyRevertedExpenseExists("Булка")
 
-        // Verify debts details and go back
+        // Verify balances and settle both debts
         expensesScreen
             .clickDebtDetails()
             .waitUntilLoaded(eventName)
-            .verifyDebtAmount("60", "Test User 1", count = 2)
+            .verifyDebt("Test User 2", "Test User 1", "60", "EUR")
+            .verifyDebt("Test User 3", "Test User 1", "60", "EUR")
+            .repayDebt("Test User 2", "Test User 1", "60", "EUR")
+            .verifyRepayment("60", "Test User 2", "Test User 1")
+            .closeToBalances()
+            .verifyDebt("Test User 2", "Test User 1", "60", "EUR")
+            .repayDebt("Test User 2", "Test User 1", "60", "EUR")
+            .clickConfirmToBalances()
+            .verifyDebt("Test User 3", "Test User 1", "60", "EUR")
+            .repayDebt("Test User 3", "Test User 1", "60", "EUR")
+            .verifyRepayment("60", "Test User 3", "Test User 1")
+            .clickConfirmToBalances()
+            .verifyAllSettled()
             .goBack()
+            .verifyTotalSpending("300 EUR")
 
         // Add converted-currency expense and verify exchange-rate section in details pane
         expensesScreen
@@ -131,6 +148,12 @@ class BasicInstrumentedTest {
             .verifyCurrentPerson(eventName, "Test User 2")
     }
 
+    /**
+     * Tests exchange-rate validation and recovery:
+     * - Enter a foreign-currency expense and reject a zero or missing exchange rate
+     * - Recover with a valid custom rate and return to the primary currency
+     * - Select the foreign currency again, save with a custom rate, and verify persisted conversion
+     */
     @Test
     fun testCustomExchangeRateOverrideFlow() = composeRule.runTest {
         val eventName = "Test event - FX override"
@@ -150,9 +173,22 @@ class BasicInstrumentedTest {
             .clickAddExpense()
             .selectCurrencyByCode("USD")
             .waitUntilExchangeRateVisible()
+            .enterAmount("10")
+            .replaceExchangeRate("0")
+            .verifyExchangeRateError()
+            .verifySaveDisabled()
+            .replaceExchangeRate("")
+            .verifyExchangeRateError()
+            .verifySaveDisabled()
+            .replaceExchangeRate(customRate)
+            .verifySaveEnabled()
+            .selectCurrencyByCode("EUR")
+            .verifyExchangeRateHidden()
+            .verifySaveEnabled()
+            .selectCurrencyByCode("USD")
+            .waitUntilExchangeRateVisible()
             .replaceExchangeRate(customRate)
             .enterDescription(description)
-            .enterAmount("10")
             .clickConfirm()
             .verifyExpenseExists(description)
 
@@ -165,6 +201,92 @@ class BasicInstrumentedTest {
             .verifyOriginalCurrency("USD (US Dollar)")
             .verifyExchangeRateVisible()
             .verifyExchangeRate(exchangeRateText)
+    }
+
+    /**
+     * Tests custom expense entry and repayment from the personal debt summary:
+     * - Dismiss the payer picker, reopen it, and choose another payer
+     * - Deselect all participants and verify Save is disabled
+     * - Select two participants and verify their equal share
+     * - Enter an incomplete custom split and verify the unavailable total and disabled Save
+     * - Complete distinct amounts, recreate the activity, and verify the draft and split are retained
+     * - Save and verify the payer, total, and resulting personal debt
+     * - Open and discard a prefilled repayment, then save it and verify the debt clears without changing spending
+     */
+    @Test
+    fun testCustomSplitDraftAndPersonalDebtRepayment() = composeRule.runTest {
+        val description = "Custom dinner"
+        LocalEventsScreen()
+            .clickCreateEvent()
+            .enterEventName("Custom split and repayment")
+            .selectCurrency("Euro")
+            .enterOwnerName("Test User 1")
+            .addParticipant(index = 0, name = "Test User 2")
+            .addParticipant(index = 1, name = "Test User 3")
+            .createEvent()
+            .waitUntilLoadedEmpty()
+            .clickAddExpense()
+            .verifySaveDisabled()
+            .enterDescription(description)
+            .enterAmount("90")
+            .openPayerPicker()
+            .goBack()
+            .verifyPayer("Test User 1")
+            .openPayerPicker()
+            .selectPerson("Test User 2")
+            .verifyPayer("Test User 2")
+            .openSplitEditor()
+            .togglePerson("Test User 1")
+            .togglePerson("Test User 2")
+            .togglePerson("Test User 3")
+            .clickDone()
+            .verifySaveDisabled()
+            .openSplitEditor()
+            .togglePerson("Test User 1")
+            .togglePerson("Test User 2")
+            .clickDone()
+            .verifyEqualShare("45", "EUR")
+            .openSplitEditor()
+            .selectCustomSplit()
+            .replaceAmount("Test User 1", "")
+            .replaceAmount("Test User 2", "20")
+            .clickDone()
+            .verifyAmountUnavailable()
+            .verifySaveDisabled()
+            .openSplitEditor()
+            .replaceAmount("Test User 1", "10")
+            .clickDone()
+            .verifyAmount("30")
+            .verifySaveEnabled()
+
+        recreateActivity()
+
+        AddExpenseScreen()
+            .verifyDescription(description)
+            .verifyPayer("Test User 2")
+            .verifyAmount("30")
+            .openSplitEditor()
+            .verifyAmount("Test User 1", "10")
+            .verifyAmount("Test User 2", "20")
+            .clickDone()
+            .clickConfirm()
+            .verifyExpenseExists(description)
+            .clickOnExpense(description)
+            .waitUntilLoaded()
+            .verifyTotalAmount("-30 EUR")
+            .verifyPaidBy("Test User 2")
+            .verifySplitContainsPerson("Test User 1")
+            .verifySplitContainsPerson("Test User 2")
+            .dismissPane()
+            .verifyPersonalDebt("Test User 2", "10 EUR")
+            .repayPersonalDebt("Test User 2")
+            .verifyRepayment("10", "Test User 1", "Test User 2")
+            .close()
+            .verifyPersonalDebt("Test User 2", "10 EUR")
+            .repayPersonalDebt("Test User 2")
+            .clickConfirm()
+            .verifyNoPersonalDebts()
+            .verifyTotalSpending("30 EUR")
     }
 
     /**
@@ -491,6 +613,7 @@ class BasicInstrumentedTest {
         CreateEventScreen()
             .waitUntilLoaded()
             .verifyDraft(eventName, "Test User 1", "Test User 2")
+            .verifyCurrency("JPY")
             .createEvent()
             .waitUntilLoadedEmpty()
             .verifyCurrentPersonInEmptyEvent(eventName, "Test User 1")
@@ -501,7 +624,8 @@ class BasicInstrumentedTest {
             .clickOnExpense(expenseDescription)
             .waitUntilLoaded()
             .verifyDescription(expenseDescription)
-            .verifyOriginalCurrency("JPY (Japanese Yen)")
+            .verifySplitAmount("Test User 1", "-5 JPY")
+            .toggleOperationDetails()
             .verifyExchangeRateHidden()
     }
 

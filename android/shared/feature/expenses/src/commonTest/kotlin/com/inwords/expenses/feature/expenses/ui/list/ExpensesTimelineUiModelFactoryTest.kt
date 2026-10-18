@@ -231,6 +231,68 @@ internal class ExpensesTimelineUiModelFactoryTest {
         assertEquals(listOf("2026-03-28", "2026-03-27"), state.daySections.map { it.dayKey })
     }
 
+    @Test
+    fun `create total debt includes only current person outgoing debts`() = runTest {
+        val creditor = otherPerson.copy(id = 3L, serverId = "person-3", name = "Cara", clientCreateId = "person-3")
+        val outgoingExpense = expense(
+            expenseId = 1L,
+            expenseType = ExpenseType.Spending,
+            totalAmount = 24,
+            timestamp = "2026-03-28T20:00:00Z",
+            description = "Dinner",
+        ).let { expense ->
+            expense.copy(
+                person = creditor,
+                subjectExpenseSplitWithPersons = expense.subjectExpenseSplitWithPersons.map { it.copy(person = currentPerson) },
+            )
+        }
+        val incomingExpense = expense(
+            expenseId = 2L,
+            expenseType = ExpenseType.Spending,
+            totalAmount = 90,
+            timestamp = "2026-03-28T10:00:00Z",
+            description = "Tickets",
+        )
+        val details = expensesDetails(listOf(outgoingExpense, incomingExpense)).copy(
+            event = eventDetails.copy(persons = listOf(currentPerson, otherPerson, creditor)),
+        )
+
+        val state = createFactory(
+            timeZone = TimeZone.UTC,
+            now = "2026-03-28T12:00:00Z",
+        ).create(
+            expensesDetails = details,
+            currentPersonId = currentPerson.id,
+            debts = emptyList(),
+        )
+
+        assertEquals("24 EUR", state.totalDebt)
+    }
+
+    @Test
+    fun `create total debt is zero when only others owe current person`() = runTest {
+        val state = createFactory(
+            timeZone = TimeZone.UTC,
+            now = "2026-03-28T12:00:00Z",
+        ).create(
+            expensesDetails = expensesDetails(
+                expenses = listOf(
+                    expense(
+                        expenseId = 1L,
+                        expenseType = ExpenseType.Spending,
+                        totalAmount = 90,
+                        timestamp = "2026-03-28T10:00:00Z",
+                        description = "Tickets",
+                    ),
+                ),
+            ),
+            currentPersonId = currentPerson.id,
+            debts = emptyList(),
+        )
+
+        assertEquals("0 EUR", state.totalDebt)
+    }
+
     private fun createFactory(
         timeZone: TimeZone,
         now: String,

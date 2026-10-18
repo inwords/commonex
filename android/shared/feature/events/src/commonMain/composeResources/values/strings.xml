@@ -2,10 +2,14 @@
 <resources>
     <string name="common_back">Back</string>
 
-    <string name="events_event">Groups</string>
-    <string name="events_info_with_person">%1$s — %2$s</string>
+    <string name="events_your_groups">Your groups</string>
+    <string name="events_not_synced_yet">Not synced yet</string>
+    <string name="events_info_identity">Sharing as %1$s</string>
+    <plurals name="events_info_people">
+        <item quantity="one">· %1$d person</item>
+        <item quantity="other">· %1$d people</item>
+    </plurals>
 
-    <string name="events_your">Yours</string>
     <string name="events_create">Create a group</string>
     <string name="events_join">Join a group</string>
 
@@ -29,7 +33,6 @@
     <string name="events_setup_currency_label">Balances in</string>
     <string name="events_setup_currency_picker_title">Group currency</string>
     <string name="events_create_event_button">Create group</string>
-    <string name="events_creating_event">Creating your group…</string>
 
     <string name="events_join_title">Join a group</string>
     <string name="events_join_event_button">Join group</string>
@@ -49,16 +52,18 @@
     <string name="events_join_error_invalid_token">Invalid link</string>
     <string name="events_join_error_expired_token">This link has expired. Ask for a new link or use the group ID and access code</string>
 
-    <string name="events_choose_person_title">Your place in the group</string>
+    <string name="events_choose_person_title">Choose your name</string>
     <string name="events_choose_person_heading">Which name is yours?</string>
     <string name="events_choose_person_guidance">Choose your name to see your share and balance</string>
+    <string name="events_choose_person_current">Current name</string>
     <string name="events_empty_state">No participants available</string>
     <string name="events_error_state">Failed to load group details</string>
 
-    <string name="events_participants_title">Participants</string>
+    <string name="events_participants_title">Add people</string>
+    <string name="events_add_people_guidance">One person per field</string>
     <string name="events_participants_label">People to add</string>
     <string name="events_person_name_placeholder">Name</string>
-    <string name="events_add_participant">Add participant</string>
+    <string name="events_add_people_another">Add another person</string>
     <string name="events_continue_button">Add people</string>
 
     <string name="events_delete_event_title">Delete event "%1$s"?</string>

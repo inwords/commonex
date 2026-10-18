@@ -22,9 +22,7 @@ import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -45,6 +43,8 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
@@ -61,7 +61,6 @@ import expenses.shared.feature.events.generated.resources.Res
 import expenses.shared.feature.events.generated.resources.common_back
 import expenses.shared.feature.events.generated.resources.events_create_event_button
 import expenses.shared.feature.events.generated.resources.events_create_title
-import expenses.shared.feature.events.generated.resources.events_creating_event
 import expenses.shared.feature.events.generated.resources.events_name_placeholder
 import expenses.shared.feature.events.generated.resources.events_person_name_placeholder
 import expenses.shared.feature.events.generated.resources.events_setup_add_participants
@@ -74,7 +73,6 @@ import expenses.shared.feature.events.generated.resources.events_your_name_label
 import kotlinx.collections.immutable.persistentListOf
 import org.jetbrains.compose.resources.stringResource
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 internal fun CreateEventPane(
     state: CreateEventPaneUiModel,
@@ -126,7 +124,7 @@ internal fun CreateEventPane(
                     Text(
                         text = stringResource(Res.string.events_setup_heading),
                         style = MaterialTheme.typography.headlineMedium,
-                        modifier = Modifier.padding(top = 16.dp, bottom = 8.dp),
+                        modifier = Modifier.padding(top = 16.dp, bottom = 8.dp).semantics { heading() },
                     )
                 }
                 item(key = "event", contentType = "field") {
@@ -138,7 +136,6 @@ internal fun CreateEventPane(
                         onValueChange = onEventNameChanged,
                         label = { Text(stringResource(Res.string.events_name_placeholder)) },
                         placeholder = { Text(stringResource(Res.string.events_setup_event_example)) },
-                        enabled = !state.isCreating,
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(
                             capitalization = KeyboardCapitalization.Sentences,
@@ -154,7 +151,7 @@ internal fun CreateEventPane(
                             .testTag("events_owner_name"),
                         participantName = state.ownerName,
                         labelText = stringResource(Res.string.events_your_name_label),
-                        enabled = !state.isCreating,
+                        enabled = true,
                         imeAction = ImeAction.Done,
                         onImeAction = onConfirmClicked,
                         onParticipantNameChanged = onOwnerNameChanged,
@@ -163,7 +160,8 @@ internal fun CreateEventPane(
                 item(key = "currency", contentType = "field") {
                     SetupCurrencyField(
                         currencies = state.currencies,
-                        enabled = !state.isCreating,
+                        selectedCurrencyCode = state.selectedCurrencyCode,
+                        enabled = state.isCurrencySelectionEnabled,
                         onCurrencyClicked = onCurrencyClicked,
                     )
                 }
@@ -192,7 +190,7 @@ internal fun CreateEventPane(
                             ),
                         participantName = name,
                         labelText = stringResource(Res.string.events_person_name_placeholder),
-                        enabled = !state.isCreating,
+                        enabled = true,
                         imeAction = ImeAction.Done,
                         onImeAction = onConfirmClicked,
                         onParticipantNameChanged = { onParticipantNameChanged(index, it) },
@@ -201,7 +199,6 @@ internal fun CreateEventPane(
                 item(key = "add_person", contentType = "guidance") {
                     TextButton(
                         modifier = Modifier.testTag("events_add_participant"),
-                        enabled = !state.isCreating,
                         onClick = {
                             onAddParticipantClicked()
                             requestFocus = true
@@ -220,11 +217,6 @@ internal fun CreateEventPane(
                         )
                     }
                 }
-                if (state.isCreating) {
-                    item(key = "creating", contentType = "status") {
-                        LoadingIndicator(modifier = Modifier.fillMaxWidth())
-                    }
-                }
                 item(key = "confirm", contentType = "action") {
                     ButtonWithIconAndText(
                         modifier = Modifier
@@ -233,9 +225,7 @@ internal fun CreateEventPane(
                             .testTag("events_create_confirm"),
                         onClick = onConfirmClicked,
                         enabled = state.isConfirmEnabled,
-                        text = stringResource(
-                            if (state.isCreating) Res.string.events_creating_event else Res.string.events_create_event_button
-                        ),
+                        text = stringResource(Res.string.events_create_event_button),
                         imageVector = Icons.Outlined.Check,
                         minHeight = ButtonDefaults.MediumContainerHeight,
                     )
@@ -248,18 +238,18 @@ internal fun CreateEventPane(
 @Composable
 private fun SetupCurrencyField(
     currencies: List<CurrencyInfoUiModel>,
+    selectedCurrencyCode: String,
     enabled: Boolean,
     onCurrencyClicked: (CurrencyInfoUiModel) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var isCurrencyPickerVisible by rememberSaveable { mutableStateOf(false) }
-    val isEnabled = enabled && currencies.isNotEmpty()
     Surface(
         modifier = modifier
             .fillMaxWidth()
             .testTag("events_create_currency"),
         onClick = { isCurrencyPickerVisible = true },
-        enabled = isEnabled,
+        enabled = enabled,
         shape = MaterialTheme.shapes.large,
         color = MaterialTheme.colorScheme.surfaceContainerLow,
     ) {
@@ -277,7 +267,7 @@ private fun SetupCurrencyField(
                 modifier = Modifier.weight(1f),
             )
             Text(
-                text = currencies.firstOrNull { it.selected }?.currencyCode.orEmpty(),
+                text = selectedCurrencyCode,
                 style = MaterialTheme.typography.titleMedium,
             )
             val iconRotation by animateFloatAsState(
@@ -354,7 +344,8 @@ private fun CreateEventPanePreview() {
                         selected = false
                     )
                 ),
-                isCreating = false,
+                selectedCurrencyCode = "EUR",
+                isCurrencySelectionEnabled = true,
             ),
             onEventNameChanged = {},
             onOwnerNameChanged = {},

@@ -66,7 +66,8 @@ internal class CreateEventViewModelTest {
             assertEquals("", state.ownerName)
             assertTrue(state.persons.isEmpty())
             assertTrue(state.currencies.any { it.currencyCode == "RUB" && it.selected })
-            assertFalse(state.isCreating)
+            assertEquals("RUB", state.selectedCurrencyCode)
+            assertTrue(state.isCurrencySelectionEnabled)
             assertFalse(state.isConfirmEnabled)
             cancelAndIgnoreRemainingEvents()
         }
@@ -92,6 +93,7 @@ internal class CreateEventViewModelTest {
             assertEquals("Alex", state.ownerName)
             assertEquals(listOf("Sam", "Jo"), state.persons)
             assertTrue(state.currencies.single { it.selected }.currencyCode == "EUR")
+            assertEquals("EUR", state.selectedCurrencyCode)
             assertTrue(state.isConfirmEnabled)
             cancelAndIgnoreRemainingEvents()
         }
@@ -106,20 +108,21 @@ internal class CreateEventViewModelTest {
             viewModel.onConfirmClicked()
             viewModel.onEventNameChanged("Trip")
             viewModel.onOwnerNameChanged("   ")
+            runCurrent()
             viewModel.onConfirmClicked()
             viewModel.onEventNameChanged("   ")
             viewModel.onOwnerNameChanged("Alex")
+            runCurrent()
             viewModel.onConfirmClicked()
             runCurrent()
 
             coVerify(exactly = 0) { createEventUseCase.createEvent(any(), any(), any(), any()) }
-            assertFalse(viewModel.state.value.isCreating)
             cancelAndIgnoreRemainingEvents()
         }
     }
 
     @Test
-    fun confirm_requiredNameClearedBeforeStateEmission_doesNotCreate() = runTest {
+    fun confirm_requiredNameCleared_doesNotCreate() = runTest {
         val viewModel = createViewModel(backgroundScope)
         viewModel.state.test {
             awaitItem()
@@ -130,6 +133,7 @@ internal class CreateEventViewModelTest {
             assertTrue(viewModel.state.value.isConfirmEnabled)
 
             viewModel.onEventNameChanged("   ")
+            runCurrent()
             viewModel.onConfirmClicked()
             runCurrent()
 
@@ -138,6 +142,7 @@ internal class CreateEventViewModelTest {
             assertTrue(viewModel.state.value.isConfirmEnabled)
 
             viewModel.onOwnerNameChanged("   ")
+            runCurrent()
             viewModel.onConfirmClicked()
             runCurrent()
 
@@ -147,7 +152,7 @@ internal class CreateEventViewModelTest {
     }
 
     @Test
-    fun confirm_editsBeforeStateEmission_usesLatestDraftAndCurrency() = runTest {
+    fun confirm_edits_usesLatestDraftAndCurrency() = runTest {
         coEvery { createEventUseCase.createEvent(any(), any(), any(), any()) } returns eventDetails
         val viewModel = createViewModel(backgroundScope)
         viewModel.state.test {
@@ -163,6 +168,7 @@ internal class CreateEventViewModelTest {
             viewModel.onOwnerNameChanged("Jo")
             viewModel.onParticipantNameChanged(0, "Pat")
             viewModel.onCurrencyClicked(CreateEventPaneUiModel.CurrencyInfoUiModel("Euro", "EUR", false))
+            runCurrent()
             viewModel.onConfirmClicked()
             runCurrent()
 
@@ -220,7 +226,6 @@ internal class CreateEventViewModelTest {
             runCurrent()
 
             val state = viewModel.state.value
-            assertTrue(state.isCreating)
             assertEquals("Trip", state.eventName)
             assertEquals("Alex", state.ownerName)
             assertEquals(listOf("Sam"), state.persons)
@@ -247,11 +252,11 @@ internal class CreateEventViewModelTest {
             viewModel.onConfirmClicked()
             runCurrent()
 
-            assertFalse(viewModel.state.value.isCreating)
             verify(exactly = 0) { navigationController.popBackStack(any(), any()) }
 
             viewModel.onEventNameChanged("Updated trip")
             coEvery { createEventUseCase.createEvent(any(), any(), any(), any()) } returns eventDetails
+            runCurrent()
             viewModel.onConfirmClicked()
             runCurrent()
 
@@ -282,6 +287,7 @@ internal class CreateEventViewModelTest {
             runCurrent()
             viewModel.onEventNameChanged("Trip")
             viewModel.onOwnerNameChanged("Alex")
+            runCurrent()
             viewModel.onConfirmClicked()
             runCurrent()
             coVerify(exactly = 0) { createEventUseCase.createEvent(any(), any(), any(), any()) }

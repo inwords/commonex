@@ -2,6 +2,7 @@ package com.inwords.expenses.feature.expenses.ui.converter
 
 import com.inwords.expenses.core.ui.utils.formatLocalTime
 import com.inwords.expenses.core.ui.utils.getTimeFormat
+import com.inwords.expenses.core.utils.sumOf
 import com.inwords.expenses.feature.events.domain.model.Person
 import com.inwords.expenses.feature.expenses.domain.model.BarterAccumulatedDebtSummary
 import com.inwords.expenses.feature.expenses.domain.model.Expense
@@ -12,7 +13,7 @@ import com.inwords.expenses.feature.expenses.ui.list.ExpensesPaneUiModel
 import com.inwords.expenses.feature.expenses.ui.utils.toRoundedString
 
 internal fun Expense.toUiModel(
-    primaryCurrencyName: String,
+    primaryCurrencyCode: String,
     currentPersonId: Long,
 ): ExpensesPaneUiModel.Expenses.ExpenseUiModel {
     val amountSign = when (expenseType) {
@@ -22,11 +23,10 @@ internal fun Expense.toUiModel(
     val currentPersonSplit = subjectExpenseSplitWithPersons.firstOrNull { it.person.id == currentPersonId }
     return ExpensesPaneUiModel.Expenses.ExpenseUiModel(
         expenseId = expenseId,
-        currencyText = if (currency.name == primaryCurrencyName) {
-            currency.name
-        } else {
-            "$primaryCurrencyName (${currency.name})"
-        },
+        currencyCode = primaryCurrencyCode,
+        originalAmount = if (currency.code != primaryCurrencyCode) {
+            "${subjectExpenseSplitWithPersons.sumOf { it.originalAmount }.toRoundedString()} ${currency.code}"
+        } else null,
         expenseType = expenseType,
         personName = person.name,
         isPaidByCurrentPerson = person.id == currentPersonId,
