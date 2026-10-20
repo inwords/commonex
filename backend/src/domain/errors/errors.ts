@@ -1,3 +1,5 @@
+import {IExpense} from '#domain/entities/expense.entity';
+
 import {ErrorCode} from './error-codes.enum';
 
 export class EventNotFoundError extends Error {
@@ -90,6 +92,33 @@ export class IdempotencyRequestInProgressError extends Error {
   }
 }
 
+export class ExpenseVersionConflictError extends Error {
+  override readonly name = 'ExpenseVersionConflictError' as const;
+  readonly code = ErrorCode.EXPENSE_VERSION_CONFLICT;
+
+  constructor(readonly currentExpense: IExpense) {
+    super('Expense was revised by another request');
+  }
+}
+
+export class ExpenseNotFoundError extends Error {
+  override readonly name = 'ExpenseNotFoundError' as const;
+  readonly code = ErrorCode.EXPENSE_NOT_FOUND;
+
+  constructor() {
+    super('Expense not found');
+  }
+}
+
+export class ExpenseParticipantsInvalidError extends Error {
+  override readonly name = 'ExpenseParticipantsInvalidError' as const;
+  readonly code = ErrorCode.EXPENSE_PARTICIPANTS_INVALID;
+
+  constructor() {
+    super('Expense payer and split participants must belong to the event');
+  }
+}
+
 /** Every domain error the transport layers translate; both exception filters catch exactly this list. */
 export const BUSINESS_ERROR_CLASSES = [
   EventNotFoundError,
@@ -102,6 +131,9 @@ export const BUSINESS_ERROR_CLASSES = [
   InconsistentExchangedAmountError,
   IdempotencyHashMismatchError,
   IdempotencyRequestInProgressError,
+  ExpenseVersionConflictError,
+  ExpenseNotFoundError,
+  ExpenseParticipantsInvalidError,
 ] as const;
 
 export type BusinessError = InstanceType<(typeof BUSINESS_ERROR_CLASSES)[number]>;

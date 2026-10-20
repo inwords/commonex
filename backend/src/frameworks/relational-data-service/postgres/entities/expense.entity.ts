@@ -3,10 +3,13 @@ import {Column, Entity, Index, PrimaryColumn} from 'typeorm';
 import {type IExpense} from '#domain/entities/expense.entity';
 
 @Entity('expense')
-@Index(['eventId'])
+@Index('idx__expense__event_id__id__version', {synchronize: false})
 export class ExpenseEntity implements IExpense {
   @PrimaryColumn({type: 'varchar'})
   id!: IExpense['id'];
+
+  @PrimaryColumn({type: 'integer'})
+  version!: IExpense['version'];
 
   @Column({type: 'varchar'})
   description!: IExpense['description'];

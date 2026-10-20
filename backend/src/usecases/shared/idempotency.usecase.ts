@@ -19,6 +19,8 @@ export const IdempotencyOperation = {
   CREATE_EVENT_EXPENSE_V1: 'event.expense.create.v1',
   ADD_USERS_TO_EVENT_V2: 'event.users.add.v2',
   CREATE_EVENT_EXPENSE_V2: 'event.expense.create.v2',
+  REVISE_EVENT_EXPENSE_V4: 'event.expense.revise.v4',
+  CREATE_EVENT_EXPENSE_V4: 'event.expense.create.v4',
 } as const;
 
 export type IdempotencyOperationId = (typeof IdempotencyOperation)[keyof typeof IdempotencyOperation];

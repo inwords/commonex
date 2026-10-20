@@ -21,11 +21,12 @@ export class ExpenseRepository extends BaseRepository implements ExpenseReposito
     eventId: IExpense['eventId'],
     trx,
   ): Promise<[result: IExpense[], queryDetails: IQueryDetails]> => {
-    let query = this.getRepository(this.dataSource, ExpenseEntity, trx).createQueryBuilder(this.queryName);
-
-    query = query.where(`${this.queryName}.event_id = :eventId`, {
-      eventId,
-    });
+    const query = this.getRepository(this.dataSource, ExpenseEntity, trx)
+      .createQueryBuilder(this.queryName)
+      .distinctOn([`${this.queryName}.id`])
+      .where(`${this.queryName}.event_id = :eventId`, {eventId})
+      .orderBy(`${this.queryName}.id`, 'ASC')
+      .addOrderBy(`${this.queryName}.version`, 'DESC');
 
     const queryDetails = this.getQueryDetails(query);
     const result = await query.getMany();
@@ -33,11 +34,40 @@ export class ExpenseRepository extends BaseRepository implements ExpenseReposito
     return [result, queryDetails];
   };
 
+  readonly findLatestById: ExpenseRepositoryAbstract['findLatestById'] = async (eventId, id, trx) => {
+    const query = this.getRepository(this.dataSource, ExpenseEntity, trx)
+      .createQueryBuilder(this.queryName)
+      .where(`${this.queryName}.event_id = :eventId`, {eventId})
+      .andWhere(`${this.queryName}.id = :id`, {id})
+      .orderBy(`${this.queryName}.version`, 'DESC')
+      .limit(1);
+    if (trx?.lock) {
+      query.setLock(trx.lock);
+    }
+    const queryDetails = this.getQueryDetails(query);
+    const result = await query.getOne();
+    return [result, queryDetails];
+  };
+
+  readonly findHistoryById: ExpenseRepositoryAbstract['findHistoryById'] = async (eventId, id, trx) => {
+    const query = this.getRepository(this.dataSource, ExpenseEntity, trx)
+      .createQueryBuilder(this.queryName)
+      .where(`${this.queryName}.event_id = :eventId`, {eventId})
+      .andWhere(`${this.queryName}.id = :id`, {id})
+      .orderBy(`${this.queryName}.version`, 'ASC');
+    const queryDetails = this.getQueryDetails(query);
+    const result = await query.getMany();
+    return [result, queryDetails];
+  };
+
   public findAll: ExpenseRepositoryAbstract['findAll'] = async (input, trx) => {
     const {limit} = input;
-    let query = this.getRepository(this.dataSource, ExpenseEntity, trx).createQueryBuilder(this.queryName);
-
-    query = query.limit(limit);
+    const query = this.getRepository(this.dataSource, ExpenseEntity, trx)
+      .createQueryBuilder(this.queryName)
+      .distinctOn([`${this.queryName}.id`])
+      .orderBy(`${this.queryName}.id`, 'ASC')
+      .addOrderBy(`${this.queryName}.version`, 'DESC')
+      .limit(limit);
 
     const queryDetails = this.getQueryDetails(query);
     const result = await query.getMany();
