@@ -103,6 +103,7 @@ message Expense {
   string createdAt = 7;
   bool isCustomRate = 8;
   string updatedAt = 9;
+  int32 version = 10;
 }
 
 message SplitInfo {
@@ -140,6 +141,7 @@ message ExpenseResponse {
   string createdAt = 7;
   bool isCustomRate = 8;
   string updatedAt = 9;
+  int32 version = 10;
 }
 
 message GetEventExpensesV2Request {

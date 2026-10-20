@@ -21,3 +21,11 @@ export const UserV3Routes = {
   root: '/v3/user',
   getAllCurrencies: `/currencies/all`,
 };
+
+export const UserV4Routes = {
+  root: '/v4/user',
+  getAllEventExpenses: `/event/:eventId/expenses`,
+  createExpense: `/event/:eventId/expense`,
+  reviseExpense: `/event/:eventId/expense/:id/revisions`,
+  getExpenseHistory: `/event/:eventId/expense/:id/history`,
+};

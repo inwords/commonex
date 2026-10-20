@@ -6,6 +6,16 @@ export abstract class ExpenseRepositoryAbstract {
     eventId: IExpense['eventId'],
     trx?: ITransactionWithLock,
   ) => Promise<[result: IExpense[], queryDetails: IQueryDetails]>;
+  abstract findLatestById: (
+    eventId: IExpense['eventId'],
+    id: IExpense['id'],
+    trx?: ITransactionWithLock,
+  ) => Promise<[result: IExpense | null, queryDetails: IQueryDetails]>;
+  abstract findHistoryById: (
+    eventId: IExpense['eventId'],
+    id: IExpense['id'],
+    trx?: ITransaction,
+  ) => Promise<[result: IExpense[], queryDetails: IQueryDetails]>;
   abstract findAll: (
     input: {limit: number},
     trx?: ITransaction,
