@@ -1,4 +1,4 @@
-import {ExpenseType} from '#domain/entities/expense.entity';
+import {ExpenseType, IExpense} from '#domain/entities/expense.entity';
 
 import {appDbConfig} from '#frameworks/relational-data-service/postgres/config';
 import {RelationalDataService} from '#frameworks/relational-data-service/postgres/relational-data-service';
@@ -30,6 +30,7 @@ describe('ExpenseRepository', () => {
     it('should insert expense correctly', async () => {
       const expense = {
         id: 'expense-1',
+        version: 1,
         description: 'Dinner',
         userWhoPaidId: 'user-1',
         currencyId: 'currency-1',
@@ -65,6 +66,7 @@ describe('ExpenseRepository', () => {
       // First insert test data
       const expense = {
         id: 'expense-1',
+        version: 1,
         description: 'Dinner',
         userWhoPaidId: 'user-1',
         currencyId: 'currency-1',
@@ -109,6 +111,7 @@ describe('ExpenseRepository', () => {
       const expenses = [
         {
           id: 'expense-1',
+          version: 1,
           description: 'Dinner',
           userWhoPaidId: 'user-1',
           currencyId: 'currency-1',
@@ -132,6 +135,7 @@ describe('ExpenseRepository', () => {
         },
         {
           id: 'expense-2',
+          version: 1,
           description: 'Lunch',
           userWhoPaidId: 'user-2',
           currencyId: 'currency-1',
@@ -167,6 +171,7 @@ describe('ExpenseRepository', () => {
       const expenses = [
         {
           id: 'expense-1',
+          version: 1,
           description: 'Dinner',
           userWhoPaidId: 'user-1',
           currencyId: 'currency-1',
@@ -186,6 +191,7 @@ describe('ExpenseRepository', () => {
         },
         {
           id: 'expense-2',
+          version: 1,
           description: 'Lunch',
           userWhoPaidId: 'user-2',
           currencyId: 'currency-1',
@@ -205,6 +211,7 @@ describe('ExpenseRepository', () => {
         },
         {
           id: 'expense-3',
+          version: 1,
           description: 'Breakfast',
           userWhoPaidId: 'user-1',
           currencyId: 'currency-1',
@@ -230,6 +237,57 @@ describe('ExpenseRepository', () => {
 
       expect(result).toHaveLength(2);
       expect(queryDetails).toMatchSnapshot();
+    });
+  });
+
+  describe('versions', () => {
+    const original: IExpense = {
+      id: 'expense-1',
+      version: 1,
+      eventId: 'event-1',
+      description: 'Dinner',
+      userWhoPaidId: 'user-1',
+      currencyId: 'currency-1',
+      expenseType: ExpenseType.Expense,
+      isCustomRate: false,
+      splitInformation: [{userId: 'user-2', amount: 100, exchangedAmount: 100}],
+      createdAt: new Date('2023-01-01T00:00:00Z'),
+      updatedAt: new Date('2023-01-01T00:00:00Z'),
+    };
+
+    it('returns only latest snapshots while retaining ordered event-scoped history', async () => {
+      const revised = {
+        ...original,
+        version: 2,
+        description: 'Corrected dinner',
+        splitInformation: [{userId: 'user-2', amount: 80, exchangedAmount: 80}],
+      };
+      const other = {...original, id: 'expense-2'};
+      await relationalDataService.expense.insert([revised, original, other]);
+
+      const [latest] = await relationalDataService.expense.findByEventId(original.eventId);
+      const [limited] = await relationalDataService.expense.findAll({limit: 1});
+      const [found] = await relationalDataService.expense.findLatestById(original.eventId, original.id);
+      const [history] = await relationalDataService.expense.findHistoryById(original.eventId, original.id);
+      const [foreignLatest] = await relationalDataService.expense.findLatestById('other-event', original.id);
+      const [foreignHistory] = await relationalDataService.expense.findHistoryById('other-event', original.id);
+
+      expect(latest).toEqual([revised, other]);
+      expect(limited).toEqual([revised]);
+      expect(found).toEqual(revised);
+      expect(history).toEqual([original, revised]);
+      expect(foreignLatest).toBeNull();
+      expect(foreignHistory).toEqual([]);
+    });
+
+    it('rejects duplicate revisions in the database', async () => {
+      await relationalDataService.expense.insert(original);
+
+      await expect(relationalDataService.expense.insert(original)).rejects.toMatchObject({
+        driverError: {code: '23505'},
+      });
+      const [history] = await relationalDataService.expense.findHistoryById(original.eventId, original.id);
+      expect(history).toEqual([original]);
     });
   });
 });

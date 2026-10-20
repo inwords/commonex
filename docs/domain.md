@@ -50,8 +50,9 @@ Mobile domain identifiers are `Event` and `Person`; `participant` and `owner` na
 ### Expense
 
 - A financial record within an event. Type is `expense` or `refund`.
-- Fields: id, description, userWhoPaidId, currencyId, eventId, expenseType, splitInformation, isCustomRate, createdAt, updatedAt.
-- `createdAt` is optional input and defaults to now.
+- Fields: id, version, description, userWhoPaidId, currencyId, eventId, expenseType, splitInformation, isCustomRate, createdAt, updatedAt.
+- Creation defaults to `version = 1`; corrections append complete snapshots with the same id and the next version. Ordinary reads return only the latest version; history is separate.
+- `createdAt` is optional on creation and defaults to now; a correction preserves it unless explicitly changed. `updatedAt` records the correction time.
 - Canonical model: `backend/src/domain/entities/expense.entity.ts`.
 
 ### Split Information
@@ -107,12 +108,21 @@ Mobile domain identifiers are `Event` and `Person`; `participant` and `owner` na
 - Expenses may be created in any supported currency.
 - If expense currency matches the event currency: `exchangedAmount` equals `amount`.
 - If currencies differ:
-    - Get currency rates for the expense date (UTC YYYY-MM-DD, `createdAt` if provided, otherwise now).
-    - Compute `exchangeRate = eventCurrencyRate / expenseCurrencyRate`.
-    - `exchangedAmount = round(amount * exchangeRate, 2)`.
+  - Get currency rates for the expense date (UTC YYYY-MM-DD, `createdAt` if provided, otherwise now).
+  - Compute `exchangeRate = eventCurrencyRate / expenseCurrencyRate`.
+  - `exchangedAmount = round(amount * exchangeRate, 2)`.
 - V2 expense creation also supports custom client-supplied exchanged amounts:
   if at least one split includes `exchangedAmount`, every split must include it and the expense is stored with `isCustomRate = true`.
 - Missing currencies or rates yield errors (see Error Codes).
+
+### Expense Corrections
+
+- V4 corrects an existing expense with an event PIN, the full corrected payload, and `expectedVersion`.
+- A stale version returns `409` with the current expense. Event and expense type cannot be changed by a correction.
+- Corrections reuse `Idempotency-Key`; replay within the cache TTL returns the accepted snapshot, and an expired-key retry with a stale version conflicts.
+- Description/payer-only corrections preserve confirmed converted amounts; financial changes use the requested automatic/custom conversion mode.
+- V4 provides create, latest-list, correction, and history endpoints; no expense delete/cancel endpoint is added.
+- Current clients still use their existing synchronization behavior; mobile version reconciliation is a separate implementation step.
 
 ### Currency Rates
 
@@ -190,6 +200,7 @@ Mobile domain identifiers are `Event` and `Person`; `participant` and `owner` na
 - HTTP V1: `/user` routes for legacy create/delete/base-currency behavior, plus one inconsistent expense-read route.
 - HTTP V2: `/v2/user` routes (pin code + share token for event info).
 - HTTP V3: `/v3/user` routes for currencies plus the current UTC-day USD-based rate map.
+- HTTP V4: `/v4/user` expense creation, latest-version reads, corrections and history.
 - gRPC: `backend/src/expenses.proto` defines UserService operations.
 
 ## Error Codes (Domain)
@@ -202,4 +213,7 @@ Mobile domain identifiers are `Event` and `Person`; `participant` and `owner` na
 - B4008 INVALID_TOKEN
 - B4009 TOKEN_EXPIRED
 - B4010 INCONSISTENT_EXCHANGED_AMOUNT
+- B4017 EXPENSE_VERSION_CONFLICT
+- B4018 EXPENSE_NOT_FOUND
+- B4019 EXPENSE_PARTICIPANTS_INVALID
 - See `backend/src/domain/errors/` for full mapping and HTTP status codes.

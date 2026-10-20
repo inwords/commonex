@@ -106,6 +106,7 @@ describe('SaveEventExpenseUseCase', () => {
       },
       output: success({
         id: expect.any(String),
+        version: 1,
         eventId: 'event-1',
         currencyId: 'currency-usd',
         description: 'Lunch at restaurant',
@@ -124,6 +125,7 @@ describe('SaveEventExpenseUseCase', () => {
           inserted: [
             {
               id: expect.any(String),
+              version: 1,
               eventId: 'event-1',
               currencyId: 'currency-usd',
               description: 'Lunch at restaurant',
@@ -195,6 +197,7 @@ describe('SaveEventExpenseUseCase', () => {
       },
       output: success({
         id: expect.any(String),
+        version: 1,
         eventId: 'event-1',
         currencyId: 'currency-eur',
         description: 'Lunch in EUR',
@@ -213,6 +216,7 @@ describe('SaveEventExpenseUseCase', () => {
           inserted: [
             {
               id: expect.any(String),
+              version: 1,
               eventId: 'event-1',
               currencyId: 'currency-eur',
               description: 'Lunch in EUR',

@@ -77,6 +77,9 @@ export class CreateExpenseResponseDto {
   id!: string;
 
   @ApiProperty()
+  version!: number;
+
+  @ApiProperty()
   description!: string;
 
   @ApiProperty()
@@ -90,6 +93,9 @@ export class CreateExpenseResponseDto {
 
   @ApiProperty({enum: ExpenseType})
   expenseType!: ExpenseType;
+
+  @ApiProperty()
+  isCustomRate!: boolean;
 
   @ApiProperty({type: [SplitInfo]})
   splitInformation!: SplitInfo[];
