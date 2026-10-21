@@ -6,25 +6,24 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.sizeIn
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material.icons.automirrored.outlined.ArrowForward
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -33,6 +32,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -43,6 +45,7 @@ import com.inwords.expenses.core.ui.utils.SimpleScreenState
 import com.inwords.expenses.feature.events.ui.choose_person.ChoosePersonPaneUiModel.PersonUiModel
 import expenses.shared.feature.events.generated.resources.Res
 import expenses.shared.feature.events.generated.resources.common_back
+import expenses.shared.feature.events.generated.resources.events_choose_person_current
 import expenses.shared.feature.events.generated.resources.events_choose_person_guidance
 import expenses.shared.feature.events.generated.resources.events_choose_person_heading
 import expenses.shared.feature.events.generated.resources.events_choose_person_title
@@ -110,7 +113,6 @@ internal fun ChoosePersonContent(
             .fillMaxSize()
             .selectableGroup(),
         contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         item(key = "heading", contentType = "heading") {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -121,20 +123,29 @@ internal fun ChoosePersonContent(
                 )
                 Text(
                     text = stringResource(Res.string.events_choose_person_heading),
-                    style = MaterialTheme.typography.headlineLarge,
+                    style = MaterialTheme.typography.headlineSmall,
+                    modifier = Modifier.semantics { heading() },
                 )
                 Text(
                     text = stringResource(Res.string.events_choose_person_guidance),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(bottom = 16.dp),
+                    modifier = Modifier.padding(bottom = 24.dp),
                 )
             }
         }
-        items(items = state.persons, key = { it.id }, contentType = { "person" }) { person ->
+        itemsIndexed(items = state.persons, key = { _, person -> person.id }, contentType = { _, _ -> "person" }) { index, person ->
             PersonSelectionItem(
                 person = person,
                 onPersonSelected = onPersonSelected,
+                modifier = Modifier.clip(
+                    MaterialTheme.shapes.extraLarge.copy(
+                        topStart = if (index == 0) MaterialTheme.shapes.extraLarge.topStart else CornerSize(0.dp),
+                        topEnd = if (index == 0) MaterialTheme.shapes.extraLarge.topEnd else CornerSize(0.dp),
+                        bottomStart = if (index == state.persons.lastIndex) MaterialTheme.shapes.extraLarge.bottomStart else CornerSize(0.dp),
+                        bottomEnd = if (index == state.persons.lastIndex) MaterialTheme.shapes.extraLarge.bottomEnd else CornerSize(0.dp),
+                    )
+                ),
             )
         }
     }
@@ -149,40 +160,55 @@ private fun PersonSelectionItem(
     val colorScheme = MaterialTheme.colorScheme
     Row(
         modifier = modifier.fillMaxWidth()
-            .clip(MaterialTheme.shapes.large)
-            .background(if (person.selected) colorScheme.secondaryContainer else colorScheme.surfaceContainer)
+            .background(if (person.selected) colorScheme.primaryContainer else colorScheme.surfaceContainerLow)
+            .heightIn(min = 80.dp)
             .selectable(selected = person.selected, role = Role.RadioButton) { onPersonSelected(person.id) }
             .testTag("events_choose_person_${person.id}")
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Text(
-            modifier = Modifier.background(colorScheme.surfaceContainerHighest, CircleShape)
-                .sizeIn(minWidth = 32.dp, minHeight = 32.dp)
-                .padding(4.dp)
-                .wrapContentHeight(Alignment.CenterVertically),
-            text = person.name.firstOrNull()?.toString().orEmpty(),
-            textAlign = TextAlign.Center,
-            style = MaterialTheme.typography.titleMedium,
-            color = colorScheme.onSurfaceVariant,
-        )
-        Spacer(Modifier.width(16.dp))
-        Text(
-            text = person.name,
-            style = MaterialTheme.typography.titleMedium,
-            color = if (person.selected) colorScheme.onSecondaryContainer else colorScheme.onSurface,
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .background(colorScheme.surfaceContainer, CircleShape)
+                .clearAndSetSemantics {},
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = person.initial,
+                style = MaterialTheme.typography.titleMedium,
+                color = colorScheme.onSurface,
+            )
+        }
+        Column(
             modifier = Modifier.weight(1f),
-        )
-        Icon(
-            imageVector = Icons.AutoMirrored.Outlined.ArrowForward,
-            contentDescription = null,
-            tint = if (person.selected) colorScheme.onSecondaryContainer else colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(start = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                text = person.name,
+                style = MaterialTheme.typography.titleMedium,
+                color = if (person.selected) colorScheme.onPrimaryContainer else colorScheme.onSurface,
+            )
+            if (person.selected) {
+                Text(
+                    text = stringResource(Res.string.events_choose_person_current),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colorScheme.onPrimaryContainer,
+                )
+            }
+        }
+        RadioButton(
+            selected = person.selected,
+            onClick = null,
+            colors = RadioButtonDefaults.colors(selectedColor = colorScheme.onPrimaryContainer),
         )
     }
 }
 
-@Preview
+@Preview(name = "Phone", widthDp = 360, heightDp = 800)
+@Preview(name = "Large text", widthDp = 360, heightDp = 800, fontScale = 2f)
+@Preview(name = "Expanded", widthDp = 840, heightDp = 600)
 @Composable
 private fun ChoosePersonPanePreview() {
     CommonExTheme {
@@ -190,11 +216,11 @@ private fun ChoosePersonPanePreview() {
             state = SimpleScreenState.Success(
                 ChoosePersonPaneUiModel(
                     eventId = 1,
-                    eventName = "Weekend Trip",
+                    eventName = "Weekend in Lisbon",
                     persons = persistentListOf(
-                        PersonUiModel(id = 1, name = "John Doe", selected = true),
-                        PersonUiModel(id = 2, name = "Jane Smith", selected = false),
-                        PersonUiModel(id = 3, name = "Peter Jones", selected = false),
+                        PersonUiModel(id = 1, name = "Sam", selected = true),
+                        PersonUiModel(id = 2, name = "Alex", selected = false),
+                        PersonUiModel(id = 3, name = "Jo", selected = false),
                     )
                 )
             ),
