@@ -38,17 +38,9 @@ internal class AddExpenseScreen : BaseScreen() {
     }
 
     context(rule: ComposeTestRule)
-    fun selectCurrency(currencyName: String): AddExpenseScreen {
+    fun openCurrencyPicker(): ExpenseCurrencyPickerScreen {
         rule.onNodeWithTag("add_expense_currency_picker_button").performScrollTo().performClick()
-        rule.onNodeWithText(currencyName).performScrollTo().performClick()
-        return this
-    }
-
-    context(rule: ComposeTestRule)
-    fun selectCurrencyByCode(currencyCode: String): AddExpenseScreen {
-        rule.onNodeWithTag("add_expense_currency_picker_button").performScrollTo().performClick()
-        rule.onNodeWithTag(currencyOptionTag(currencyCode)).performScrollTo().performClick()
-        return this
+        return ExpenseCurrencyPickerScreen()
     }
 
     context(rule: ComposeTestRule)
@@ -174,10 +166,6 @@ internal class AddExpenseScreen : BaseScreen() {
         waitForElementWithTagDoesNotExist("add_expense_save_button")
         return DebtsListScreen()
     }
-}
-
-private fun currencyOptionTag(currencyCode: String): String {
-    return "add_expense_currency_option_$currencyCode"
 }
 
 private const val EXCHANGE_RATE_INPUT_TAG = "add_expense_exchange_rate_input"

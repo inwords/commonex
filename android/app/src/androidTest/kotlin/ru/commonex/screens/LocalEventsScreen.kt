@@ -1,6 +1,7 @@
 package ru.commonex.screens
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -13,6 +14,7 @@ import expenses.shared.feature.events.generated.resources.events_delete_everywhe
 import expenses.shared.feature.events.generated.resources.events_delete_local_only
 import expenses.shared.feature.events.generated.resources.events_event_deleted
 import expenses.shared.feature.events.generated.resources.events_keep_event
+import expenses.shared.feature.events.generated.resources.events_not_synced_yet
 import org.jetbrains.compose.resources.getString
 
 internal class LocalEventsScreen : BaseScreen() {
@@ -84,6 +86,13 @@ internal class LocalEventsScreen : BaseScreen() {
     fun assertEventExists(eventName: String): LocalEventsScreen {
         waitForElementWithText(eventName)
         assertElementWithTextExists(eventName)
+        return this
+    }
+
+    context(rule: ComposeTestRule)
+    suspend fun assertEventNotSynced(eventName: String): LocalEventsScreen {
+        val notSyncedLabel = getString(Res.string.events_not_synced_yet)
+        rule.onNode(hasText(eventName) and hasText(notSyncedLabel)).assertIsDisplayed()
         return this
     }
 

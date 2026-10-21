@@ -1,6 +1,7 @@
 package ru.commonex.screens
 
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasTestTag
@@ -11,6 +12,11 @@ import androidx.compose.ui.test.onNodeWithText
 
 @OptIn(ExperimentalTestApi::class)
 internal abstract class BaseScreen {
+
+    context(rule: ComposeTestRule)
+    fun waitForElement(matcher: SemanticsMatcher) {
+        rule.waitUntilAtLeastOneExists(matcher, timeoutMillis = 10000)
+    }
 
     context(rule: ComposeTestRule)
     fun waitForElementWithText(
