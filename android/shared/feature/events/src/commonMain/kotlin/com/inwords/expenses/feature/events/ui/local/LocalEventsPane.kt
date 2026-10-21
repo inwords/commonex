@@ -7,12 +7,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.calculateEndPadding
-import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -23,7 +20,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.ZeroCornerSize
 import androidx.compose.foundation.verticalScroll
@@ -44,8 +44,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -59,18 +62,21 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.window.core.layout.WindowSizeClass
 import com.inwords.expenses.core.ui.design.appbar.TopAppBarWithText
 import com.inwords.expenses.core.ui.design.button.ButtonWithIconAndText
-import com.inwords.expenses.core.ui.design.button.OutlinedButtonWithText
+import com.inwords.expenses.core.ui.design.layout.AdaptiveButtonsRow
 import com.inwords.expenses.core.ui.design.layout.RevealState
 import com.inwords.expenses.core.ui.design.layout.SwipeToRevealBox
 import com.inwords.expenses.core.ui.design.layout.rememberSwipeToRevealBoxState
@@ -84,10 +90,10 @@ import expenses.shared.feature.events.generated.resources.events_create
 import expenses.shared.feature.events.generated.resources.events_delete_event_offline_message
 import expenses.shared.feature.events.generated.resources.events_delete_everywhere
 import expenses.shared.feature.events.generated.resources.events_delete_local_only
-import expenses.shared.feature.events.generated.resources.events_event
 import expenses.shared.feature.events.generated.resources.events_event_deleted
 import expenses.shared.feature.events.generated.resources.events_join
 import expenses.shared.feature.events.generated.resources.events_keep_event
+import expenses.shared.feature.events.generated.resources.events_not_synced_yet
 import expenses.shared.feature.events.generated.resources.events_welcome_brand
 import expenses.shared.feature.events.generated.resources.events_welcome_copy
 import expenses.shared.feature.events.generated.resources.events_welcome_create_description
@@ -97,7 +103,7 @@ import expenses.shared.feature.events.generated.resources.events_welcome_join_de
 import expenses.shared.feature.events.generated.resources.events_welcome_join_label
 import expenses.shared.feature.events.generated.resources.events_welcome_kicker
 import expenses.shared.feature.events.generated.resources.events_welcome_reassurance
-import expenses.shared.feature.events.generated.resources.events_your
+import expenses.shared.feature.events.generated.resources.events_your_groups
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
@@ -117,6 +123,9 @@ fun LocalEventsPane(
     modifier: Modifier = Modifier,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
+    val windowSizeClass = currentWindowAdaptiveInfoV2().windowSizeClass
+    val showTwoColumns = windowSizeClass.isWidthAtLeastBreakpoint(WindowSizeClass.WIDTH_DP_EXPANDED_LOWER_BOUND) &&
+        LocalDensity.current.fontScale < 1.5f
 
     localEvents.recentlyRemovedEventName?.let { eventName ->
         val message = stringResource(Res.string.events_event_deleted, eventName)
@@ -130,70 +139,41 @@ fun LocalEventsPane(
         topBar = { TopAppBarWithText() },
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { paddingValues ->
-        val topAndHorizontalPaddings = PaddingValues(
-            top = paddingValues.calculateTopPadding(),
-            start = paddingValues.calculateStartPadding(LocalLayoutDirection.current),
-            end = paddingValues.calculateEndPadding(LocalLayoutDirection.current),
-        )
-
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .consumeWindowInsets(topAndHorizontalPaddings)
-                .padding(topAndHorizontalPaddings),
+                .consumeWindowInsets(paddingValues)
+                .padding(paddingValues),
+            contentAlignment = Alignment.TopCenter,
         ) {
-            Text(
-                text = stringResource(Res.string.events_event),
-                style = MaterialTheme.typography.headlineMedium,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-            )
-            Row(
+            LazyVerticalGrid(
                 modifier = Modifier
-                    .height(IntrinsicSize.Min)
-                    .padding(horizontal = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    .widthIn(max = if (showTwoColumns) 960.dp else 560.dp)
+                    .fillMaxSize(),
+                columns = GridCells.Fixed(if (showTwoColumns) 2 else 1),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 24.dp),
             ) {
-                OutlinedButtonWithText(
-                    modifier = Modifier
-                        .testTag("events_join")
-                        .weight(1f)
-                        .fillMaxHeight(),
-                    onClick = onJoinEventClick,
-                    text = stringResource(Res.string.events_join),
-                    minHeight = ButtonDefaults.MediumContainerHeight,
-                )
-                ButtonWithIconAndText(
-                    modifier = Modifier
-                        .testTag("events_create")
-                        .weight(1f)
-                        .fillMaxHeight(),
-                    onClick = onCreateEventClick,
-                    text = stringResource(Res.string.events_create),
-                    imageVector = Icons.Outlined.Add,
-                    minHeight = ButtonDefaults.MediumContainerHeight,
-                )
-            }
-
-            Text(
-                text = stringResource(Res.string.events_your),
-                style = MaterialTheme.typography.headlineMedium,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-            )
-
-            val bottomPadding = paddingValues.calculateBottomPadding()
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .consumeWindowInsets(PaddingValues(bottom = bottomPadding))
-                    .padding(horizontal = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                contentPadding = PaddingValues(bottom = 16.dp + bottomPadding),
-            ) {
+                item(key = "heading", contentType = "heading", span = { GridItemSpan(maxLineSpan) }) {
+                    Text(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp).semantics { heading() },
+                        text = stringResource(Res.string.events_your_groups),
+                        style = MaterialTheme.typography.headlineLarge,
+                    )
+                }
+                item(key = "actions", contentType = "actions", span = { GridItemSpan(maxLineSpan) }) {
+                    LocalEventsActions(
+                        modifier = Modifier.padding(bottom = 12.dp),
+                        onCreateEventClick = onCreateEventClick,
+                        onJoinEventClick = onJoinEventClick,
+                    )
+                }
                 items(
-                    count = localEvents.events.size,
-                    key = { index -> localEvents.events[index].eventId }
-                ) { index ->
-                    val event = localEvents.events[index]
+                    items = localEvents.events,
+                    key = { it.eventId },
+                    contentType = { "event" },
+                ) { event ->
                     LocalEventItem(
                         event = event,
                         onJoinLocalEventClick = onJoinLocalEventClick,
@@ -203,6 +183,40 @@ fun LocalEventsPane(
                     )
                 }
             }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun LocalEventsActions(
+    onCreateEventClick: () -> Unit,
+    onJoinEventClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val createLabel = stringResource(Res.string.events_create)
+    val joinLabel = stringResource(Res.string.events_join)
+    val buttonHeight = ButtonDefaults.MinHeight
+    val textStyle = ButtonDefaults.textStyleFor(buttonHeight)
+    val buttonPadding = ButtonDefaults.contentPaddingFor(buttonHeight)
+
+    AdaptiveButtonsRow(
+        modifier = modifier.fillMaxWidth(),
+        horizontalSpacing = 12.dp,
+        verticalSpacing = 8.dp,
+    ) {
+        ButtonWithIconAndText(
+            modifier = Modifier.testTag("events_create"),
+            onClick = onCreateEventClick,
+            text = createLabel,
+            imageVector = Icons.Outlined.Add,
+        )
+        TextButton(
+            modifier = Modifier.testTag("events_join"),
+            onClick = onJoinEventClick,
+            contentPadding = buttonPadding,
+        ) {
+            Text(text = joinLabel, style = textStyle)
         }
     }
 }
@@ -571,13 +585,14 @@ private fun LocalEventCard(
     deletionInProgress: Boolean,
     modifier: Modifier = Modifier,
 ) {
+    val showDecorativeIcons = LocalDensity.current.fontScale < 1.5f
     Card(
         modifier = modifier,
         onClick = { onJoinLocalEventClick(event) },
         enabled = !deletionInProgress,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primary,
-            contentColor = MaterialTheme.colorScheme.onPrimary,
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+            contentColor = MaterialTheme.colorScheme.onSurface,
         ),
     ) {
         Row(
@@ -585,26 +600,46 @@ private fun LocalEventCard(
                 .fillMaxWidth()
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Text(
+            if (showDecorativeIcons) {
+                Surface(
+                    modifier = Modifier.size(40.dp).clearAndSetSemantics {},
+                    shape = MaterialTheme.shapes.medium,
+                    color = MaterialTheme.colorScheme.surfaceContainer,
+                    contentColor = MaterialTheme.colorScheme.primary,
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(imageVector = Icons.Outlined.Person, contentDescription = null)
+                    }
+                }
+            }
+            Column(
                 modifier = Modifier
                     .weight(1f)
                     .padding(vertical = 8.dp),
-                text = event.eventName,
-                style = MaterialTheme.typography.titleLarge,
-            )
-
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text(text = event.eventName, style = MaterialTheme.typography.titleLarge)
+                if (!event.isSynced) {
+                    Text(
+                        text = stringResource(Res.string.events_not_synced_yet),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
 
             if (deletionInProgress) {
                 LoadingIndicator(
                     modifier = Modifier.size(ButtonDefaults.LargeIconSize),
                 )
-            } else {
+            } else if (showDecorativeIcons) {
                 Icon(
                     modifier = Modifier.size(ButtonDefaults.LargeIconSize),
                     imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowRight,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimary,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }
@@ -614,6 +649,8 @@ private fun LocalEventCard(
 
 @Composable
 @Preview
+@Preview(widthDp = 320, fontScale = 2f)
+@Preview(widthDp = 840, heightDp = 600)
 private fun LocalEventsPanePreview() {
     CommonExTheme {
         LocalEventsPane(
@@ -627,31 +664,31 @@ private fun LocalEventsPanePreview() {
                 events = persistentListOf(
                     LocalEventUiModel(
                         eventId = 1,
-                        eventName = "Local Event 1",
+                        eventName = "Weekend in Lisbon with friends and family",
                         isSynced = true,
                         deletionState = EventDeletionState.None,
                     ),
                     LocalEventUiModel(
                         eventId = 2,
-                        eventName = "Local Event 2 (local only)",
+                        eventName = "Friday dinner",
                         isSynced = false,
                         deletionState = EventDeletionState.None,
                     ),
                     LocalEventUiModel(
                         eventId = 3,
-                        eventName = "Local Event 3 (local only)",
+                        eventName = "Road trip",
                         isSynced = false,
                         deletionState = EventDeletionState.PendingDeletionChoice,
                     ),
                     LocalEventUiModel(
                         eventId = 4,
-                        eventName = "Local Event 4",
+                        eventName = "Mountain cabin",
                         isSynced = true,
                         deletionState = EventDeletionState.Loading,
                     ),
                     LocalEventUiModel(
                         eventId = 5,
-                        eventName = "Local Event 5",
+                        eventName = "Flatmates",
                         isSynced = true,
                         deletionState = EventDeletionState.RemoteDeletionFailed,
                     ),
@@ -659,6 +696,17 @@ private fun LocalEventsPanePreview() {
                 recentlyRemovedEventName = null,
             ),
         )
+    }
+}
+
+@Preview(widthDp = 400)
+@Preview(widthDp = 320, fontScale = 2f)
+@Composable
+private fun LocalEventsActionsPreview() {
+    CommonExTheme {
+        Surface {
+            LocalEventsActions(onCreateEventClick = {}, onJoinEventClick = {})
+        }
     }
 }
 
