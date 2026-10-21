@@ -11,13 +11,16 @@ internal data class ExpenseItemPaneUiModel(
     val personName: String,
     val timestamp: String,
     val originalCurrencyCode: String,
-    val originalCurrencyName: String,
     val exchangeRate: String?,
     val split: ImmutableList<PersonSplitUiModel>,
 ) {
 
     data class PersonSplitUiModel(
+        val personId: Long,
         val personName: String,
         val amount: String,
-    )
+    ) {
+
+        val personInitial: String = personName.take(1).uppercase()
+    }
 }

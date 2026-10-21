@@ -71,7 +71,10 @@
     <string name="expenses_add_exchange_rate_invalid">Enter a rate greater than zero</string>
     <string name="expenses_add_converted_total">≈ %1$s %2$s in group currency</string>
 
-    <string name="expenses_expense_details">Expense details</string>
+    <string name="expenses_operation_details">Operation details</string>
+    <string name="expenses_details_split">Split</string>
+    <string name="expenses_details_expanded">Expanded</string>
+    <string name="expenses_details_collapsed">Collapsed</string>
     <string name="expenses_no_description">No description</string>
     <string name="expenses_total_amount">Total amount</string>
     <string name="expenses_your_part">Your share %1$s</string>
@@ -82,8 +85,14 @@
     <string name="expenses_you_owe_nothing">You owe nothing</string>
     <string name="expenses_all_balances">All balances</string>
     <string name="expenses_repay_person">Repay %1$s %2$s to %3$s</string>
+    <string name="expenses_balances_title">Balances</string>
+    <string name="expenses_balances_hint">Choose a balance to record a repayment</string>
+    <string name="expenses_debtor_owes">%1$s owes</string>
+    <string name="expenses_record_repayment">Record repayment of %1$s %2$s from %3$s to %4$s</string>
+    <string name="expenses_all_settled">All settled</string>
+    <string name="expenses_no_outstanding_repayments">No outstanding repayments</string>
+    <string name="expenses_back_to_group">Back to group</string>
     <string name="expenses_between">between:</string>
-    <string name="expenses_owes">owes</string>
 
     <string name="expenses_revert_description">[REVERT] %1$s</string>
     <string name="expenses_revert_confirm_title">Revert operation "%1$s"?</string>
