@@ -7,6 +7,7 @@ import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.test.espresso.Espresso.pressBack
 
 internal class ExpenseDetailsScreen : BaseScreen() {
@@ -15,14 +16,28 @@ internal class ExpenseDetailsScreen : BaseScreen() {
     suspend fun waitUntilLoaded(): ExpenseDetailsScreen {
         waitForElementWithTag("expense_item_pane_root")
         rule.onNodeWithTag("expense_item_pane_root").assertIsDisplayed()
-        rule.onNodeWithTag("expense_item_pane_title").assertIsDisplayed()
         rule.onNodeWithTag("expense_item_pane_description_value").assertIsDisplayed()
         rule.onNodeWithTag("expense_item_pane_total_amount_value").assertIsDisplayed()
-        rule.onNodeWithTag("expense_item_pane_paid_by_value").assertIsDisplayed()
-        rule.onNodeWithTag("expense_item_pane_date_value").assertIsDisplayed()
-        rule.onNodeWithTag("expense_item_pane_original_currency_value").assertIsDisplayed()
         rule.onNodeWithTag("expense_item_pane_split_section").assertIsDisplayed()
-        rule.onNodeWithTag("expense_item_revert_action").assertIsDisplayed()
+        return this
+    }
+
+    context(rule: ComposeTestRule)
+    fun toggleOperationDetails(): ExpenseDetailsScreen {
+        rule.onNodeWithTag("expense_item_pane_operation_details_toggle").performScrollTo().performClick()
+        return this
+    }
+
+    context(rule: ComposeTestRule)
+    fun verifyOperationDetailsHidden(): ExpenseDetailsScreen {
+        rule.onAllNodesWithTag("expense_item_pane_operation_details").assertCountEquals(0)
+        return this
+    }
+
+    context(rule: ComposeTestRule)
+    fun verifyOperationDetailsVisible(): ExpenseDetailsScreen {
+        rule.onNodeWithTag("expense_item_pane_operation_details").assertIsDisplayed()
+        rule.onNodeWithTag("expense_item_pane_date_value").performScrollTo().assertIsDisplayed()
         return this
     }
 
@@ -40,25 +55,19 @@ internal class ExpenseDetailsScreen : BaseScreen() {
 
     context(rule: ComposeTestRule)
     fun verifyPaidBy(personName: String): ExpenseDetailsScreen {
-        rule.onNodeWithTag("expense_item_pane_paid_by_value").assertTextEquals(personName)
-        return this
-    }
-
-    context(rule: ComposeTestRule)
-    fun verifyOriginalCurrency(originalCurrency: String): ExpenseDetailsScreen {
-        rule.onNodeWithTag("expense_item_pane_original_currency_value").assertTextEquals(originalCurrency)
+        rule.onNodeWithTag("expense_item_pane_paid_by_value").performScrollTo().assertTextEquals(personName)
         return this
     }
 
     context(rule: ComposeTestRule)
     suspend fun verifyExchangeRateVisible(): ExpenseDetailsScreen {
-        rule.onNodeWithTag("expense_item_pane_exchange_rate_value").assertIsDisplayed()
+        rule.onNodeWithTag("expense_item_pane_exchange_rate_value").performScrollTo().assertIsDisplayed()
         return this
     }
 
     context(rule: ComposeTestRule)
     fun verifyExchangeRate(exchangeRate: String): ExpenseDetailsScreen {
-        rule.onNodeWithTag("expense_item_pane_exchange_rate_value").assertTextEquals(exchangeRate)
+        rule.onNodeWithTag("expense_item_pane_exchange_rate_value").performScrollTo().assertTextEquals(exchangeRate)
         return this
     }
 
@@ -70,7 +79,13 @@ internal class ExpenseDetailsScreen : BaseScreen() {
 
     context(rule: ComposeTestRule)
     fun verifySplitContainsPerson(personName: String): ExpenseDetailsScreen {
-        rule.onNodeWithTag(splitPersonTag(personName)).assertIsDisplayed()
+        rule.onNodeWithTag(splitPersonTag(personName)).performScrollTo().assertIsDisplayed()
+        return this
+    }
+
+    context(rule: ComposeTestRule)
+    fun verifySplitAmount(personName: String, amount: String): ExpenseDetailsScreen {
+        rule.onNodeWithTag("expense_item_pane_split_amount_$personName").performScrollTo().assertTextEquals(amount)
         return this
     }
 
@@ -83,7 +98,7 @@ internal class ExpenseDetailsScreen : BaseScreen() {
 
     context(rule: ComposeTestRule)
     suspend fun confirmRevertExpense(): ExpensesScreen {
-        rule.onNodeWithTag("expense_item_revert_action").performClick()
+        rule.onNodeWithTag("expense_item_revert_action").performScrollTo().performClick()
         rule.onNodeWithTag("expense_revert_dialog_confirm_button").assertIsDisplayed()
         rule.onNodeWithTag("expense_revert_dialog_confirm_button").performClick()
         waitForElementWithTagDoesNotExist("expense_revert_dialog_confirm_button")

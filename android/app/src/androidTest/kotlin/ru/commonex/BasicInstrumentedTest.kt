@@ -10,6 +10,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.inwords.expenses.feature.expenses.domain.ExpenseTimeBackdoor
 import com.inwords.expenses.feature.expenses.domain.model.ExpenseType
 import expenses.shared.feature.expenses.generated.resources.expenses_exchange_rate_value
+import expenses.shared.feature.expenses.generated.resources.expenses_repayment_from
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.getString
@@ -45,10 +46,11 @@ class BasicInstrumentedTest {
     /**
      * Tests the complete event creation and expenses flow:
      * - Create event with multiple participants
+     * - Open the invitation from the empty group and return
      * - Reach the first-expense prompt and use its action to add an equal-split expense
      * - Verify the expense timeline replaces the first-expense prompt
      * - Add expense with custom split
-     * - Open expense details pane and verify key sections/values
+     * - Open expense details, verify split amounts, and expand/collapse operation details
      * - Cancel an expense and verify revert entry
      * - Add converted-currency expense and verify exchange-rate section in details pane
      * - Verify both debtor-creditor pairs in balances
@@ -62,6 +64,7 @@ class BasicInstrumentedTest {
         val expensesScreen = LocalEventsScreen()
             .clickCreateEvent()
             .enterEventName(eventName)
+            .openCurrencyPicker()
             .selectCurrency("Euro")
             .enterOwnerName("Test User 1")
             .addParticipant(index = 0, name = "Test User 2")
@@ -69,6 +72,12 @@ class BasicInstrumentedTest {
             .createEvent()
             .waitUntilLoadedEmpty()
             .verifyCurrentPersonInEmptyEvent(eventName, "Test User 1")
+
+        expensesScreen
+            .clickInvite()
+            .waitUntilLoaded(eventName)
+            .goBack()
+            .waitUntilLoadedEmpty()
 
         // Add first expense (equal split - default)
         expensesScreen
@@ -96,9 +105,14 @@ class BasicInstrumentedTest {
             .waitUntilLoaded()
             .verifyDescription("Булка")
             .verifyTotalAmount("-120 EUR")
+            .verifySplitAmount("Test User 1", "-40 EUR")
+            .verifyOperationDetailsHidden()
+            .toggleOperationDetails()
+            .verifyOperationDetailsVisible()
             .verifyPaidBy("Test User 1")
-            .verifyOriginalCurrency("EUR (Euro)")
             .verifyExchangeRateHidden()
+            .toggleOperationDetails()
+            .verifyOperationDetailsHidden()
             .confirmRevertExpense()
             .verifyRevertedExpenseExists("Булка")
 
@@ -125,6 +139,7 @@ class BasicInstrumentedTest {
         // Add converted-currency expense and verify exchange-rate section in details pane
         expensesScreen
             .clickAddExpense()
+            .openCurrencyPicker()
             .selectCurrency("US Dollar")
             .enterDescription("FX coffee")
             .enterAmount("10")
@@ -135,8 +150,9 @@ class BasicInstrumentedTest {
             .clickOnExpense("FX coffee")
             .waitUntilLoaded()
             .verifyDescription("FX coffee")
+            .verifySplitAmount("Test User 1", "-3.33 USD")
+            .toggleOperationDetails()
             .verifyPaidBy("Test User 1")
-            .verifyOriginalCurrency("USD (US Dollar)")
             .verifyExchangeRateVisible()
             .dismissPane()
 
@@ -171,6 +187,7 @@ class BasicInstrumentedTest {
 
         ExpensesScreen()
             .clickAddExpense()
+            .openCurrencyPicker()
             .selectCurrencyByCode("USD")
             .waitUntilExchangeRateVisible()
             .enterAmount("10")
@@ -182,9 +199,11 @@ class BasicInstrumentedTest {
             .verifySaveDisabled()
             .replaceExchangeRate(customRate)
             .verifySaveEnabled()
+            .openCurrencyPicker()
             .selectCurrencyByCode("EUR")
             .verifyExchangeRateHidden()
             .verifySaveEnabled()
+            .openCurrencyPicker()
             .selectCurrencyByCode("USD")
             .waitUntilExchangeRateVisible()
             .replaceExchangeRate(customRate)
@@ -197,8 +216,9 @@ class BasicInstrumentedTest {
             .waitUntilLoaded()
             .verifyDescription(description)
             .verifyTotalAmount("-12 EUR")
+            .verifySplitAmount("Test User 1", "-10 USD")
+            .toggleOperationDetails()
             .verifyPaidBy("Test User 1")
-            .verifyOriginalCurrency("USD (US Dollar)")
             .verifyExchangeRateVisible()
             .verifyExchangeRate(exchangeRateText)
     }
@@ -212,13 +232,16 @@ class BasicInstrumentedTest {
      * - Complete distinct amounts, recreate the activity, and verify the draft and split are retained
      * - Save and verify the payer, total, and resulting personal debt
      * - Open and discard a prefilled repayment, then save it and verify the debt clears without changing spending
+     * - Open the repayment details and verify its recipient share and payer
      */
     @Test
     fun testCustomSplitDraftAndPersonalDebtRepayment() = composeRule.runTest {
         val description = "Custom dinner"
+        val repaymentDescription = getString(ExpensesRes.string.expenses_repayment_from, "Test User 1")
         LocalEventsScreen()
             .clickCreateEvent()
             .enterEventName("Custom split and repayment")
+            .openCurrencyPicker()
             .selectCurrency("Euro")
             .enterOwnerName("Test User 1")
             .addParticipant(index = 0, name = "Test User 2")
@@ -274,9 +297,12 @@ class BasicInstrumentedTest {
             .clickOnExpense(description)
             .waitUntilLoaded()
             .verifyTotalAmount("-30 EUR")
-            .verifyPaidBy("Test User 2")
             .verifySplitContainsPerson("Test User 1")
             .verifySplitContainsPerson("Test User 2")
+            .verifySplitAmount("Test User 1", "-10 EUR")
+            .verifySplitAmount("Test User 2", "-20 EUR")
+            .toggleOperationDetails()
+            .verifyPaidBy("Test User 2")
             .dismissPane()
             .verifyPersonalDebt("Test User 2", "10 EUR")
             .repayPersonalDebt("Test User 2")
@@ -287,6 +313,13 @@ class BasicInstrumentedTest {
             .clickConfirm()
             .verifyNoPersonalDebts()
             .verifyTotalSpending("30 EUR")
+            .clickOnExpense(repaymentDescription)
+            .waitUntilLoaded()
+            .verifyDescription(repaymentDescription)
+            .verifyTotalAmount("+10 EUR")
+            .verifySplitAmount("Test User 2", "+10 EUR")
+            .toggleOperationDetails()
+            .verifyPaidBy("Test User 1")
     }
 
     /**
@@ -458,9 +491,12 @@ class BasicInstrumentedTest {
     }
 
     /**
-     * Tests keeping events via both methods:
+     * Tests local group cards and the existing swipe actions:
+     * - Verify both locally created groups show Not synced yet
+     * - Open a group, choose a name, and return to the matching group
      * - Keep event using "Keep event" button
      * - Keep event by swiping back
+     * - Remove both local groups and verify the welcome screen returns
      *
      * @Offline prevents sync to isolate local-only behavior
      */
@@ -477,6 +513,15 @@ class BasicInstrumentedTest {
         ExpensesScreen()
             .openMenu()
             .openEventsList()
+            .assertEventNotSynced(event1)
+            .assertEventNotSynced(event2)
+            .clickEvent(event1)
+            .waitUntilLoaded("Test User 1")
+            .selectPerson("Test User 1")
+            .waitUntilLoadedEmpty()
+            .verifyCurrentPersonInEmptyEvent(event1, "Test User 1")
+            .openMenu()
+            .openEventsList()
             // Test keeping via button
             .swipeToRevealActions(event1)
             .clickKeepEvent()
@@ -488,6 +533,14 @@ class BasicInstrumentedTest {
             // Both events should still exist
             .assertEventExists(event1)
             .assertEventExists(event2)
+            .swipeToRevealActions(event1)
+            .clickDeleteLocalOnly()
+            .assertEventNotExists(event1)
+            .assertEventExists(event2)
+            .swipeToRevealActions(event2)
+            .clickDeleteLocalOnly()
+            .assertEventNotExists(event2)
+            .assertWelcomeVisible()
     }
 
     /**
@@ -539,9 +592,10 @@ class BasicInstrumentedTest {
     /**
      * Tests adding participants to an existing event:
      * - Create event with one participant
-     * - Open menu and navigate to "Add participant" screen
-     * - Add multiple participants
-     * - Verify participants can be selected via Choose Person menu
+     * - Verify the group options event name and navigate to Add people
+     * - Verify empty and whitespace-only drafts cannot be confirmed
+     * - Fill the initial name field, append another field, and save both participants
+     * - Verify choosing each new name immediately returns to the matching identity
      * - Verify that an equal expense can be added successfully after new participants are added
      */
     @Test
@@ -554,9 +608,16 @@ class BasicInstrumentedTest {
         // Add participants via menu
         ExpensesScreen()
             .openMenu()
+            .verifyEventName(eventName)
             .addParticipant()
-            .addParticipant("New Test User 1")
-            .addParticipant("New Test User 2")
+            .verifyConfirmDisabled()
+            .enterParticipantName(0, "   ")
+            .verifyConfirmDisabled()
+            .enterParticipantName(0, "New Test User 1")
+            .verifyConfirmEnabled()
+            .appendParticipant()
+            .verifyConfirmEnabled()
+            .enterParticipantName(1, "New Test User 2")
             .clickContinueButton()
             .waitUntilLoadedEmpty()
             .verifyCurrentPersonInEmptyEvent(eventName, "Test User 1")
@@ -606,6 +667,7 @@ class BasicInstrumentedTest {
             .enterEventName(eventName)
             .enterOwnerName("Test User 1")
             .addParticipant(index = 0, name = "Test User 2")
+            .openCurrencyPicker()
             .selectCurrency("Japanese Yen")
 
         recreateActivity()
@@ -666,6 +728,7 @@ class BasicInstrumentedTest {
         return LocalEventsScreen()
             .clickCreateEvent()
             .enterEventName(eventName)
+            .openCurrencyPicker()
             .selectCurrency("Euro")
             .enterOwnerName("Test User 1")
             .createEvent()
@@ -680,6 +743,7 @@ class BasicInstrumentedTest {
 
             ExpensesScreen()
                 .clickAddExpense()
+                .openCurrencyPicker()
                 .selectCurrencyByCode(currency.code)
                 .enterDescription(description)
                 .enterAmount(amount.toString())

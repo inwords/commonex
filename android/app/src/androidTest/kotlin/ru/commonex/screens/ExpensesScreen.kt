@@ -1,7 +1,6 @@
 package ru.commonex.screens
 
 import androidx.compose.ui.semantics.SemanticsProperties
-import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasAnyAncestor
@@ -36,12 +35,11 @@ internal class ExpensesScreen : BaseScreen() {
     }
 
     context(rule: ComposeTestRule)
-    @OptIn(ExperimentalTestApi::class)
     suspend fun verifyCurrentPerson(eventName: String, personName: String): ExpensesScreen {
         val identityText = getString(EventsRes.string.events_info_identity, personName)
         val matcher = hasTestTag(ExpensesPaneTags.EVENT_INFO) and
             hasAnyDescendant(hasText(eventName)) and hasAnyDescendant(hasText(identityText))
-        rule.waitUntilAtLeastOneExists(matcher, timeoutMillis = 10000)
+        waitForElement(matcher)
         rule.onNode(matcher).assertIsDisplayed()
         return this
     }
@@ -49,9 +47,10 @@ internal class ExpensesScreen : BaseScreen() {
     context(rule: ComposeTestRule)
     suspend fun verifyCurrentPersonInEmptyEvent(eventName: String, personName: String): ExpensesScreen {
         val identityText = getString(Res.string.expenses_first_identity, personName)
-        waitForElementWithText(eventName)
-        assertElementWithTextExists(eventName)
-        assertElementWithTextExists(identityText)
+        val matcher = hasTestTag(ExpensesPaneTags.EMPTY_STATE) and
+            hasAnyDescendant(hasText(eventName)) and hasAnyDescendant(hasText(identityText))
+        waitForElement(matcher)
+        rule.onNode(matcher).assertIsDisplayed()
         return this
     }
 

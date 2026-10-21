@@ -1,33 +1,41 @@
 package ru.commonex.screens
 
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.ComposeTestRule
-import androidx.compose.ui.test.onAllNodesWithText
-import androidx.compose.ui.test.onLast
-import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performTextInput
-import expenses.shared.feature.events.generated.resources.Res
-import expenses.shared.feature.events.generated.resources.events_add_participant
-import expenses.shared.feature.events.generated.resources.events_continue_button
-import expenses.shared.feature.events.generated.resources.events_person_name_placeholder
-import org.jetbrains.compose.resources.getString
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTextReplacement
 
 internal class AddParticipantsToEventScreen : BaseScreen() {
     context(rule: ComposeTestRule)
-    suspend fun addParticipant(name: String): AddParticipantsToEventScreen {
-        val addParticipantLabel = getString(Res.string.events_add_participant)
-        rule.onNodeWithText(addParticipantLabel).performClick()
-
-        // Fill the last field (the newly added one)
-        val nameLabel = getString(Res.string.events_person_name_placeholder)
-        rule.onAllNodesWithText(nameLabel).onLast().performTextInput(name)
+    fun enterParticipantName(index: Int, name: String): AddParticipantsToEventScreen {
+        rule.onNodeWithTag("events_add_person_name_$index").performScrollTo().performTextReplacement(name)
         return this
     }
 
     context(rule: ComposeTestRule)
-    suspend fun clickContinueButton(): ExpensesScreen {
-        val continueLabel = getString(Res.string.events_continue_button)
-        rule.onNodeWithText(continueLabel).performClick()
+    fun appendParticipant(): AddParticipantsToEventScreen {
+        rule.onNodeWithTag("events_add_person").performScrollTo().performClick()
+        return this
+    }
+
+    context(rule: ComposeTestRule)
+    fun verifyConfirmDisabled(): AddParticipantsToEventScreen {
+        rule.onNodeWithTag("events_add_people_confirm").assertIsNotEnabled()
+        return this
+    }
+
+    context(rule: ComposeTestRule)
+    fun verifyConfirmEnabled(): AddParticipantsToEventScreen {
+        rule.onNodeWithTag("events_add_people_confirm").assertIsEnabled()
+        return this
+    }
+
+    context(rule: ComposeTestRule)
+    fun clickContinueButton(): ExpensesScreen {
+        rule.onNodeWithTag("events_add_people_confirm").performClick()
         return ExpensesScreen()
     }
 }

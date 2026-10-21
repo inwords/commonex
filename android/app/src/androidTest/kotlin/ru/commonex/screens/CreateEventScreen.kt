@@ -4,7 +4,6 @@ import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToKey
@@ -25,11 +24,10 @@ internal class CreateEventScreen : BaseScreen() {
     }
 
     context(rule: ComposeTestRule)
-    fun selectCurrency(currency: String): CreateEventScreen {
+    fun openCurrencyPicker(): EventCurrencyPickerScreen {
         scrollToItem("currency")
         rule.onNodeWithTag("events_create_currency").performClick()
-        rule.onNodeWithText(currency, substring = true).performScrollTo().performClick()
-        return this
+        return EventCurrencyPickerScreen()
     }
 
     context(rule: ComposeTestRule)
