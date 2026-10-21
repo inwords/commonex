@@ -1,50 +1,67 @@
 package com.inwords.expenses.feature.menu.ui
 
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.automirrored.outlined.ExitToApp
+import androidx.compose.material.icons.automirrored.outlined.List
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Share
-import androidx.compose.material3.AssistChipDefaults
-import androidx.compose.material3.Card
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalClipboard
-import androidx.compose.ui.semantics.clearAndSetSemantics
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.inwords.expenses.core.ui.design.button.ButtonWithIconAndText
+import com.inwords.expenses.core.ui.design.layout.AdaptiveButtonsRow
 import com.inwords.expenses.core.ui.design.legal.LegalBlock
 import com.inwords.expenses.core.ui.design.theme.CommonExTheme
 import com.inwords.expenses.core.ui.utils.clipEntryOf
 import com.inwords.expenses.feature.menu.ui.EventSharingUiModel.ShareState
 import com.inwords.expenses.feature.menu.ui.EventSharingUiModel.ShareState.Companion.canShare
-import com.inwords.expenses.feature.menu.ui.EventSharingUiModel.ShareText
 import expenses.shared.feature.menu.generated.resources.Res
 import expenses.shared.feature.menu.generated.resources.menu_add_participants_action
 import expenses.shared.feature.menu.generated.resources.menu_choose_person_action
 import expenses.shared.feature.menu.generated.resources.menu_copy_action
+import expenses.shared.feature.menu.generated.resources.menu_events_heading
+import expenses.shared.feature.menu.generated.resources.menu_invite_body
+import expenses.shared.feature.menu.generated.resources.menu_invite_preparing
+import expenses.shared.feature.menu.generated.resources.menu_invite_sync
+import expenses.shared.feature.menu.generated.resources.menu_invite_title
 import expenses.shared.feature.menu.generated.resources.menu_join_other_event
 import expenses.shared.feature.menu.generated.resources.menu_open_events_list
+import expenses.shared.feature.menu.generated.resources.menu_people_heading
 import expenses.shared.feature.menu.generated.resources.menu_share_action
+import expenses.shared.feature.menu.generated.resources.menu_title
 import org.jetbrains.compose.resources.stringResource
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
@@ -70,155 +87,170 @@ internal fun MenuDialog(
             onTextCopied()
         }
     }
-    Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .heightIn(min = 200.dp),
-        shape = MaterialTheme.shapes.large,
-    ) {
-        Row(
+    Box(modifier = modifier.fillMaxWidth().testTag("menu_options"), contentAlignment = Alignment.TopCenter) {
+        Column(
             modifier = Modifier
-                .clickable(
-                    enabled = eventSharing.shareState.canShare,
-                    onClick = onShareClicked
-                )
+                .widthIn(max = 560.dp)
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp),
         ) {
-            Icon(
-                modifier = Modifier
-                    .padding(end = 16.dp)
-                    .align(Alignment.CenterVertically),
-                imageVector = Icons.Outlined.Share,
-                contentDescription = null
-            )
-            Text(
-                modifier = Modifier
-                    .align(Alignment.CenterVertically)
-                    .weight(1f),
-                text = stringResource(Res.string.menu_share_action),
-                style = MaterialTheme.typography.bodyLarge
-            )
-
-            val isLoading = eventSharing.shareState is ShareState.Loading
-            Box(
-                modifier = Modifier.align(Alignment.CenterVertically),
-                contentAlignment = Alignment.Center
+            Column(
+                modifier = Modifier.padding(start = 8.dp, end = 8.dp, bottom = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                // Always render Text to preserve intrinsic size for any font scale
                 Text(
-                    modifier = Modifier
-                        .alpha(if (isLoading) 0f else 1f)
-                        .then(if (isLoading) Modifier.clearAndSetSemantics {} else Modifier)
-                        .border(
-                            border = AssistChipDefaults.assistChipBorder(enabled = eventSharing.shareState.canShare),
-                            shape = MaterialTheme.shapes.small
-                        )
-                        .clickable(
-                            enabled = eventSharing.shareState.canShare,
-                            onClick = onCopyClicked
-                        )
-                        .padding(8.dp),
-                    text = stringResource(Res.string.menu_copy_action),
-                    overflow = TextOverflow.Ellipsis,
-                    style = MaterialTheme.typography.bodyLarge
+                    text = stringResource(Res.string.menu_title),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                if (isLoading) {
-                    LoadingIndicator(modifier = Modifier.size(24.dp))
+                Text(
+                    modifier = Modifier.testTag("menu_event_name").semantics { heading() },
+                    text = eventSharing.eventName,
+                    style = MaterialTheme.typography.headlineLarge,
+                )
+            }
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.extraLarge,
+                color = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            ) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        modifier = Modifier.semantics { heading() },
+                        text = stringResource(Res.string.menu_invite_title),
+                        style = MaterialTheme.typography.titleLarge,
+                    )
+                    Text(
+                        text = stringResource(
+                            if (eventSharing.shareState is ShareState.Idle && !eventSharing.shareState.isAvailable) {
+                                Res.string.menu_invite_sync
+                            } else {
+                                Res.string.menu_invite_body
+                            }
+                        ),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+
+                    val buttonHeight = ButtonDefaults.MediumContainerHeight
+                    val buttonTextStyle = ButtonDefaults.textStyleFor(buttonHeight)
+                    val shareLabel = stringResource(Res.string.menu_share_action)
+                    val copyLabel = stringResource(
+                        if (eventSharing.shareState is ShareState.Loading) Res.string.menu_invite_preparing else Res.string.menu_copy_action
+                    )
+                    val buttonPadding = ButtonDefaults.contentPaddingFor(buttonHeight)
+
+                    AdaptiveButtonsRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalSpacing = 8.dp,
+                        verticalSpacing = 8.dp,
+                    ) {
+                        ButtonWithIconAndText(
+                            modifier = Modifier.testTag("menu_share"),
+                            onClick = onShareClicked,
+                            enabled = eventSharing.shareState.canShare,
+                            text = shareLabel,
+                            imageVector = Icons.Outlined.Share,
+                            minHeight = buttonHeight,
+                        )
+                        FilledTonalButton(
+                            modifier = Modifier.heightIn(min = buttonHeight)
+                                .testTag("menu_copy"),
+                            onClick = onCopyClicked,
+                            enabled = eventSharing.shareState.canShare,
+                            shapes = ButtonDefaults.shapes(),
+                            contentPadding = buttonPadding,
+                            colors = ButtonDefaults.filledTonalButtonColors(
+                                containerColor = MaterialTheme.colorScheme.surface,
+                                contentColor = MaterialTheme.colorScheme.primary,
+                            ),
+                        ) {
+                            if (eventSharing.shareState is ShareState.Loading) {
+                                LoadingIndicator(modifier = Modifier.size(24.dp))
+                                Spacer(modifier = Modifier.size(8.dp))
+                            }
+                            Text(text = copyLabel, style = buttonTextStyle)
+                        }
+                    }
                 }
             }
-        }
-
-        HorizontalDivider()
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(onClick = onChoosePersonClicked)
-                .padding(16.dp),
-        ) {
-            Icon(
-                modifier = Modifier
-                    .padding(end = 16.dp)
-                    .align(Alignment.CenterVertically),
-                imageVector = Icons.Outlined.Person,
-                contentDescription = null
-            )
             Text(
-                modifier = Modifier.align(Alignment.CenterVertically),
-                text = stringResource(Res.string.menu_choose_person_action),
-                style = MaterialTheme.typography.bodyLarge
-            )
-        }
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(onClick = onAddParticipantsClicked)
-                .padding(16.dp),
-        ) {
-            Icon(
                 modifier = Modifier
-                    .padding(end = 16.dp)
-                    .align(Alignment.CenterVertically),
-                imageVector = Icons.Outlined.Add,
-                contentDescription = null
+                    .padding(start = 8.dp, end = 8.dp, top = 24.dp, bottom = 8.dp)
+                    .semantics { heading() },
+                text = stringResource(Res.string.menu_people_heading),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            Surface(shape = MaterialTheme.shapes.extraLarge, color = MaterialTheme.colorScheme.surfaceContainer) {
+                Column {
+                    GroupOptionsAction(
+                        text = stringResource(Res.string.menu_choose_person_action),
+                        icon = Icons.Outlined.Person,
+                        onClick = onChoosePersonClicked,
+                    )
+                    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+                    GroupOptionsAction(
+                        text = stringResource(Res.string.menu_add_participants_action),
+                        icon = Icons.Outlined.Add,
+                        onClick = onAddParticipantsClicked,
+                    )
+                }
+            }
             Text(
-                modifier = Modifier.align(Alignment.CenterVertically),
-                text = stringResource(Res.string.menu_add_participants_action),
-                style = MaterialTheme.typography.bodyLarge
-            )
-        }
-
-        Row(
-            modifier = Modifier
-                .clickable(onClick = onJoinEventClicked)
-                .fillMaxWidth()
-                .padding(16.dp),
-        ) {
-            Icon(
                 modifier = Modifier
-                    .padding(end = 16.dp)
-                    .align(Alignment.CenterVertically),
-                imageVector = Icons.AutoMirrored.Outlined.ArrowForward,
-                contentDescription = null
+                    .padding(start = 8.dp, end = 8.dp, top = 24.dp, bottom = 8.dp)
+                    .semantics { heading() },
+                text = stringResource(Res.string.menu_events_heading),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Text(
-                modifier = Modifier.align(Alignment.CenterVertically),
-                text = stringResource(Res.string.menu_join_other_event),
-                style = MaterialTheme.typography.bodyLarge
-            )
-        }
-
-        Row(
-            modifier = Modifier
-                .clickable(onClick = onLeaveEventClicked)
-                .fillMaxWidth()
-                .padding(16.dp),
-        ) {
-            Icon(
-                modifier = Modifier
-                    .padding(end = 16.dp)
-                    .align(Alignment.CenterVertically),
-                imageVector = Icons.AutoMirrored.Outlined.ExitToApp,
-                contentDescription = null
-            )
-            Text(
-                modifier = Modifier.align(Alignment.CenterVertically),
-                text = stringResource(Res.string.menu_open_events_list),
-                style = MaterialTheme.typography.bodyLarge
+            Surface(shape = MaterialTheme.shapes.extraLarge, color = MaterialTheme.colorScheme.surfaceContainer) {
+                Column {
+                    GroupOptionsAction(
+                        text = stringResource(Res.string.menu_open_events_list),
+                        icon = Icons.AutoMirrored.Outlined.List,
+                        onClick = onLeaveEventClicked,
+                    )
+                    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+                    GroupOptionsAction(
+                        text = stringResource(Res.string.menu_join_other_event),
+                        icon = Icons.AutoMirrored.Outlined.ExitToApp,
+                        onClick = onJoinEventClicked,
+                    )
+                }
+            }
+            LegalBlock(
+                modifier = Modifier.align(Alignment.CenterHorizontally).padding(vertical = 16.dp),
+                onPrivacyPolicyClicked = onPrivacyPolicyClicked,
+                onTermsOfUseClicked = onTermsOfUseClicked,
             )
         }
+    }
+}
 
-        HorizontalDivider()
-
-        LegalBlock(
-            modifier = Modifier
-                .align(Alignment.CenterHorizontally)
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            onPrivacyPolicyClicked = onPrivacyPolicyClicked,
-            onTermsOfUseClicked = onTermsOfUseClicked
+@Composable
+private fun GroupOptionsAction(
+    text: String,
+    icon: ImageVector,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(min = 64.dp)
+            .clickable(role = Role.Button, onClick = onClick).padding(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(imageVector = icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(modifier = Modifier.weight(1f), text = text, style = MaterialTheme.typography.bodyLarge)
+        Icon(
+            imageVector = Icons.AutoMirrored.Outlined.ArrowForward,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }
@@ -230,7 +262,7 @@ private fun MenuDialogPreview() {
         MenuDialog(
             state = MenuDialogUiModel(
                 eventSharing = EventSharingUiModel(
-                    eventName = "Пример события",
+                    eventName = "Weekend in Lisbon",
                     shareState = ShareState.Idle(
                         serverId = "event-id",
                         pinCode = "1234",
@@ -252,18 +284,13 @@ private fun MenuDialogPreview() {
 
 @Preview
 @Composable
-private fun MenuDialogEmptyShareUrlPreview() {
+private fun MenuDialogUnsyncedPreview() {
     CommonExTheme {
         MenuDialog(
             state = MenuDialogUiModel(
                 eventSharing = EventSharingUiModel(
-                    eventName = "Пример события",
-                    shareState = ShareState.Ready(
-                        shareText = ShareText(
-                            eventName = "Пример события",
-                            fullText = "Пример события\n\nКакой-то текст и ссылка https://commonex.ru/event/ASDASD?pinCode=1234",
-                        )
-                    ),
+                    eventName = "Weekend in Lisbon",
+                    shareState = ShareState.Idle(serverId = null, pinCode = "1234"),
                 ),
             ),
             onJoinEventClicked = {},
@@ -286,7 +313,7 @@ private fun MenuDialogLoadingPreview() {
         MenuDialog(
             state = MenuDialogUiModel(
                 eventSharing = EventSharingUiModel(
-                    eventName = "Пример события",
+                    eventName = "Weekend in Lisbon",
                     shareState = ShareState.Loading,
                 ),
             ),

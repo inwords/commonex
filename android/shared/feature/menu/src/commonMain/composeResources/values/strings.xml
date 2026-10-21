@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="menu_title">Group options</string>
+    <string name="menu_people_heading">People</string>
+    <string name="menu_events_heading">Groups</string>
     <string name="menu_choose_person_action">Choose your name</string>
-    <string name="menu_add_participants_action">Add participants</string>
+    <string name="menu_add_participants_action">Add people</string>
     <string name="menu_join_other_event">Join another group</string>
     <string name="menu_open_events_list">Your groups</string>
 
@@ -14,5 +17,6 @@
     <string name="menu_invite_heading">Keep everyone\nin the loop</string>
     <string name="menu_invite_body">Share an invite link so everyone can add expenses and see balances</string>
     <string name="menu_invite_sync">Connect to the internet to sync your group and create an invite link</string>
+    <string name="menu_invite_preparing">Preparing…</string>
     <string name="menu_invite_back">Back</string>
 </resources>

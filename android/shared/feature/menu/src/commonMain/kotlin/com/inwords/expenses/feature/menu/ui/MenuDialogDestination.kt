@@ -1,10 +1,11 @@
 package com.inwords.expenses.feature.menu.ui
 
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
-import androidx.navigation3.scene.DialogSceneStrategy.Companion.dialog
+import com.inwords.expenses.core.navigation.BottomSheetSceneStrategy.Companion.bottomSheet
 import com.inwords.expenses.core.navigation.Destination
 import com.inwords.expenses.core.navigation.NavModule
 import com.inwords.expenses.core.navigation.NavigationController
@@ -14,11 +15,12 @@ import kotlinx.serialization.Serializable
 @Serializable
 object MenuDialogDestination : Destination
 
+@OptIn(ExperimentalMaterial3Api::class)
 internal fun MenuComponent.getMenuDialogNavModule(
     navigationController: NavigationController,
 ): NavModule {
     return NavModule(MenuDialogDestination.serializer()) {
-        entry<MenuDialogDestination>(metadata = dialog()) {
+        entry<MenuDialogDestination>(metadata = bottomSheet()) {
             val viewModel = viewModel<MenuViewModel>(factory = viewModelFactory {
                 initializer {
                     MenuViewModel(
