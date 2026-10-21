@@ -12,5 +12,8 @@ internal data class ChoosePersonPaneUiModel(
         val id: Long,
         val name: String,
         val selected: Boolean,
-    )
+    ) {
+
+        val initial: String = name.take(1).uppercase()
+    }
 }
