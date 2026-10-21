@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="menu_title">Настройки группы</string>
+    <string name="menu_people_heading">Участники</string>
+    <string name="menu_events_heading">Группы</string>
     <string name="menu_choose_person_action">Выбрать своё имя</string>
     <string name="menu_add_participants_action">Добавить участников</string>
     <string name="menu_join_other_event">Войти в другую группу</string>
@@ -14,5 +17,6 @@
     <string name="menu_invite_heading">Держите всех\nв курсе</string>
     <string name="menu_invite_body">Поделитесь ссылкой на группу, чтобы все могли добавлять расходы и видеть баланс</string>
     <string name="menu_invite_sync">Подключитесь к интернету, чтобы синхронизировать группу и создать ссылку-приглашение</string>
+    <string name="menu_invite_preparing">Подготовка…</string>
     <string name="menu_invite_back">Назад</string>
 </resources>
