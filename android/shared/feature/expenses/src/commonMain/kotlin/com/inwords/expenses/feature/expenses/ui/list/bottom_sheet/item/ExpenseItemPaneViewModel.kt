@@ -70,13 +70,13 @@ internal class ExpenseItemPaneViewModel(
             personName = expense.person.name,
             timestamp = expense.timestamp.formatLocalDateTime(getDefaultDateTimeFormat()),
             originalCurrencyCode = expense.currency.code,
-            originalCurrencyName = expense.currency.name,
             exchangeRate = calculateExchangeRate(
                 expense = expense,
                 primaryCurrencyCode = primaryCurrencyCode,
             ),
             split = split.map { splitWithPerson ->
                 ExpenseItemPaneUiModel.PersonSplitUiModel(
+                    personId = splitWithPerson.person.id,
                     personName = splitWithPerson.person.name,
                     amount = "$amountSign${splitWithPerson.originalAmount.toRoundedString()}",
                 )
