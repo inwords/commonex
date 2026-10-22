@@ -7,6 +7,11 @@ const en: Locale = {
   CreateEventButton: {
     btn: 'Create trip',
   },
+  AppFooter: {
+    title: 'CommonEx on your phone',
+    appStore: 'Download on the App Store',
+    ruStore: 'Download from RuStore',
+  },
   MainPage: {
     subtitle:
       'A convenient service for tracking shared expenses in trips and events. Create events, add participants, and track who owes whom.',
