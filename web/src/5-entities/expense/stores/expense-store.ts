@@ -4,6 +4,7 @@ import {userStore} from '@/5-entities/user/stores/user-store';
 
 export class ExpenseStore {
   expenses: Array<Expense> = [];
+  lastCreatedExpense: Expense | null = null;
   expenseRefunds: Array<ExpenseRefund> = [];
   splitOption: '1' | '2' | '3' = '1';
   currentTab: Tabs = 0;
@@ -112,6 +113,11 @@ export class ExpenseStore {
       }
       return sum;
     }, 0);
+  }
+
+  addCreatedExpense(expense: Expense) {
+    this.expenses.push(expense);
+    this.lastCreatedExpense = expense;
   }
 
   setExpenses(expenses: Array<Expense>) {

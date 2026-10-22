@@ -94,7 +94,7 @@ export class ExpenseService {
         },
         {retries: 2, factor: 2, minTimeout: 200},
       );
-      expenseStore.setExpenses([...expenseStore.expenses, resp]);
+      expenseStore.addCreatedExpense(resp);
     } finally {
       this.createExpenseKey = null;
       expenseStore.setIsCreatingExpense(false);

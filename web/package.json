@@ -8,7 +8,7 @@
     "build": "node_modules/.bin/next build",
     "start": "node_modules/.bin/next start",
     "lint": "node_modules/.bin/eslint .",
-    "test": "node --test \"test/**/*.test.mts\""
+    "test": "node --test \"test/**/*.test.ts\""
   },
   "dependencies": {
     "@emotion/react": "11.14.0",

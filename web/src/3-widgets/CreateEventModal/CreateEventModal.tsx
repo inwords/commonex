@@ -15,6 +15,7 @@ export const CreateEventModal = ({isOpen, setIsOpen}: Props) => {
       <DialogTitle id="alert-dialog-title">{content.CreateEvent.modal.title}</DialogTitle>
 
       <DialogContent>
+        <div data-onboarding="create-event-guide" />
         <CreateEventForm />
       </DialogContent>
     </Dialog>

@@ -45,7 +45,7 @@ npm run lint       # ESLint flat config (includes Next core-web-vitals)
 npm test           # Native Node test runner
 ```
 
-`npm test` uses Node's native test runner to execute `test/**/*.test.mts`.
+`npm test` uses Node's native test runner to execute `test/**/*.test.ts`.
 
 ## Development Workflow
 

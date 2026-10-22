@@ -26,11 +26,11 @@ export const EventTabs = observer(() => {
           variant="scrollable"
           scrollButtons="auto"
         >
-          <Tab label={content.EventTabs.myExpenses} value={0} />
+          <Tab data-onboarding="expenses-tab" label={content.EventTabs.myExpenses} value={0} />
 
           <Tab label={content.EventTabs.allExpenses} value={1} />
 
-          <Tab label={content.EventTabs.myDebts} value={2} />
+          <Tab data-onboarding="view-debts" label={content.EventTabs.myDebts} value={2} />
 
           <Tab label={content.EventTabs.myIncome} value={3} />
         </Tabs>
@@ -39,7 +39,6 @@ export const EventTabs = observer(() => {
       {(expenseStore.currentTab === 0 || expenseStore.currentTab === 1) && (
         <>
           <CreateExpense setIsOpen={setIsDialogOpen} />
-
           <AddExpenseModal isOpen={isDialogOpen} setIsOpen={setIsDialogOpen} />
         </>
       )}

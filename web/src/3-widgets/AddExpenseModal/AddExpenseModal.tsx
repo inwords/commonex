@@ -25,11 +25,12 @@ export const AddExpenseModal = ({isOpen, setIsOpen}: Props) => {
       <DialogTitle id="alert-dialog-title">{content.AddExpense.modalTitle}</DialogTitle>
 
       <DialogContent>
+        <div data-onboarding="expense-guide" />
         <ExpenseForm
           onSuccess={async (isOpen, d, id) => {
-            setIsOpen(isOpen);
             if (eventStore.currentEvent?.pinCode) {
               await expenseService.createExpense(d, id, eventStore.currentEvent.pinCode);
+              setIsOpen(isOpen);
             }
           }}
         />

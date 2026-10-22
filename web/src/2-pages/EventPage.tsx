@@ -1,7 +1,6 @@
 import {SelectUserList} from '@/3-widgets/SelectUserList/SelectUserList';
 import {EventTabs} from '@/3-widgets/EventTabs/EventTabs';
 import {EventHeader} from '@/3-widgets/EventHeader';
-import {OnboardingTour} from '@/3-widgets/OnboardingTour';
 import {Box} from '@mui/material';
 import {useEffect} from 'react';
 import {Navigate, useLocation, useParams} from 'react-router';
@@ -12,9 +11,7 @@ import {ROUTES} from '@/6-shared/routing/constants';
 import {useSearchParams} from 'react-router-dom';
 import {eventService} from '@/5-entities/event/services/event-service';
 import {currencyService} from '@/5-entities/currency/services/currency-service';
-import {EVENT_PAGE_ONBOARDING_STEP_KEYS} from '@/6-shared/constants/onboarding-steps';
 import {eventStore} from '@/5-entities/event/stores/event-store';
-import {useContent} from '@/6-shared/i18n/useContent';
 
 export const EventPage = observer(() => {
   const {id} = useParams();
@@ -23,12 +20,6 @@ export const EventPage = observer(() => {
   const token = searchParams.get('token');
   const navigatedFromMainForm = location.state === 'navigateFromMainForm';
   const canOpenPage = id && (token || navigatedFromMainForm);
-  const content = useContent();
-
-  const onboardingSteps = content.Onboarding.event.map((item, i) => ({
-    ...item,
-    step: EVENT_PAGE_ONBOARDING_STEP_KEYS[i],
-  }));
 
   useEffect(() => {
     if (!canOpenPage || !id) {
@@ -69,13 +60,7 @@ export const EventPage = observer(() => {
       <EventHeader />
 
       <SelectUserList />
-
-      {userStore.currentUser && (
-        <>
-          <EventTabs />
-          <OnboardingTour steps={onboardingSteps} />
-        </>
-      )}
+      {userStore.currentUser && <EventTabs />}
     </Box>
   );
 });

@@ -2,6 +2,7 @@
 
 import {Navigate, Route, Routes} from 'react-router';
 import {BrowserRouter} from 'react-router-dom';
+import {OnboardingTour} from '@/3-widgets/OnboardingTour';
 import {MainPage} from '@/2-pages/MainPage';
 import {CssBaseline, NoSsr} from '@mui/material';
 import {ThemeProvider} from '@mui/material/styles';
@@ -27,6 +28,7 @@ export default function Home() {
 
             <Route path="*" element={<Navigate to={ROUTES.Main} />} />
           </Routes>
+          <OnboardingTour />
         </BrowserRouter>
       </NoSsr>
     </ThemeProvider>

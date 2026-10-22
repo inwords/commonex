@@ -1,51 +1,71 @@
-export enum OnboardingStep {
-  // MainPage steps
-  EVENT_ID = 'event_id',
-  PIN_CODE = 'pin_code',
-  PRIVACY_WARNING = 'privacy_warning',
+import type {OnboardingState} from './onboarding-state';
 
-  // EventPage steps
-  EVENT_TABS = 'event_tabs',
-  ADD_EXPENSE = 'add_expense',
-  VIEW_DEBTS = 'view_debts',
-  CHANGE_USER = 'change_user',
-}
+const initialState: OnboardingState = {status: 'active', expenseEventId: null};
+const storageKey = 'commonex_guided_onboarding';
 
-const ONBOARDING_KEY = 'commonex_onboarding';
+export class OnboardingService {
+  private state: OnboardingState | undefined;
+  private listeners = new Set<() => void>();
+  private storage: () => Pick<Storage, 'getItem' | 'setItem'>;
 
-interface OnboardingState {
-  completedSteps: OnboardingStep[];
-}
+  constructor(storage: () => Pick<Storage, 'getItem' | 'setItem'> = () => localStorage) {
+    this.storage = storage;
+  }
 
-class OnboardingService {
-  private readonly storageKey = ONBOARDING_KEY;
-
-  private getState(): OnboardingState {
-    try {
-      const stored = localStorage.getItem(this.storageKey);
-      if (!stored) {
-        return {completedSteps: []};
+  getSnapshot = (): OnboardingState => {
+    if (!this.state) {
+      this.state = initialState;
+      try {
+        const parsed: unknown = JSON.parse(this.storage().getItem(storageKey) || 'null');
+        if (
+          parsed &&
+          typeof parsed === 'object' &&
+          'status' in parsed &&
+          'expenseEventId' in parsed &&
+          ['active', 'skipped', 'completed'].includes(String(parsed.status)) &&
+          (parsed.expenseEventId === null || typeof parsed.expenseEventId === 'string')
+        ) {
+          this.state = parsed as OnboardingState;
+        }
+      } catch {
+        // The guide remains usable when browser storage is unavailable.
       }
-      return JSON.parse(stored);
+    }
+    return this.state;
+  };
+
+  getServerSnapshot = () => initialState;
+
+  subscribe = (listener: () => void) => {
+    this.listeners.add(listener);
+    return () => {
+      this.listeners.delete(listener);
+    };
+  };
+
+  private save(state: OnboardingState) {
+    this.state = state;
+    try {
+      this.storage().setItem(storageKey, JSON.stringify(state));
     } catch {
-      return {completedSteps: []};
+      // Keep progress for this session even if persistence is blocked.
+    }
+    this.listeners.forEach((listener) => listener());
+  }
+
+  skip = () => this.save({...this.getSnapshot(), status: 'skipped'});
+  restart = () => this.save({...initialState});
+
+  expenseSaved(eventId: string) {
+    if (this.getSnapshot().status === 'active') {
+      this.save({...this.getSnapshot(), expenseEventId: eventId});
     }
   }
 
-  private saveState(state: OnboardingState): void {
-    localStorage.setItem(this.storageKey, JSON.stringify(state));
-  }
-
-  completeStep(step: OnboardingStep): void {
-    const state = this.getState();
-    if (!state.completedSteps.includes(step)) {
-      state.completedSteps.push(step);
-      this.saveState(state);
+  complete(eventId: string) {
+    if (this.getSnapshot().status === 'active' && this.getSnapshot().expenseEventId === eventId) {
+      this.save({...this.getSnapshot(), status: 'completed'});
     }
-  }
-
-  getCompletedSteps(): OnboardingStep[] {
-    return this.getState().completedSteps;
   }
 }
 
