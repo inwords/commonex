@@ -5,6 +5,11 @@ const ru = {
   CreateEventButton: {
     btn: 'Создать поездку',
   },
+  AppFooter: {
+    title: 'CommonEx на вашем телефоне',
+    appStore: 'Загрузить в App Store',
+    ruStore: 'Скачать в RuStore',
+  },
   MainPage: {
     subtitle:
       'Удобный сервис для учёта общих расходов в поездках и мероприятиях. Создавайте события, добавляйте участников и отслеживайте, кто кому должен.',

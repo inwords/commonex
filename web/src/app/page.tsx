@@ -3,8 +3,9 @@
 import {Navigate, Route, Routes} from 'react-router';
 import {BrowserRouter} from 'react-router-dom';
 import {OnboardingTour} from '@/3-widgets/OnboardingTour';
+import {AppFooter} from '@/3-widgets/AppFooter/AppFooter';
 import {MainPage} from '@/2-pages/MainPage';
-import {CssBaseline, NoSsr} from '@mui/material';
+import {Box, CssBaseline, NoSsr} from '@mui/material';
 import {ThemeProvider} from '@mui/material/styles';
 import {ROUTES} from '@/6-shared/routing/constants';
 import {EventPage} from '@/2-pages/EventPage';
@@ -19,15 +20,20 @@ export default function Home() {
       <LanguageSwitcher />
       <NoSsr>
         <BrowserRouter>
-          <Routes>
-            <Route path={ROUTES.Main} element={<MainPage />} />
+          <Box sx={{display: 'flex', flexDirection: 'column', minHeight: '100dvh'}}>
+            <Box component="main" sx={{flex: 1}}>
+              <Routes>
+                <Route path={ROUTES.Main} element={<MainPage />} />
 
-            <Route path={ROUTES.Event(':id')} element={<EventPage />} />
+                <Route path={ROUTES.Event(':id')} element={<EventPage />} />
 
-            <Route path={ROUTES.Support} element={<SupportPage />} />
+                <Route path={ROUTES.Support} element={<SupportPage />} />
 
-            <Route path="*" element={<Navigate to={ROUTES.Main} />} />
-          </Routes>
+                <Route path="*" element={<Navigate to={ROUTES.Main} />} />
+              </Routes>
+            </Box>
+            <AppFooter />
+          </Box>
           <OnboardingTour />
         </BrowserRouter>
       </NoSsr>
