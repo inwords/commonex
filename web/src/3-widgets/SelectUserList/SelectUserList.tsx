@@ -16,7 +16,7 @@ export const SelectUserList = observer(() => {
       <Stack direction={'column'} alignItems={'center'} spacing={2}>
         <h1>{content.SelectUser.title}</h1>
 
-        <FormControl sx={{minWidth: 300}}>
+        <FormControl data-onboarding="select-user" sx={{minWidth: 300}}>
           <InputLabel id="user-select-label">{content.SelectUser.label}</InputLabel>
           <Select
             labelId="user-select-label"

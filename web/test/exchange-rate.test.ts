@@ -11,7 +11,10 @@ test('preserves the exchange rate for a reversal with negative split amounts', (
 test('uses a nonzero split when the first participant owes nothing', () => {
   const expense = {
     currencyId: 'USD',
-    splitInformation: [{amount: 0, exchangedAmount: 0}, {amount: 10, exchangedAmount: 9}],
+    splitInformation: [
+      {amount: 0, exchangedAmount: 0},
+      {amount: 10, exchangedAmount: 9},
+    ],
   };
 
   assert.equal(getExpenseExchangeRate(expense, 'EUR'), 0.9);
@@ -36,8 +39,14 @@ test('uses the default rate when no conversion can be derived', () => {
   assert.equal(getExpenseExchangeRate(expense, 'USD'), 1);
   assert.equal(getExpenseExchangeRate(expense, undefined), 1);
   assert.equal(getExpenseExchangeRate({...expense, splitInformation: []}, 'EUR'), 1);
-  assert.equal(getExpenseExchangeRate({
-    ...expense,
-    splitInformation: [{amount: 0, exchangedAmount: 0}],
-  }, 'EUR'), 1);
+  assert.equal(
+    getExpenseExchangeRate(
+      {
+        ...expense,
+        splitInformation: [{amount: 0, exchangedAmount: 0}],
+      },
+      'EUR',
+    ),
+    1,
+  );
 });

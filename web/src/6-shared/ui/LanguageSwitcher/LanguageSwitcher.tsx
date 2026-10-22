@@ -2,6 +2,7 @@ import {Box, NoSsr, Stack, ToggleButton, ToggleButtonGroup} from '@mui/material'
 import {observer} from 'mobx-react-lite';
 import {languageStore} from '@/6-shared/i18n/languageStore';
 import type {Language} from '@/6-shared/i18n/languageStore';
+import {OnboardingRestart} from '@/6-shared/ui/OnboardingGuide/OnboardingRestart';
 import {ThemeSwitcher} from '@/6-shared/ui/ThemeSwitcher/ThemeSwitcher';
 
 export const LanguageSwitcher = observer(() => {
@@ -14,13 +15,11 @@ export const LanguageSwitcher = observer(() => {
   return (
     <Box sx={{position: 'fixed', top: 12, right: 12, zIndex: 1400}}>
       <Stack direction="row" alignItems="center" gap={1}>
-        <NoSsr><ThemeSwitcher /></NoSsr>
-        <ToggleButtonGroup
-          value={languageStore.language}
-          exclusive
-          onChange={handleChange}
-          size="small"
-        >
+        <NoSsr>
+          <OnboardingRestart />
+          <ThemeSwitcher />
+        </NoSsr>
+        <ToggleButtonGroup value={languageStore.language} exclusive onChange={handleChange} size="small">
           <ToggleButton value="ru" sx={{px: 1.5, py: 0.5, fontSize: '0.75rem'}}>
             RU
           </ToggleButton>

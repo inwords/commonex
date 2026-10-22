@@ -19,7 +19,7 @@ import {eventStore} from '@/5-entities/event/stores/event-store';
 import {useContent} from '@/6-shared/i18n/useContent';
 
 interface Props {
-  onSuccess?: (isModalOpen: boolean, data: CreateExpenseForm, id: string) => void;
+  onSuccess?: (isModalOpen: boolean, data: CreateExpenseForm, id: string) => void | Promise<void>;
   readOnly?: boolean;
   expenseData?: Partial<CreateExpenseForm>;
 }
@@ -42,7 +42,10 @@ const normalizeExpenseFormValues = ({splitInformation, ...rest}: ExpenseFormValu
     return acc;
   }, []);
 
-  if ((rest.splitOption === '2' || rest.splitOption === '3') && normalizedSplitInformation.length !== splitInformation.length) {
+  if (
+    (rest.splitOption === '2' || rest.splitOption === '3') &&
+    normalizedSplitInformation.length !== splitInformation.length
+  ) {
     return null;
   }
 
@@ -107,23 +110,40 @@ const ExpenseFormContent = observer(({readOnly = false}: Omit<Props, 'expenseDat
         <Stack spacing={2} maxWidth={600}>
           <ExpenseDescriptionInput disabled={readOnly} />
 
-          <ExpenseAmountInput disabled={readOnly} />
+          <Stack data-onboarding="expense-amount">
+            <ExpenseAmountInput disabled={readOnly} />
+          </Stack>
 
-          <SelectExpenseOwner disabled={readOnly} />
+          <Stack data-onboarding="expense-owner">
+            <SelectExpenseOwner disabled={readOnly} />
+          </Stack>
 
           <SelectCurrency disabled={readOnly} />
 
           <ExchangeRateInput disabled={readOnly} />
 
-          <SplitOptions disabled={readOnly} />
+          <Stack data-onboarding="expense-split">
+            <SplitOptions disabled={readOnly} />
+          </Stack>
 
           {expenseStore.splitOption === '2' && (
             <>
               {fields.map((field, index) => (
                 <React.Fragment key={field.id}>
-                  <TextFieldElement name={`splitInformation.${index}.amount`} label={c.amountLabel} required disabled={readOnly} type="number" />
+                  <TextFieldElement
+                    name={`splitInformation.${index}.amount`}
+                    label={c.amountLabel}
+                    required
+                    disabled={readOnly}
+                    type="number"
+                  />
 
-                  <SelectUser label={c.whoOwesLabel} name={`splitInformation.${index}.userId`} disabled={readOnly} required />
+                  <SelectUser
+                    label={c.whoOwesLabel}
+                    name={`splitInformation.${index}.userId`}
+                    disabled={readOnly}
+                    required
+                  />
 
                   {fields.length > 1 && (
                     <Button onClick={() => remove(index)} variant="text" color="error" size="small" disabled={readOnly}>
@@ -146,7 +166,7 @@ const ExpenseFormContent = observer(({readOnly = false}: Omit<Props, 'expenseDat
       </fieldset>
 
       {!readOnly && (
-        <Stack justifyContent="end" marginTop={'16px'}>
+        <Stack data-onboarding="expense-save" justifyContent="end" marginTop={'16px'}>
           <Button type={'submit'} variant="contained" loading={expenseStore.isCreatingExpense}>
             {content.AddExpense.submit}
           </Button>
@@ -170,7 +190,7 @@ export const ExpenseForm = observer(({onSuccess, readOnly = false, expenseData}:
           const normalizedValues = normalizeExpenseFormValues(d);
 
           if (normalizedValues) {
-            onSuccess?.(false, normalizedValues, id);
+            await onSuccess?.(false, normalizedValues, id);
           }
         }
       }}

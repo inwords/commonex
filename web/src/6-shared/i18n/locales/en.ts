@@ -107,48 +107,57 @@ const en: Locale = {
   Onboarding: {
     step: 'Step',
     of: 'of',
-    back: 'Back',
-    next: 'Next',
-    done: 'Got it',
-    main: [
-      {
-        title: 'Event ID',
-        content:
-          'The event ID is a unique identifier for your event. You will receive it after creating an event. Use it for quick access to the event.',
+    skip: 'Skip tutorial',
+    restart: 'How to use',
+    entry: {
+      title: 'Start with a trip',
+      content:
+        'Create a trip for your group, or enter its ID and PIN if you have been invited. We will then help you record your first shared expense.',
+    },
+    joinHint: 'Ask the organiser for the ID and PIN. Only share access with trip participants.',
+    createEvent: {
+      title: 'Bring your group together',
+      content:
+        'Name your trip, choose a PIN, add yourself and the people sharing expenses, and select a common currency. Then create the trip. Do not enter passwords from other services or card details.',
+    },
+    selectUser: {
+      title: 'Who are you on this trip?',
+      content: 'Select your name from the list. If you are not listed yet, choose “Add participant”.',
+    },
+    addExpense: {
+      title: 'Record your first shared expense',
+      content:
+        'Press “+” when you or someone in the group has paid a shared bill. If there are no expenses yet, you can skip the tutorial.',
+    },
+    openExpenses: {
+      title: 'Back to expenses',
+      content: 'Open “My expenses” to add your first expense using the “+” button.',
+    },
+    expense: {
+      amount: {
+        title: 'What did you pay for?',
+        content: 'Enter a description and the actual expense amount. Select the currency you paid in.',
       },
-      {
-        title: 'PIN code',
-        content:
-          'The PIN code is a security code to access the event. Share it only with your event participants. Without the PIN, no one can view or modify expense data.',
+      owner: {
+        title: 'Who paid the bill?',
+        content: 'Select the person who actually paid. This may be you or another participant.',
       },
-      {
-        title: 'Data security',
+      split: {
+        title: 'Who shares this expense?',
         content:
-          '⚠️ Important: Do not store sensitive data, card numbers, passwords, or other confidential information in the service. It is intended only for tracking shared expenses.',
+          '“Equally” splits the expense between everyone on the trip. Use a manual split or percentages for a different group or shares.',
       },
-    ],
-    event: [
-      {
-        title: 'Event tabs',
+      save: {
+        title: 'Ready to save',
         content:
-          'Use tabs to navigate: "My expenses" - your expenses only, "All expenses" - all event expenses, "My debts" - who you owe, "Owed to me" - who owes you.',
+          'Check the amount, payer and shares, then press “Add expense”. After it is saved, we will look at debts.',
       },
-      {
-        title: 'Adding expenses',
-        content:
-          'Click "Add expense" to record a new expense. Enter a description, amount, currency, and select participants to split with.',
-      },
-      {
-        title: 'Viewing debts',
-        content:
-          'In the "My debts" tab you will see who you owe and how much. Click "Repay" to record a debt repayment.',
-      },
-      {
-        title: 'Switch user',
-        content:
-          'Click the avatar in the top right corner to switch users. This is useful when multiple participants share one device.',
-      },
-    ],
+    },
+    debts: {
+      title: 'Your first expense is saved!',
+      content:
+        'Open “My debts” to see whom you owe. If you paid for everyone, debts owed to you appear under “My income”.',
+    },
   },
   Errors: {
     eventNotFound: 'Event not found. Check the event ID.',
