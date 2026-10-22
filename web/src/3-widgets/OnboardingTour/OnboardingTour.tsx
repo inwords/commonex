@@ -1,6 +1,5 @@
-import {useEffect} from 'react';
+import {useEffect, useRef} from 'react';
 import {Portal} from '@mui/material';
-import {reaction} from 'mobx';
 import {observer} from 'mobx-react-lite';
 import {useLocation} from 'react-router';
 import {eventStore} from '@/5-entities/event/stores/event-store';
@@ -25,18 +24,15 @@ export const OnboardingTour = observer(() => {
   const tab = expenseStore.currentTab;
   const hasUser = !!userStore.currentUser;
 
-  useEffect(
-    () =>
-      reaction(
-        () => expenseStore.lastCreatedExpense,
-        (expense) => {
-          if (expense) {
-            onboardingService.expenseSaved(expense.eventId);
-          }
-        },
-      ),
-    [],
-  );
+  const lastCreatedExpense = expenseStore.lastCreatedExpense;
+  const previousExpense = useRef(lastCreatedExpense);
+
+  useEffect(() => {
+    if (lastCreatedExpense && lastCreatedExpense !== previousExpense.current) {
+      previousExpense.current = lastCreatedExpense;
+      onboardingService.expenseSaved(lastCreatedExpense.eventId);
+    }
+  }, [lastCreatedExpense]);
 
   useEffect(() => {
     if (page === 'event' && eventId && hasUser && tab === 2) {
