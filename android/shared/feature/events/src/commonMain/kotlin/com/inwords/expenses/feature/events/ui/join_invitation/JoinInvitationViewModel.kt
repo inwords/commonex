@@ -17,11 +17,14 @@ internal class JoinInvitationViewModel(
     private val navigationController: NavigationController,
 ) : ViewModel() {
 
+    private val invitationLinkRegex by lazy { Regex("https?://\\S+", RegexOption.IGNORE_CASE) }
+
     val state: StateFlow<JoinInvitationPaneUiModel>
         field = MutableStateFlow(JoinInvitationPaneUiModel(invitation = "", isInvitationInvalid = false))
 
     fun onInvitationChanged(invitation: String) {
-        state.value = JoinInvitationPaneUiModel(invitation = invitation, isInvitationInvalid = false)
+        val link = invitationLinkRegex.find(invitation)?.value
+        state.value = JoinInvitationPaneUiModel(invitation = link ?: invitation, isInvitationInvalid = false)
     }
 
     fun onConfirmClicked() {

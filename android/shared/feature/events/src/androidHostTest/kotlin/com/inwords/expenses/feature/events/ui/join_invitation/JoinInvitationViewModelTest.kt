@@ -27,6 +27,8 @@ internal class JoinInvitationViewModelTest {
             "https://commonex.ru/event/01ABC?pinCode=1234&token=abc123",
             "https://commonex.ru/event/01ABC?token=",
             "https://commonex.ru/event/IOU?pinCode=abc",
+            "Join the group \"Lisbon\"!\n\nhttps://other.example/event/01ABC?token=abc123\n\nThis link is valid until 24 October 2026",
+            "Join the group \"Lisbon\"!\n\nhttps://commonex.ru/event/01ABC?pinCode=1234&token=abc123\n\nThis link is valid until 24 October 2026",
         ).forEach { invitation ->
             viewModel.onInvitationChanged(invitation)
             viewModel.onConfirmClicked()
@@ -46,6 +48,31 @@ internal class JoinInvitationViewModelTest {
         viewModel.onConfirmClicked()
 
         verify { navigationController.navigateTo(JoinEventPaneDestination(eventId = "01ABC", token = "abc123")) }
+    }
+
+    @Test
+    fun confirm_copiedTokenInvitation_navigatesToExistingJoinFlow() {
+        val viewModel = JoinInvitationViewModel(navigationController = navigationController)
+        viewModel.onInvitationChanged(
+            "Join the group \"Lisbon\"!\n\nhttps://commonex.ru/event/01ABC?token=abc123\n\nThis link is valid until 24 October 2026",
+        )
+        assertEquals("https://commonex.ru/event/01ABC?token=abc123", viewModel.state.value.invitation)
+        viewModel.onConfirmClicked()
+
+        verify { navigationController.navigateTo(JoinEventPaneDestination(eventId = "01ABC", token = "abc123")) }
+    }
+
+    @Test
+    fun confirm_copiedPinInvitation_navigatesToExistingJoinFlow() {
+        val viewModel = JoinInvitationViewModel(navigationController = navigationController)
+        viewModel.onInvitationChanged(
+            "Присоединяйтесь к группе \"Лиссабон\"!\n\nhttps://commonex.ru/event/01ABC?pinCode=1234\n\n" +
+                "⚠️ Эта ссылка содержит постоянный код доступа к группе. Делитесь ею только с теми, кому доверяете",
+        )
+        assertEquals("https://commonex.ru/event/01ABC?pinCode=1234", viewModel.state.value.invitation)
+        viewModel.onConfirmClicked()
+
+        verify { navigationController.navigateTo(JoinEventPaneDestination(eventId = "01ABC", pinCode = "1234")) }
     }
 
     @Test
