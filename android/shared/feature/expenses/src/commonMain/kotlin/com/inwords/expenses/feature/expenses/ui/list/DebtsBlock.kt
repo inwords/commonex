@@ -27,6 +27,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.inwords.expenses.core.ui.design.preview.ComponentPreviews
 import com.inwords.expenses.core.ui.design.theme.CommonExTheme
 import com.inwords.expenses.feature.expenses.ui.common.DebtShortUiModel
 import expenses.shared.feature.expenses.generated.resources.Res
@@ -150,7 +151,7 @@ private fun PersonalDebtRow(
     }
 }
 
-@Preview
+@ComponentPreviews
 @Composable
 private fun DebtsBlockPreview() {
     CommonExTheme {
@@ -158,7 +159,7 @@ private fun DebtsBlockPreview() {
     }
 }
 
-@Preview
+@Preview(name = "No personal debt", widthDp = 360)
 @Composable
 private fun DebtsBlockNoDebtsPreview() {
     CommonExTheme {
@@ -166,7 +167,7 @@ private fun DebtsBlockNoDebtsPreview() {
     }
 }
 
-@Preview
+@Preview(name = "Personal debt row", widthDp = 360)
 @Composable
 private fun PersonalDebtRowPreview() {
     CommonExTheme {

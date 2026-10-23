@@ -54,6 +54,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.inwords.expenses.core.ui.design.icons.Undo
 import com.inwords.expenses.core.ui.design.loading.DefaultProgressIndicator
+import com.inwords.expenses.core.ui.design.preview.ComponentPreviews
+import com.inwords.expenses.core.ui.design.preview.ScreenPreviews
 import com.inwords.expenses.core.ui.design.theme.CommonExTheme
 import com.inwords.expenses.core.ui.utils.SimpleScreenState
 import com.inwords.expenses.feature.events.domain.model.Currency
@@ -402,8 +404,7 @@ private fun DetailRow(
     }
 }
 
-@Preview(widthDp = 400)
-@Preview(widthDp = 320, fontScale = 2f)
+@ScreenPreviews
 @Composable
 private fun ExpenseItemPanePreview() {
     CommonExTheme {
@@ -413,15 +414,17 @@ private fun ExpenseItemPanePreview() {
     }
 }
 
-@Preview(widthDp = 560)
+@ComponentPreviews
 @Composable
 private fun OperationDetailsPreview() {
     CommonExTheme {
-        OperationDetails(state = mockExpenseItem(), expanded = true, onClick = {})
+        Surface(color = MaterialTheme.colorScheme.surfaceContainerLow) {
+            OperationDetails(state = mockExpenseItem(), expanded = true, onClick = {})
+        }
     }
 }
 
-@Preview(widthDp = 400)
+@Preview(name = "Person split row", widthDp = 360)
 @Composable
 private fun DetailSplitRowPreview() {
     CommonExTheme {
@@ -431,16 +434,26 @@ private fun DetailSplitRowPreview() {
     }
 }
 
-@Preview(widthDp = 400)
+@Preview(name = "Repayment", widthDp = 360, heightDp = 800)
 @Composable
 private fun ExpenseItemPaneRepaymentPreview() {
     val expense = mockExpenseItem()
-    CommonExTheme(darkTheme = true) {
+    CommonExTheme {
         Surface(color = MaterialTheme.colorScheme.surfaceContainerLow) {
             ExpenseItemPane(
                 state = SimpleScreenState.Success(
                     expense.copy(
-                        expense = expense.expense.copy(expenseType = ExpenseType.Replenishment),
+                        expense = expense.expense.copy(
+                            expenseType = ExpenseType.Replenishment,
+                            currency = expense.expense.currency.copy(code = "EUR", name = "Euro"),
+                            description = "Repayment to Sam",
+                            subjectExpenseSplitWithPersons = listOf(
+                                expense.expense.subjectExpenseSplitWithPersons[1].copy(
+                                    originalAmount = 20.toBigDecimal(),
+                                    exchangedAmount = 20.toBigDecimal(),
+                                )
+                            ),
+                        ),
                         description = "Repayment to Sam",
                         totalAmount = "+20.00",
                         originalCurrencyCode = "EUR",
@@ -450,6 +463,36 @@ private fun ExpenseItemPaneRepaymentPreview() {
                 ),
                 onRevertExpenseClick = {},
             )
+        }
+    }
+}
+
+@Preview(name = "Dark", widthDp = 360, heightDp = 800)
+@Composable
+private fun ExpenseItemPaneDarkPreview() {
+    CommonExTheme(darkTheme = true) {
+        Surface(color = MaterialTheme.colorScheme.surfaceContainerLow) {
+            ExpenseItemPane(state = SimpleScreenState.Success(mockExpenseItem()), onRevertExpenseClick = {})
+        }
+    }
+}
+
+@Preview(name = "Loading", widthDp = 360, heightDp = 800)
+@Composable
+private fun ExpenseItemPaneLoadingPreview() {
+    CommonExTheme {
+        Surface(color = MaterialTheme.colorScheme.surfaceContainerLow) {
+            ExpenseItemPane(state = SimpleScreenState.Loading, onRevertExpenseClick = {})
+        }
+    }
+}
+
+@Preview(name = "Error", widthDp = 360, heightDp = 800)
+@Composable
+private fun ExpenseItemPaneErrorPreview() {
+    CommonExTheme {
+        Surface(color = MaterialTheme.colorScheme.surfaceContainerLow) {
+            ExpenseItemPane(state = SimpleScreenState.Error, onRevertExpenseClick = {})
         }
     }
 }

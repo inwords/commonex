@@ -9,12 +9,12 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.Layout
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.constrainHeight
 import androidx.compose.ui.unit.dp
 import com.inwords.expenses.core.ui.design.button.ButtonWithIconAndText
+import com.inwords.expenses.core.ui.design.preview.ComponentPreviews
 import com.inwords.expenses.core.ui.design.theme.CommonExTheme
 
 @Composable
@@ -56,8 +56,7 @@ fun AdaptiveButtonsRow(
     }
 }
 
-@Preview(widthDp = 360)
-@Preview(widthDp = 320, fontScale = 2f)
+@ComponentPreviews
 @Composable
 private fun AdaptiveButtonsRowPreview() {
     CommonExTheme {

@@ -19,6 +19,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -31,6 +32,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.inwords.expenses.core.ui.design.preview.ComponentPreviews
 import com.inwords.expenses.core.ui.design.theme.CommonExTheme
 import expenses.shared.feature.expenses.generated.resources.Res
 import expenses.shared.feature.expenses.generated.resources.expenses_first_action
@@ -180,22 +182,24 @@ private fun FirstExpenseActionCard(
     }
 }
 
-@Preview(widthDp = 400, heightDp = 800)
+@ComponentPreviews
 @Composable
 private fun FirstExpensePromptPreview() {
     CommonExTheme {
-        FirstExpensePrompt(
-            eventName = "Weekend in Lisbon",
-            currentPersonName = "Alex",
-            personCount = 3,
-            currencyCode = "EUR",
-            onAddExpenseClick = {},
-            onInviteClick = {},
-        )
+        Surface {
+            FirstExpensePrompt(
+                eventName = "Weekend in Lisbon",
+                currentPersonName = "Alex",
+                personCount = 3,
+                currencyCode = "EUR",
+                onAddExpenseClick = {},
+                onInviteClick = {},
+            )
+        }
     }
 }
 
-@Preview(widthDp = 184, heightDp = 300)
+@Preview(name = "First expense tile", widthDp = 184)
 @Composable
 private fun FirstExpenseActionCardPreview() {
     CommonExTheme {

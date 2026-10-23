@@ -52,6 +52,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.inwords.expenses.core.ui.design.appbar.TopAppBarWithNavIconAndText
 import com.inwords.expenses.core.ui.design.button.ButtonWithIconAndText
+import com.inwords.expenses.core.ui.design.preview.ScreenPreviews
 import com.inwords.expenses.core.ui.design.selection.SingleChoiceBottomSheet
 import com.inwords.expenses.core.ui.design.selection.SingleChoiceOption
 import com.inwords.expenses.core.ui.design.theme.CommonExTheme
@@ -70,6 +71,7 @@ import expenses.shared.feature.events.generated.resources.events_setup_currency_
 import expenses.shared.feature.events.generated.resources.events_setup_event_example
 import expenses.shared.feature.events.generated.resources.events_setup_heading
 import expenses.shared.feature.events.generated.resources.events_your_name_label
+import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import org.jetbrains.compose.resources.stringResource
 
@@ -306,15 +308,26 @@ private fun SetupCurrencyField(
     }
 }
 
-@Preview
+@ScreenPreviews
 @Composable
 private fun CreateEventPanePreview() {
+    CreateEventPaneSample(eventName = "Weekend in Lisbon", ownerName = "Alex", persons = persistentListOf("Sam", "Jamie"))
+}
+
+@Preview(name = "Empty form", widthDp = 360, heightDp = 800)
+@Composable
+private fun CreateEventPaneEmptyPreview() {
+    CreateEventPaneSample(eventName = "", ownerName = "", persons = persistentListOf())
+}
+
+@Composable
+private fun CreateEventPaneSample(eventName: String, ownerName: String, persons: ImmutableList<String>) {
     CommonExTheme {
         CreateEventPane(
             state = CreateEventPaneUiModel(
-                eventName = "",
-                ownerName = "",
-                persons = persistentListOf(),
+                eventName = eventName,
+                ownerName = ownerName,
+                persons = persons,
                 currencies = persistentListOf(
                     CurrencyInfoUiModel(
                         currencyName = "US Dollar",

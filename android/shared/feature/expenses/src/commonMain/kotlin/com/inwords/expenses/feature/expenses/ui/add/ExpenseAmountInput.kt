@@ -14,6 +14,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
@@ -32,6 +33,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.inwords.expenses.core.ui.design.preview.ComponentPreviews
 import com.inwords.expenses.core.ui.design.theme.CommonExTheme
 import expenses.shared.feature.expenses.generated.resources.Res
 import expenses.shared.feature.expenses.generated.resources.expenses_amount_placeholder
@@ -131,51 +133,56 @@ internal fun ExpenseAmountInput(
     }
 }
 
-@Preview(widthDp = 360)
+@Preview(name = "Empty amount", widthDp = 360)
 @Composable
 private fun ExpenseAmountInputEmptyPreview() {
     CommonExTheme {
-        ExpenseAmountInput(
-            amount = "",
-            currencyCode = "EUR",
-            readOnly = false,
-            isCurrencyPickerVisible = false,
-            enabled = true,
-            onAmountChanged = {},
-            onCurrencyClicked = {},
-        )
+        Surface {
+            ExpenseAmountInput(
+                amount = "",
+                currencyCode = "EUR",
+                readOnly = false,
+                isCurrencyPickerVisible = false,
+                enabled = true,
+                onAmountChanged = {},
+                onCurrencyClicked = {},
+            )
+        }
     }
 }
 
-@Preview(widthDp = 360)
+@Preview(name = "Custom split total", widthDp = 360)
 @Composable
 private fun ExpenseAmountInputReadOnlyPreview() {
     CommonExTheme {
-        ExpenseAmountInput(
-            amount = "65.00",
-            currencyCode = "EUR",
-            readOnly = true,
-            isCurrencyPickerVisible = false,
-            enabled = true,
-            onAmountChanged = {},
-            onCurrencyClicked = {},
-        )
+        Surface {
+            ExpenseAmountInput(
+                amount = "65.00",
+                currencyCode = "EUR",
+                readOnly = true,
+                isCurrencyPickerVisible = false,
+                enabled = true,
+                onAmountChanged = {},
+                onCurrencyClicked = {},
+            )
+        }
     }
 }
 
-@Preview(widthDp = 360)
-@Preview(name = "Large text", widthDp = 360, fontScale = 2f)
+@ComponentPreviews
 @Composable
 private fun ExpenseAmountInputPreview() {
     CommonExTheme {
-        ExpenseAmountInput(
-            amount = "60.00",
-            currencyCode = "EUR",
-            readOnly = false,
-            isCurrencyPickerVisible = false,
-            enabled = true,
-            onAmountChanged = {},
-            onCurrencyClicked = {},
-        )
+        Surface {
+            ExpenseAmountInput(
+                amount = "60.00",
+                currencyCode = "EUR",
+                readOnly = false,
+                isCurrencyPickerVisible = false,
+                enabled = true,
+                onAmountChanged = {},
+                onCurrencyClicked = {},
+            )
+        }
     }
 }

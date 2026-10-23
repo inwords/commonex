@@ -19,8 +19,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.inwords.expenses.core.ui.design.preview.ComponentPreviews
 import com.inwords.expenses.core.ui.design.theme.CommonExTheme
 import expenses.shared.feature.expenses.generated.resources.Res
 import expenses.shared.feature.expenses.generated.resources.expenses_add_to
@@ -107,7 +107,7 @@ internal fun DebtReplenishmentButton(
     }
 }
 
-@Preview
+@ComponentPreviews
 @Composable
 private fun DebtReplenishmentButtonPreview() {
     CommonExTheme {
@@ -125,10 +125,4 @@ private fun DebtReplenishmentButtonPreview() {
             )
         }
     }
-}
-
-@Preview(fontScale = 2f, widthDp = 288)
-@Composable
-private fun DebtReplenishmentButtonLargeTextPreview() {
-    DebtReplenishmentButtonPreview()
 }

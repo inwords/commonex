@@ -60,6 +60,7 @@ import androidx.window.core.layout.WindowSizeClass
 import com.inwords.expenses.core.ui.design.appbar.TopAppBarWithNavIconAndText
 import com.inwords.expenses.core.ui.design.button.ButtonWithIconAndText
 import com.inwords.expenses.core.ui.design.loading.DefaultProgressIndicator
+import com.inwords.expenses.core.ui.design.preview.ScreenPreviews
 import com.inwords.expenses.core.ui.design.selection.SingleChoiceBottomSheet
 import com.inwords.expenses.core.ui.design.selection.SingleChoiceOption
 import com.inwords.expenses.core.ui.design.theme.CommonExTheme
@@ -496,33 +497,104 @@ private fun AddExpensePaneSuccess(
     }
 }
 
-@Preview(name = "Phone", widthDp = 360, heightDp = 800)
-@Preview(name = "Large text", widthDp = 360, heightDp = 800, fontScale = 2f)
+@ScreenPreviews
 @Preview(name = "Expanded", widthDp = 960, heightDp = 640)
 @Composable
 private fun AddExpensePaneSuccessEqualSplitPreview() {
-    CommonExTheme {
-        AddExpensePane(
-            onCurrencyClicked = {},
-            onExchangeRateChanged = {},
-            onExpenseTypeClicked = {},
-            onPersonClicked = {},
-            onSubjectPersonClicked = {},
-            onEqualSplitChange = {},
-            onDescriptionChanged = {},
-            onWholeAmountChanged = {},
-            onSplitAmountChanged = { _, _ -> },
-            onConfirmClicked = {},
-            onNavIconClicked = {},
-            state = SimpleScreenState.Success(mockAddExpenseScreenUiModel().copy(equalSplit = true, wholeAmount = "60.00", equalShareAmount = "20.00")),
-        )
-    }
+    AddExpensePaneSample(
+        state = SimpleScreenState.Success(mockAddExpenseScreenUiModel().copy(equalSplit = true, equalShareAmount = "20.00")),
+        darkTheme = false,
+    )
 }
 
-@Preview(widthDp = 360, heightDp = 800)
+@Preview(name = "Custom split", widthDp = 360, heightDp = 800)
 @Composable
 private fun AddExpensePaneSuccessPreview() {
-    CommonExTheme {
+    AddExpensePaneSample(state = SimpleScreenState.Success(mockAddExpenseScreenUiModel()), darkTheme = false)
+}
+
+@Preview(name = "Repayment", widthDp = 360, heightDp = 800)
+@Composable
+private fun AddExpensePaneRepaymentPreview() {
+    val state = mockAddExpenseScreenUiModel()
+    val recipient = state.subjectPersons[1]
+    val split = persistentListOf(ExpenseSplitWithPersonUiModel(person = recipient, amount = "20.00"))
+    AddExpensePaneSample(
+        state = SimpleScreenState.Success(
+            state.copy(
+                expenseType = ExpenseType.Replenishment,
+                description = "",
+                wholeAmount = "20.00",
+                totalAmount = "20.00",
+                subjectPersons = persistentListOf(
+                    state.subjectPersons[0].copy(selected = false),
+                    recipient,
+                    state.subjectPersons[2].copy(selected = false),
+                ),
+                selectedSubjectPersonsCount = 1,
+                selectedSubjectPersonsNames = recipient.personName,
+                split = split,
+                splitByPerson = split.associateBy { it.person.personId }.asImmutableMap(),
+                lastSplitPersonId = recipient.personId,
+            )
+        ),
+        darkTheme = false,
+    )
+}
+
+@Preview(name = "Custom exchange rate", widthDp = 360, heightDp = 800)
+@Composable
+private fun AddExpensePaneCustomRatePreview() {
+    val state = mockAddExpenseScreenUiModel()
+    AddExpensePaneSample(
+        state = SimpleScreenState.Success(
+            state.copy(
+                currencies = persistentListOf(
+                    state.currencies[0].copy(selected = false),
+                    state.currencies[1].copy(selected = true),
+                    state.currencies[2],
+                ),
+                selectedCurrencyCode = "USD",
+                equalSplit = true,
+                equalShareAmount = "20.00",
+                exchangeRate = AddExpensePaneUiModel.ExchangeRateUiModel(
+                    originalCurrencyCode = "USD",
+                    primaryCurrencyCode = "EUR",
+                    rateRaw = "0.92",
+                    isCustom = true,
+                    isValid = true,
+                    convertedTotalAmount = "55.20",
+                ),
+            )
+        ),
+        darkTheme = false,
+    )
+}
+
+@Preview(name = "Dark", widthDp = 360, heightDp = 800)
+@Composable
+private fun AddExpensePaneDarkPreview() {
+    AddExpensePaneSample(
+        state = SimpleScreenState.Success(mockAddExpenseScreenUiModel().copy(equalSplit = true, equalShareAmount = "20.00")),
+        darkTheme = true,
+    )
+}
+
+@Preview(name = "Loading", widthDp = 360, heightDp = 800)
+@Composable
+private fun AddExpensePaneLoadingPreview() {
+    AddExpensePaneSample(state = SimpleScreenState.Loading, darkTheme = false)
+}
+
+@Preview(name = "Error", widthDp = 360, heightDp = 800)
+@Composable
+private fun AddExpensePaneErrorPreview() {
+    AddExpensePaneSample(state = SimpleScreenState.Error, darkTheme = false)
+}
+
+@Composable
+private fun AddExpensePaneSample(state: SimpleScreenState<AddExpensePaneUiModel>, darkTheme: Boolean) {
+    CommonExTheme(darkTheme = darkTheme) {
         AddExpensePane(
             onCurrencyClicked = {},
             onExchangeRateChanged = {},
@@ -535,7 +607,7 @@ private fun AddExpensePaneSuccessPreview() {
             onSplitAmountChanged = { _, _ -> },
             onConfirmClicked = {},
             onNavIconClicked = {},
-            state = SimpleScreenState.Success(mockAddExpenseScreenUiModel()),
+            state = state,
         )
     }
 }

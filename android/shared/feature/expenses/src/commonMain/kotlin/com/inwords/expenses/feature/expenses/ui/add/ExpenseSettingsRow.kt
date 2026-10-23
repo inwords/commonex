@@ -19,8 +19,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.inwords.expenses.core.ui.design.preview.ComponentPreviews
 import com.inwords.expenses.core.ui.design.theme.CommonExTheme
 
 @Composable
@@ -73,7 +73,7 @@ internal fun ExpenseSettingsRow(
     }
 }
 
-@Preview(widthDp = 360)
+@ComponentPreviews
 @Composable
 private fun ExpenseSettingsRowPreview() {
     CommonExTheme {
@@ -93,8 +93,7 @@ private fun ExpenseSettingsRowPreview() {
     }
 }
 
-@Preview(name = "Split", widthDp = 360)
-@Preview(name = "Split, large text", widthDp = 320, fontScale = 2f)
+@ComponentPreviews
 @Composable
 private fun ExpenseSettingsRowWithSharePreview() {
     CommonExTheme {

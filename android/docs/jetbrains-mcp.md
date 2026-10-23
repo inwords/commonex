@@ -66,6 +66,12 @@ When MCP is unavailable or limited:
 - Fall back to normal CLI or Gradle commands
 - Record that MCP was unavailable and note the fallback in the task report
 
+## Preview validation without an IDE renderer
+
+Build the debug app and run lint to validate preview code. When IDE rendering is unavailable, the debug app's [AndroidX `PreviewActivity`](https://developer.android.com/reference/kotlin/androidx/compose/ui/tooling/PreviewActivity) can render preview entry points on an emulator. Launch `ru.commonex/androidx.compose.ui.tooling.PreviewActivity` with the `composable` string extra set to `<package>.<File>Kt.<PreviewFunction>`. Use a disposable test emulator for batch runs, and inspect screenshots as well as runtime errors.
+
+Running a preview on a device does **not** apply its `@Preview` dimensions, font scale, locale, or other annotation parameters. Set device configuration explicitly for those checks, or use the IDE renderer. Distinguish entry-point rendering from configuration coverage when reporting validation. See the [Android preview documentation](https://developer.android.com/develop/ui/compose/tooling/previews) and the repo's [preview conventions](patterns.md#compose-previews).
+
 ## Common failure modes
 
 ### No project found

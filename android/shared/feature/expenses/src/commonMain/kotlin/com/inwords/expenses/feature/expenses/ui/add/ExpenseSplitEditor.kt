@@ -26,6 +26,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.SheetValue
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TonalToggleButton
 import androidx.compose.material3.rememberBottomSheetState
@@ -48,6 +49,7 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.inwords.expenses.core.ui.design.button.ButtonWithIconAndText
+import com.inwords.expenses.core.ui.design.preview.ScreenPreviews
 import com.inwords.expenses.core.ui.design.theme.CommonExTheme
 import com.inwords.expenses.feature.expenses.ui.add.AddExpensePaneUiModel.ExpenseSplitWithPersonUiModel
 import com.inwords.expenses.feature.expenses.ui.add.AddExpensePaneUiModel.PersonInfoUiModel
@@ -298,39 +300,50 @@ internal fun ExpenseSplitBottomSheet(
     }
 }
 
-@Preview(widthDp = 360, heightDp = 600)
-@Preview(name = "Narrow", widthDp = 280, heightDp = 600)
-@Preview(name = "Large text", widthDp = 360, heightDp = 800, fontScale = 2f)
+@ScreenPreviews
 @Composable
 private fun ExpenseSplitEditorPreview() {
-    val state = mockAddExpenseScreenUiModel()
+    ExpenseSplitEditorSample(state = mockAddExpenseScreenUiModel())
+}
+
+@Preview(name = "Equal split", widthDp = 360, heightDp = 800)
+@Composable
+private fun ExpenseSplitEditorEqualPreview() {
+    ExpenseSplitEditorSample(state = mockAddExpenseScreenUiModel().copy(equalSplit = true, equalShareAmount = "20.00"))
+}
+
+@Composable
+private fun ExpenseSplitEditorSample(state: AddExpensePaneUiModel) {
     CommonExTheme {
-        ExpenseSplitEditor(
-            title = stringResource(Res.string.expenses_add_split_title),
-            persons = state.subjectPersons,
-            selectedPersonsCount = state.selectedSubjectPersonsCount,
-            lastSplitPersonId = state.lastSplitPersonId,
-            splitByPerson = state.splitByPerson,
-            equalSplit = state.equalSplit,
-            totalAmount = state.totalAmount,
-            currencyCode = "USD",
-            enabled = true,
-            onSubjectPersonClicked = {},
-            onEqualSplitChange = {},
-            onSplitAmountChanged = { _, _ -> },
-            onDoneClicked = {},
-        )
+        Surface(color = MaterialTheme.colorScheme.surfaceContainerLow) {
+            ExpenseSplitEditor(
+                modifier = Modifier.padding(24.dp),
+                title = stringResource(Res.string.expenses_add_split_title),
+                persons = state.subjectPersons,
+                selectedPersonsCount = state.selectedSubjectPersonsCount,
+                lastSplitPersonId = state.lastSplitPersonId,
+                splitByPerson = state.splitByPerson,
+                equalSplit = state.equalSplit,
+                totalAmount = state.totalAmount,
+                currencyCode = state.selectedCurrencyCode,
+                enabled = true,
+                onSubjectPersonClicked = {},
+                onEqualSplitChange = {},
+                onSplitAmountChanged = { _, _ -> },
+                onDoneClicked = {},
+            )
+        }
     }
 }
 
-@Preview(widthDp = 360, heightDp = 800)
+@ScreenPreviews
 @Composable
 private fun ExpenseSplitBottomSheetPreview() {
     CommonExTheme {
         ExpenseSplitBottomSheet(
             state = mockAddExpenseScreenUiModel(),
             title = stringResource(Res.string.expenses_add_split_title),
-            currencyCode = "USD",
+            currencyCode = "EUR",
             onSubjectPersonClicked = {},
             onEqualSplitChange = {},
             onSplitAmountChanged = { _, _ -> },

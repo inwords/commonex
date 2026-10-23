@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import com.inwords.expenses.core.ui.design.appbar.TopAppBarWithNavIconAndText
 import com.inwords.expenses.core.ui.design.button.ButtonWithIconAndText
 import com.inwords.expenses.core.ui.design.button.OutlinedButtonWithText
+import com.inwords.expenses.core.ui.design.preview.ScreenPreviews
 import com.inwords.expenses.core.ui.design.theme.CommonExTheme
 import com.inwords.expenses.core.ui.utils.clipEntryOf
 import com.inwords.expenses.feature.menu.ui.EventSharingUiModel.ShareState
@@ -147,12 +148,29 @@ internal fun InviteEventPane(
     }
 }
 
-@Preview
+@ScreenPreviews
 @Composable
 private fun InviteEventPanePreview() {
+    InviteEventPaneSample(ShareState.Idle(serverId = "7K4M2D8P", pinCode = "1234"))
+}
+
+@Preview(name = "Not synced yet", widthDp = 360, heightDp = 800)
+@Composable
+private fun InviteEventPaneUnsyncedPreview() {
+    InviteEventPaneSample(ShareState.Idle(serverId = null, pinCode = "1234"))
+}
+
+@Preview(name = "Preparing invitation", widthDp = 360, heightDp = 800)
+@Composable
+private fun InviteEventPaneLoadingPreview() {
+    InviteEventPaneSample(ShareState.Loading)
+}
+
+@Composable
+private fun InviteEventPaneSample(shareState: ShareState) {
     CommonExTheme {
         InviteEventPane(
-            state = EventSharingUiModel("Weekend in Lisbon", ShareState.Idle(serverId = null, pinCode = "")),
+            state = EventSharingUiModel("Weekend in Lisbon", shareState),
             onBackClick = {},
             onShareClick = {},
             onCopyClick = {},

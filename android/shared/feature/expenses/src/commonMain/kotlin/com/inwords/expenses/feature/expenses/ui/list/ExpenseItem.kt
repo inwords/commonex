@@ -13,6 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.inwords.expenses.core.ui.design.preview.ComponentPreviews
 import com.inwords.expenses.core.ui.design.theme.CommonExTheme
 import com.inwords.expenses.feature.expenses.domain.model.ExpenseType
 import com.inwords.expenses.feature.expenses.ui.list.ExpensesPaneUiModel.Expenses.ExpenseUiModel
@@ -123,7 +124,7 @@ internal fun ExpenseItem(
     }
 }
 
-@Preview
+@ComponentPreviews
 @Composable
 private fun ExpenseItemPreview() {
     CommonExTheme {
@@ -138,14 +139,14 @@ private fun ExpenseItemPreview() {
     }
 }
 
-@Preview(fontScale = 2f, widthDp = 320)
+@Preview(name = "Repayment", widthDp = 360)
 @Composable
-private fun ExpenseItemLargeTextPreview() {
+private fun ExpenseItemRepaymentPreview() {
     CommonExTheme {
         ExpenseItem(
             expense = ExpenseUiModel(
                 expenseId = 2, currencyCode = "EUR", originalAmount = null, expenseType = ExpenseType.Replenishment,
-                personName = "Alex", isPaidByCurrentPerson = true, totalAmount = "+123456.78", timeText = "10:20",
+                personName = "Alex", isPaidByCurrentPerson = true, totalAmount = "+20.00", timeText = "10:20",
                 description = "Repayment to Sam", currentPersonPartAmount = null,
             ),
             onExpenseClick = {},

@@ -8,6 +8,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.inwords.expenses.core.ui.design.preview.ComponentPreviews
+import com.inwords.expenses.core.ui.design.theme.CommonExTheme
 
 @Composable
 fun TopAppBarWithText() {
@@ -22,4 +24,12 @@ fun TopAppBarWithText() {
             )
         }
     )
+}
+
+@ComponentPreviews
+@Composable
+private fun TopAppBarWithTextPreview() {
+    CommonExTheme {
+        TopAppBarWithText()
+    }
 }

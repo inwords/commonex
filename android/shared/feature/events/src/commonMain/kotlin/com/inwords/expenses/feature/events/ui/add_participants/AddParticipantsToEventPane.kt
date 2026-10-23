@@ -44,6 +44,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.inwords.expenses.core.ui.design.appbar.TopAppBarWithNavIconAndText
 import com.inwords.expenses.core.ui.design.button.ButtonWithIconAndText
+import com.inwords.expenses.core.ui.design.preview.ScreenPreviews
 import com.inwords.expenses.core.ui.design.theme.CommonExTheme
 import com.inwords.expenses.feature.events.ui.common.PersonNameField
 import expenses.shared.feature.events.generated.resources.Res
@@ -218,8 +219,7 @@ internal fun AddParticipantsToEventPane(
     }
 }
 
-@Preview(name = "Phone", widthDp = 360, heightDp = 800)
-@Preview(name = "Large text", widthDp = 360, heightDp = 800, fontScale = 2f)
+@ScreenPreviews
 @Preview(name = "Expanded", widthDp = 840, heightDp = 600)
 @Composable
 private fun AddParticipantsToEventPanePreview() {

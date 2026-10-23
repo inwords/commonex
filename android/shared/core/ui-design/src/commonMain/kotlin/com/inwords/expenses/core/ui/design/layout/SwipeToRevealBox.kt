@@ -8,17 +8,25 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastRoundToInt
+import com.inwords.expenses.core.ui.design.preview.ComponentPreviews
+import com.inwords.expenses.core.ui.design.theme.CommonExTheme
 
 enum class RevealState { Hidden, Revealed }
 
@@ -100,5 +108,44 @@ fun rememberSwipeToRevealBoxState(initialValue: RevealState = RevealState.Hidden
         saver = AnchoredDraggableState.Saver()
     ) {
         AnchoredDraggableState(initialValue = initialValue)
+    }
+}
+
+@ComponentPreviews
+@Composable
+private fun SwipeToRevealBoxHiddenPreview() {
+    SwipeToRevealBoxPreviewContent(initialValue = RevealState.Hidden)
+}
+
+@Preview(name = "Revealed", widthDp = 360)
+@Composable
+private fun SwipeToRevealBoxRevealedPreview() {
+    SwipeToRevealBoxPreviewContent(initialValue = RevealState.Revealed)
+}
+
+@Composable
+private fun SwipeToRevealBoxPreviewContent(initialValue: RevealState) {
+    CommonExTheme {
+        Surface {
+            SwipeToRevealBox(
+                modifier = Modifier.padding(16.dp),
+                state = rememberSwipeToRevealBoxState(initialValue = initialValue),
+                actions = {
+                    FilledTonalButton(onClick = {}) { Text("Remove") }
+                },
+                content = {
+                    Surface(
+                        shape = MaterialTheme.shapes.extraLarge,
+                        color = MaterialTheme.colorScheme.surfaceContainerLow,
+                    ) {
+                        Text(
+                            modifier = Modifier.fillMaxWidth().padding(24.dp),
+                            text = "Weekend in Lisbon",
+                            style = MaterialTheme.typography.titleMedium,
+                        )
+                    }
+                },
+            )
+        }
     }
 }

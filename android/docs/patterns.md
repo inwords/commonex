@@ -456,6 +456,18 @@ Do not introduce a shared state holder for this confirmation flow.
 
 ## Compose UI Patterns
 
+### Compose Previews
+
+Visual panes and reusable components need preview coverage; private layout helpers can be covered by a representative parent preview. Navigation and ViewModel wiring are exercised through their visual panes rather than constructed in previews.
+
+- Use the shared [preview annotations](../shared/core/ui-design/src/commonMain/kotlin/com/inwords/expenses/core/ui/design/preview): `ScreenPreviews` for bounded screen or scrolling-sheet viewports, and `ComponentPreviews` for content-height components. Both provide normal-phone and narrow/large-text configurations.
+- Add named state previews when the visible layout differs, such as empty, loading, validation failure, repayment, custom exchange rate, or deletion feedback. Retain expanded previews for adaptive branches; add relevant dark-theme and locale cases without multiplying every state across every configuration.
+- Render through `CommonExTheme`, with the appropriate `Surface` role and surrounding padding for standalone components. Scrollable previews need a bounded viewport.
+- Use realistic immutable sample state with coherent amounts, currencies, rates, selections, and derived labels. Instantiate panes directly with sample data and callbacks, independent of live ViewModels, dependency injection, persistence, or network access.
+- Keep preview entry functions parameterless and uniquely named. Share fixture construction through explicit `...Sample` helpers when multiple previews use it. Preview-only work preserves production APIs and behavior.
+- Make the state under review visible: render swipe actions revealed, disclosures expanded, and feedback present in the relevant preview. A state value whose controls remain hidden does not cover those controls visually.
+- Compile and inspect rendered output. Check visual fidelity and sample consistency in addition to runtime errors. See [preview validation without an IDE renderer](jetbrains-mcp.md#preview-validation-without-an-ide-renderer) for the emulator fallback and its configuration limits.
+
 ### State-Driven Side Effects (Clipboard, Share)
 
 Platform APIs accessed from Compose use pending-operation state with completion acknowledged to the ViewModel. Platform operations available through an injected abstraction may be invoked by the ViewModel.
