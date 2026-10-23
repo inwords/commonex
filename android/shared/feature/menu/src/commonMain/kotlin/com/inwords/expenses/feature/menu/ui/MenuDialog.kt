@@ -44,6 +44,7 @@ import androidx.compose.ui.unit.dp
 import com.inwords.expenses.core.ui.design.button.ButtonWithIconAndText
 import com.inwords.expenses.core.ui.design.layout.AdaptiveButtonsRow
 import com.inwords.expenses.core.ui.design.legal.LegalBlock
+import com.inwords.expenses.core.ui.design.preview.ScreenPreviews
 import com.inwords.expenses.core.ui.design.theme.CommonExTheme
 import com.inwords.expenses.core.ui.utils.clipEntryOf
 import com.inwords.expenses.feature.menu.ui.EventSharingUiModel.ShareState
@@ -255,78 +256,49 @@ private fun GroupOptionsAction(
     }
 }
 
-@Preview
-@Preview(widthDp = 320, fontScale = 2f)
+@ScreenPreviews
 @Composable
 private fun MenuDialogPreview() {
-    CommonExTheme {
-        MenuDialog(
-            state = MenuDialogUiModel(
-                eventSharing = EventSharingUiModel(
-                    eventName = "Weekend in Lisbon",
-                    shareState = ShareState.Idle(
-                        serverId = "event-id",
-                        pinCode = "1234",
-                    ),
-                ),
-            ),
-            onJoinEventClicked = {},
-            onLeaveEventClicked = {},
-            onChoosePersonClicked = {},
-            onAddParticipantsClicked = {},
-            onShareClicked = {},
-            onCopyClicked = {},
-            onTextCopied = {},
-            onPrivacyPolicyClicked = {},
-            onTermsOfUseClicked = {},
-        )
-    }
+    MenuDialogSample(shareState = ShareState.Idle(serverId = "7K4M2D8P", pinCode = "1234"), darkTheme = false)
 }
 
-@Preview
+@Preview(name = "Not synced yet", widthDp = 360, heightDp = 800)
 @Composable
 private fun MenuDialogUnsyncedPreview() {
-    CommonExTheme {
-        MenuDialog(
-            state = MenuDialogUiModel(
-                eventSharing = EventSharingUiModel(
-                    eventName = "Weekend in Lisbon",
-                    shareState = ShareState.Idle(serverId = null, pinCode = "1234"),
-                ),
-            ),
-            onJoinEventClicked = {},
-            onLeaveEventClicked = {},
-            onChoosePersonClicked = {},
-            onAddParticipantsClicked = {},
-            onShareClicked = {},
-            onCopyClicked = {},
-            onTextCopied = {},
-            onPrivacyPolicyClicked = {},
-            onTermsOfUseClicked = {},
-        )
-    }
+    MenuDialogSample(shareState = ShareState.Idle(serverId = null, pinCode = "1234"), darkTheme = false)
 }
 
-@Preview
+@Preview(name = "Preparing invitation", widthDp = 360, heightDp = 800)
 @Composable
 private fun MenuDialogLoadingPreview() {
-    CommonExTheme {
-        MenuDialog(
-            state = MenuDialogUiModel(
-                eventSharing = EventSharingUiModel(
-                    eventName = "Weekend in Lisbon",
-                    shareState = ShareState.Loading,
+    MenuDialogSample(shareState = ShareState.Loading, darkTheme = false)
+}
+
+@Preview(name = "Dark", widthDp = 360, heightDp = 800)
+@Composable
+private fun MenuDialogDarkPreview() {
+    MenuDialogSample(shareState = ShareState.Idle(serverId = "7K4M2D8P", pinCode = "1234"), darkTheme = true)
+}
+
+@Composable
+private fun MenuDialogSample(shareState: ShareState, darkTheme: Boolean) {
+    CommonExTheme(darkTheme = darkTheme) {
+        Surface(color = MaterialTheme.colorScheme.surfaceContainerLow) {
+            MenuDialog(
+                modifier = Modifier.padding(vertical = 24.dp),
+                state = MenuDialogUiModel(
+                    eventSharing = EventSharingUiModel(eventName = "Weekend in Lisbon", shareState = shareState),
                 ),
-            ),
-            onJoinEventClicked = {},
-            onLeaveEventClicked = {},
-            onChoosePersonClicked = {},
-            onAddParticipantsClicked = {},
-            onShareClicked = {},
-            onCopyClicked = {},
-            onTextCopied = {},
-            onPrivacyPolicyClicked = {},
-            onTermsOfUseClicked = {},
-        )
+                onJoinEventClicked = {},
+                onLeaveEventClicked = {},
+                onChoosePersonClicked = {},
+                onAddParticipantsClicked = {},
+                onShareClicked = {},
+                onCopyClicked = {},
+                onTextCopied = {},
+                onPrivacyPolicyClicked = {},
+                onTermsOfUseClicked = {},
+            )
+        }
     }
 }

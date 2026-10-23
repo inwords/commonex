@@ -34,6 +34,7 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.inwords.expenses.core.ui.design.preview.ScreenPreviews
 import com.inwords.expenses.core.ui.design.theme.CommonExTheme
 import expenses.shared.core.ui_design.generated.resources.Res
 import expenses.shared.core.ui_design.generated.resources.common_close
@@ -149,8 +150,7 @@ fun <T> SingleChoiceBottomSheet(
     }
 }
 
-@Preview(name = "Phone", widthDp = 360, heightDp = 800)
-@Preview(name = "Large text", widthDp = 360, heightDp = 800, fontScale = 2f)
+@ScreenPreviews
 @Preview(name = "Expanded", widthDp = 840, heightDp = 600)
 @Composable
 private fun SingleChoiceBottomSheetPreview() {
@@ -179,6 +179,23 @@ private fun SingleChoiceBottomSheetPreview() {
                     selected = false,
                     payload = "RUB",
                 ),
+            ),
+            onOptionClicked = {},
+            onDismissRequest = {},
+        )
+    }
+}
+
+@Preview(name = "Names without supporting text", widthDp = 360, heightDp = 800)
+@Composable
+private fun SingleChoiceBottomSheetNamesPreview() {
+    CommonExTheme {
+        SingleChoiceBottomSheet(
+            title = "Paid by",
+            options = listOf(
+                SingleChoiceOption(key = "alex", text = "Alex", supportingText = null, selected = true, payload = "alex"),
+                SingleChoiceOption(key = "sam", text = "Sam", supportingText = null, selected = false, payload = "sam"),
+                SingleChoiceOption(key = "jo", text = "Jo", supportingText = null, selected = false, payload = "jo"),
             ),
             onOptionClicked = {},
             onDismissRequest = {},

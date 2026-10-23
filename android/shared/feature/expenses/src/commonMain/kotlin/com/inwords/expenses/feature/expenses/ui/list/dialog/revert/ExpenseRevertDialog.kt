@@ -7,6 +7,8 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import com.inwords.expenses.core.ui.design.preview.ScreenPreviews
+import com.inwords.expenses.core.ui.design.theme.CommonExTheme
 import expenses.shared.feature.expenses.generated.resources.Res
 import expenses.shared.feature.expenses.generated.resources.expenses_revert_cancel
 import expenses.shared.feature.expenses.generated.resources.expenses_revert_confirm_body
@@ -55,4 +57,12 @@ internal fun ExpenseRevertDialog(
             }
         }
     )
+}
+
+@ScreenPreviews
+@Composable
+private fun ExpenseRevertDialogPreview() {
+    CommonExTheme {
+        ExpenseRevertDialog(expenseDescription = "Dinner by the river", onConfirmRevert = {}, onDismiss = {})
+    }
 }

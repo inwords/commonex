@@ -29,6 +29,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -65,6 +66,8 @@ import androidx.window.core.layout.WindowSizeClass
 import com.inwords.expenses.core.ui.design.appbar.TopAppBarWithText
 import com.inwords.expenses.core.ui.design.button.BasicFloatingActionButton
 import com.inwords.expenses.core.ui.design.loading.DefaultProgressIndicator
+import com.inwords.expenses.core.ui.design.preview.ComponentPreviews
+import com.inwords.expenses.core.ui.design.preview.ScreenPreviews
 import com.inwords.expenses.core.ui.design.theme.CommonExTheme
 import com.inwords.expenses.core.ui.utils.SimpleScreenState
 import com.inwords.expenses.feature.events.ui.common.EventInfoBlock
@@ -633,24 +636,28 @@ private fun DaySectionHeader(
     }
 }
 
-@Preview
+@ComponentPreviews
 @Composable
 private fun DayChipsBarPreview() {
     CommonExTheme {
-        DayChipsBar(
-            dayChips = mockExpensesPaneUiModel(withDebts = false).dayChips,
-            onDayChipClick = {},
-            rowTestTag = null,
-            chipTestTagPrefix = null,
-        )
+        Surface {
+            DayChipsBar(
+                dayChips = mockExpensesPaneUiModel(withDebts = false).dayChips,
+                onDayChipClick = {},
+                rowTestTag = null,
+                chipTestTagPrefix = null,
+            )
+        }
     }
 }
 
-@Preview(fontScale = 2f, widthDp = 320)
+@ComponentPreviews
 @Composable
 private fun DaySectionHeaderPreview() {
     CommonExTheme {
-        DaySectionHeader(daySection = mockExpensesPaneUiModel(withDebts = false).daySections.first())
+        Surface {
+            DaySectionHeader(daySection = mockExpensesPaneUiModel(withDebts = false).daySections.first())
+        }
     }
 }
 
@@ -675,109 +682,67 @@ private fun ExpensesPaneLoading(
 }
 
 
-@Preview
+@ScreenPreviews
 @Preview(name = "Expanded", widthDp = 1000, heightDp = 800)
-@Preview(name = "Large text", widthDp = 320, fontScale = 2f)
 @Composable
 private fun ExpensesPanePreviewSuccessWithCreditors() {
-    CommonExTheme {
-        ExpensesPane(
-            state = SimpleScreenState.Success(mockExpensesPaneUiModel(withDebts = true)),
-            onMenuClick = {},
-            onOpenEventsListClick = {},
-            onInviteClick = {},
-            onAddExpenseClick = {},
-            onExpenseClick = {},
-            onDebtsDetailsClick = {},
-            onReplenishmentClick = {},
-            onDayChipClick = {},
-            onVisibleDayChanged = {},
-            onCreateEventClick = {},
-            onJoinEventClick = {},
-            onJoinLocalEventClick = {},
-            onDeleteEventClick = {},
-            onDeleteOnlyLocalEventClick = {},
-            onKeepLocalEventClick = {},
-            onRefresh = {},
-        )
-    }
+    ExpensesPaneSample(state = SimpleScreenState.Success(mockExpensesPaneUiModel(withDebts = true)), darkTheme = false)
 }
 
-@Preview
+@Preview(name = "No personal debt", widthDp = 360, heightDp = 800)
 @Composable
 private fun ExpensesPanePreviewSuccessWithoutCreditors() {
-    CommonExTheme {
-        ExpensesPane(
-            state = SimpleScreenState.Success(mockExpensesPaneUiModel(withDebts = false)),
-            onMenuClick = {},
-            onOpenEventsListClick = {},
-            onInviteClick = {},
-            onAddExpenseClick = {},
-            onExpenseClick = {},
-            onDebtsDetailsClick = {},
-            onReplenishmentClick = {},
-            onDayChipClick = {},
-            onVisibleDayChanged = {},
-            onCreateEventClick = {},
-            onJoinEventClick = {},
-            onJoinLocalEventClick = {},
-            onDeleteEventClick = {},
-            onDeleteOnlyLocalEventClick = {},
-            onKeepLocalEventClick = {},
-            onRefresh = {},
-        )
-    }
+    ExpensesPaneSample(state = SimpleScreenState.Success(mockExpensesPaneUiModel(withDebts = false)), darkTheme = false)
 }
 
-@Preview
+@Preview(name = "Dark", widthDp = 360, heightDp = 800)
+@Composable
+private fun ExpensesPaneDarkPreview() {
+    ExpensesPaneSample(state = SimpleScreenState.Success(mockExpensesPaneUiModel(withDebts = true)), darkTheme = true)
+}
+
+@Preview(name = "No groups", widthDp = 360, heightDp = 800)
 @Composable
 private fun ExpensesPanePreviewEmpty() {
-    CommonExTheme {
-        ExpensesPane(
-            state = SimpleScreenState.Empty,
-            onMenuClick = {},
-            onOpenEventsListClick = {},
-            onInviteClick = {},
-            onAddExpenseClick = {},
-            onExpenseClick = {},
-            onDebtsDetailsClick = {},
-            onReplenishmentClick = {},
-            onDayChipClick = {},
-            onVisibleDayChanged = {},
-            onCreateEventClick = {},
-            onJoinEventClick = {},
-            onJoinLocalEventClick = {},
-            onDeleteEventClick = {},
-            onDeleteOnlyLocalEventClick = {},
-            onKeepLocalEventClick = {},
-            onRefresh = {},
-        )
-    }
+    ExpensesPaneSample(state = SimpleScreenState.Empty, darkTheme = false)
 }
 
-@Preview
+@Preview(name = "Loading", widthDp = 360, heightDp = 800)
 @Composable
 private fun ExpensesPanePreviewLoading() {
-    CommonExTheme {
-        ExpensesPane(
-            state = SimpleScreenState.Loading,
-            onMenuClick = {},
-            onOpenEventsListClick = {},
-            onInviteClick = {},
-            onAddExpenseClick = {},
-            onExpenseClick = {},
-            onDebtsDetailsClick = {},
-            onReplenishmentClick = {},
-            onDayChipClick = {},
-            onVisibleDayChanged = {},
-            onCreateEventClick = {},
-            onJoinEventClick = {},
-            onJoinLocalEventClick = {},
-            onDeleteEventClick = {},
-            onDeleteOnlyLocalEventClick = {},
-            onKeepLocalEventClick = {},
-            onRefresh = {},
-        )
+    ExpensesPaneSample(state = SimpleScreenState.Loading, darkTheme = false)
+}
+
+@Preview(name = "Error", widthDp = 360, heightDp = 800)
+@Composable
+private fun ExpensesPaneErrorPreview() {
+    ExpensesPaneSample(state = SimpleScreenState.Error, darkTheme = false)
+}
+
+@Composable
+private fun ExpensesPaneSample(state: SimpleScreenState<ExpensesPaneUiModel>, darkTheme: Boolean) {
+    CommonExTheme(darkTheme = darkTheme) {
+        Surface {
+            ExpensesPane(
+                state = state,
+                onMenuClick = {},
+                onOpenEventsListClick = {},
+                onInviteClick = {},
+                onAddExpenseClick = {},
+                onExpenseClick = {},
+                onDebtsDetailsClick = {},
+                onReplenishmentClick = {},
+                onDayChipClick = {},
+                onVisibleDayChanged = {},
+                onCreateEventClick = {},
+                onJoinEventClick = {},
+                onJoinLocalEventClick = {},
+                onDeleteEventClick = {},
+                onDeleteOnlyLocalEventClick = {},
+                onKeepLocalEventClick = {},
+                onRefresh = {},
+            )
+        }
     }
 }
 
@@ -795,10 +760,10 @@ internal fun mockExpensesPaneUiModel(withDebts: Boolean): ExpensesPaneUiModel.Ex
                 personName = "Maksim",
                 currencyCode = "EUR",
                 currencyName = "Euro",
-                amount = "100",
+                amount = "40",
             ),
         ).takeIf { withDebts } ?: persistentListOf(),
-        totalDebt = if (withDebts) "100 EUR" else "0 EUR",
+        totalDebt = if (withDebts) "40 EUR" else "0 EUR",
         totalSpending = "180 EUR",
         dayChips = persistentListOf(
             DayChipUiModel(dayKey = "2026-03-28", label = "Today", isSelected = true),
@@ -816,13 +781,17 @@ internal fun mockExpensesPaneUiModel(withDebts: Boolean): ExpensesPaneUiModel.Ex
                         totalAmount = "-120",
                         timeText = "18:30",
                         description = "Lunch",
+                        personName = if (withDebts) "Maksim" else "Vasiliy",
+                        currentPersonPartAmount = "-40",
                     ),
                     mockExpenseUiModel(
                         expenseId = 2,
                         expenseType = ExpenseType.Replenishment,
                         totalAmount = "+20",
                         timeText = "12:05",
-                        description = "Refund",
+                        description = "Repayment",
+                        personName = if (withDebts) "Vasiliy" else "Maksim",
+                        currentPersonPartAmount = null,
                     ),
                 ),
             ),
@@ -837,6 +806,8 @@ internal fun mockExpensesPaneUiModel(withDebts: Boolean): ExpensesPaneUiModel.Ex
                         totalAmount = "-60",
                         timeText = "09:15",
                         description = "Museum",
+                        personName = if (withDebts) "Maksim" else "Vasiliy",
+                        currentPersonPartAmount = "-20",
                     ),
                 ),
             ),
@@ -851,17 +822,19 @@ private fun mockExpenseUiModel(
     totalAmount: String,
     timeText: String,
     description: String,
+    personName: String,
+    currentPersonPartAmount: String?,
 ): ExpenseUiModel {
     return ExpenseUiModel(
         expenseId = expenseId,
         currencyCode = "EUR",
         originalAmount = null,
         expenseType = expenseType,
-        personName = "Vasiliy",
-        isPaidByCurrentPerson = true,
+        personName = personName,
+        isPaidByCurrentPerson = personName == "Vasiliy",
         totalAmount = totalAmount,
         timeText = timeText,
         description = description,
-        currentPersonPartAmount = null,
+        currentPersonPartAmount = currentPersonPartAmount,
     )
 }

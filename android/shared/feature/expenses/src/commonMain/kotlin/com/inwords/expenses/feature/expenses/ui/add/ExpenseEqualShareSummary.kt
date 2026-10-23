@@ -8,11 +8,12 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.inwords.expenses.core.ui.design.preview.ComponentPreviews
 import com.inwords.expenses.core.ui.design.theme.CommonExTheme
 import expenses.shared.feature.expenses.generated.resources.Res
 import expenses.shared.feature.expenses.generated.resources.expenses_add_share_each
@@ -46,11 +47,12 @@ internal fun ExpenseEqualShareSummary(
     }
 }
 
-@Preview(widthDp = 360)
-@Preview(name = "Large text", widthDp = 320, fontScale = 2f)
+@ComponentPreviews
 @Composable
 private fun ExpenseEqualShareSummaryPreview() {
     CommonExTheme {
-        ExpenseEqualShareSummary(amount = "20", currencyCode = "EUR")
+        Surface(color = MaterialTheme.colorScheme.surfaceContainer) {
+            ExpenseEqualShareSummary(amount = "20", currencyCode = "EUR")
+        }
     }
 }

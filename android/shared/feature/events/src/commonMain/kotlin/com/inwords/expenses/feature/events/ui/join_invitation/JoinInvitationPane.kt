@@ -37,6 +37,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.inwords.expenses.core.ui.design.appbar.TopAppBarWithNavIconAndText
 import com.inwords.expenses.core.ui.design.button.ButtonWithIconAndText
+import com.inwords.expenses.core.ui.design.preview.ScreenPreviews
 import com.inwords.expenses.core.ui.design.theme.CommonExTheme
 import expenses.shared.feature.events.generated.resources.Res
 import expenses.shared.feature.events.generated.resources.common_back
@@ -141,12 +142,31 @@ internal fun JoinInvitationPane(
     }
 }
 
-@Preview
+@ScreenPreviews
 @Composable
 private fun JoinInvitationPanePreview() {
+    JoinInvitationPaneSample(JoinInvitationPaneUiModel(invitation = "", isInvitationInvalid = false))
+}
+
+@Preview(name = "Valid invite link", widthDp = 360, heightDp = 800)
+@Composable
+private fun JoinInvitationPaneValidPreview() {
+    JoinInvitationPaneSample(
+        JoinInvitationPaneUiModel(invitation = "https://commonex.ru/event/7K4M2D8P?pinCode=1234", isInvitationInvalid = false)
+    )
+}
+
+@Preview(name = "Invalid invite link", widthDp = 360, heightDp = 800)
+@Composable
+private fun JoinInvitationPaneInvalidPreview() {
+    JoinInvitationPaneSample(JoinInvitationPaneUiModel(invitation = "commonex", isInvitationInvalid = true))
+}
+
+@Composable
+private fun JoinInvitationPaneSample(state: JoinInvitationPaneUiModel) {
     CommonExTheme {
         JoinInvitationPane(
-            state = JoinInvitationPaneUiModel(invitation = "", isInvitationInvalid = false),
+            state = state,
             onInvitationChanged = {},
             onConfirmClicked = {},
             onEnterCodeClicked = {},

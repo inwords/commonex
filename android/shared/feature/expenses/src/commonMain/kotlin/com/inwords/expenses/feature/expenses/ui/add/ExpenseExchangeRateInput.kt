@@ -22,6 +22,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.inwords.expenses.core.ui.design.preview.ComponentPreviews
 import com.inwords.expenses.core.ui.design.theme.CommonExTheme
 import com.inwords.expenses.feature.expenses.ui.add.AddExpensePaneUiModel.ExchangeRateUiModel
 import expenses.shared.feature.expenses.generated.resources.Res
@@ -105,7 +106,7 @@ internal fun ExpenseExchangeRateInput(
     }
 }
 
-@Preview(widthDp = 360)
+@ComponentPreviews
 @Composable
 private fun ExpenseExchangeRateInputPreview() {
     CommonExTheme {
@@ -117,6 +118,25 @@ private fun ExpenseExchangeRateInputPreview() {
                 isCustom = true,
                 isValid = true,
                 convertedTotalAmount = "55.20",
+            ),
+            enabled = true,
+            onExchangeRateChanged = {},
+        )
+    }
+}
+
+@Preview(name = "Invalid custom rate", widthDp = 360)
+@Composable
+private fun ExpenseExchangeRateInputInvalidPreview() {
+    CommonExTheme {
+        ExpenseExchangeRateInput(
+            exchangeRate = ExchangeRateUiModel(
+                originalCurrencyCode = "USD",
+                primaryCurrencyCode = "EUR",
+                rateRaw = "0",
+                isCustom = true,
+                isValid = false,
+                convertedTotalAmount = null,
             ),
             enabled = true,
             onExchangeRateChanged = {},

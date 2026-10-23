@@ -36,6 +36,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.inwords.expenses.core.ui.design.appbar.TopAppBarWithNavIconAndText
 import com.inwords.expenses.core.ui.design.button.ButtonWithIconAndText
+import com.inwords.expenses.core.ui.design.preview.ScreenPreviews
 import com.inwords.expenses.core.ui.design.theme.CommonExTheme
 import com.inwords.expenses.feature.events.ui.common.EventAccessCodeField
 import com.inwords.expenses.feature.events.ui.common.EventIdField
@@ -160,15 +161,32 @@ internal fun JoinEventPane(
     }
 }
 
-@Preview
+@ScreenPreviews
 @Composable
 private fun JoinEventPanePreview() {
+    JoinEventPaneSample(EventJoiningState.None)
+}
+
+@Preview(name = "Joining", widthDp = 360, heightDp = 800)
+@Composable
+private fun JoinEventPaneJoiningPreview() {
+    JoinEventPaneSample(EventJoiningState.Joining)
+}
+
+@Preview(name = "Join failed", widthDp = 360, heightDp = 800)
+@Composable
+private fun JoinEventPaneErrorPreview() {
+    JoinEventPaneSample(EventJoiningState.Error("Could not join the group. Check the group ID and PIN, then try again."))
+}
+
+@Composable
+private fun JoinEventPaneSample(joiningState: EventJoiningState) {
     CommonExTheme {
         JoinEventPane(
             state = JoinEventPaneUiModel(
-                eventId = "",
-                eventAccessCode = "",
-                joiningState = EventJoiningState.None,
+                eventId = "7K4M2D8P",
+                eventAccessCode = "1234",
+                joiningState = joiningState,
             ),
             onEventIdChanged = {},
             onEventAccessCodeChanged = {},

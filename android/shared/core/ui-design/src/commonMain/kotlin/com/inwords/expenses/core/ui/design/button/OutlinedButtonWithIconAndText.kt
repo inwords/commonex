@@ -2,6 +2,7 @@ package com.inwords.expenses.core.ui.design.button
 
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
@@ -16,6 +17,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import com.inwords.expenses.core.ui.design.preview.ComponentPreviews
 import com.inwords.expenses.core.ui.design.theme.CommonExTheme
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
@@ -46,14 +49,15 @@ fun OutlinedButtonWithIconAndText(
     }
 }
 
-@Preview
+@Preview(name = "Disabled", widthDp = 360)
 @Composable
-private fun ButtonWithIconAndTextDisabledPreview() {
+private fun OutlinedButtonWithIconAndTextDisabledPreview() {
     CommonExTheme {
         Surface {
             OutlinedButtonWithIconAndText(
+                modifier = Modifier.padding(16.dp),
                 onClick = {},
-                text = "Add Expense",
+                text = "Add expense",
                 imageVector = Icons.Outlined.Add,
                 enabled = false,
             )
@@ -62,14 +66,15 @@ private fun ButtonWithIconAndTextDisabledPreview() {
 }
 
 
-@Preview
+@ComponentPreviews
 @Composable
-private fun ButtonWithIconAndTextEnabledPreview() {
+private fun OutlinedButtonWithIconAndTextEnabledPreview() {
     CommonExTheme {
         Surface {
             OutlinedButtonWithIconAndText(
+                modifier = Modifier.padding(16.dp),
                 onClick = {},
-                text = "Add Expense",
+                text = "Add expense",
                 imageVector = Icons.Outlined.Add,
                 enabled = true,
             )
@@ -77,14 +82,15 @@ private fun ButtonWithIconAndTextEnabledPreview() {
     }
 }
 
-@Preview
+@Preview(name = "Medium", widthDp = 360)
 @Composable
-private fun ButtonWithIconAndTextMediumEnabledPreview() {
+private fun OutlinedButtonWithIconAndTextMediumEnabledPreview() {
     CommonExTheme {
         Surface {
             OutlinedButtonWithIconAndText(
+                modifier = Modifier.padding(16.dp),
                 onClick = {},
-                text = "Add Expense",
+                text = "Add expense",
                 imageVector = Icons.Outlined.Add,
                 enabled = true,
                 minHeight = ButtonDefaults.MediumContainerHeight

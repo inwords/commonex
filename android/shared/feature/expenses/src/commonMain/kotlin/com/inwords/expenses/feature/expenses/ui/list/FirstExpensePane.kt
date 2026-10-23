@@ -28,6 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.inwords.expenses.core.ui.design.preview.ScreenPreviews
 import com.inwords.expenses.core.ui.design.theme.CommonExTheme
 import expenses.shared.feature.expenses.generated.resources.Res
 import expenses.shared.feature.expenses.generated.resources.expenses_event_options
@@ -123,8 +124,7 @@ internal fun FirstExpensePane(
     }
 }
 
-@Preview
-@Preview(name = "Narrow large text", widthDp = 320, heightDp = 800, fontScale = 2f)
+@ScreenPreviews
 @Preview(name = "Expanded", widthDp = 840, heightDp = 800)
 @Composable
 private fun FirstExpensePanePreview() {

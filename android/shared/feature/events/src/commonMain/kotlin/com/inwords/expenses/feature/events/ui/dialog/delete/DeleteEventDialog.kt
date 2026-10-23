@@ -7,7 +7,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.tooling.preview.Preview
+import com.inwords.expenses.core.ui.design.preview.ScreenPreviews
 import com.inwords.expenses.core.ui.design.theme.CommonExTheme
 import expenses.shared.feature.events.generated.resources.Res
 import expenses.shared.feature.events.generated.resources.events_delete_event
@@ -61,12 +61,12 @@ internal fun DeleteEventDialog(
     )
 }
 
-@Preview
+@ScreenPreviews
 @Composable
 private fun DeleteEventDialogPreview() {
     CommonExTheme {
         DeleteEventDialog(
-            state = DeleteEventDialogUiModel(eventName = "Sample Event"),
+            state = DeleteEventDialogUiModel(eventName = "Weekend in Lisbon"),
             onConfirmDelete = {},
             onDismiss = {},
         )

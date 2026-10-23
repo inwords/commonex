@@ -40,6 +40,8 @@ import androidx.compose.ui.unit.dp
 import androidx.window.core.layout.WindowSizeClass
 import com.inwords.expenses.core.ui.design.appbar.TopAppBarWithNavIconAndText
 import com.inwords.expenses.core.ui.design.loading.DefaultProgressIndicator
+import com.inwords.expenses.core.ui.design.preview.ComponentPreviews
+import com.inwords.expenses.core.ui.design.preview.ScreenPreviews
 import com.inwords.expenses.core.ui.design.theme.CommonExTheme
 import com.inwords.expenses.core.ui.utils.SimpleScreenState
 import com.inwords.expenses.feature.expenses.ui.common.DebtReplenishmentButton
@@ -263,54 +265,63 @@ private fun SettledBalances(
     }
 }
 
-@Preview
+@ScreenPreviews
+@Preview(name = "Expanded", widthDp = 840, heightDp = 800)
 @Composable
 private fun DebtsListPanePreview() {
-    CommonExTheme {
-        DebtsListPane(
-            state = SimpleScreenState.Success(mockDebtsListPaneUiModel()),
-            onReplenishmentClick = { _, _ -> },
-            onNavIconClicked = {},
-        )
-    }
+    DebtsListPaneSample(state = SimpleScreenState.Success(mockDebtsListPaneUiModel()), darkTheme = false)
 }
 
-@Preview(widthDp = 840)
-@Composable
-private fun DebtsListPaneExpandedPreview() {
-    DebtsListPanePreview()
-}
-
-@Preview(fontScale = 2f, widthDp = 320)
-@Composable
-private fun DebtsListPaneLargeTextPreview() {
-    DebtsListPanePreview()
-}
-
-@Preview
+@Preview(name = "Settled", widthDp = 360, heightDp = 800)
 @Composable
 private fun DebtsListPaneSettledPreview() {
-    CommonExTheme {
-        DebtsListPane(
-            state = SimpleScreenState.Success(mockDebtsListPaneUiModel().copy(debtors = persistentListOf())),
-            onReplenishmentClick = { _, _ -> },
-            onNavIconClicked = {},
-        )
+    DebtsListPaneSample(
+        state = SimpleScreenState.Success(mockDebtsListPaneUiModel().copy(debtors = persistentListOf())),
+        darkTheme = false,
+    )
+}
+
+@Preview(name = "Dark", widthDp = 360, heightDp = 800)
+@Composable
+private fun DebtsListPaneDarkPreview() {
+    DebtsListPaneSample(state = SimpleScreenState.Success(mockDebtsListPaneUiModel()), darkTheme = true)
+}
+
+@Preview(name = "Loading", widthDp = 360, heightDp = 800)
+@Composable
+private fun DebtsListPaneLoadingPreview() {
+    DebtsListPaneSample(state = SimpleScreenState.Loading, darkTheme = false)
+}
+
+@Preview(name = "Error", widthDp = 360, heightDp = 800)
+@Composable
+private fun DebtsListPaneErrorPreview() {
+    DebtsListPaneSample(state = SimpleScreenState.Error, darkTheme = false)
+}
+
+@Composable
+private fun DebtsListPaneSample(state: SimpleScreenState<DebtsListPaneUiModel>, darkTheme: Boolean) {
+    CommonExTheme(darkTheme = darkTheme) {
+        DebtsListPane(state = state, onReplenishmentClick = { _, _ -> }, onNavIconClicked = {})
     }
 }
 
-@Preview
+@ComponentPreviews
 @Composable
 private fun DebtorSectionPreview() {
     CommonExTheme {
-        DebtorSection(debtor = mockDebtsListPaneUiModel().debtors.first(), onReplenishmentClick = { _, _ -> })
+        Surface {
+            DebtorSection(debtor = mockDebtsListPaneUiModel().debtors.first(), onReplenishmentClick = { _, _ -> })
+        }
     }
 }
 
-@Preview
+@ComponentPreviews
 @Composable
 private fun SettledBalancesPreview() {
-    CommonExTheme { SettledBalances(onNavIconClicked = {}) }
+    CommonExTheme {
+        Surface { SettledBalances(onNavIconClicked = {}) }
+    }
 }
 
 private fun mockDebtsListPaneUiModel(): DebtsListPaneUiModel {

@@ -81,6 +81,8 @@ import com.inwords.expenses.core.ui.design.layout.RevealState
 import com.inwords.expenses.core.ui.design.layout.SwipeToRevealBox
 import com.inwords.expenses.core.ui.design.layout.rememberSwipeToRevealBoxState
 import com.inwords.expenses.core.ui.design.legal.LegalBlock
+import com.inwords.expenses.core.ui.design.preview.ComponentPreviews
+import com.inwords.expenses.core.ui.design.preview.ScreenPreviews
 import com.inwords.expenses.core.ui.design.theme.CommonExTheme
 import com.inwords.expenses.feature.events.api.EventDeletionStateManager.EventDeletionState
 import com.inwords.expenses.feature.events.ui.local.LocalEventsUiModel.LocalEventUiModel
@@ -104,6 +106,7 @@ import expenses.shared.feature.events.generated.resources.events_welcome_join_la
 import expenses.shared.feature.events.generated.resources.events_welcome_kicker
 import expenses.shared.feature.events.generated.resources.events_welcome_reassurance
 import expenses.shared.feature.events.generated.resources.events_your_groups
+import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
@@ -654,10 +657,43 @@ private fun LocalEventCard(
 
 
 @Composable
-@Preview
-@Preview(widthDp = 320, fontScale = 2f)
-@Preview(widthDp = 840, heightDp = 600)
+@ScreenPreviews
+@Preview(name = "Expanded", widthDp = 840, heightDp = 600)
 private fun LocalEventsPanePreview() {
+    LocalEventsPaneSample(
+        events = persistentListOf(
+            LocalEventUiModel(eventId = 1, eventName = "Weekend in Lisbon", isSynced = true, deletionState = EventDeletionState.None),
+            LocalEventUiModel(eventId = 2, eventName = "Friday dinner", isSynced = false, deletionState = EventDeletionState.None),
+            LocalEventUiModel(eventId = 3, eventName = "Flatmates", isSynced = true, deletionState = EventDeletionState.None),
+        ),
+        recentlyRemovedEventName = null,
+    )
+}
+
+@Preview(name = "Deletion states", widthDp = 360, heightDp = 800)
+@Composable
+private fun LocalEventsDeletionStatesPreview() {
+    LocalEventsPaneSample(
+        events = persistentListOf(
+            LocalEventUiModel(
+                eventId = 2,
+                eventName = "Mountain cabin",
+                isSynced = true,
+                deletionState = EventDeletionState.Loading,
+            ),
+            LocalEventUiModel(
+                eventId = 3,
+                eventName = "Flatmates",
+                isSynced = true,
+                deletionState = EventDeletionState.RemoteDeletionFailed,
+            ),
+        ),
+        recentlyRemovedEventName = null,
+    )
+}
+
+@Composable
+private fun LocalEventsPaneSample(events: ImmutableList<LocalEventUiModel>, recentlyRemovedEventName: String?) {
     CommonExTheme {
         LocalEventsPane(
             onCreateEventClick = {},
@@ -666,47 +702,12 @@ private fun LocalEventsPanePreview() {
             onDeleteEventClick = {},
             onDeleteOnlyLocalEventClick = {},
             onKeepLocalEventClick = {},
-            localEvents = LocalEventsUiModel(
-                events = persistentListOf(
-                    LocalEventUiModel(
-                        eventId = 1,
-                        eventName = "Weekend in Lisbon with friends and family",
-                        isSynced = true,
-                        deletionState = EventDeletionState.None,
-                    ),
-                    LocalEventUiModel(
-                        eventId = 2,
-                        eventName = "Friday dinner",
-                        isSynced = false,
-                        deletionState = EventDeletionState.None,
-                    ),
-                    LocalEventUiModel(
-                        eventId = 3,
-                        eventName = "Road trip",
-                        isSynced = false,
-                        deletionState = EventDeletionState.PendingDeletionChoice,
-                    ),
-                    LocalEventUiModel(
-                        eventId = 4,
-                        eventName = "Mountain cabin",
-                        isSynced = true,
-                        deletionState = EventDeletionState.Loading,
-                    ),
-                    LocalEventUiModel(
-                        eventId = 5,
-                        eventName = "Flatmates",
-                        isSynced = true,
-                        deletionState = EventDeletionState.RemoteDeletionFailed,
-                    ),
-                ),
-                recentlyRemovedEventName = null,
-            ),
+            localEvents = LocalEventsUiModel(events = events, recentlyRemovedEventName = recentlyRemovedEventName),
         )
     }
 }
 
-@Preview(widthDp = 400)
-@Preview(widthDp = 320, fontScale = 2f)
+@ComponentPreviews
 @Composable
 private fun LocalEventsActionsPreview() {
     CommonExTheme {
@@ -717,13 +718,94 @@ private fun LocalEventsActionsPreview() {
 }
 
 @Composable
-@Preview
-@Preview(widthDp = 320, fontScale = 2f, locale = "ru")
+@ScreenPreviews
+@Preview(name = "Russian", widthDp = 360, heightDp = 800, locale = "ru")
 private fun LocalEventsEmptyPanePreview() {
     CommonExTheme {
-        LocalEventsEmptyPane(
-            onCreateEventClick = {},
-            onJoinEventClick = {},
-        )
+        Surface {
+            LocalEventsEmptyPane(onCreateEventClick = {}, onJoinEventClick = {})
+        }
     }
+}
+
+@Preview(name = "Welcome / dark", widthDp = 360, heightDp = 800)
+@Composable
+private fun LocalEventsEmptyPaneDarkPreview() {
+    CommonExTheme(darkTheme = true) {
+        Surface {
+            LocalEventsEmptyPane(onCreateEventClick = {}, onJoinEventClick = {})
+        }
+    }
+}
+
+@Preview(name = "Delete synced group", widthDp = 360)
+@Composable
+private fun LocalEventDeleteChoicesPreview() {
+    LocalEventDeleteChoicesSample(isSynced = true)
+}
+
+@Preview(name = "Remove local group", widthDp = 360)
+@Composable
+private fun LocalEventRemoveLocalChoicesPreview() {
+    LocalEventDeleteChoicesSample(isSynced = false)
+}
+
+@Composable
+private fun LocalEventDeleteChoicesSample(isSynced: Boolean) {
+    CommonExTheme {
+        Surface {
+            SwipeToRevealBox(
+                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                state = rememberSwipeToRevealBoxState(initialValue = RevealState.Revealed),
+                actions = {
+                    SwipeActionButton(
+                        modifier = Modifier.fillMaxHeight().width(90.dp),
+                        onClick = {},
+                        enabled = true,
+                        backgroundColor = if (isSynced) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.secondary,
+                        contentColor = if (isSynced) MaterialTheme.colorScheme.onError else MaterialTheme.colorScheme.onSecondary,
+                        icon = Icons.Outlined.Delete,
+                        text = stringResource(if (isSynced) Res.string.events_delete_everywhere else Res.string.events_delete_local_only),
+                        roundedStart = true,
+                        roundedEnd = false,
+                    )
+                    SwipeActionButton(
+                        modifier = Modifier.fillMaxHeight().width(90.dp),
+                        onClick = {},
+                        enabled = true,
+                        backgroundColor = if (isSynced) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.surfaceVariant,
+                        contentColor = if (isSynced) MaterialTheme.colorScheme.onSecondary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        icon = if (isSynced) Icons.Outlined.Delete else Icons.Outlined.Check,
+                        text = stringResource(if (isSynced) Res.string.events_delete_local_only else Res.string.events_keep_event),
+                        roundedStart = false,
+                        roundedEnd = true,
+                    )
+                },
+                content = {
+                    LocalEventCard(
+                        modifier = Modifier.fillMaxWidth(),
+                        event = LocalEventUiModel(
+                            eventId = 1,
+                            eventName = "Weekend in Lisbon",
+                            isSynced = isSynced,
+                            deletionState = EventDeletionState.PendingDeletionChoice,
+                        ),
+                        onJoinLocalEventClick = {},
+                        deletionInProgress = false,
+                    )
+                },
+            )
+        }
+    }
+}
+
+@Preview(name = "Group removed", widthDp = 360, heightDp = 800)
+@Composable
+private fun LocalEventsRemovedPreview() {
+    LocalEventsPaneSample(
+        events = persistentListOf(
+            LocalEventUiModel(eventId = 1, eventName = "Weekend in Lisbon", isSynced = true, deletionState = EventDeletionState.None),
+        ),
+        recentlyRemovedEventName = "Friday dinner",
+    )
 }

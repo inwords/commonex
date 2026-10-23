@@ -2,6 +2,8 @@ package com.inwords.expenses.core.ui.design.appbar
 
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -11,6 +13,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.inwords.expenses.core.ui.design.preview.ComponentPreviews
+import com.inwords.expenses.core.ui.design.theme.CommonExTheme
 
 @Composable
 fun TopAppBarWithNavIconAndText(
@@ -37,4 +41,17 @@ fun TopAppBarWithNavIconAndText(
             }
         }
     )
+}
+
+@ComponentPreviews
+@Composable
+private fun TopAppBarWithNavIconAndTextPreview() {
+    CommonExTheme {
+        TopAppBarWithNavIconAndText(
+            onNavIconClicked = {},
+            title = "Create a group",
+            imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
+            contentDescription = "Back",
+        )
+    }
 }

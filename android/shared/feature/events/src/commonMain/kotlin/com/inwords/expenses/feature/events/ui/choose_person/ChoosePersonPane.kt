@@ -40,6 +40,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.inwords.expenses.core.ui.design.appbar.TopAppBarWithNavIconAndText
 import com.inwords.expenses.core.ui.design.loading.DefaultProgressIndicator
+import com.inwords.expenses.core.ui.design.preview.ScreenPreviews
 import com.inwords.expenses.core.ui.design.theme.CommonExTheme
 import com.inwords.expenses.core.ui.utils.SimpleScreenState
 import com.inwords.expenses.feature.events.ui.choose_person.ChoosePersonPaneUiModel.PersonUiModel
@@ -206,8 +207,7 @@ private fun PersonSelectionItem(
     }
 }
 
-@Preview(name = "Phone", widthDp = 360, heightDp = 800)
-@Preview(name = "Large text", widthDp = 360, heightDp = 800, fontScale = 2f)
+@ScreenPreviews
 @Preview(name = "Expanded", widthDp = 840, heightDp = 600)
 @Composable
 private fun ChoosePersonPanePreview() {
@@ -227,5 +227,30 @@ private fun ChoosePersonPanePreview() {
             onPersonSelected = {},
             onNavIconClicked = {},
         )
+    }
+}
+
+@Preview(name = "Loading", widthDp = 360, heightDp = 800)
+@Composable
+private fun ChoosePersonPaneLoadingPreview() {
+    ChoosePersonPaneStateSample(SimpleScreenState.Loading)
+}
+
+@Preview(name = "Error", widthDp = 360, heightDp = 800)
+@Composable
+private fun ChoosePersonPaneErrorPreview() {
+    ChoosePersonPaneStateSample(SimpleScreenState.Error)
+}
+
+@Preview(name = "Empty", widthDp = 360, heightDp = 800)
+@Composable
+private fun ChoosePersonPaneEmptyPreview() {
+    ChoosePersonPaneStateSample(SimpleScreenState.Empty)
+}
+
+@Composable
+private fun ChoosePersonPaneStateSample(state: SimpleScreenState<ChoosePersonPaneUiModel>) {
+    CommonExTheme {
+        ChoosePersonPane(state = state, onPersonSelected = {}, onNavIconClicked = {})
     }
 }
