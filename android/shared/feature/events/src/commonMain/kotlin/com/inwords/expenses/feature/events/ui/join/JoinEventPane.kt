@@ -29,6 +29,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
@@ -90,7 +91,7 @@ internal fun JoinEventPane(
                 Text(
                     text = stringResource(Res.string.events_join_manual_heading),
                     style = MaterialTheme.typography.headlineLarge,
-                    modifier = Modifier.padding(bottom = 8.dp),
+                    modifier = Modifier.padding(bottom = 8.dp).semantics { heading() },
                 )
                 Text(
                     text = stringResource(Res.string.events_join_description),

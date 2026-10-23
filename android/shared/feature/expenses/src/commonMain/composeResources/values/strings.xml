@@ -30,7 +30,6 @@
 
     <string name="expenses_expense">Expense</string>
     <string name="expenses_repayment">Repayment</string>
-    <string name="expenses_description">Description</string>
     <string name="expenses_currency">Currency</string>
     <string name="expenses_exchange_rate">Exchange rate</string>
     <string name="expenses_exchange_rate_value">1 %1$s = %2$s %3$s</string>
@@ -39,7 +38,6 @@
     <string name="expenses_paid_by_you">Paid by you</string>
     <string name="expenses_equally">Equally</string>
     <string name="expenses_split">Split</string>
-    <string name="expenses_save">Save</string>
 
     <string name="expenses_add_title">Add expense</string>
     <string name="expenses_add_repayment_title">Add repayment</string>
@@ -80,7 +78,6 @@
     <string name="expenses_your_part">Your share %1$s</string>
     <string name="expenses_repayment_from">Repayment from %1$s</string>
 
-    <string name="expenses_debts">Debts</string>
     <string name="expenses_you_owe">You owe</string>
     <string name="expenses_you_owe_nothing">You owe nothing</string>
     <string name="expenses_all_balances">All balances</string>
@@ -92,7 +89,6 @@
     <string name="expenses_all_settled">All settled</string>
     <string name="expenses_no_outstanding_repayments">No outstanding repayments</string>
     <string name="expenses_back_to_group">Back to group</string>
-    <string name="expenses_between">between:</string>
 
     <string name="expenses_revert_description">[REVERT] %1$s</string>
     <string name="expenses_revert_confirm_title">Revert operation "%1$s"?</string>

@@ -198,11 +198,12 @@ internal fun AddParticipantsToEventPane(
                                     topEnd = CornerSize(0.dp),
                                 ),
                             )
-                            .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 16.dp),
+                            .padding(start = 24.dp, end = 24.dp, top = 8.dp, bottom = 16.dp),
                     ) {
                         TextButton(
                             modifier = Modifier.testTag("events_add_person"),
                             onClick = appendPerson,
+                            contentPadding = PaddingValues(vertical = 8.dp),
                         ) {
                             Icon(imageVector = Icons.Outlined.Add, contentDescription = null)
                             Text(

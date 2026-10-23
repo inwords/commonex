@@ -583,7 +583,7 @@ sealed interface ShareState {
 
 Different states carry different data relevant to that state:
 
-- `Idle(isAvailable)` - whether the UI can initiate the action; credentials remain in the ViewModel's domain data
+- `Idle(...)` - inputs needed to initiate the action, with availability derived from them
 - `Ready(shareText)` - result of completed action
 - `PendingClipboardCopy(shareText)` - transient state triggering UI operation
 

@@ -7,7 +7,7 @@ internal data class CreateEventPaneUiModel(
     val ownerName: String,
     val persons: ImmutableList<String>,
     val currencies: ImmutableList<CurrencyInfoUiModel>,
-    val selectedCurrencyCode: String,
+    val selectedCurrencyCode: String?,
     val isCurrencySelectionEnabled: Boolean,
 ) {
 
