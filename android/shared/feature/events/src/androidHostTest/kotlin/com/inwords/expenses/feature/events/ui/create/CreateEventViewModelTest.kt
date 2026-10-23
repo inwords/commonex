@@ -29,6 +29,7 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -285,6 +286,7 @@ internal class CreateEventViewModelTest {
         viewModel.state.test {
             awaitItem()
             runCurrent()
+            assertNull(viewModel.state.value.selectedCurrencyCode)
             viewModel.onEventNameChanged("Trip")
             viewModel.onOwnerNameChanged("Alex")
             runCurrent()

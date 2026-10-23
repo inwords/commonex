@@ -128,7 +128,7 @@ private fun DebtsListPaneSuccess(
     ) {
         item(key = "event", contentType = "heading", span = { GridItemSpan(maxLineSpan) }) {
             Column(
-                modifier = Modifier.padding(8.dp),
+                modifier = Modifier.padding(horizontal = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Text(
@@ -141,6 +141,14 @@ private fun DebtsListPaneSuccess(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                if (state.debtors.isNotEmpty()) {
+                    Text(
+                        modifier = Modifier.padding(top = 4.dp),
+                        text = stringResource(Res.string.expenses_balances_hint),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
         }
         if (state.debtors.isEmpty()) {
@@ -148,14 +156,6 @@ private fun DebtsListPaneSuccess(
                 SettledBalances(onNavIconClicked = onNavIconClicked)
             }
         } else {
-            item(key = "guidance", contentType = "guidance", span = { GridItemSpan(maxLineSpan) }) {
-                Text(
-                    modifier = Modifier.padding(horizontal = 8.dp),
-                    text = stringResource(Res.string.expenses_balances_hint),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
             items(items = state.debtors, key = { it.person.personId }, contentType = { "debtor" }) { debtor ->
                 DebtorSection(debtor = debtor, onReplenishmentClick = onReplenishmentClick)
             }
@@ -180,26 +180,31 @@ private fun DebtorSection(
         ) {
             Surface(
                 modifier = Modifier
-                    .size(40.dp)
+                    .size(32.dp)
                     .clearAndSetSemantics {},
                 shape = CircleShape,
                 color = MaterialTheme.colorScheme.primaryContainer,
                 contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
             ) {
                 Box(contentAlignment = Alignment.Center) {
-                    Text(text = debtor.person.personInitial, style = MaterialTheme.typography.titleMedium)
+                    Text(text = debtor.person.personInitial, style = MaterialTheme.typography.labelLarge)
                 }
             }
             Text(
                 modifier = Modifier.semantics { heading() },
                 text = stringResource(Res.string.expenses_debtor_owes, debtor.person.personName),
-                style = MaterialTheme.typography.titleLarge,
+                style = MaterialTheme.typography.titleMedium,
             )
         }
         Surface(shape = MaterialTheme.shapes.extraLarge, color = MaterialTheme.colorScheme.surfaceContainerLow) {
             Column {
                 debtor.creditors.forEachIndexed { index, debt ->
-                    if (index != 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    if (index != 0) {
+                        HorizontalDivider(
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                            color = MaterialTheme.colorScheme.outlineVariant,
+                        )
+                    }
                     DebtReplenishmentButton(
                         modifier = Modifier.testTag("debts_list_debt_button"),
                         debt = debt,
@@ -217,34 +222,44 @@ private fun SettledBalances(
     onNavIconClicked: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(
+    Surface(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 8.dp, vertical = 32.dp)
             .testTag("debts_list_settled"),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        shape = MaterialTheme.shapes.extraLarge,
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
     ) {
-        Surface(
-            modifier = Modifier.size(64.dp),
-            shape = MaterialTheme.shapes.large,
-            color = MaterialTheme.colorScheme.primaryContainer,
-            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+        Column(
+            modifier = Modifier.padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(imageVector = Icons.Outlined.Check, contentDescription = null)
+            Surface(
+                modifier = Modifier.size(40.dp),
+                shape = MaterialTheme.shapes.medium,
+                color = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(imageVector = Icons.Outlined.Check, contentDescription = null)
+                }
+            }
+            Text(
+                modifier = Modifier.semantics { heading() },
+                text = stringResource(Res.string.expenses_all_settled),
+                style = MaterialTheme.typography.headlineSmall,
+            )
+            Text(
+                text = stringResource(Res.string.expenses_no_outstanding_repayments),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            TextButton(
+                onClick = onNavIconClicked,
+                contentPadding = PaddingValues(vertical = 8.dp),
+            ) {
+                Text(text = stringResource(Res.string.expenses_back_to_group))
             }
         }
-        Text(
-            modifier = Modifier.semantics { heading() },
-            text = stringResource(Res.string.expenses_all_settled),
-            style = MaterialTheme.typography.headlineSmall,
-        )
-        Text(
-            text = stringResource(Res.string.expenses_no_outstanding_repayments),
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        TextButton(onClick = onNavIconClicked) { Text(text = stringResource(Res.string.expenses_back_to_group)) }
     }
 }
 

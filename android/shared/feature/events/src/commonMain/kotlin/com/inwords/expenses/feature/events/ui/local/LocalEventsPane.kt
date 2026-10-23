@@ -266,6 +266,7 @@ fun LocalEventsEmptyPane(
                         Text(
                             text = stringResource(Res.string.events_welcome_display),
                             style = MaterialTheme.typography.displaySmall.copy(fontFamily = FontFamily.Serif),
+                            modifier = Modifier.semantics { heading() },
                         )
                         Text(
                             text = stringResource(Res.string.events_welcome_copy),
@@ -293,7 +294,7 @@ fun LocalEventsEmptyPane(
                 Column(
                     modifier = Modifier.fillMaxWidth().padding(top = 32.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
                     Text(
                         text = stringResource(Res.string.events_welcome_reassurance),
@@ -301,16 +302,21 @@ fun LocalEventsEmptyPane(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center,
                     )
-                    Text(
-                        text = stringResource(DesignRes.string.agree_by_continuing),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center,
-                    )
-                    LegalBlock(
-                        onPrivacyPolicyClicked = { /* No additional action needed - URL opening handled by component */ },
-                        onTermsOfUseClicked = { /* No additional action needed - URL opening handled by component */ },
-                    )
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        Text(
+                            text = stringResource(DesignRes.string.agree_by_continuing),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                        )
+                        LegalBlock(
+                            onPrivacyPolicyClicked = { /* No additional action needed - URL opening handled by component */ },
+                            onTermsOfUseClicked = { /* No additional action needed - URL opening handled by component */ },
+                        )
+                    }
                 }
             }
         }
@@ -712,6 +718,7 @@ private fun LocalEventsActionsPreview() {
 
 @Composable
 @Preview
+@Preview(widthDp = 320, fontScale = 2f, locale = "ru")
 private fun LocalEventsEmptyPanePreview() {
     CommonExTheme {
         LocalEventsEmptyPane(

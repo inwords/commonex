@@ -222,7 +222,7 @@ internal fun MenuDialog(
                 }
             }
             LegalBlock(
-                modifier = Modifier.align(Alignment.CenterHorizontally).padding(vertical = 16.dp),
+                modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 32.dp, bottom = 16.dp),
                 onPrivacyPolicyClicked = onPrivacyPolicyClicked,
                 onTermsOfUseClicked = onTermsOfUseClicked,
             )
@@ -256,6 +256,7 @@ private fun GroupOptionsAction(
 }
 
 @Preview
+@Preview(widthDp = 320, fontScale = 2f)
 @Composable
 private fun MenuDialogPreview() {
     CommonExTheme {

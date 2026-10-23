@@ -159,7 +159,7 @@ internal class CreateEventViewModel(
                     selected = currency.id == selectedCurrency?.id,
                 )
             }.asImmutableListAdapter(),
-            selectedCurrencyCode = selectedCurrency?.code.orEmpty(),
+            selectedCurrencyCode = selectedCurrency?.code,
             isCurrencySelectionEnabled = currencies.isNotEmpty(),
         )
     }

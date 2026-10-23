@@ -32,7 +32,6 @@
 
     <string name="expenses_expense">Трата</string>
     <string name="expenses_repayment">Возврат</string>
-    <string name="expenses_description">Описание</string>
     <string name="expenses_currency">Валюта</string>
     <string name="expenses_exchange_rate">Курс обмена</string>
     <string name="expenses_exchange_rate_value">1 %1$s = %2$s %3$s</string>
@@ -41,7 +40,6 @@
     <string name="expenses_paid_by_you">Оплатили вы</string>
     <string name="expenses_equally">Поровну</string>
     <string name="expenses_split">Разделить</string>
-    <string name="expenses_save">Сохранить</string>
 
     <string name="expenses_add_title">Добавить трату</string>
     <string name="expenses_add_repayment_title">Добавить возврат</string>
@@ -84,7 +82,6 @@
     <string name="expenses_your_part">Ваша доля: %1$s</string>
     <string name="expenses_repayment_from">Возврат от %1$s</string>
 
-    <string name="expenses_debts">Долги</string>
     <string name="expenses_you_owe">Вы должны</string>
     <string name="expenses_you_owe_nothing">Вы никому не должны</string>
     <string name="expenses_all_balances">Все расчёты</string>
@@ -96,7 +93,6 @@
     <string name="expenses_all_settled">Все рассчитались</string>
     <string name="expenses_no_outstanding_repayments">Никто никому не должен</string>
     <string name="expenses_back_to_group">К группе</string>
-    <string name="expenses_between">между:</string>
 
     <string name="expenses_revert_description">[ОТМЕНА] %1$s</string>
     <string name="expenses_revert_confirm_title">Отменить операцию "%1$s"?</string>

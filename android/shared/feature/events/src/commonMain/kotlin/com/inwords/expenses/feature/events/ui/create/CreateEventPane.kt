@@ -203,6 +203,7 @@ internal fun CreateEventPane(
                             onAddParticipantClicked()
                             requestFocus = true
                         },
+                        contentPadding = PaddingValues(vertical = 8.dp),
                     ) {
                         Icon(imageVector = Icons.Outlined.Add, contentDescription = null)
                         Text(
@@ -238,7 +239,7 @@ internal fun CreateEventPane(
 @Composable
 private fun SetupCurrencyField(
     currencies: List<CurrencyInfoUiModel>,
-    selectedCurrencyCode: String,
+    selectedCurrencyCode: String?,
     enabled: Boolean,
     onCurrencyClicked: (CurrencyInfoUiModel) -> Unit,
     modifier: Modifier = Modifier,
@@ -266,10 +267,12 @@ private fun SetupCurrencyField(
                 style = MaterialTheme.typography.bodyLarge,
                 modifier = Modifier.weight(1f),
             )
-            Text(
-                text = selectedCurrencyCode,
-                style = MaterialTheme.typography.titleMedium,
-            )
+            if (selectedCurrencyCode != null) {
+                Text(
+                    text = selectedCurrencyCode,
+                    style = MaterialTheme.typography.titleMedium,
+                )
+            }
             val iconRotation by animateFloatAsState(
                 targetValue = if (isCurrencyPickerVisible) 180f else 0f,
                 animationSpec = MaterialTheme.motionScheme.fastSpatialSpec(),

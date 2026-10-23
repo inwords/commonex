@@ -2,7 +2,6 @@ package com.inwords.expenses.feature.expenses.ui.common
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
@@ -56,30 +55,44 @@ internal fun DebtReplenishmentButton(
                 role = Role.Button,
                 onClick = onClick,
             )
-            .heightIn(min = 80.dp)
+            .heightIn(min = 64.dp)
             .padding(16.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End),
         verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
         itemVerticalAlignment = Alignment.CenterVertically,
     ) {
-        Column(
+        Row(
             modifier = Modifier.weight(1f).width(IntrinsicSize.Max),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Text(
+                modifier = Modifier.alignByBaseline(),
                 text = stringResource(Res.string.expenses_add_to),
-                style = MaterialTheme.typography.labelMedium,
+                style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Text(text = debt.personName, style = MaterialTheme.typography.bodyLarge)
+            Text(
+                modifier = Modifier.weight(1f, fill = false).alignByBaseline(),
+                text = debt.personName,
+                style = MaterialTheme.typography.bodyLarge,
+            )
         }
         Row(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column(modifier = Modifier.weight(1f, fill = false), horizontalAlignment = Alignment.End) {
-                Text(text = debt.amount, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
+            Row(
+                modifier = Modifier.weight(1f, fill = false),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
                 Text(
+                    modifier = Modifier.weight(1f, fill = false).alignByBaseline(),
+                    text = debt.amount,
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                Text(
+                    modifier = Modifier.alignByBaseline(),
                     text = debt.currencyCode,
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
