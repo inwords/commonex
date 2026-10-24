@@ -14,6 +14,7 @@ import {
 } from '#domain/errors/errors';
 
 import {IdempotencySharedUseCase} from '#usecases/shared/idempotency.usecase';
+import {SaveEventExpenseSharedUseCase} from '#usecases/shared/save-event-expense.usecase';
 import {SaveEventExpenseV2UseCase} from '#usecases/users/v2';
 
 import {EventService} from '#frameworks/event-service/event-service';
@@ -50,7 +51,7 @@ describe('SaveEventExpenseV2UseCase', () => {
     useCase = new SaveEventExpenseV2UseCase(
       relationalDataService,
       eventService,
-      new SupportedCurrencyService(),
+      new SaveEventExpenseSharedUseCase(relationalDataService, new SupportedCurrencyService()),
       idempotencySharedUseCase,
     );
 
@@ -107,6 +108,7 @@ describe('SaveEventExpenseV2UseCase', () => {
       },
       output: success({
         id: expect.any(String),
+        version: 1,
         eventId: 'event-1',
         currencyId: 'currency-usd',
         description: 'Lunch at restaurant',
@@ -125,6 +127,7 @@ describe('SaveEventExpenseV2UseCase', () => {
           inserted: [
             {
               id: expect.any(String),
+              version: 1,
               eventId: 'event-1',
               currencyId: 'currency-usd',
               description: 'Lunch at restaurant',
@@ -196,6 +199,7 @@ describe('SaveEventExpenseV2UseCase', () => {
       },
       output: success({
         id: expect.any(String),
+        version: 1,
         eventId: 'event-1',
         currencyId: 'currency-eur',
         description: 'Lunch in EUR',
@@ -214,6 +218,7 @@ describe('SaveEventExpenseV2UseCase', () => {
           inserted: [
             {
               id: expect.any(String),
+              version: 1,
               eventId: 'event-1',
               currencyId: 'currency-eur',
               description: 'Lunch in EUR',
@@ -286,6 +291,7 @@ describe('SaveEventExpenseV2UseCase', () => {
       },
       output: success({
         id: expect.any(String),
+        version: 1,
         eventId: 'event-1',
         currencyId: 'currency-eur',
         description: 'Lunch in EUR with custom rate',
@@ -304,6 +310,7 @@ describe('SaveEventExpenseV2UseCase', () => {
           inserted: [
             {
               id: expect.any(String),
+              version: 1,
               eventId: 'event-1',
               currencyId: 'currency-eur',
               description: 'Lunch in EUR with custom rate',
@@ -385,6 +392,7 @@ describe('SaveEventExpenseV2UseCase', () => {
           inserted: [
             {
               id: expect.any(String),
+              version: 1,
               eventId: 'event-1',
               currencyId: 'currency-eur',
               description: 'Old dinner',

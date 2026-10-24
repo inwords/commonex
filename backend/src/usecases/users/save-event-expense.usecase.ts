@@ -24,7 +24,7 @@ import {
   IdempotentInput,
 } from '#usecases/shared/idempotency.usecase';
 
-type InputCore = Omit<IExpense, 'createdAt' | 'id' | 'updatedAt'> & Partial<Pick<IExpense, 'createdAt'>>;
+type InputCore = Omit<IExpense, 'createdAt' | 'id' | 'version' | 'updatedAt'> & Partial<Pick<IExpense, 'createdAt'>>;
 type Input = InputCore & IdempotentInput;
 type Output = Result<
   IExpense,

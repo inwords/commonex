@@ -7,6 +7,7 @@ Use these docs as the primary starting points for repo-wide knowledge:
 - [agent-workflows.md](agent-workflows.md) - The default Architect -> Plan -> Code -> Evaluate -> Review -> Refine -> Report workflow for non-trivial tasks.
 - [../infra/CONTEXT.md](../infra/CONTEXT.md) - Canonical production-delivery language for releases, activations, retained releases, and deployments.
 - [adr/0001-use-namespaced-production-host-layout.md](adr/0001-use-namespaced-production-host-layout.md) - Accepted ownership and lifecycle layout for production-host files.
+- [adr/0003-append-only-expense-corrections.md](adr/0003-append-only-expense-corrections.md) - RFC for append-only expense versions and client sync.
 
 ## Documentation Topology
 

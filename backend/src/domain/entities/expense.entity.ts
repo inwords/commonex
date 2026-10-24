@@ -5,6 +5,7 @@ export enum ExpenseType {
 
 export interface IExpense {
   id: string;
+  version: number;
   description: string;
   userWhoPaidId: string;
   currencyId: string;
