@@ -10,7 +10,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.inwords.expenses.core.ui.design.preview.ComponentPreviews
 import com.inwords.expenses.core.ui.design.theme.CommonExTheme
@@ -22,8 +21,8 @@ fun OutlinedButtonWithText(
     text: String,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    minHeight: Dp = ButtonDefaults.MinHeight,
 ) {
+    val minHeight = ButtonDefaults.MediumContainerHeight
     OutlinedButton(
         onClick = onClick,
         shapes = ButtonDefaults.shapes(),
@@ -61,22 +60,6 @@ private fun OutlinedButtonWithTextEnabledPreview() {
                 onClick = {},
                 text = "Add expense",
                 enabled = true,
-            )
-        }
-    }
-}
-
-@Preview(name = "Medium", widthDp = 360)
-@Composable
-private fun OutlinedButtonWithTextMediumEnabledPreview() {
-    CommonExTheme {
-        Surface {
-            OutlinedButtonWithText(
-                modifier = Modifier.padding(16.dp),
-                onClick = {},
-                text = "Add expense",
-                enabled = true,
-                minHeight = ButtonDefaults.MediumContainerHeight
             )
         }
     }

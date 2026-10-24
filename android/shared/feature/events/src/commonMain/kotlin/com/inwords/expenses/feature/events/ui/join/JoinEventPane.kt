@@ -17,13 +17,11 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -36,6 +34,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.inwords.expenses.core.ui.design.appbar.TopAppBarWithNavIconAndText
 import com.inwords.expenses.core.ui.design.button.ButtonWithIconAndText
+import com.inwords.expenses.core.ui.design.button.TextButtonWithText
 import com.inwords.expenses.core.ui.design.preview.ScreenPreviews
 import com.inwords.expenses.core.ui.design.theme.CommonExTheme
 import com.inwords.expenses.feature.events.ui.common.EventAccessCodeField
@@ -133,7 +132,6 @@ internal fun JoinEventPane(
                     enabled = !joining && state.eventId.isNotBlank() && state.eventAccessCode.isNotBlank(),
                     text = stringResource(Res.string.events_join_event_button),
                     imageVector = Icons.AutoMirrored.Outlined.ArrowForward,
-                    minHeight = ButtonDefaults.MediumContainerHeight,
                 )
                 if (joining) {
                     Row(
@@ -149,13 +147,12 @@ internal fun JoinEventPane(
                         )
                     }
                 }
-                TextButton(
+                TextButtonWithText(
                     onClick = onUseInvitationClicked,
                     enabled = !joining,
                     modifier = Modifier.fillMaxWidth().testTag("events_join_use_invitation"),
-                ) {
-                    Text(stringResource(Res.string.events_join_link_action))
-                }
+                    text = stringResource(Res.string.events_join_link_action),
+                )
             }
         }
     }

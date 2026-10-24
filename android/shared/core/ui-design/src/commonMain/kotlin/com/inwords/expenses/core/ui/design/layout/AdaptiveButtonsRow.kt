@@ -4,8 +4,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.Layout
@@ -14,6 +12,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.constrainHeight
 import androidx.compose.ui.unit.dp
 import com.inwords.expenses.core.ui.design.button.ButtonWithIconAndText
+import com.inwords.expenses.core.ui.design.button.TextButtonWithText
 import com.inwords.expenses.core.ui.design.preview.ComponentPreviews
 import com.inwords.expenses.core.ui.design.theme.CommonExTheme
 
@@ -67,7 +66,7 @@ private fun AdaptiveButtonsRowPreview() {
                 verticalSpacing = 8.dp,
             ) {
                 ButtonWithIconAndText(onClick = {}, text = "Create a group", imageVector = Icons.Outlined.Add)
-                TextButton(onClick = {}) { Text("Join a group") }
+                TextButtonWithText(onClick = {}, text = "Join a group")
             }
         }
     }

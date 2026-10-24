@@ -153,7 +153,6 @@ internal fun MenuDialog(
                             enabled = eventSharing.shareState.canShare,
                             text = shareLabel,
                             imageVector = Icons.Outlined.Share,
-                            minHeight = buttonHeight,
                         )
                         FilledTonalButton(
                             modifier = Modifier.heightIn(min = buttonHeight)

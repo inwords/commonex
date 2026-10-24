@@ -21,7 +21,6 @@ import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Check
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -230,7 +229,6 @@ internal fun CreateEventPane(
                         enabled = state.isConfirmEnabled,
                         text = stringResource(Res.string.events_create_event_button),
                         imageVector = Icons.Outlined.Check,
-                        minHeight = ButtonDefaults.MediumContainerHeight,
                     )
                 }
             }

@@ -17,12 +17,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -37,6 +35,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.inwords.expenses.core.ui.design.appbar.TopAppBarWithNavIconAndText
 import com.inwords.expenses.core.ui.design.button.ButtonWithIconAndText
+import com.inwords.expenses.core.ui.design.button.TextButtonWithText
 import com.inwords.expenses.core.ui.design.preview.ScreenPreviews
 import com.inwords.expenses.core.ui.design.theme.CommonExTheme
 import expenses.shared.feature.events.generated.resources.Res
@@ -129,14 +128,12 @@ internal fun JoinInvitationPane(
                     enabled = state.invitation.isNotBlank() && !state.isInvitationInvalid,
                     text = stringResource(Res.string.events_join_event_button),
                     imageVector = Icons.AutoMirrored.Outlined.ArrowForward,
-                    minHeight = ButtonDefaults.MediumContainerHeight,
                 )
-                TextButton(
+                TextButtonWithText(
                     onClick = onEnterCodeClicked,
                     modifier = Modifier.fillMaxWidth().testTag("events_join_manual"),
-                ) {
-                    Text(stringResource(Res.string.events_join_manual_action))
-                }
+                    text = stringResource(Res.string.events_join_manual_action),
+                )
             }
         }
     }

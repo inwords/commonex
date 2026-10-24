@@ -29,7 +29,6 @@ import androidx.compose.material.icons.automirrored.outlined.List
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Person
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -166,7 +165,6 @@ internal fun AddExpensePane(
                                 ),
                                 imageVector = Icons.Outlined.Check,
                                 enabled = successData.canSave,
-                                minHeight = ButtonDefaults.MediumContainerHeight,
                             )
                         }
                     }
