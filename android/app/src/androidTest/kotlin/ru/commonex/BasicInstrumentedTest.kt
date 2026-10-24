@@ -4,7 +4,8 @@ import android.content.ClipboardManager
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.ui.test.junit4.ComposeTestRule
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
+import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.inwords.expenses.feature.expenses.domain.ExpenseTimeBackdoor
@@ -62,6 +63,7 @@ class BasicInstrumentedTest {
         // Create event and add participants
         val eventName = "UI Test Event"
         val expensesScreen = LocalEventsScreen()
+            .waitUntilLoaded()
             .clickCreateEvent()
             .enterEventName(eventName)
             .openCurrencyPicker()
@@ -239,6 +241,7 @@ class BasicInstrumentedTest {
         val description = "Custom dinner"
         val repaymentDescription = getString(ExpensesRes.string.expenses_repayment_from, "Test User 1")
         LocalEventsScreen()
+            .waitUntilLoaded()
             .clickCreateEvent()
             .enterEventName("Custom split and repayment")
             .openCurrencyPicker()
@@ -356,6 +359,7 @@ class BasicInstrumentedTest {
     @Test
     fun testJoinExistingEvent() = composeRule.runTest {
         LocalEventsScreen()
+            .waitUntilLoaded()
             .clickJoinEvent()
             .openManualEntry()
             .joinEvent("01JYC8BX30EKQYWBRTPKVX6S26", Base64.decode("NTc=").decodeToString() + Base64.decode("NTQ=").decodeToString()) // FIXME: costyl
@@ -365,22 +369,22 @@ class BasicInstrumentedTest {
     }
 
     /**
-     * Tests deeplink auto-join with secure token:
+     * Tests cold-start deeplink auto-join with secure token:
      * - Create event
      * - Copy share link (token) from menu
      * - Remove local event copy
-     * - Open deeplink and verify auto-join flow
+     * - Close the activity and dispatch the deeplink through Android's ACTION_VIEW route
+     * - Verify the newly launched activity auto-joins the matching event
      */
     @Test
-    fun testDeeplinkJoinWithShareToken() = composeRule.runTest {
+    fun testColdStartDeeplinkJoinWithShareToken() = composeRule.runTest {
         val eventName = "Deeplink token event"
 
         createLocalEvent(eventName)
 
         val menu = ExpensesScreen().openMenu()
             .waitUntilCopyEnabled()
-            .clickCopyShareLink() // wait for event to be synced
-        val shareUrl = waitForShareUrl(expectedParam = "token")
+        val shareUrl = copyShareUrl(expectedParam = "token", eventName = eventName)
 
         menu
             .openEventsList()
@@ -388,13 +392,14 @@ class BasicInstrumentedTest {
             .clickDeleteLocalOnly()
             .assertEventNotExists(eventName)
 
-        triggerActivityOnNewIntent(shareUrl)
-
-        ChoosePersonScreen()
-            .waitUntilLoaded("Test User 1")
-            .selectPerson("Test User 1")
-            .waitUntilLoadedEmpty()
-            .verifyCurrentPersonInEmptyEvent(eventName, "Test User 1")
+        composeRule.activityRule.scenario.close()
+        ActivityScenario.launch<MainActivity>(deepLinkIntent(shareUrl)).use {
+            ChoosePersonScreen()
+                .waitUntilLoaded("Test User 1")
+                .selectPerson("Test User 1")
+                .waitUntilLoadedEmpty()
+                .verifyCurrentPersonInEmptyEvent(eventName, "Test User 1")
+        }
     }
 
     /**
@@ -410,15 +415,13 @@ class BasicInstrumentedTest {
 
         createLocalEvent(eventName)
 
-        val menu = ExpensesScreen().openMenu()
+        ExpensesScreen().openMenu()
             .waitUntilCopyEnabled() // wait for event to be synced
 
         val shareUrl = try {
             ConnectivityManager.turnOffDataAndWifi()
 
-            menu.clickCopyShareLink()
-
-            waitForShareUrl(expectedParam = "pinCode")
+            copyShareUrl(expectedParam = "pinCode", eventName = eventName)
         } finally {
             ConnectivityManager.turnOnDataAndWifi()
         }
@@ -429,13 +432,99 @@ class BasicInstrumentedTest {
             .clickDeleteLocalOnly()
             .assertEventNotExists(eventName)
 
-        triggerActivityOnNewIntent(shareUrl)
+        openDeepLink(shareUrl)
 
         ChoosePersonScreen()
             .waitUntilLoaded("Test User 1")
             .selectPerson("Test User 1")
             .waitUntilLoadedEmpty()
             .verifyCurrentPersonInEmptyEvent(eventName, "Test User 1")
+    }
+
+    /**
+     * Tests an offline expense surviving activity recreation and syncing after reconnection:
+     * - Create a shared event and copy its invitation through the UI
+     * - Go offline, add an equal-split expense, and recreate the activity
+     * - Verify the persisted expense amount, payer, and splits while still offline
+     * - Reconnect and pull to refresh, waiting for the visible refresh cycle to finish
+     * - Remove the local event copy and rejoin through the invitation
+     * - Verify the recovered remote expense and exact group total through the UI
+     */
+    @Test
+    fun testOfflineExpenseSurvivesRecreationAndSyncsAfterReconnect() = composeRule.runTest {
+        val eventName = "Offline expense recovery"
+        val description = "Offline groceries"
+
+        LocalEventsScreen()
+            .waitUntilLoaded()
+            .clickCreateEvent()
+            .enterEventName(eventName)
+            .openCurrencyPicker()
+            .selectCurrency("Euro")
+            .enterOwnerName("Test User 1")
+            .addParticipant(index = 0, name = "Test User 2")
+            .createEvent()
+            .waitUntilLoadedEmpty()
+            .openMenu()
+            .waitUntilCopyEnabled()
+        val shareUrl = copyShareUrl(expectedParam = "token", eventName = eventName)
+
+        MenuDialogScreen()
+            .openEventsList()
+            .clickEvent(eventName)
+            .selectPerson("Test User 1")
+            .waitUntilLoadedEmpty()
+
+        try {
+            ConnectivityManager.turnOffDataAndWifi()
+
+            ExpensesScreen()
+                .clickAddExpense()
+                .enterDescription(description)
+                .enterAmount("48")
+                .clickConfirm()
+                .verifyExpenseExists(description)
+
+            recreateActivity()
+
+            ExpensesScreen()
+                .clickOnExpense(description)
+                .waitUntilLoaded()
+                .verifyDescription(description)
+                .verifyTotalAmount("-48 EUR")
+                .verifySplitAmount("Test User 1", "-24 EUR")
+                .verifySplitAmount("Test User 2", "-24 EUR")
+                .toggleOperationDetails()
+                .verifyPaidBy("Test User 1")
+                .dismissPane()
+        } finally {
+            ConnectivityManager.turnOnDataAndWifi()
+        }
+
+        ExpensesScreen()
+            .refreshAndWaitUntilFinished()
+            .openMenu()
+            .openEventsList()
+            .swipeToRevealActions(eventName)
+            .clickDeleteLocalOnly()
+            .assertEventNotExists(eventName)
+            .assertWelcomeVisible()
+
+        openDeepLink(shareUrl)
+
+        ChoosePersonScreen()
+            .waitUntilLoaded("Test User 1")
+            .selectPerson("Test User 1")
+            .verifyExpenseExists(description)
+            .verifyTotalSpending("48 EUR")
+            .clickOnExpense(description)
+            .waitUntilLoaded()
+            .verifyDescription(description)
+            .verifyTotalAmount("-48 EUR")
+            .verifySplitAmount("Test User 1", "-24 EUR")
+            .verifySplitAmount("Test User 2", "-24 EUR")
+            .toggleOperationDetails()
+            .verifyPaidBy("Test User 1")
     }
 
     /**
@@ -545,7 +634,7 @@ class BasicInstrumentedTest {
 
     /**
      * Tests "Delete everywhere" flow for synced events:
-     * - Create event (automatically syncs)
+     * - Create event and wait until the share action is enabled after sync
      * - Delete using "Delete everywhere" option
      * - Confirm in dialog
      */
@@ -557,6 +646,7 @@ class BasicInstrumentedTest {
 
         ExpensesScreen()
             .openMenu()
+            .waitUntilCopyEnabled()
             .openEventsList()
             .swipeToRevealActions(eventName)
             .clickDeleteEverywhere()
@@ -568,7 +658,7 @@ class BasicInstrumentedTest {
 
     /**
      * Tests canceling "Delete everywhere" via dialog:
-     * - Create synced event
+     * - Create event and wait until the share action is enabled after sync
      * - Start delete but cancel in dialog
      * - Verify event still exists
      */
@@ -580,6 +670,7 @@ class BasicInstrumentedTest {
 
         ExpensesScreen()
             .openMenu()
+            .waitUntilCopyEnabled()
             .openEventsList()
             .swipeToRevealActions(eventName)
             .clickDeleteEverywhere()
@@ -663,6 +754,7 @@ class BasicInstrumentedTest {
         val expenseDescription = "Restored currency expense"
 
         LocalEventsScreen()
+            .waitUntilLoaded()
             .clickCreateEvent()
             .enterEventName(eventName)
             .enterOwnerName("Test User 1")
@@ -724,8 +816,9 @@ class BasicInstrumentedTest {
     }
 
     context(rule: ComposeTestRule)
-    private suspend fun createLocalEvent(eventName: String): ExpensesScreen {
+    private fun createLocalEvent(eventName: String): ExpensesScreen {
         return LocalEventsScreen()
+            .waitUntilLoaded()
             .clickCreateEvent()
             .enterEventName(eventName)
             .openCurrencyPicker()
@@ -736,7 +829,7 @@ class BasicInstrumentedTest {
     }
 
     context(rule: ComposeTestRule)
-    private suspend fun addExpensesForCurrencies(currencies: List<CurrencyTestModel>) {
+    private fun addExpensesForCurrencies(currencies: List<CurrencyTestModel>) {
         currencies.forEachIndexed { currencyIndex, currency ->
             val description = "Expense ${currency.name} ${currencyIndex + 1}"
             val amount = (currencyIndex + 1) * 10
@@ -850,16 +943,21 @@ class BasicInstrumentedTest {
     }
 
     context(rule: ComposeTestRule)
-    private fun waitForShareUrl(expectedParam: String, timeoutMs: Long = 10000): String {
+    private suspend fun copyShareUrl(expectedParam: String, eventName: String, timeoutMs: Long = 10000): String {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val clipboard = context.getSystemService(ClipboardManager::class.java)
+        val previousText = clipboard.primaryClip?.getItemAt(0)?.coerceToText(context)?.toString()
+
+        MenuDialogScreen().clickCopyShareLink()
 
         var shareUrl: String? = null
         rule.waitUntil(timeoutMillis = timeoutMs) {
             val text = clipboard.primaryClip
                 ?.getItemAt(0)
                 ?.coerceToText(context)
+                ?.toString()
                 ?: return@waitUntil false
+            if (text == previousText || !text.contains(eventName)) return@waitUntil false
 
             val match = shareUrlRegex.find(text)
             if (match != null && match.groupValues[1] == expectedParam) {
@@ -871,16 +969,21 @@ class BasicInstrumentedTest {
         }
 
         return requireNotNull(shareUrl) {
-            "Clipboard did not contain share URL with $expectedParam within ${timeoutMs}ms"
+            "Clipboard did not contain a newly copied share URL for '$eventName' with $expectedParam within ${timeoutMs}ms"
         }
     }
 
-    private fun triggerActivityOnNewIntent(url: String) {
-        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
-            addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
-        }
-        composeRule.activityRule.scenario.onActivity {
-            it.onNewIntent(intent)
+    private fun openDeepLink(url: String) {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        context.startActivity(deepLinkIntent(url))
+    }
+
+    private fun deepLinkIntent(url: String): Intent {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        return Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
+            addCategory(Intent.CATEGORY_BROWSABLE)
+            setPackage(context.packageName)
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
         }
     }
 

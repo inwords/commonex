@@ -93,7 +93,8 @@ internal class EventExpensesPullTaskTest {
     fun `pullEventExpenses inserts only missing remote expenses`() = runTest {
         val localDetails = eventDetails()
         val existingExpense = expense(expenseId = 1L, serverId = "srv-1")
-        val newExpense = expense(expenseId = 2L, serverId = "srv-2")
+        val newExpense = expense(expenseId = 0L, serverId = "srv-2")
+        val existingRemoteExpense = existingExpense.copy(expenseId = 0L, description = "remote copy")
         coEvery { eventsLocalStore.getEventWithDetails(localDetails.event.id) } returns localDetails
         coEvery {
             expensesRemoteStore.getExpenses(
@@ -101,7 +102,7 @@ internal class EventExpensesPullTaskTest {
                 currencies = localDetails.currencies,
                 persons = localDetails.persons,
             )
-        } returns IoResult.Success(listOf(existingExpense.copy(description = "remote copy"), newExpense))
+        } returns IoResult.Success(listOf(existingRemoteExpense, newExpense))
         coEvery { expensesLocalStore.getExpenses(localDetails.event.id) } returns listOf(existingExpense)
         coEvery { expensesLocalStore.upsert(localDetails.event, listOf(newExpense)) } returns listOf(newExpense)
 
@@ -109,6 +110,7 @@ internal class EventExpensesPullTaskTest {
 
         assertEquals(IoResult.Success(Unit), result)
         coVerify(exactly = 1) { expensesLocalStore.upsert(localDetails.event, listOf(newExpense)) }
+        coVerify(exactly = 1) { expensesLocalStore.upsert(localDetails.event, any<List<Expense>>()) }
     }
 
     @Test

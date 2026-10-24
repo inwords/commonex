@@ -98,6 +98,6 @@ class EventExpensesPushTask internal constructor(
             }
         }
 
-        IoResult.Success(Unit)
+        if (networkResults.any { it is IoResult.Error.Retry }) IoResult.Error.Retry else IoResult.Success(Unit)
     }
 }

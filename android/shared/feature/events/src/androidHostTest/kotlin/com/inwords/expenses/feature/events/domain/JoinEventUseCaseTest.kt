@@ -1,6 +1,7 @@
 package com.inwords.expenses.feature.events.domain
 
 import com.inwords.expenses.core.storage.utils.TransactionHelper
+import com.inwords.expenses.core.utils.IoResult
 import com.inwords.expenses.feature.events.domain.model.Currency
 import com.inwords.expenses.feature.events.domain.model.Event
 import com.inwords.expenses.feature.events.domain.model.EventDetails
@@ -18,6 +19,8 @@ import io.mockk.mockk
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
@@ -81,8 +84,11 @@ internal class JoinEventUseCaseTest {
         val result = useCase.joinEvent("ev-1", "1234", null)
 
         val newCurrentEvent = assertIs<JoinEventUseCase.JoinEventResult.NewCurrentEvent>(result)
-        assert(newCurrentEvent.event.event.id == 1L)
+        assertEquals(eventDetails, newCurrentEvent.event)
         coVerify(exactly = 1) { settingsRepository.setCurrentEventId(1L) }
+        coVerify(exactly = 0) { eventsRemoteStore.getEventByAccessCode(any(), any(), any(), any(), any()) }
+        coVerify(exactly = 0) { eventsRemoteStore.getEventByToken(any(), any(), any(), any(), any()) }
+        coVerify(exactly = 0) { currenciesPullTask.pullCurrencies() }
     }
 
     @Test
@@ -144,6 +150,8 @@ internal class JoinEventUseCaseTest {
 
     @Test
     fun joinEvent_whenRemoteSuccess_insertsAndReturnsNewCurrentEvent() = runTest {
+        val remoteDetails = eventDetails.copy(event = event.copy(id = 0L))
+        val insertedDetails = eventDetails.copy(event = event.copy(id = 55L))
         coEvery { eventsLocalStore.getEventWithDetailsByServerId("ev-1") } returns null
         coEvery { currenciesLocalStore.getCurrencies() } returns flowOf(listOf(currency))
         coEvery {
@@ -154,13 +162,98 @@ internal class JoinEventUseCaseTest {
                 currencies = any(),
                 localPersons = any(),
             )
-        } returns GetEventResult.Event(eventDetails)
-        coEvery { transactionHelper.immediateWriteTransaction<EventDetails>(any()) } returns eventDetails
-        coEvery { settingsRepository.setCurrentEventId(1L) } returns Unit
+        } returns GetEventResult.Event(remoteDetails)
+        coEvery {
+            eventsLocalStore.deepInsert(remoteDetails.event, remoteDetails.persons, remoteDetails.currencies, false)
+        } returns insertedDetails
+        coEvery { transactionHelper.immediateWriteTransaction<EventDetails>(any()) } coAnswers {
+            val inserted = firstArg<suspend () -> EventDetails>().invoke()
+            coVerify(exactly = 0) { settingsRepository.setCurrentEventId(any()) }
+            inserted
+        }
 
         val result = useCase.joinEvent("ev-1", "1234", null)
 
-        val _ = assertIs<JoinEventUseCase.JoinEventResult.NewCurrentEvent>(result)
-        coVerify(exactly = 1) { settingsRepository.setCurrentEventId(1L) }
+        assertEquals(JoinEventUseCase.JoinEventResult.NewCurrentEvent(insertedDetails), result)
+        coVerify(exactly = 1) {
+            eventsLocalStore.deepInsert(remoteDetails.event, remoteDetails.persons, remoteDetails.currencies, false)
+        }
+        coVerify(exactly = 1) { settingsRepository.setCurrentEventId(55L) }
+    }
+
+    @Test
+    fun joinEvent_requiresExactlyOneCredentialBeforeAnySideEffects() = runTest {
+        listOf(null to null, "1234" to "token").forEach { (accessCode, token) ->
+            assertFailsWith<IllegalArgumentException> { useCase.joinEvent("ev-1", accessCode, token) }
+        }
+
+        coVerify(exactly = 0) { eventsLocalStore.getEventWithDetailsByServerId(any()) }
+        coVerify(exactly = 0) { settingsRepository.setCurrentEventId(any()) }
+    }
+
+    @Test
+    fun joinEvent_whenRequiredCurrencySyncFails_keepsSelectionAndSkipsRemoteJoin() = runTest {
+        coEvery { eventsLocalStore.getEventWithDetailsByServerId("ev-1") } returns null
+        val incompleteCurrencies = listOf(emptyList(), listOf(currency.copy(serverId = null)))
+        incompleteCurrencies.forEach { currencies ->
+            coEvery { currenciesLocalStore.getCurrencies() } returns flowOf(currencies)
+            listOf(IoResult.Error.Retry, IoResult.Error.Failure).forEach { error ->
+                coEvery { currenciesPullTask.pullCurrencies() } returns error
+
+                assertEquals(JoinEventUseCase.JoinEventResult.Error.OtherError, useCase.joinEvent("ev-1", null, "token"))
+            }
+        }
+
+        coVerify(exactly = 0) { eventsRemoteStore.getEventByAccessCode(any(), any(), any(), any(), any()) }
+        coVerify(exactly = 0) { eventsRemoteStore.getEventByToken(any(), any(), any(), any(), any()) }
+        coVerify(exactly = 0) { eventsLocalStore.deepInsert(any(), any(), any(), any()) }
+        coVerify(exactly = 0) { settingsRepository.setCurrentEventId(any()) }
+    }
+
+    @Test
+    fun joinEvent_whenCurrencySyncCompletes_usesSyncedCurrenciesForTokenJoin() = runTest {
+        coEvery { eventsLocalStore.getEventWithDetailsByServerId("ev-1") } returns null
+        coEvery { currenciesLocalStore.getCurrencies() } returns flowOf(listOf(currency.copy(serverId = null)))
+        coEvery { currenciesPullTask.pullCurrencies() } returns IoResult.Success(listOf(currency))
+        coEvery {
+            eventsRemoteStore.getEventByToken(0L, "ev-1", "token", listOf(currency), null)
+        } returns GetEventResult.Event(eventDetails)
+        coEvery {
+            eventsLocalStore.deepInsert(eventDetails.event, eventDetails.persons, eventDetails.currencies, false)
+        } returns eventDetails
+        coEvery { transactionHelper.immediateWriteTransaction<EventDetails>(any()) } coAnswers {
+            firstArg<suspend () -> EventDetails>().invoke()
+        }
+
+        val result = useCase.joinEvent("ev-1", null, "token")
+
+        assertEquals(JoinEventUseCase.JoinEventResult.NewCurrentEvent(eventDetails), result)
+        coVerify(exactly = 1) { eventsRemoteStore.getEventByToken(0L, "ev-1", "token", listOf(currency), null) }
+        coVerify(exactly = 0) { eventsRemoteStore.getEventByAccessCode(any(), any(), any(), any(), any()) }
+        coVerify(exactly = 1) { settingsRepository.setCurrentEventId(event.id) }
+    }
+
+    @Test
+    fun joinEvent_whenRemoteRejectsToken_preservesSelectionAndCleansUpOnlyGoneEvents() = runTest {
+        coEvery { eventsLocalStore.getEventWithDetailsByServerId("ev-1") } returns null
+        coEvery { currenciesLocalStore.getCurrencies() } returns flowOf(listOf(currency))
+        val errors = listOf(
+            EventsRemoteStore.EventNetworkError.TokenExpired to JoinEventUseCase.JoinEventResult.Error.TokenExpired,
+            EventsRemoteStore.EventNetworkError.OtherError to JoinEventUseCase.JoinEventResult.Error.OtherError,
+            EventsRemoteStore.EventNetworkError.Gone to JoinEventUseCase.JoinEventResult.Error.EventNotFound,
+        )
+        errors.forEach { (networkError, expected) ->
+            coEvery {
+                eventsRemoteStore.getEventByToken(0L, "ev-1", "token", listOf(currency), null)
+            } returns GetEventResult.Error(networkError)
+
+            assertEquals(expected, useCase.joinEvent("ev-1", null, "token"))
+            coVerify(exactly = if (networkError == EventsRemoteStore.EventNetworkError.Gone) 1 else 0) {
+                deleteEventUseCase.deleteLocalEventByServerId("ev-1")
+            }
+        }
+
+        coVerify(exactly = 0) { settingsRepository.setCurrentEventId(any()) }
+        coVerify(exactly = 0) { eventsLocalStore.deepInsert(any(), any(), any(), any()) }
     }
 }

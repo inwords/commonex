@@ -93,7 +93,7 @@ internal class CreateEventViewModelTest {
             assertEquals("  Weekend trip  ", state.eventName)
             assertEquals("Alex", state.ownerName)
             assertEquals(listOf("Sam", "Jo"), state.persons)
-            assertTrue(state.currencies.single { it.selected }.currencyCode == "EUR")
+            assertEquals("EUR", state.currencies.single { it.selected }.currencyCode)
             assertEquals("EUR", state.selectedCurrencyCode)
             assertTrue(state.isConfirmEnabled)
             cancelAndIgnoreRemainingEvents()

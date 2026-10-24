@@ -60,7 +60,6 @@ internal class ExpensesTimelineUiModelFactoryTest {
     fun `create groups operations by local day and preserves ordered input`() = runTest {
         val state = createFactory(
             timeZone = TimeZone.UTC,
-            now = "2026-03-28T12:00:00Z",
         ).create(
             expensesDetails = expensesDetails(
                 expenses = listOf(
@@ -101,7 +100,6 @@ internal class ExpensesTimelineUiModelFactoryTest {
     fun `create hides day total when the day has only replenishments`() = runTest {
         val state = createFactory(
             timeZone = TimeZone.UTC,
-            now = "2026-03-28T12:00:00Z",
         ).create(
             expensesDetails = expensesDetails(
                 expenses = listOf(
@@ -125,7 +123,6 @@ internal class ExpensesTimelineUiModelFactoryTest {
     fun `create total spending excludes replenishments`() = runTest {
         val state = createFactory(
             timeZone = TimeZone.UTC,
-            now = "2026-03-28T12:00:00Z",
         ).create(
             expensesDetails = expensesDetails(
                 expenses = listOf(
@@ -165,7 +162,6 @@ internal class ExpensesTimelineUiModelFactoryTest {
     fun `create uses today yesterday and cross year chip labels`() = runTest {
         val state = createFactory(
             timeZone = TimeZone.UTC,
-            now = "2026-03-28T12:00:00Z",
         ).create(
             expensesDetails = expensesDetails(
                 expenses = listOf(
@@ -204,7 +200,6 @@ internal class ExpensesTimelineUiModelFactoryTest {
     fun `create groups by local day around midnight`() = runTest {
         val state = createFactory(
             timeZone = TimeZone.of("Europe/Belgrade"),
-            now = "2026-03-28T12:00:00Z",
         ).create(
             expensesDetails = expensesDetails(
                 expenses = listOf(
@@ -259,7 +254,6 @@ internal class ExpensesTimelineUiModelFactoryTest {
 
         val state = createFactory(
             timeZone = TimeZone.UTC,
-            now = "2026-03-28T12:00:00Z",
         ).create(
             expensesDetails = details,
             currentPersonId = currentPerson.id,
@@ -273,7 +267,6 @@ internal class ExpensesTimelineUiModelFactoryTest {
     fun `create total debt is zero when only others owe current person`() = runTest {
         val state = createFactory(
             timeZone = TimeZone.UTC,
-            now = "2026-03-28T12:00:00Z",
         ).create(
             expensesDetails = expensesDetails(
                 expenses = listOf(
@@ -295,7 +288,6 @@ internal class ExpensesTimelineUiModelFactoryTest {
 
     private fun createFactory(
         timeZone: TimeZone,
-        now: String,
     ): ExpensesTimelineUiModelFactory {
         var stringRequestCount = 0
         return ExpensesTimelineUiModelFactory(
@@ -314,7 +306,7 @@ internal class ExpensesTimelineUiModelFactoryTest {
             },
             timeZoneProvider = { timeZone },
             localeProvider = { Locale("en") },
-            nowProvider = { Instant.parse(now) },
+            nowProvider = { Instant.parse("2026-03-28T12:00:00Z") },
         )
     }
 

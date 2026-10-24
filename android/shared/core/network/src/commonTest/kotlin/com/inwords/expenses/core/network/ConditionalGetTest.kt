@@ -1,5 +1,7 @@
 package com.inwords.expenses.core.network
 
+import com.inwords.expenses.core.utils.IoResult
+import com.inwords.expenses.core.utils.SuspendLazy
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
 import io.ktor.client.plugins.ClientRequestException
@@ -131,6 +133,42 @@ internal class ConditionalGetTest {
                         pathSegments = listOf("api", "v3", "user", "currencies", "all")
                     }
                 }
+            }
+        }
+    }
+
+    @Test
+    fun `getConditional maps unavailable and redirected resources to retryable failures`() = runTest {
+        listOf(HttpStatusCode.ServiceUnavailable, HttpStatusCode.TemporaryRedirect).forEach { status ->
+            val client = createKtor(MockEngine) {
+                engine {
+                    addHandler { request ->
+                        assertEquals("\"rates-v1\"", request.headers[HttpHeaders.IfNoneMatch])
+                        respond(
+                            content = "Unavailable",
+                            status = status,
+                            headers = headersOf(HttpHeaders.ContentType, ContentType.Text.Plain.toString()),
+                        )
+                    }
+                }
+            }
+
+            client.use { httpClient ->
+                val result = SuspendLazy { httpClient }.requestWithExceptionHandling {
+                    getConditional<JsonObject>("\"rates-v1\"") {
+                        url {
+                            protocol = URLProtocol.HTTPS
+                            host = "commonex.test"
+                            pathSegments = listOf("currencies")
+                        }
+                    }
+                }
+
+                when (status) {
+                    HttpStatusCode.ServiceUnavailable -> assertIs<NetworkResult.Error.Http.Server>(result)
+                    else -> assertIs<NetworkResult.Error.Http.Redirect>(result)
+                }
+                assertEquals(IoResult.Error.Retry, result.toIoResult())
             }
         }
     }

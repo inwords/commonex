@@ -238,7 +238,6 @@ private class CancellableByteReadChannel(
     }
 }
 
-@OptIn(InternalAPI::class)
 private fun UrlResponseInfo.toHttpResponseData(
     method: HttpMethod,
     attributes: Attributes,

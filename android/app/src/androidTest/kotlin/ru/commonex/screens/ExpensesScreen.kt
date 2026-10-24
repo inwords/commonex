@@ -1,6 +1,9 @@
 package ru.commonex.screens
 
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasAnyAncestor
@@ -15,14 +18,18 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.test.performScrollToKey
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeDown
 import com.inwords.expenses.feature.expenses.ui.list.ExpensesPaneTags
 import expenses.shared.feature.events.generated.resources.events_info_identity
 import expenses.shared.feature.expenses.generated.resources.Res
 import expenses.shared.feature.expenses.generated.resources.expenses_all_balances
 import expenses.shared.feature.expenses.generated.resources.expenses_first_identity
 import expenses.shared.feature.expenses.generated.resources.expenses_revert_description
+import expenses.shared.feature.expenses.generated.resources.expenses_total_spent
 import expenses.shared.feature.expenses.generated.resources.expenses_you_owe_nothing
 import org.jetbrains.compose.resources.getString
+import org.junit.Assert.assertEquals
 import kotlin.math.abs
 import expenses.shared.feature.events.generated.resources.Res as EventsRes
 
@@ -110,6 +117,19 @@ internal class ExpensesScreen : BaseScreen() {
         return this
     }
 
+    @OptIn(ExperimentalTestApi::class)
+    context(rule: ComposeTestRule)
+    fun refreshAndWaitUntilFinished(): ExpensesScreen {
+        val refreshing = SemanticsMatcher.expectValue(SemanticsProperties.ProgressBarRangeInfo, ProgressBarRangeInfo.Indeterminate)
+        rule.onNodeWithTag(ExpensesPaneTags.TIMELINE_LIST)
+            .performScrollToIndex(0)
+            .performTouchInput { swipeDown(startY = height * 0.5f, endY = height * 0.9f, durationMillis = 600) }
+        waitForElement(refreshing)
+        rule.onNode(refreshing).assertIsDisplayed()
+        rule.waitUntilDoesNotExist(refreshing, timeoutMillis = 15_000)
+        return this
+    }
+
     context(rule: ComposeTestRule)
     fun verifyPersonalDebt(personName: String, amount: String): ExpensesScreen {
         waitForElementWithText(amount)
@@ -140,16 +160,13 @@ internal class ExpensesScreen : BaseScreen() {
     }
 
     context(rule: ComposeTestRule)
-    fun verifyTotalSpending(totalSpending: String): ExpensesScreen {
-        val amountPart = totalSpending.substringBefore(' ').trim()
-        val currencyPart = totalSpending.substringAfterLast(' ').trim()
+    suspend fun verifyTotalSpending(totalSpending: String): ExpensesScreen {
+        val expectedLabel = getString(Res.string.expenses_total_spent, totalSpending)
         val totalLabelText = rule.onNodeWithTag(ExpensesPaneTags.TOTAL_SPENDING_VALUE)
             .fetchSemanticsNode()
             .config[SemanticsProperties.Text]
             .joinToString(separator = " ") { annotatedString -> annotatedString.text }
-        check(totalLabelText.contains(amountPart) && totalLabelText.contains(currencyPart)) {
-            "Total spending label '$totalLabelText' does not contain expected '$totalSpending'"
-        }
+        assertEquals(expectedLabel, totalLabelText)
         return this
     }
 

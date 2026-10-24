@@ -1,6 +1,7 @@
 package com.inwords.expenses.core.network
 
 import android.content.Context
+import androidx.annotation.OptIn
 import com.inwords.expenses.core.ktor_client_cronet.Cronet
 import com.inwords.expenses.core.utils.IO
 import io.ktor.client.HttpClient
@@ -24,6 +25,11 @@ internal actual class HttpClientFactory(
         }
     }
 
+    @OptIn(
+        ConnectionMigrationOptions.Experimental::class,
+        DnsOptions.Experimental::class,
+        QuicOptions.Experimental::class,
+    )
     private fun createCronet(): CronetEngine {
         val storagePath = context.cacheDir.absolutePath + "/cronet"
         val storageFile = File(storagePath)

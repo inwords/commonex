@@ -26,13 +26,13 @@ import expenses.shared.core.ui_design.generated.resources.Res as CoreRes
 internal class AddExpenseScreen : BaseScreen() {
 
     context(rule: ComposeTestRule)
-    suspend fun enterDescription(description: String): AddExpenseScreen {
+    fun enterDescription(description: String): AddExpenseScreen {
         rule.onNodeWithTag("add_expense_description_input").performScrollTo().performTextInput(description)
         return this
     }
 
     context(rule: ComposeTestRule)
-    suspend fun enterAmount(amount: String): AddExpenseScreen {
+    fun enterAmount(amount: String): AddExpenseScreen {
         rule.onNodeWithTag("add_expense_amount_input").performScrollTo().performTextInput(amount)
         return this
     }

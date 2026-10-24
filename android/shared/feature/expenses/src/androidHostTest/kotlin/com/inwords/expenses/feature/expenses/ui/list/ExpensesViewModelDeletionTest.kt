@@ -11,6 +11,7 @@ import com.inwords.expenses.feature.events.domain.GetCurrentEventStateUseCase
 import com.inwords.expenses.feature.events.domain.GetEventsUseCase
 import com.inwords.expenses.feature.events.domain.JoinEventUseCase
 import com.inwords.expenses.feature.events.domain.model.Event
+import com.inwords.expenses.feature.events.ui.choose_person.ChoosePersonPaneDestination
 import com.inwords.expenses.feature.events.ui.dialog.delete.DeleteEventDialogDestination
 import com.inwords.expenses.feature.events.ui.local.LocalEventsUiModel.LocalEventUiModel
 import com.inwords.expenses.feature.expenses.domain.GetExpensesDetailsUseCase
@@ -23,11 +24,13 @@ import io.mockk.every
 import io.mockk.justRun
 import io.mockk.mockk
 import io.mockk.verify
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runCurrent
@@ -39,6 +42,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.milliseconds
 
 @OptIn(ExperimentalCoroutinesApi::class)
 internal class ExpensesViewModelDeletionTest {
@@ -205,6 +209,52 @@ internal class ExpensesViewModelDeletionTest {
     }
     // endregion
 
+    @Test
+    fun `missing local group does not open person selection and a later join can recover`() = testScope.runTest {
+        coEvery { joinEventUseCase.joinLocalEvent(TestFixtures.syncedEvent.id) } returnsMany listOf(false, true)
+        val viewModel = createViewModel()
+
+        viewModel.onJoinLocalEventClick(TestFixtures.syncedEventUiModel)
+        runCurrent()
+        verify(exactly = 0) { navigationController.navigateTo(ChoosePersonPaneDestination) }
+
+        viewModel.onJoinLocalEventClick(TestFixtures.syncedEventUiModel)
+        runCurrent()
+
+        coVerify(exactly = 2) { joinEventUseCase.joinLocalEvent(TestFixtures.syncedEvent.id) }
+        verify(exactly = 1) { navigationController.navigateTo(ChoosePersonPaneDestination) }
+    }
+
+    @Test
+    fun `joining another local group cancels the pending selection before opening the new one`() = testScope.runTest {
+        val firstJoin = CompletableDeferred<Boolean>()
+        val firstJoinCanceled = CompletableDeferred<Unit>()
+        coEvery { joinEventUseCase.joinLocalEvent(TestFixtures.syncedEvent.id) } coAnswers {
+            try {
+                firstJoin.await()
+            } finally {
+                firstJoinCanceled.complete(Unit)
+            }
+        }
+        coEvery { joinEventUseCase.joinLocalEvent(TestFixtures.localOnlyEvent.id) } returns true
+        val viewModel = createViewModel()
+
+        viewModel.onJoinLocalEventClick(TestFixtures.syncedEventUiModel)
+        runCurrent()
+        verify(exactly = 0) { navigationController.navigateTo(ChoosePersonPaneDestination) }
+
+        viewModel.onJoinLocalEventClick(TestFixtures.localEventUiModel)
+        runCurrent()
+
+        assertTrue(firstJoinCanceled.isCompleted)
+        coVerify(exactly = 1) { joinEventUseCase.joinLocalEvent(TestFixtures.localOnlyEvent.id) }
+        verify(exactly = 1) { navigationController.navigateTo(ChoosePersonPaneDestination) }
+
+        firstJoin.complete(true)
+        runCurrent()
+        verify(exactly = 1) { navigationController.navigateTo(ChoosePersonPaneDestination) }
+    }
+
     // region Keep Local Event Tests
 
     @Test
@@ -237,6 +287,42 @@ internal class ExpensesViewModelDeletionTest {
     // endregion
 
     // region State Tests
+
+    @Test
+    fun `successive group removals replace the notice and restart its expiry`() = testScope.runTest {
+        val thirdEvent = TestFixtures.syncedEvent.copy(id = 3L, serverId = "server-3", name = "Next trip", clientCreateId = "event-client-3")
+        eventsFlow.value = listOf(TestFixtures.syncedEvent, TestFixtures.localOnlyEvent, thirdEvent)
+        val viewModel = createViewModel()
+
+        viewModel.state.test {
+            runCurrent()
+            val initial = assertIs<LocalEvents>(assertIs<SimpleScreenState.Success<ExpensesPaneUiModel>>(expectMostRecentItem()).data)
+            assertEquals(null, initial.localEvents.recentlyRemovedEventName)
+
+            eventsFlow.value = listOf(TestFixtures.syncedEvent, thirdEvent)
+            runCurrent()
+            val firstRemoval = assertIs<LocalEvents>(assertIs<SimpleScreenState.Success<ExpensesPaneUiModel>>(expectMostRecentItem()).data)
+            assertEquals("Local Event", firstRemoval.localEvents.recentlyRemovedEventName)
+
+            advanceTimeBy(2000.milliseconds)
+            runCurrent()
+            eventsFlow.value = listOf(TestFixtures.syncedEvent)
+            runCurrent()
+            val secondRemoval = assertIs<LocalEvents>(assertIs<SimpleScreenState.Success<ExpensesPaneUiModel>>(expectMostRecentItem()).data)
+            assertEquals("Next trip", secondRemoval.localEvents.recentlyRemovedEventName)
+
+            advanceTimeBy(1001.milliseconds)
+            runCurrent()
+            expectNoEvents()
+
+            advanceTimeBy(2000.milliseconds)
+            runCurrent()
+            val expired = assertIs<LocalEvents>(assertIs<SimpleScreenState.Success<ExpensesPaneUiModel>>(expectMostRecentItem()).data)
+            assertEquals(null, expired.localEvents.recentlyRemovedEventName)
+            assertEquals(listOf(TestFixtures.syncedEvent.id), expired.localEvents.events.map { it.eventId })
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
 
     @Test
     fun `state should reflect local events with correct deletion states`() = testScope.runTest {

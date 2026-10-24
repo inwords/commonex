@@ -86,6 +86,7 @@ The iOS app (`applinks:commonex.ru` in `iosApp.entitlements`, `onOpenURL` / `onC
 - Local numeric Room IDs are not valid idempotency identities for event, person, or expense creation. Durable client-side create IDs are generated once at local creation time, persisted in Room, and preserved across local updates and sync writes.
 - Legacy rows upgraded by DB migration `4->5` backfill unsynced IDs as non-numeric `legacy:<32-hex>` tokens (not `local:<row-id>`), so migrated unsynced entities keep durable non-ID-derived identities.
 - Partial network responses (success for some expenses, error for others) are supported: iterate over the full results list with index so alignment with local expenses is preserved; persist only successful results.
+- After persisting successful responses, the push task returns `IoResult.Error.Retry` if any result is retryable. Otherwise it returns success, including when individual responses are permanent failures. Subsequent pushes select only expenses still missing a `serverId`.
 - After a successful push it writes back the remote expense `serverId` and the backend-confirmed `exchangedAmount` values for each split.
 - Mobile sends `amount` for every split and includes client-supplied `exchangedAmount` only when the local expense uses a custom rate (`isCustomRate == true`).
 
@@ -95,6 +96,8 @@ The iOS app (`applinks:commonex.ru` in `iosApp.entitlements`, `onOpenURL` / `onC
 - Pulled V2 expense payloads must include `isCustomRate`; mobile preserves that backend state so custom-rate expenses created on another client keep their custom conversion semantics after sync.
 - Current implication:
   pull does not update or delete previously synced local expenses when the server changes an existing remote expense.
+
+Android expense workers require connectivity and use linear backoff with WorkManager's minimum delay. They allow four task executions (`runAttemptCount` 0 through 3); the next execution fails before calling the task. In a push-then-pull chain, retry keeps the pull blocked until push succeeds, while worker failure fails the dependent pull. Validate recovery, dependency ordering, and the limit with `./gradlew --quiet :shared:feature:sync:pixel6Api36AtdAndroidDeviceTest`; see [library device tests](testing-patterns.md#kmm-library-device-tests) for the connected-device aggregate.
 
 ## Currency Handling
 

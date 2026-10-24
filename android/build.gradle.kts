@@ -30,6 +30,16 @@ plugins {
     alias(shared.plugins.gradle.versions.checker) apply true
 }
 
+tasks.register("allConnectedAndroidDeviceTest") {
+    group = "verification"
+    description = "Runs all shared Android library device test suites."
+    dependsOn(
+        ":shared:integration:base:connectedAndroidDeviceTest",
+        ":shared:integration:databases:connectedAndroidDeviceTest",
+        ":shared:feature:sync:connectedAndroidDeviceTest",
+    )
+}
+
 // https://github.com/ben-manes/gradle-versions-plugin
 tasks.withType<DependencyUpdatesTask> {
     rejectVersionIf {

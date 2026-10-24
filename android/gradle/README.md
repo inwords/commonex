@@ -1,5 +1,9 @@
 # Gradle Tooling
 
+## Version Catalogs
+
+When runtime and testing artifacts share a release version, declare it once under `[versions]` and use `version.ref` for both aliases. For example, `work-runtime-ktx` and `work-testing` share `work` in `shared.versions.toml`.
+
 ## Gradle Versions Plugin Usage
 
 GitHub: [Gradle Versions Plugin](https://github.com/ben-manes/gradle-versions-plugin)

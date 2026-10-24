@@ -1,5 +1,6 @@
 package com.inwords.expenses.core.network
 
+import io.ktor.client.call.NoTransformationFoundException
 import io.ktor.client.plugins.ClientRequestException
 import io.ktor.client.plugins.RedirectResponseException
 import io.ktor.client.plugins.ServerResponseException
@@ -21,6 +22,8 @@ sealed interface NetworkResult<out T : Any> {
         data class Transport(val exception: IOException) : Error
 
         data class Parse(val exception: ContentConvertException) : Error
+
+        data class NoTransformation(val exception: NoTransformationFoundException) : Error
 
     }
 

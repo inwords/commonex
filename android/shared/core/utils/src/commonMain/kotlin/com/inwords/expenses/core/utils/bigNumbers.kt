@@ -7,11 +7,11 @@ import com.ionspin.kotlin.bignum.decimal.RoundingMode
 fun String.toBigDecimalOrNull(): BigDecimal? {
     return try {
         BigDecimal.parseString(this)
-    } catch (e: NumberFormatException) {
+    } catch (_: NumberFormatException) {
         null
-    } catch (e: ArithmeticException) {
+    } catch (_: ArithmeticException) {
         null
-    } catch (e: IndexOutOfBoundsException) { // TODO broken library behavior
+    } catch (_: IndexOutOfBoundsException) { // TODO broken library behavior
         null
     }
 }

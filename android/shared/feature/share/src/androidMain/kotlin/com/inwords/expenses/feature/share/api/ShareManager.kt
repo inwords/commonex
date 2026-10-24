@@ -4,14 +4,12 @@ import android.content.Context
 import android.content.Intent
 import expenses.shared.feature.share.generated.resources.Res
 import expenses.shared.feature.share.generated.resources.share_chooser_title
-import org.jetbrains.compose.resources.ExperimentalResourceApi
 import org.jetbrains.compose.resources.getString
 
 actual class ShareManager internal constructor(
     private val context: Context
 ) {
 
-    @OptIn(ExperimentalResourceApi::class)
     actual suspend fun shareText(subject: String, fullText: String) {
         val shareIntent = Intent(Intent.ACTION_SEND).apply {
             type = "text/plain"

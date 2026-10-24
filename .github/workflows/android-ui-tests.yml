@@ -119,7 +119,7 @@ jobs:
           working-directory: ./android
           script: echo "Generated AVD snapshot for caching."
 
-      - name: Run UI tests with Marathon and AppFunctions tests
+      - name: Run UI tests with Marathon, AppFunctions and database tests
         uses: reactivecircus/android-emulator-runner@v2
         env:
           CI: true
@@ -139,7 +139,7 @@ jobs:
           script: |
             marathon
             ./gradlew --quiet :app:connectedAutotestAndroidTest -Dcom.android.tools.r8.disableApiModeling=true -Pandroid.testInstrumentationRunnerArguments.class=ru.commonex.AppFunctionRegistrationTest --no-daemon --continue
-            ./gradlew --quiet :shared:integration:base:connectedAndroidDeviceTest --no-daemon --continue
+            ./gradlew --quiet allConnectedAndroidDeviceTest --no-daemon --continue
 
       - name: Upload Android test reports
         if: always()
@@ -153,3 +153,7 @@ jobs:
             ${{ github.workspace }}/android/app/build/outputs/androidTest-results/
             ${{ github.workspace }}/android/shared/integration/base/build/reports/
             ${{ github.workspace }}/android/shared/integration/base/build/outputs/androidTest-results/
+            ${{ github.workspace }}/android/shared/integration/databases/build/reports/
+            ${{ github.workspace }}/android/shared/integration/databases/build/outputs/androidTest-results/
+            ${{ github.workspace }}/android/shared/feature/sync/build/reports/
+            ${{ github.workspace }}/android/shared/feature/sync/build/outputs/androidTest-results/

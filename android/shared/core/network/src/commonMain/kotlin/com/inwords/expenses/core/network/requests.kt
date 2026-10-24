@@ -32,6 +32,8 @@ suspend inline fun <T : Any> SuspendLazy<HttpClient>.requestWithExceptionHandlin
         NetworkResult.Error.Transport(e)
     } catch (e: ContentConvertException) {
         NetworkResult.Error.Parse(e)
+    } catch (e: NoTransformationFoundException) {
+        NetworkResult.Error.NoTransformation(e)
     }
 }
 
@@ -49,6 +51,7 @@ fun <T : Any> NetworkResult<T>.toIoResult(): IoResult<T> {
         is NetworkResult.Error.Http.Redirect -> IoResult.Error.Retry
         is NetworkResult.Error.Http.Server -> IoResult.Error.Retry
         is NetworkResult.Error.Parse -> IoResult.Error.Failure
+        is NetworkResult.Error.NoTransformation -> IoResult.Error.Failure
         is NetworkResult.Error.Transport -> IoResult.Error.Retry
     }
 }

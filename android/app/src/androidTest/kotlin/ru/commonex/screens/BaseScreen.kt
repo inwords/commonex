@@ -2,12 +2,10 @@ package ru.commonex.screens
 
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.SemanticsMatcher
-import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.ComposeTestRule
-import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 
 @OptIn(ExperimentalTestApi::class)
@@ -60,10 +58,4 @@ internal abstract class BaseScreen {
         rule.onNodeWithText(text).assertIsDisplayed()
     }
 
-    context(rule: ComposeTestRule)
-    fun assertElementsWithTextCount(text: String, count: Int) {
-        rule
-            .onAllNodesWithText(text, substring = true)
-            .assertCountEquals(count)
-    }
 }

@@ -64,8 +64,8 @@ internal class EventPushTaskTest {
         val remoteDetails = localDetails.copy(
             event = localDetails.event.copy(serverId = "srv-event"),
             persons = listOf(
-                firstPerson.copy(serverId = "srv-p1"),
-                secondPerson.copy(serverId = "srv-p2"),
+                firstPerson.copy(id = 0L, serverId = "srv-p1", clientCreateId = "remote-person-1", name = "Remote first"),
+                secondPerson.copy(id = 0L, serverId = "srv-p2", clientCreateId = "remote-person-2", name = "Remote second"),
             ),
         )
         coEvery { eventsLocalStore.getEventWithDetails(localDetails.event.id) } returns localDetails
@@ -82,7 +82,19 @@ internal class EventPushTaskTest {
             )
         } returns IoResult.Success(remoteDetails)
         coEvery { transactionHelper.immediateWriteTransaction<Boolean>(any()) } coAnswers {
-            firstArg<suspend () -> Boolean>().invoke()
+            coVerify(exactly = 0) { personsLocalStore.insertWithoutCrossRefs(any()) }
+            coVerify(exactly = 0) { eventsLocalStore.update(any(), any()) }
+            val result = firstArg<suspend () -> Boolean>().invoke()
+            coVerify(exactly = 1) {
+                personsLocalStore.insertWithoutCrossRefs(
+                    listOf(
+                        firstPerson.copy(serverId = "srv-p1"),
+                        secondPerson.copy(serverId = "srv-p2"),
+                    )
+                )
+            }
+            coVerify(exactly = 1) { eventsLocalStore.update(localDetails.event.id, "srv-event") }
+            result
         }
         coEvery { personsLocalStore.insertWithoutCrossRefs(any()) } answers { firstArg() }
         coEvery { eventsLocalStore.update(localDetails.event.id, "srv-event") } returns true

@@ -22,7 +22,7 @@ interface ExpensesDao {
 
         upsert(
             subjectPersonSplitEntities.map { personSplit ->
-                personSplit.copy(expenseId = expenseId)
+                personSplit.copy(expenseId = if (expenseId == -1L) expenseEntity.expenseId else expenseId)
             }
         )
 

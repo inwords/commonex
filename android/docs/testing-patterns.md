@@ -8,7 +8,7 @@ Detailed testing strategy, architecture, and patterns for the Android/KMM projec
 - **Timed benchmark bridge:** The network benchmark retains `runBlocking` inside `measureRepeated` so coroutine-test scheduler setup and teardown are excluded from request measurements. Use `runTest` for coroutine work in benchmark setup and assertions.
 - **Unit tests:** JUnit 6 for host/JVM tests
 - **Instrumented tests (non-UI):** Android Tests with JUnit 6
-- **Instrumented tests (Compose UI E2E tests):** Android Tests with JUnit 4 and Marathon. Prefer Marathon over `:app:connectedAutotestAndroidTest` for local UI-test validation because it matches the retried/sharded runner used in CI. Use `connectedAutotestAndroidTest` only for narrow targeted debugging when Marathon is unavailable or would be unnecessary overhead. Run against the real backend; avoid mocks and hardcoded remote fixtures by creating required data in-test.
+- **Instrumented tests (Compose UI E2E tests):** Android Tests with JUnit 4 and Marathon. Prefer Marathon over `:app:connectedAutotestAndroidTest` for local UI-test validation because it matches the retried/sharded runner used in CI. Use `connectedAutotestAndroidTest` only for narrow targeted debugging when Marathon is unavailable or would be unnecessary overhead. Drive setup and verification through the UI against the real backend; do not call backend APIs or seed stores directly. Keep service-availability checks outside UI suites. Create data through the UI for new scenarios; preserve the existing hardcoded remote fixture in `BasicInstrumentedTest.testJoinExistingEvent` unless explicitly asked to replace it.
 - **Device fallback for targeted UI validation:** If `:app:connectedAutotestAndroidTest` is blocked by `No connected devices!`, use the managed-device path `:app:pixel6Api36AtdAutotestAndroidTest` for the same targeted test before reporting completion.
 - **Completion bar for UI work:** If you change Compose UI behavior or add/edit instrumented UI flows, do not report completion from compile/host tests alone. Run at least one relevant instrumented UI path and report the exact command and scope that were validated.
 - **Device data:** Run fixture-clearing scenarios on a disposable emulator or a device reserved for tests. Preserve the user's existing app data and restore settings changed for layout checks.
@@ -33,6 +33,13 @@ Detailed testing strategy, architecture, and patterns for the Android/KMM projec
 
 ## KMM Library Device Tests
 
+- Run all shared library device suites with `./gradlew --quiet allConnectedAndroidDeviceTest --continue` on a connected test device.
+  The aggregate task in `android/build.gradle.kts` owns the suite list used by CI; the commands below run individual suites.
+  Add shared library device suites to that task instead of extending the CI command or adding separate Gradle invocations. Host tests and app Compose UI tests run separately.
+- Expense sync scheduling: `./gradlew --quiet :shared:feature:sync:connectedAndroidDeviceTest`.
+  The suite runs the production expense workers through WorkManager's test driver, covering retry recovery,
+  dependent-work ordering, permanent failure, and attempt limits. Without a connected emulator, use
+  `:shared:feature:sync:pixel6Api36AtdAndroidDeviceTest`.
 - AppFunctions business behavior: `./gradlew --quiet :shared:integration:base:connectedAndroidDeviceTest`. The suite
   calls the KSP-generated `CommonExAppFunctionService`, so it also guards entry-point generation and the context-free
   method signatures.
@@ -80,6 +87,8 @@ app/src/androidTest/kotlin/ru/commonex/
 
 2. **Test structure with RuleChain:** Tests use `RuleChain` to order rules correctly:
    ```kotlin
+   import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
+
    private val composeRule = createAndroidComposeRule<MainActivity>()
    private val connectivityRule = ConnectivityRule()
 
@@ -88,6 +97,7 @@ app/src/androidTest/kotlin/ru/commonex/
        .outerRule(connectivityRule)
        .around(composeRule)
    ```
+   The v2 rule queues composition coroutine work. Use existing screen-ready waits at asynchronous startup and navigation boundaries before interacting with controls.
 
 3. **Utility for test execution:** Tests use `runTest` extension from `testUtils.kt` to reduce boilerplate:
    ```kotlin
@@ -111,3 +121,5 @@ app/src/androidTest/kotlin/ru/commonex/
 5. **Selectors:** Prefer test tags for new selectors, fall back to resource strings, and avoid raw literals unless unavoidable. For overlays (dialogs/bottom sheets), scope checks to overlay-specific tags; do not rely on global text waits that can match
    underlying screens.
    When verifying related labels, such as a group title and current-person identity, scope both the wait and assertion to the same container. Finding each label elsewhere on the screen does not verify their relationship.
+
+6. **Clipboard isolation:** Capture the previous clipboard text before the UI copy action. Wait for changed text containing the expected event and credential before consuming the invitation; clipboard contents can survive between test cases.
