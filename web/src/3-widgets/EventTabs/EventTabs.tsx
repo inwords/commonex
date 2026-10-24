@@ -1,3 +1,4 @@
+import {track} from '@/6-shared/analytics';
 import {Box, Tab, Tabs} from '@mui/material';
 import {ExpensesList} from '@/3-widgets/ExpensesList/ExpensesList';
 import {expenseStore} from '@/5-entities/expense/stores/expense-store';
@@ -21,6 +22,7 @@ export const EventTabs = observer(() => {
         <Tabs
           value={expenseStore.currentTab}
           onChange={(_, v) => {
+            if (v === 2 && expenseStore.currentTab !== 2) track({name: 'settlement_viewed'});
             expenseService.setCurrentTab(v);
           }}
           variant="scrollable"
@@ -38,7 +40,12 @@ export const EventTabs = observer(() => {
 
       {(expenseStore.currentTab === 0 || expenseStore.currentTab === 1) && (
         <>
-          <CreateExpense setIsOpen={setIsDialogOpen} />
+          <CreateExpense
+            setIsOpen={(open) => {
+              if (open) track({name: 'expense_opened'});
+              setIsDialogOpen(open);
+            }}
+          />
           <AddExpenseModal isOpen={isDialogOpen} setIsOpen={setIsDialogOpen} />
         </>
       )}

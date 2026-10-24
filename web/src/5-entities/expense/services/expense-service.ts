@@ -1,3 +1,6 @@
+import {track} from '@/6-shared/analytics';
+import type {AnalyticsEvent} from '@/6-shared/analytics/analytics-event';
+import {analyticsFailureReason} from '@/6-shared/analytics/analytics-failure';
 import {
   CreateExpenseForm,
   CreateExpenseRefundForm,
@@ -16,6 +19,18 @@ import {ulid} from 'ulid';
 import {ApiError} from '@/6-shared/api/errors';
 
 export class ExpenseService {
+  private emit: (event: AnalyticsEvent) => void;
+
+  constructor(emit: (event: AnalyticsEvent) => void = track) {
+    this.emit = (event) => {
+      try {
+        emit(event);
+      } catch {
+        /* Optional analytics. */
+      }
+    };
+  }
+
   private createExpenseKey: string | null = null;
   private createExpenseRefundKey: string | null = null;
 
@@ -95,6 +110,10 @@ export class ExpenseService {
         {retries: 2, factor: 2, minTimeout: 200},
       );
       expenseStore.addCreatedExpense(resp);
+      this.emit({name: 'expense_submitted'});
+    } catch (error) {
+      this.emit({name: 'expense_failed', params: {reason: analyticsFailureReason(error)}});
+      throw error;
     } finally {
       this.createExpenseKey = null;
       expenseStore.setIsCreatingExpense(false);
@@ -137,6 +156,10 @@ export class ExpenseService {
         {retries: 2, factor: 2, minTimeout: 200},
       );
       expenseStore.setExpenseRefunds([...expenseStore.expenseRefunds, resp]);
+      this.emit({name: 'settlement_recorded'});
+    } catch (error) {
+      this.emit({name: 'settlement_failed', params: {reason: analyticsFailureReason(error)}});
+      throw error;
     } finally {
       this.createExpenseRefundKey = null;
       expenseStore.setIsCreatingExpenseRefund(false);

@@ -7,6 +7,15 @@ const en: Locale = {
   CreateEventButton: {
     btn: 'Create trip',
   },
+  Analytics: {
+    title: 'Website analytics',
+    settings: 'Analytics settings',
+    description:
+      'Allow Yandex Metrica to collect visits and actions to help us improve CommonEx? Trip and expense contents are not sent. You can use the site without analytics and change your choice at any time.',
+    privacy: 'Privacy policy',
+    allow: 'Allow',
+    decline: 'Decline',
+  },
   AppFooter: {
     title: 'CommonEx on your phone',
     appStore: 'Download on the App Store',

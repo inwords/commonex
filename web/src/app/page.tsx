@@ -11,6 +11,7 @@ import {ROUTES} from '@/6-shared/routing/constants';
 import {EventPage} from '@/2-pages/EventPage';
 import {SupportPage} from '@/2-pages/SupportPage';
 import {LanguageSwitcher} from '@/6-shared/ui/LanguageSwitcher/LanguageSwitcher';
+import {WebAnalytics} from '@/3-widgets/WebAnalytics/WebAnalytics';
 import {theme} from '@/6-shared/theme/theme';
 
 export default function Home() {
@@ -20,6 +21,7 @@ export default function Home() {
       <LanguageSwitcher />
       <NoSsr>
         <BrowserRouter>
+          <WebAnalytics />
           <Box sx={{display: 'flex', flexDirection: 'column', minHeight: '100dvh'}}>
             <Box component="main" sx={{flex: 1}}>
               <Routes>
