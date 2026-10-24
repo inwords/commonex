@@ -19,10 +19,14 @@ class LanguageStore {
       return;
     }
 
-    const saved = localStorage.getItem(STORAGE_KEY) as Language | null;
-    if (saved && saved in locales) {
-      this.language = saved;
-      this.content = locales[saved];
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY) as Language | null;
+      if (saved && saved in locales) {
+        this.language = saved;
+        this.content = locales[saved];
+      }
+    } catch {
+      // Browser storage is optional; keep the default language.
     }
   }
 
@@ -31,7 +35,11 @@ class LanguageStore {
     this.content = locales[lang];
 
     if (typeof window !== 'undefined') {
-      localStorage.setItem(STORAGE_KEY, lang);
+      try {
+        localStorage.setItem(STORAGE_KEY, lang);
+      } catch {
+        // Keep the selected language for this page when persistence is blocked.
+      }
     }
   }
 }

@@ -1,3 +1,5 @@
+import {track} from '@/6-shared/analytics';
+import {analyticsFailureReason} from '@/6-shared/analytics/analytics-failure';
 import {Button, Stack, Typography, Box} from '@mui/material';
 import {observer} from 'mobx-react-lite';
 import {useState} from 'react';
@@ -25,6 +27,7 @@ export const EventHeader = observer(() => {
   };
 
   const handleShareLink = async () => {
+    track({name: 'invitation_requested'});
     try {
       if (!eventStore.currentEvent) {
         return;
@@ -36,13 +39,17 @@ export const EventHeader = observer(() => {
       );
 
       const location = window.location;
-      const shareUrl = `${location.origin}/event/${eventStore.currentEvent.id}?token=${token}`;
+      const shareUrl = `${location.origin}/event/${eventStore.currentEvent.id}?token=${encodeURIComponent(token)}&utm_source=commonex&utm_medium=referral&utm_campaign=trip_invite`;
 
-      copy(shareUrl);
+      if (!copy(shareUrl)) {
+        track({name: 'invitation_failed', params: {reason: 'unknown'}});
+        return;
+      }
+      track({name: 'invitation_copied'});
 
       notificationStore.setNotification(content.EventHeader.linkCopied, 'success');
     } catch (error) {
-      console.error('Failed to create share token:', error);
+      track({name: 'invitation_failed', params: {reason: analyticsFailureReason(error)}});
     }
   };
 
@@ -62,10 +69,12 @@ export const EventHeader = observer(() => {
 
       <Box marginBottom={'16px'}>
         <Typography variant="h6" align="center" color="text.secondary">
-          {content.EventHeader.totalSpent} {expenseStore.totalExpensesAmount.toFixed(2)} {currencyStore.getCurrencyCode(eventStore.currentEvent.currencyId)}
+          {content.EventHeader.totalSpent} {expenseStore.totalExpensesAmount.toFixed(2)}{' '}
+          {currencyStore.getCurrencyCode(eventStore.currentEvent.currencyId)}
         </Typography>
         <Typography variant="body1" align="center" color="text.secondary">
-          {content.EventHeader.youSpent} {expenseStore.currentUserSpentAmount.toFixed(2)} {currencyStore.getCurrencyCode(eventStore.currentEvent.currencyId)}
+          {content.EventHeader.youSpent} {expenseStore.currentUserSpentAmount.toFixed(2)}{' '}
+          {currencyStore.getCurrencyCode(eventStore.currentEvent.currencyId)}
         </Typography>
       </Box>
 

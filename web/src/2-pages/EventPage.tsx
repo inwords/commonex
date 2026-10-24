@@ -1,8 +1,9 @@
+import {track} from '@/6-shared/analytics';
 import {SelectUserList} from '@/3-widgets/SelectUserList/SelectUserList';
 import {EventTabs} from '@/3-widgets/EventTabs/EventTabs';
 import {EventHeader} from '@/3-widgets/EventHeader';
 import {Box} from '@mui/material';
-import {useEffect} from 'react';
+import {useEffect, useRef} from 'react';
 import {Navigate, useLocation, useParams} from 'react-router';
 import {expenseService} from '@/5-entities/expense/services/expense-service';
 import {userStore} from '@/5-entities/user/stores/user-store';
@@ -21,12 +22,16 @@ export const EventPage = observer(() => {
   const navigatedFromMainForm = location.state === 'navigateFromMainForm';
   const canOpenPage = id && (token || navigatedFromMainForm);
 
+  const lastEntry = useRef<string | undefined>(undefined);
+
   useEffect(() => {
-    if (!canOpenPage || !id) {
+    if (!canOpenPage || !id || lastEntry.current === location.key) {
       return;
     }
 
+    lastEntry.current = location.key;
     if (!navigatedFromMainForm && token) {
+      track({name: 'invitation_opened'});
       void currencyService.fetchCurrencies();
 
       const params: {pinCode?: string; token?: string} = {};
@@ -36,20 +41,20 @@ export const EventPage = observer(() => {
       }
 
       const fn = async () => {
-        await eventService.getEventInfo(id, params);
+        await eventService.getEventInfo(id, params, 'token');
 
         if (eventStore.currentEvent?.pinCode) {
           void expenseService.fetchExpenses(id, eventStore.currentEvent.pinCode);
         }
       };
 
-      void fn();
+      void fn().catch(() => {});
     } else {
       if (eventStore.currentEvent?.pinCode) {
         void expenseService.fetchExpenses(id, eventStore.currentEvent.pinCode);
       }
     }
-  }, [canOpenPage, id, navigatedFromMainForm, token]);
+  }, [canOpenPage, id, navigatedFromMainForm, token, location.key]);
 
   if (!canOpenPage) {
     return <Navigate to={ROUTES.Main} />;
