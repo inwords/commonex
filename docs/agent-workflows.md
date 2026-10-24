@@ -33,7 +33,8 @@ Before reporting completion on any task, review the complete diff against the or
 - Preserve existing architecture, conventions, and behavior outside the requested change, including timing (such as debounce), loading indicators, caching, and navigation.
 - Validate discovered bugs through the [debug workflow](#debug-workflow) before adding defensive logic. Discuss unrelated fixes separately before including them in the task.
 - Remove incidental changes, including code moves, renames, helper extractions, and timing changes that lack a task-specific reason. Perform this review yourself rather than relying on the user to identify them.
-- Treat passing tests as correctness evidence, not scope authorization. Keep tests tied to the intended contract; tests for an added defense do not establish that the defense belongs in the task.
+- Treat passing tests as correctness evidence, not scope authorization. Before expanding production behavior during coverage work, trace supported callers and platform filters; a test for unsupported input does not establish a required contract.
+- Distinguish a reproducible API-contract defect from a reachable user-flow failure and an observed production incident. State which the evidence establishes; a direct unit-test reproduction alone does not establish production impact.
 
 ## Planning Tracks
 

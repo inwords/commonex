@@ -13,7 +13,7 @@ fun rememberNavigationController(): AttachableNavigationController {
     }).navigationController
 }
 
-private class NavigationViewModel() : ViewModel() {
+private class NavigationViewModel : ViewModel() {
 
     val navigationController = DefaultNavigationController()
 }

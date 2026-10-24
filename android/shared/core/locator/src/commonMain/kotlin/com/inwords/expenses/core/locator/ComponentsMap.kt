@@ -22,13 +22,6 @@ object ComponentsMap : SynchronizedObject() {
         }
     }
 
-    @Suppress("UNCHECKED_CAST")
-    fun <T : Component> getComponentLazy(kClass: KClass<T>): Lazy<T> {
-        synchronized(this) {
-            return components[kClass] as Lazy<T>
-        }
-    }
-
 }
 
 inline fun <reified T : Component> ComponentsMap.registerComponent(component: Lazy<T>) {
@@ -37,10 +30,6 @@ inline fun <reified T : Component> ComponentsMap.registerComponent(component: La
 
 inline fun <reified T : Component> ComponentsMap.getComponent(): T {
     return getComponent(T::class)
-}
-
-inline fun <reified T : Component> ComponentsMap.getComponentLazy(): Lazy<T> {
-    return getComponentLazy(T::class)
 }
 
 inline fun <reified T : Component> ComponentsMap.inject(): ReadOnlyProperty<Any?, T> {

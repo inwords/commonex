@@ -47,7 +47,7 @@ jobs:
         run: echo "$KEYSTORE_JKS_BASE64" | base64 --decode > ./app/keystore.jks
 
       - name: Build :app with Gradle
-        run: ./gradlew --quiet testHostTest :app:test :app:assembleDebug :app:assembleRelease :app:bundleRelease -Pkover koverHtmlReport koverXmlReport --no-daemon --continue
+        run: ./gradlew --quiet testHostTest :shared:core:ktor-client-cronet:testDebugUnitTest :app:test :app:assembleDebug :app:assembleRelease :app:bundleRelease -Pkover koverHtmlReport koverXmlReport --no-daemon --continue
         env:
           CI: true
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}

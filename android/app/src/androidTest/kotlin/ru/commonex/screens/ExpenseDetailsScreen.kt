@@ -13,7 +13,7 @@ import androidx.test.espresso.Espresso.pressBack
 internal class ExpenseDetailsScreen : BaseScreen() {
 
     context(rule: ComposeTestRule)
-    suspend fun waitUntilLoaded(): ExpenseDetailsScreen {
+    fun waitUntilLoaded(): ExpenseDetailsScreen {
         waitForElementWithTag("expense_item_pane_root")
         rule.onNodeWithTag("expense_item_pane_root").assertIsDisplayed()
         rule.onNodeWithTag("expense_item_pane_description_value").assertIsDisplayed()
@@ -60,7 +60,7 @@ internal class ExpenseDetailsScreen : BaseScreen() {
     }
 
     context(rule: ComposeTestRule)
-    suspend fun verifyExchangeRateVisible(): ExpenseDetailsScreen {
+    fun verifyExchangeRateVisible(): ExpenseDetailsScreen {
         rule.onNodeWithTag("expense_item_pane_exchange_rate_value").performScrollTo().assertIsDisplayed()
         return this
     }
@@ -72,7 +72,7 @@ internal class ExpenseDetailsScreen : BaseScreen() {
     }
 
     context(rule: ComposeTestRule)
-    suspend fun verifyExchangeRateHidden(): ExpenseDetailsScreen {
+    fun verifyExchangeRateHidden(): ExpenseDetailsScreen {
         rule.onAllNodesWithTag("expense_item_pane_exchange_rate_value").assertCountEquals(0)
         return this
     }
@@ -97,7 +97,7 @@ internal class ExpenseDetailsScreen : BaseScreen() {
     }
 
     context(rule: ComposeTestRule)
-    suspend fun confirmRevertExpense(): ExpensesScreen {
+    fun confirmRevertExpense(): ExpensesScreen {
         rule.onNodeWithTag("expense_item_revert_action").performScrollTo().performClick()
         rule.onNodeWithTag("expense_revert_dialog_confirm_button").assertIsDisplayed()
         rule.onNodeWithTag("expense_revert_dialog_confirm_button").performClick()

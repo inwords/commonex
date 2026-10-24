@@ -7,18 +7,20 @@ import androidx.compose.ui.test.performClick
 internal class DeleteEventDialogScreen : BaseScreen() {
 
     context(rule: ComposeTestRule)
-    suspend fun confirmDeletion(): LocalEventsScreen {
+    fun confirmDeletion(): LocalEventsScreen {
         rule
             .onNodeWithTag("delete_event_dialog_delete_button")
             .performClick()
+        waitForElementWithTagDoesNotExist("delete_event_dialog_delete_button")
         return LocalEventsScreen().waitUntilLoaded()
     }
 
     context(rule: ComposeTestRule)
-    suspend fun keepEvent(): LocalEventsScreen {
+    fun keepEvent(): LocalEventsScreen {
         rule
             .onNodeWithTag("delete_event_dialog_keep_button")
             .performClick()
+        waitForElementWithTagDoesNotExist("delete_event_dialog_keep_button")
         return LocalEventsScreen().waitUntilLoaded()
     }
 }

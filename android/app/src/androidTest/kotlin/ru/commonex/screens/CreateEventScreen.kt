@@ -1,6 +1,7 @@
 package ru.commonex.screens
 
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -46,11 +47,11 @@ internal class CreateEventScreen : BaseScreen() {
     context(rule: ComposeTestRule)
     fun verifyDraft(eventName: String, ownerName: String, participantName: String): CreateEventScreen {
         scrollToItem("event")
-        assertElementWithTextExists(eventName)
+        rule.onNodeWithTag("events_create_name").assertIsDisplayed().assert(hasText(eventName))
         scrollToItem("owner")
-        assertElementWithTextExists(ownerName)
+        rule.onNodeWithTag("events_owner_name").assertIsDisplayed().assert(hasText(ownerName))
         scrollToItem("participant_0")
-        assertElementWithTextExists(participantName)
+        rule.onNodeWithTag("events_participant_0").assertIsDisplayed().assert(hasText(participantName))
         return this
     }
 

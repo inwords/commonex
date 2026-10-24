@@ -2,7 +2,7 @@ package com.inwords.expenses.core.navigation
 
 import androidx.navigation3.runtime.NavBackStack
 
-internal class DefaultNavigationController() : AttachableNavigationController {
+internal class DefaultNavigationController : AttachableNavigationController {
 
     private var backStack: NavBackStack<Destination>? = null
 

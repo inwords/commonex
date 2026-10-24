@@ -18,8 +18,11 @@ import com.ionspin.kotlin.bignum.decimal.BigDecimal
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -28,6 +31,9 @@ import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 import kotlin.time.Clock
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -132,7 +138,9 @@ internal class EventExpensesPushTaskTest {
             expenseId = 1L,
             serverId = "srv-1",
             splitExchangeValues = listOf("11.11", "22.22"),
-        )
+        ).let { response ->
+            response.copy(subjectExpenseSplitWithPersons = response.subjectExpenseSplitWithPersons.map { it.copy(expenseSplitId = 0L) })
+        }
         coEvery { eventsLocalStore.getEventWithDetails(localDetails.event.id) } returns localDetails
         coEvery { expensesLocalStore.getExpenses(localDetails.event.id) } returns listOf(localExpense)
         coEvery {
@@ -169,6 +177,7 @@ internal class EventExpensesPushTaskTest {
 
         assertEquals(IoResult.Success(Unit), result)
         coVerify(exactly = 1) { expensesLocalStore.updateExpenseServerId(localExpense.expenseId, "srv-1") }
+        coVerify(exactly = 0) { expensesLocalStore.updateExpenseSplitExchangedAmount(0L, any()) }
         coVerify(exactly = 1) {
             expensesLocalStore.updateExpenseSplitExchangedAmount(
                 localExpense.subjectExpenseSplitWithPersons[0].expenseSplitId,
@@ -184,13 +193,15 @@ internal class EventExpensesPushTaskTest {
     }
 
     @Test
-    fun `pushEventExpenses persists only successful results from partial network response`() = runTest {
+    fun `pushEventExpenses preserves successes and retries only pending expenses after partial failure`() = runTest {
         val localDetails = eventDetails()
         val firstExpense = expense(expenseId = 1L, serverId = null)
         val secondExpense = expense(expenseId = 2L, serverId = null)
         val firstNetworkExpense = expense(expenseId = 1L, serverId = "srv-1", splitExchangeValues = listOf("11.11", "22.22"))
+        val secondNetworkExpense = secondExpense.copy(serverId = "srv-2")
+        var persistedExpenses = listOf(firstExpense, secondExpense)
         coEvery { eventsLocalStore.getEventWithDetails(localDetails.event.id) } returns localDetails
-        coEvery { expensesLocalStore.getExpenses(localDetails.event.id) } returns listOf(firstExpense, secondExpense)
+        coEvery { expensesLocalStore.getExpenses(localDetails.event.id) } coAnswers { persistedExpenses }
         coEvery {
             expensesRemoteStore.addExpensesToEvent(
                 event = localDetails.event,
@@ -208,10 +219,25 @@ internal class EventExpensesPushTaskTest {
                 persons = localDetails.persons,
             )
         } returns listOf(IoResult.Success(firstNetworkExpense), IoResult.Error.Retry)
+        coEvery {
+            expensesRemoteStore.addExpensesToEvent(
+                event = localDetails.event,
+                expenses = listOf(
+                    ExpensePushItem(secondExpense, "mobile:$CLIENT_ID:event.expense.add:srv-event:expense-2")
+                ),
+                currencies = localDetails.currencies,
+                persons = localDetails.persons,
+            )
+        } returns listOf(IoResult.Success(secondNetworkExpense))
         coEvery { transactionHelper.immediateWriteTransaction<Unit>(any()) } coAnswers {
             firstArg<suspend () -> Unit>().invoke()
         }
-        coEvery { expensesLocalStore.updateExpenseServerId(firstExpense.expenseId, "srv-1") } returns true
+        coEvery { expensesLocalStore.updateExpenseServerId(any(), any()) } coAnswers {
+            val expenseId = firstArg<Long>()
+            val serverId = secondArg<String>()
+            persistedExpenses = persistedExpenses.map { if (it.expenseId == expenseId) it.copy(serverId = serverId) else it }
+            true
+        }
         coEvery {
             expensesLocalStore.updateExpenseSplitExchangedAmount(
                 firstExpense.subjectExpenseSplitWithPersons[0].expenseSplitId,
@@ -227,9 +253,29 @@ internal class EventExpensesPushTaskTest {
 
         val result = task.pushEventExpenses(localDetails.event.id)
 
-        assertEquals(IoResult.Success(Unit), result)
+        assertEquals(IoResult.Error.Retry, result)
+        assertEquals(listOf("srv-1", null), persistedExpenses.map { it.serverId })
+        assertEquals(listOf("expense-1", "expense-2"), persistedExpenses.map { it.clientCreateId })
         coVerify(exactly = 1) { expensesLocalStore.updateExpenseServerId(firstExpense.expenseId, "srv-1") }
         coVerify(exactly = 0) { expensesLocalStore.updateExpenseServerId(secondExpense.expenseId, any()) }
+
+        val retryResult = task.pushEventExpenses(localDetails.event.id)
+
+        assertEquals(IoResult.Success(Unit), retryResult)
+        assertEquals(listOf("srv-1", "srv-2"), persistedExpenses.map { it.serverId })
+        assertEquals(listOf("expense-1", "expense-2"), persistedExpenses.map { it.clientCreateId })
+        coVerify(exactly = 1) { expensesLocalStore.updateExpenseServerId(firstExpense.expenseId, "srv-1") }
+        coVerify(exactly = 1) { expensesLocalStore.updateExpenseServerId(secondExpense.expenseId, "srv-2") }
+        firstNetworkExpense.subjectExpenseSplitWithPersons.forEach { split ->
+            coVerify(exactly = 1) {
+                expensesLocalStore.updateExpenseSplitExchangedAmount(split.expenseSplitId, split.exchangedAmount)
+            }
+        }
+        secondNetworkExpense.subjectExpenseSplitWithPersons.forEach { split ->
+            coVerify(exactly = 1) {
+                expensesLocalStore.updateExpenseSplitExchangedAmount(split.expenseSplitId, split.exchangedAmount)
+            }
+        }
     }
 
     @Test
@@ -280,7 +326,7 @@ internal class EventExpensesPushTaskTest {
 
         val result = task.pushEventExpenses(localDetails.event.id)
 
-        assertEquals(IoResult.Success(Unit), result)
+        assertEquals(IoResult.Error.Retry, result)
         coVerify(exactly = 0) { expensesLocalStore.updateExpenseServerId(firstExpense.expenseId, any()) }
         coVerify(exactly = 1) { expensesLocalStore.updateExpenseServerId(secondExpense.expenseId, "srv-2") }
         coVerify(exactly = 1) {
@@ -298,9 +344,30 @@ internal class EventExpensesPushTaskTest {
     }
 
     @Test
-    fun `pushEventExpenses returns success with no updates when all network results are errors`() = runTest {
+    fun `pushEventExpenses leaves permanently rejected expenses pending without requesting retry`() = runTest {
         val localDetails = eventDetails()
         val localExpense = expense(expenseId = 1L, serverId = null)
+        coEvery { eventsLocalStore.getEventWithDetails(localDetails.event.id) } returns localDetails
+        coEvery { expensesLocalStore.getExpenses(localDetails.event.id) } returns listOf(localExpense)
+        coEvery { expensesRemoteStore.addExpensesToEvent(any(), any(), any(), any()) } returns listOf(IoResult.Error.Failure)
+
+        val result = task.pushEventExpenses(localDetails.event.id)
+
+        assertEquals(IoResult.Success(Unit), result)
+        coVerify(exactly = 0) { expensesLocalStore.updateExpenseServerId(any(), any()) }
+        coVerify(exactly = 0) { expensesLocalStore.updateExpenseSplitExchangedAmount(any(), any()) }
+    }
+
+    @Test
+    fun `pushEventExpenses retries transient errors with the same pending expense identity`() = runTest {
+        val localDetails = eventDetails()
+        val localExpense = expense(expenseId = 1L, serverId = null)
+        val networkExpense = localExpense.copy(
+            serverId = "srv-1",
+            subjectExpenseSplitWithPersons = localExpense.subjectExpenseSplitWithPersons.map {
+                it.copy(exchangedAmount = BigDecimal.parseString("12.34"))
+            },
+        )
         coEvery { eventsLocalStore.getEventWithDetails(localDetails.event.id) } returns localDetails
         coEvery { expensesLocalStore.getExpenses(localDetails.event.id) } returns listOf(localExpense)
         coEvery {
@@ -315,13 +382,126 @@ internal class EventExpensesPushTaskTest {
                 currencies = localDetails.currencies,
                 persons = localDetails.persons,
             )
-        } returns listOf(IoResult.Error.Retry)
+        } returnsMany listOf(listOf(IoResult.Error.Retry), listOf(IoResult.Success(networkExpense)))
+        coEvery { transactionHelper.immediateWriteTransaction<Unit>(any()) } coAnswers {
+            firstArg<suspend () -> Unit>().invoke()
+        }
 
-        val result = task.pushEventExpenses(localDetails.event.id)
+        val firstResult = task.pushEventExpenses(localDetails.event.id)
 
-        assertEquals(IoResult.Success(Unit), result)
+        assertEquals(IoResult.Error.Retry, firstResult)
         coVerify(exactly = 0) { expensesLocalStore.updateExpenseServerId(any(), any()) }
         coVerify(exactly = 0) { expensesLocalStore.updateExpenseSplitExchangedAmount(any(), any()) }
+
+        val retryResult = task.pushEventExpenses(localDetails.event.id)
+
+        assertEquals(IoResult.Success(Unit), retryResult)
+        coVerify(exactly = 2) {
+            expensesRemoteStore.addExpensesToEvent(
+                event = localDetails.event,
+                expenses = listOf(
+                    ExpensePushItem(localExpense, "mobile:$CLIENT_ID:event.expense.add:srv-event:expense-1")
+                ),
+                currencies = localDetails.currencies,
+                persons = localDetails.persons,
+            )
+        }
+        coVerify(exactly = 1) { expensesLocalStore.updateExpenseServerId(localExpense.expenseId, "srv-1") }
+        localExpense.subjectExpenseSplitWithPersons.forEach { split ->
+            coVerify(exactly = 1) {
+                expensesLocalStore.updateExpenseSplitExchangedAmount(split.expenseSplitId, BigDecimal.parseString("12.34"))
+            }
+        }
+    }
+
+    @Test
+    fun `pushEventExpenses commits remote success even when caller is cancelled during persistence`() = runTest {
+        val localDetails = eventDetails()
+        val localExpense = expense(expenseId = 1L, serverId = null)
+        val networkExpense = expense(expenseId = 1L, serverId = "srv-1", splitExchangeValues = listOf("11.11", "22.22"))
+        val transactionStarted = CompletableDeferred<Unit>()
+        val transactionCommitted = CompletableDeferred<Unit>()
+        val allowCommit = CompletableDeferred<Unit>()
+        coEvery { eventsLocalStore.getEventWithDetails(localDetails.event.id) } returns localDetails
+        coEvery { expensesLocalStore.getExpenses(localDetails.event.id) } returns listOf(localExpense)
+        coEvery {
+            expensesRemoteStore.addExpensesToEvent(
+                localDetails.event,
+                listOf(ExpensePushItem(localExpense, "mobile:$CLIENT_ID:event.expense.add:srv-event:expense-1")),
+                localDetails.currencies,
+                localDetails.persons,
+            )
+        } returns listOf(IoResult.Success(networkExpense))
+        coEvery { transactionHelper.immediateWriteTransaction<Unit>(any()) } coAnswers {
+            transactionStarted.complete(Unit)
+            allowCommit.await()
+            firstArg<suspend () -> Unit>().invoke()
+            coVerify(exactly = 1) { expensesLocalStore.updateExpenseServerId(localExpense.expenseId, "srv-1") }
+            networkExpense.subjectExpenseSplitWithPersons.forEach { split ->
+                coVerify(exactly = 1) {
+                    expensesLocalStore.updateExpenseSplitExchangedAmount(split.expenseSplitId, split.exchangedAmount)
+                }
+            }
+            transactionCommitted.complete(Unit)
+        }
+
+        val pushJob = launch { task.pushEventExpenses(localDetails.event.id) }
+        try {
+            transactionStarted.await()
+            pushJob.cancel()
+
+            assertFalse(pushJob.isCompleted)
+            coVerify(exactly = 0) { expensesLocalStore.updateExpenseServerId(any(), any()) }
+            coVerify(exactly = 0) { expensesLocalStore.updateExpenseSplitExchangedAmount(any(), any()) }
+        } finally {
+            allowCommit.complete(Unit)
+            pushJob.cancelAndJoin()
+        }
+
+        assertTrue(pushJob.isCancelled)
+        assertTrue(transactionCommitted.isCompleted)
+        coVerify(exactly = 1) { transactionHelper.immediateWriteTransaction(any()) }
+    }
+
+    @Test
+    fun `pushEventExpenses replays same durable request after local transaction failure`() = runTest {
+        val localDetails = eventDetails()
+        val localExpense = expense(expenseId = 1L, serverId = null)
+        val networkExpense = expense(expenseId = 1L, serverId = "srv-1", splitExchangeValues = listOf("11.11", "22.22"))
+        val pushItems = listOf(ExpensePushItem(localExpense, "mobile:$CLIENT_ID:event.expense.add:srv-event:expense-1"))
+        val transactionFailure = IllegalStateException("Local transaction unavailable")
+        var failTransaction = true
+        coEvery { eventsLocalStore.getEventWithDetails(localDetails.event.id) } returns localDetails
+        coEvery { expensesLocalStore.getExpenses(localDetails.event.id) } returns listOf(localExpense)
+        coEvery {
+            expensesRemoteStore.addExpensesToEvent(localDetails.event, pushItems, localDetails.currencies, localDetails.persons)
+        } returns listOf(IoResult.Success(networkExpense))
+        coEvery { transactionHelper.immediateWriteTransaction<Unit>(any()) } coAnswers {
+            if (failTransaction) {
+                failTransaction = false
+                throw transactionFailure
+            }
+            firstArg<suspend () -> Unit>().invoke()
+        }
+
+        val failure = assertFailsWith<IllegalStateException> { task.pushEventExpenses(localDetails.event.id) }
+
+        assertEquals(transactionFailure.message, failure.message)
+        coVerify(exactly = 0) { expensesLocalStore.updateExpenseServerId(any(), any()) }
+        coVerify(exactly = 0) { expensesLocalStore.updateExpenseSplitExchangedAmount(any(), any()) }
+
+        val replayResult = task.pushEventExpenses(localDetails.event.id)
+
+        assertEquals(IoResult.Success(Unit), replayResult)
+        coVerify(exactly = 2) {
+            expensesRemoteStore.addExpensesToEvent(localDetails.event, pushItems, localDetails.currencies, localDetails.persons)
+        }
+        coVerify(exactly = 1) { expensesLocalStore.updateExpenseServerId(localExpense.expenseId, "srv-1") }
+        networkExpense.subjectExpenseSplitWithPersons.forEach { split ->
+            coVerify(exactly = 1) {
+                expensesLocalStore.updateExpenseSplitExchangedAmount(split.expenseSplitId, split.exchangedAmount)
+            }
+        }
     }
 
     private fun event(serverId: String? = "srv-event"): Event {

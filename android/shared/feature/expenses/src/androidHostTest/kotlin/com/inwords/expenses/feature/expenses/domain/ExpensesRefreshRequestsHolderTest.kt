@@ -2,12 +2,10 @@ package com.inwords.expenses.feature.expenses.domain
 
 import app.cash.turbine.test
 import com.inwords.expenses.feature.events.domain.model.Event
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-@OptIn(ExperimentalCoroutinesApi::class)
 internal class ExpensesRefreshRequestsHolderTest {
 
     @Test

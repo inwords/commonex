@@ -351,9 +351,18 @@ internal class AddExpenseViewModel(
         val newAmount = amount.parseToAmountModel()
 
         inputSplit.update { current ->
-            val split = current ?: (_state.value as? SimpleScreenState.Success)?.data?.split ?: return@update current
+            val model = (_state.value as? SimpleScreenState.Success)?.data
+            val split = current ?: model?.split ?: return@update current
+            val reconciledSplit = model?.let {
+                ensureSplitCalculated(
+                    equalSplit = it.equalSplit,
+                    wholeAmount = it.wholeAmount,
+                    split = split,
+                    subjectPersons = it.subjectPersons,
+                )
+            } ?: split
 
-            split.map { splitWithPerson ->
+            reconciledSplit.map { splitWithPerson ->
                 if (splitWithPerson.person.person.id == person.person.personId) {
                     splitWithPerson.copy(amount = newAmount)
                 } else {

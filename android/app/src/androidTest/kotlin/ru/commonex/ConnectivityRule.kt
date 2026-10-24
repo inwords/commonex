@@ -23,10 +23,10 @@ internal class ConnectivityRule : TestRule {
 
         return object : Statement() {
             override fun evaluate() {
-                if (isOffline) {
-                    ConnectivityManager.turnOffDataAndWifi()
-                }
                 try {
+                    if (isOffline) {
+                        ConnectivityManager.turnOffDataAndWifi()
+                    }
                     base.evaluate()
                 } finally {
                     if (isOffline) {

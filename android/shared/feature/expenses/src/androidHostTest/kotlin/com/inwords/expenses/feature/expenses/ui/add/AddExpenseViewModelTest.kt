@@ -1684,6 +1684,135 @@ internal class AddExpenseViewModelTest {
     }
     // endregion
 
+    @Test
+    fun `reselected participant accepts a custom amount after another share was edited`() = testScope.runTest {
+        currentEventFlow.value = TestFixtures.eventDetails
+        val viewModel = createViewModel()
+
+        viewModel.state.test {
+            awaitLoading()
+            awaitSuccess()
+            viewModel.onEqualSplitChange(false)
+            val initial = awaitSuccess()
+
+            viewModel.onSubjectPersonClicked(initial.subjectPersons.byId(TestFixtures.person3.id))
+            val reduced = awaitSuccess()
+            viewModel.onSplitAmountChanged(reduced.split.byPersonId(TestFixtures.person1.id), "5")
+            val firstEdited = awaitSuccess()
+            viewModel.onSplitAmountChanged(firstEdited.split.byPersonId(TestFixtures.person2.id), "3")
+            val edited = awaitSuccess()
+            viewModel.onSubjectPersonClicked(edited.subjectPersons.byId(TestFixtures.person3.id))
+            val restored = awaitSuccess()
+            assertEquals(listOf("5", "3", ""), restored.split.map { it.amount })
+            assertFalse(restored.canSave)
+
+            viewModel.onSplitAmountChanged(restored.split.byPersonId(TestFixtures.person3.id), "4")
+            val complete = awaitSuccess()
+            assertEquals(listOf("5", "3", "4"), complete.split.map { it.amount })
+            assertEquals("12", complete.totalAmount)
+            assertTrue(complete.canSave)
+        }
+    }
+
+    @Test
+    fun `new group member preserves edited custom amounts and requires a share before saving`() = testScope.runTest {
+        currentEventFlow.value = TestFixtures.eventDetails
+        val newPerson = Person(id = 4L, serverId = "s4", name = "Bob", clientCreateId = "person-client-4")
+        val viewModel = createViewModel()
+
+        viewModel.state.test {
+            awaitLoading()
+            awaitSuccess()
+            viewModel.onEqualSplitChange(false)
+            var custom = awaitSuccess()
+            custom.split.forEachIndexed { index, row ->
+                viewModel.onSplitAmountChanged(row, ((index + 1) * 10).toString())
+                custom = awaitSuccess()
+            }
+            assertTrue(custom.canSave)
+
+            currentEventFlow.value = TestFixtures.eventDetails.copy(persons = TestFixtures.eventDetails.persons + newPerson)
+            val withNewPerson = awaitSuccess()
+            assertEquals(listOf("10", "20", "30", ""), withNewPerson.split.map { it.amount })
+            assertEquals(4, withNewPerson.selectedSubjectPersonsCount)
+            assertFalse(withNewPerson.canSave)
+
+            viewModel.onConfirmClicked()
+            runCurrent()
+            coVerify(exactly = 0) { addCustomSplitExpenseUseCase.addExpense(any(), any(), any(), any(), any(), any(), any()) }
+            coVerify(exactly = 0) { navigationController.popBackStack() }
+
+            viewModel.onSplitAmountChanged(withNewPerson.split.byPersonId(newPerson.id), "40")
+            val complete = awaitSuccess()
+            assertEquals(listOf("10", "20", "30", "40"), complete.split.map { it.amount })
+            assertTrue(complete.canSave)
+            assertEquals("100", complete.totalAmount)
+            viewModel.onConfirmClicked()
+            runCurrent()
+
+            coVerify(exactly = 1) {
+                addCustomSplitExpenseUseCase.addExpense(
+                    event = TestFixtures.event,
+                    expenseType = ExpenseType.Spending,
+                    description = any(),
+                    selectedCurrency = TestFixtures.USD,
+                    selectedPerson = TestFixtures.person1,
+                    personWithAmountSplit = match { split ->
+                        split.associate { it.person to it.amount } == mapOf(
+                            TestFixtures.person1 to "10".toBigDecimal(),
+                            TestFixtures.person2 to "20".toBigDecimal(),
+                            TestFixtures.person3 to "30".toBigDecimal(),
+                            newPerson to "40".toBigDecimal(),
+                        )
+                    },
+                    overrideRate = null,
+                )
+            }
+            coVerify(exactly = 1) { navigationController.popBackStack() }
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `reselecting the same foreign currency preserves the custom exchange rate through confirmation`() = testScope.runTest {
+        currentEventFlow.value = TestFixtures.eventDetails
+        val viewModel = createViewModel()
+
+        viewModel.state.test {
+            awaitLoading()
+            val initial = awaitSuccess()
+            viewModel.onCurrencyClicked(initial.currencies.byCode("EUR"))
+            awaitSuccess()
+            viewModel.onWholeAmountChanged("10")
+            awaitSuccess()
+            viewModel.onExchangeRateChanged("1.25")
+            val custom = awaitSuccess()
+            assertEquals("1.25", custom.exchangeRate?.rateRaw)
+            assertEquals(true, custom.exchangeRate?.isCustom)
+
+            viewModel.onCurrencyClicked(custom.currencies.byCode("EUR"))
+            runCurrent()
+            expectNoEvents()
+            viewModel.onConfirmClicked()
+            runCurrent()
+
+            coVerify(exactly = 1) {
+                addEqualSplitExpenseUseCase.addExpense(
+                    event = TestFixtures.event,
+                    wholeAmount = "10".toBigDecimal(),
+                    expenseType = ExpenseType.Spending,
+                    description = any(),
+                    selectedSubjectPersons = TestFixtures.eventDetails.persons,
+                    selectedCurrency = TestFixtures.EUR,
+                    selectedPerson = TestFixtures.person1,
+                    overrideRate = "1.25".toBigDecimal(),
+                )
+            }
+            coVerify(exactly = 1) { navigationController.popBackStack() }
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
     // region Helper Methods
     private fun createViewModel(
         replenishment: AddExpensePaneDestination.Replenishment? = null

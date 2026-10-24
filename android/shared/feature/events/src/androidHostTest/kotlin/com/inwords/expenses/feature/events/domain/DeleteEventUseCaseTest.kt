@@ -13,6 +13,7 @@ import io.mockk.mockk
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertIs
 
 internal class DeleteEventUseCaseTest {
@@ -93,6 +94,53 @@ internal class DeleteEventUseCaseTest {
         val _ = assertIs<DeleteEventUseCase.DeleteEventResult.RemoteFailed>(result)
         coVerify(exactly = 1) { hooks.onBeforeEventDeletion(syncedEvent.id) }
         coVerify(exactly = 1) { eventsRemoteStore.deleteEvent("server-11", "5678") }
+        coVerify(exactly = 0) { eventsLocalStore.delete(any()) }
+        coVerify(exactly = 0) { settingsRepository.clearCurrentEventAndPerson() }
+    }
+
+    @Test
+    fun deleteRemoteAndLocalEvent_whenEventIsMissing_hasNoDeletionSideEffects() = runTest {
+        coEvery { eventsLocalStore.getEvent(syncedEvent.id) } returns null
+
+        assertEquals(DeleteEventUseCase.DeleteEventResult.Deleted, useCase.deleteRemoteAndLocalEvent(syncedEvent.id))
+
+        coVerify(exactly = 0) { hooks.onBeforeEventDeletion(any()) }
+        coVerify(exactly = 0) { eventsRemoteStore.deleteEvent(any(), any()) }
+        coVerify(exactly = 0) { eventsLocalStore.delete(any()) }
+        coVerify(exactly = 0) { settingsRepository.clearCurrentEventAndPerson() }
+    }
+
+    @Test
+    fun deleteRemoteAndLocalEvent_whenRemoteDeletionSucceeds_preservesAnotherEventSelection() = runTest {
+        coEvery { eventsLocalStore.getEvent(syncedEvent.id) } returns syncedEvent
+        every { settingsRepository.getCurrentEventId() } returns flowOf(localOnlyEvent.id)
+        val remoteResults = listOf(
+            EventsRemoteStore.DeleteEventResult.Deleted,
+            EventsRemoteStore.DeleteEventResult.Error(EventsRemoteStore.EventNetworkError.NotFound),
+        )
+        remoteResults.forEach { remoteResult ->
+            coEvery { eventsRemoteStore.deleteEvent("server-11", "5678") } returns remoteResult
+
+            assertEquals(DeleteEventUseCase.DeleteEventResult.Deleted, useCase.deleteRemoteAndLocalEvent(syncedEvent.id))
+        }
+
+        coVerify(exactly = 2) { hooks.onBeforeEventDeletion(syncedEvent.id) }
+        coVerify(exactly = 2) { eventsLocalStore.delete(syncedEvent.id) }
+        coVerify(exactly = 0) { eventsLocalStore.delete(localOnlyEvent.id) }
+        coVerify(exactly = 0) { settingsRepository.clearCurrentEventAndPerson() }
+    }
+
+    @Test
+    fun deleteRemoteAndLocalEvent_whenRemoteDeletionFails_preservesLocalDataAndSelection() = runTest {
+        coEvery { eventsLocalStore.getEvent(syncedEvent.id) } returns syncedEvent
+        every { settingsRepository.getCurrentEventId() } returns flowOf(syncedEvent.id)
+        coEvery {
+            eventsRemoteStore.deleteEvent("server-11", "5678")
+        } returns EventsRemoteStore.DeleteEventResult.Error(EventsRemoteStore.EventNetworkError.OtherError)
+
+        assertEquals(DeleteEventUseCase.DeleteEventResult.RemoteFailed, useCase.deleteRemoteAndLocalEvent(syncedEvent.id))
+
+        coVerify(exactly = 1) { hooks.onBeforeEventDeletion(syncedEvent.id) }
         coVerify(exactly = 0) { eventsLocalStore.delete(any()) }
         coVerify(exactly = 0) { settingsRepository.clearCurrentEventAndPerson() }
     }

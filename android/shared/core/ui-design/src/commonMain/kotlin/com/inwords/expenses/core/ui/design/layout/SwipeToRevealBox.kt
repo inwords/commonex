@@ -16,6 +16,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
@@ -62,8 +65,12 @@ fun SwipeToRevealBox(
         // When actions are hidden (offset is 0 or NaN), clear their semantics
         // so they won't be found by accessibility services or UI tests
         val actionsPlaceables = subcompose(SwipeToRevealSlot.Actions) {
-            val offset = state.offset
-            val isActionsVisible = !offset.isNaN() && offset <= -1f
+            val isActionsVisible by remember(state) {
+                derivedStateOf {
+                    val offset = state.offset
+                    !offset.isNaN() && offset <= -1f
+                }
+            }
 
             Row(
                 modifier = Modifier

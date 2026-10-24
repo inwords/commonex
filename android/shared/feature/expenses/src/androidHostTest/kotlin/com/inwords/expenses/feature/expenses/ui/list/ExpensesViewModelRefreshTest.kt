@@ -24,9 +24,11 @@ import com.inwords.expenses.feature.expenses.ui.list.ExpensesPaneUiModel.Expense
 import com.inwords.expenses.feature.settings.api.SettingsRepository
 import com.ionspin.kotlin.bignum.decimal.BigDecimal
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.justRun
 import io.mockk.mockk
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -178,6 +180,43 @@ internal class ExpensesViewModelRefreshTest {
 
             cancelAndIgnoreRemainingEvents()
         }
+    }
+
+    @Test
+    fun `refresh without a selected group does not request synchronization`() = testScope.runTest {
+        val viewModel = createViewModel()
+
+        viewModel.onRefresh()
+        runCurrent()
+
+        coVerify(exactly = 0) { requestExpensesRefreshUseCase.requestRefresh(any()) }
+    }
+
+    @Test
+    fun `refreshing a newly selected group cancels the previous pending refresh request`() = testScope.runTest {
+        val nextEvent = TestFixtures.event.copy(id = 3L, serverId = "e3", name = "Next trip", clientCreateId = "event-3")
+        val pendingRequest = CompletableDeferred<Unit>()
+        val previousRequestCanceled = CompletableDeferred<Unit>()
+        coEvery { requestExpensesRefreshUseCase.requestRefresh(TestFixtures.event) } coAnswers {
+            try {
+                pendingRequest.await()
+            } finally {
+                previousRequestCanceled.complete(Unit)
+            }
+        }
+        coEvery { requestExpensesRefreshUseCase.requestRefresh(nextEvent) } returns Unit
+        currentEventFlow.value = TestFixtures.eventDetails
+        val viewModel = createViewModel()
+
+        viewModel.onRefresh()
+        runCurrent()
+        currentEventFlow.value = TestFixtures.eventDetails.copy(event = nextEvent)
+        viewModel.onRefresh()
+        runCurrent()
+
+        assertTrue(previousRequestCanceled.isCompleted)
+        coVerify(exactly = 1) { requestExpensesRefreshUseCase.requestRefresh(TestFixtures.event) }
+        coVerify(exactly = 1) { requestExpensesRefreshUseCase.requestRefresh(nextEvent) }
     }
 
     private fun createViewModel(): ExpensesViewModel {

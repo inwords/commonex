@@ -24,11 +24,18 @@ import com.inwords.expenses.feature.expenses.domain.model.Expense
 import com.inwords.expenses.feature.expenses.domain.model.ExpenseSplitWithPerson
 import com.inwords.expenses.feature.expenses.domain.model.ExpenseType
 import com.inwords.expenses.feature.expenses.domain.model.ExpensesDetails
+import com.inwords.expenses.feature.expenses.ui.add.AddExpensePaneDestination
+import com.inwords.expenses.feature.expenses.ui.common.DebtShortUiModel
 import com.inwords.expenses.feature.expenses.ui.list.ExpensesPaneUiModel.Expenses
+import com.inwords.expenses.feature.expenses.ui.list.ExpensesPaneUiModel.LocalEvents
+import com.inwords.expenses.feature.expenses.ui.list.bottom_sheet.item.ExpenseItemPaneDestination
 import com.inwords.expenses.feature.menu.ui.InviteEventPaneDestination
 import com.inwords.expenses.feature.settings.api.SettingsRepository
 import com.ionspin.kotlin.bignum.decimal.BigDecimal
 import com.ionspin.kotlin.bignum.decimal.toBigDecimal
+import expenses.shared.feature.expenses.generated.resources.Res
+import expenses.shared.feature.expenses.generated.resources.expenses_today
+import expenses.shared.feature.expenses.generated.resources.expenses_yesterday
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -42,6 +49,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runCurrent
@@ -54,6 +62,7 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Instant
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -156,6 +165,7 @@ internal class ExpensesViewModelTimelineTest {
 
     private val currentEventFlow = MutableStateFlow<EventDetails?>(Fixtures.eventDetails)
     private val currentPersonIdFlow = MutableStateFlow<Long?>(Fixtures.currentPerson.id)
+    private val eventsFlow = MutableStateFlow(emptyList<Event>())
 
     private val navigationController = mockk<NavigationController>(relaxed = true) {
         justRun { navigateTo(any()) }
@@ -167,7 +177,7 @@ internal class ExpensesViewModelTimelineTest {
         every { eventsDeletionState } returns MutableStateFlow(emptyMap())
     }
     private val getEventsUseCase = mockk<GetEventsUseCase>(relaxed = true) {
-        every { getEvents() } returns MutableStateFlow(emptyList())
+        every { getEvents() } returns eventsFlow
     }
     private val joinEventUseCase = mockk<JoinEventUseCase>(relaxed = true)
     private val leaveEventUseCase = mockk<LeaveEventUseCase>(relaxed = true)
@@ -275,6 +285,155 @@ internal class ExpensesViewModelTimelineTest {
         coVerify(exactly = 2) { leaveEventUseCase.leaveEvent() }
     }
 
+    @Test
+    fun `switching person recomputes debts and prefills repayment from the new identity`() = testScope.runTest {
+        val expenses = listOf(Fixtures.expensesDetails.expenses.first())
+        every { getExpensesDetailsUseCase.getExpensesDetails(any()) } returns flowOf(
+            Fixtures.expensesDetails.copy(
+                expenses = expenses,
+                debtCalculator = DebtCalculator(expenses, Fixtures.primaryCurrency),
+            )
+        )
+        val viewModel = createViewModel()
+
+        viewModel.state.test {
+            runCurrent()
+            val initial = assertIs<Expenses>(assertIs<SimpleScreenState.Success<ExpensesPaneUiModel>>(expectMostRecentItem()).data)
+            assertEquals(emptyList(), initial.debts)
+            assertEquals("0 EUR", initial.totalDebt)
+
+            currentPersonIdFlow.value = Fixtures.otherPerson.id
+            runCurrent()
+
+            val updated = assertIs<Expenses>(assertIs<SimpleScreenState.Success<ExpensesPaneUiModel>>(expectMostRecentItem()).data)
+            assertEquals(Fixtures.otherPerson.id, updated.currentPersonId)
+            assertEquals("Ben", updated.currentPersonName)
+            assertEquals("120 EUR", updated.totalDebt)
+            val debt = updated.debts.single()
+            assertEquals(Fixtures.currentPerson.id, debt.personId)
+            assertEquals("Alex", debt.personName)
+            assertEquals("120", debt.amount)
+            assertEquals("EUR", debt.currencyCode)
+
+            viewModel.onReplenishmentClick(debt)
+
+            verify {
+                navigationController.navigateTo(
+                    AddExpensePaneDestination(
+                        replenishment = AddExpensePaneDestination.Replenishment(
+                            fromPersonId = Fixtures.otherPerson.id,
+                            toPersonId = Fixtures.currentPerson.id,
+                            currencyCode = "EUR",
+                            amount = "120",
+                        )
+                    )
+                )
+            }
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `unknown selected person returns to local groups and recovers when a member is selected`() = testScope.runTest {
+        eventsFlow.value = listOf(Fixtures.event)
+        currentPersonIdFlow.value = 999L
+        val viewModel = createViewModel()
+
+        viewModel.state.test {
+            runCurrent()
+            val local = assertIs<LocalEvents>(assertIs<SimpleScreenState.Success<ExpensesPaneUiModel>>(expectMostRecentItem()).data)
+            assertEquals(listOf(Fixtures.event.id), local.localEvents.events.map { it.eventId })
+
+            currentPersonIdFlow.value = Fixtures.currentPerson.id
+            runCurrent()
+
+            val recovered = assertIs<Expenses>(assertIs<SimpleScreenState.Success<ExpensesPaneUiModel>>(expectMostRecentItem()).data)
+            assertEquals(Fixtures.event.id, recovered.eventId)
+            assertEquals("Alex", recovered.currentPersonName)
+            assertEquals("180 EUR", recovered.totalSpending)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `clearing current group cancels its expense updates and shows saved local groups`() = testScope.runTest {
+        eventsFlow.value = listOf(Fixtures.event)
+        val expenseDetails = MutableStateFlow(Fixtures.expensesDetails)
+        every { getExpensesDetailsUseCase.getExpensesDetails(any()) } returns expenseDetails
+        val viewModel = createViewModel()
+
+        viewModel.state.test {
+            runCurrent()
+            assertIs<Expenses>(assertIs<SimpleScreenState.Success<ExpensesPaneUiModel>>(expectMostRecentItem()).data)
+
+            currentEventFlow.value = null
+            runCurrent()
+
+            val local = assertIs<LocalEvents>(assertIs<SimpleScreenState.Success<ExpensesPaneUiModel>>(expectMostRecentItem()).data)
+            assertEquals(listOf("Trip"), local.localEvents.events.map { it.eventName })
+
+            expenseDetails.value = Fixtures.expensesDetails.copy(expenses = emptyList())
+            advanceTimeBy(501.milliseconds)
+            runCurrent()
+            expectNoEvents()
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `switching group resets day selection and opens expenses with the new group identity`() = testScope.runTest {
+        val secondEvent = Fixtures.eventDetails.copy(
+            event = Fixtures.event.copy(id = 20L, serverId = "event-20", name = "Another trip", clientCreateId = "event-20")
+        )
+        every { getExpensesDetailsUseCase.getExpensesDetails(secondEvent) } returns flowOf(
+            Fixtures.expensesDetails.copy(event = secondEvent)
+        )
+        val viewModel = createViewModel()
+
+        viewModel.state.test {
+            runCurrent()
+            assertIs<Expenses>(assertIs<SimpleScreenState.Success<ExpensesPaneUiModel>>(expectMostRecentItem()).data)
+            viewModel.onDayChipClick("2026-03-27")
+            runCurrent()
+            val selected = assertIs<Expenses>(assertIs<SimpleScreenState.Success<ExpensesPaneUiModel>>(expectMostRecentItem()).data)
+            assertEquals("2026-03-27", selected.dayChips.selectedDayKey())
+
+            currentEventFlow.value = secondEvent
+            runCurrent()
+
+            val switched = assertIs<Expenses>(assertIs<SimpleScreenState.Success<ExpensesPaneUiModel>>(expectMostRecentItem()).data)
+            assertEquals(20L, switched.eventId)
+            assertEquals("Another trip", switched.eventName)
+            assertEquals("2026-03-28", switched.dayChips.selectedDayKey())
+            val expense = switched.daySections.first().expenses.first()
+            viewModel.onExpenseClick(expense)
+            verify { navigationController.navigateTo(ExpenseItemPaneDestination(expenseId = expense.expenseId, eventId = 20L)) }
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `expense actions do not navigate while loading or showing local groups`() = testScope.runTest {
+        currentPersonIdFlow.value = null
+        eventsFlow.value = listOf(Fixtures.event)
+        val viewModel = createViewModel()
+        val expense = mockk<Expenses.ExpenseUiModel>()
+        val creditor = mockk<DebtShortUiModel>()
+
+        viewModel.onExpenseClick(expense)
+        viewModel.onReplenishmentClick(creditor)
+        verify(exactly = 0) { navigationController.navigateTo(any()) }
+
+        viewModel.state.test {
+            runCurrent()
+            assertIs<LocalEvents>(assertIs<SimpleScreenState.Success<ExpensesPaneUiModel>>(expectMostRecentItem()).data)
+            viewModel.onExpenseClick(expense)
+            viewModel.onReplenishmentClick(creditor)
+            verify(exactly = 0) { navigationController.navigateTo(any()) }
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
     private fun createViewModel(): ExpensesViewModel {
         return ExpensesViewModel(
             navigationController = navigationController,
@@ -290,13 +449,11 @@ internal class ExpensesViewModelTimelineTest {
             settingsRepository = settingsRepository,
             timelineUiModelFactory = ExpensesTimelineUiModelFactory(
                 stringProvider = object : StringProvider {
-                    private var stringRequestCount = 0
-
                     override suspend fun getString(stringResource: StringResource): String {
-                        return when (stringRequestCount++) {
-                            0 -> "Today"
-                            1 -> "Yesterday"
-                            else -> error("Unexpected string resource request: $stringRequestCount")
+                        return when (stringResource) {
+                            Res.string.expenses_today -> "Today"
+                            Res.string.expenses_yesterday -> "Yesterday"
+                            else -> error("Unexpected string resource request: $stringResource")
                         }
                     }
 

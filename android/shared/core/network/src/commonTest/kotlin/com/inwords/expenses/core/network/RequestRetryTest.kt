@@ -2,6 +2,7 @@ package com.inwords.expenses.core.network
 
 import com.inwords.expenses.core.utils.IoResult
 import com.inwords.expenses.core.utils.SuspendLazy
+import io.ktor.client.call.body
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
 import io.ktor.client.plugins.ClientRequestException
@@ -10,9 +11,14 @@ import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
+import io.ktor.serialization.ContentConvertException
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.test.runTest
+import kotlinx.io.IOException
+import kotlinx.serialization.json.JsonObject
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
 
 internal class RequestRetryTest {
@@ -86,6 +92,81 @@ internal class RequestRetryTest {
 
         assertEquals(HttpStatusCode.NotFound, error.response.status)
         assertEquals(IoResult.Error.Failure, NetworkResult.Error.Http.Client(error).toIoResult())
+    }
+
+    @Test
+    fun `requestWithExceptionHandling propagates cancellation instead of mapping it to an error`() = runTest {
+        unusedClient().use { client ->
+            val exception = assertFailsWith<CancellationException> {
+                SuspendLazy { client }.requestWithExceptionHandling<String> {
+                    throw CancellationException("Request cancelled")
+                }
+            }
+
+            assertEquals("Request cancelled", exception.message)
+        }
+    }
+
+    @Test
+    fun `requestWithExceptionHandling maps transport failures to retryable results`() = runTest {
+        unusedClient().use { client ->
+            val result = SuspendLazy { client }.requestWithExceptionHandling<String> {
+                throw IOException("Connection reset")
+            }
+
+            assertEquals("Connection reset", assertIs<NetworkResult.Error.Transport>(result).exception.message)
+            assertEquals(IoResult.Error.Retry, result.toIoResult())
+        }
+    }
+
+    @Test
+    fun `requestWithExceptionHandling maps missing and unconvertible content to permanent failure`() = runTest {
+        unusedClient().use { client ->
+            val results = listOf(
+                SuspendLazy { client }.requestWithExceptionHandling<String> { null },
+                SuspendLazy { client }.requestWithExceptionHandling<String> {
+                    throw ContentConvertException("Invalid response content")
+                },
+            )
+
+            results.forEach { result ->
+                assertIs<NetworkResult.Error.Parse>(result)
+                assertEquals(IoResult.Error.Failure, result.toIoResult())
+            }
+        }
+    }
+
+    @Test
+    fun `requestWithExceptionHandling reports a missing transformation for an HTML response without retrying`() = runTest {
+        var attempts = 0
+        val client = createKtor(MockEngine) {
+            engine {
+                addHandler {
+                    attempts++
+                    respond(
+                        content = "<html>Maintenance page</html>",
+                        status = HttpStatusCode.OK,
+                        headers = headersOf("Content-Type", "text/html"),
+                    )
+                }
+            }
+        }
+
+        client.use {
+            val result = SuspendLazy { client }.requestWithExceptionHandling {
+                request("https://commonex.test/response").body<JsonObject>()
+            }
+
+            assertIs<NetworkResult.Error.NoTransformation>(result)
+            assertEquals(IoResult.Error.Failure, result.toIoResult())
+            assertEquals(1, attempts)
+        }
+    }
+
+    private fun unusedClient() = createKtor(MockEngine) {
+        engine {
+            addHandler { error("This test must not send an HTTP request") }
+        }
     }
 
     private suspend fun executeRequestWithStatuses(

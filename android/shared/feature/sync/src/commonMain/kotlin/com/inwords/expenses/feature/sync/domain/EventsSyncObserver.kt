@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.launch
+import kotlin.time.Duration.Companion.seconds
 
 class EventsSyncObserver internal constructor(
     getCurrentEventStateUseCaseLazy: Lazy<GetCurrentEventStateUseCase>,
@@ -53,7 +54,7 @@ class EventsSyncObserver internal constructor(
                 .conflate()
                 .collect { eventId ->
                     eventsSyncManager.pushAllEventInfo(eventId)
-                    delay(3000) // do not launch sync more often than every 3 seconds
+                    delay(3.seconds) // do not launch sync more often than every 3 seconds
                 }
         }
 

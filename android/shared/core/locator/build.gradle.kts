@@ -16,7 +16,7 @@ kotlin {
             dependencies {
                 implementation(project(":shared:core:utils"))
 
-                implementation(shared.kotlinx.atomicfu)
+                api(shared.kotlinx.atomicfu)
             }
         }
     }

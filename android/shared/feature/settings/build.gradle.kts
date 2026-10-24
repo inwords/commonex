@@ -9,6 +9,7 @@ kotlin {
     android {
         namespace = "com.inwords.expenses.feature.settings"
 
+        withHostTest {}
     }
 
     applyKmmDefaults("sharedSettings")
@@ -25,6 +26,13 @@ kotlin {
         androidMain {
             dependencies {
                 implementation(shared.datastore.android)
+            }
+        }
+        commonTest {
+            dependencies {
+                implementation(shared.kotlin.test)
+                implementation(shared.coroutines.test)
+                implementation(shared.turbine)
             }
         }
     }

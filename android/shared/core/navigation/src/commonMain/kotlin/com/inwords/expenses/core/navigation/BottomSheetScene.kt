@@ -11,7 +11,6 @@ import androidx.navigation3.scene.OverlayScene
 import androidx.navigation3.scene.Scene
 import androidx.navigation3.scene.SceneStrategy
 import androidx.navigation3.scene.SceneStrategyScope
-import com.inwords.expenses.core.navigation.BottomSheetSceneStrategy.Companion.bottomSheet
 
 /**
  * An [OverlayScene] that renders an [entry] within a [androidx.compose.material3.ModalBottomSheet].

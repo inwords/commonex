@@ -1,3 +1,4 @@
+import com.android.build.api.dsl.ManagedVirtualDevice
 import com.inwords.expenses.plugins.SharedKmmLibraryPlugin.Companion.applyKmmDefaults
 
 plugins {
@@ -9,6 +10,23 @@ kotlin {
         namespace = "com.inwords.expenses.feature.sync"
 
         withHostTest {}
+
+        withDeviceTest {
+            animationsDisabled = true
+            execution = "HOST"
+
+            @Suppress("UnstableApiUsage")
+            managedDevices {
+                allDevices {
+                    create<ManagedVirtualDevice>("pixel6Api36Atd") {
+                        device = "Pixel 6"
+                        apiLevel = 36
+                        systemImageSource = "aosp-atd"
+                        testedAbi = "x86_64"
+                    }
+                }
+            }
+        }
     }
 
     applyKmmDefaults("sharedSync")
@@ -29,6 +47,15 @@ kotlin {
             dependencies {
                 implementation(shared.work.runtime.ktx)
                 implementation(shared.concurrent.futures.ktx)
+            }
+        }
+        getByName("androidDeviceTest") {
+            dependencies {
+                implementation(shared.androidx.test.runner)
+                implementation(shared.androidx.test.ext.junit)
+                implementation(shared.mockk.android)
+                implementation(shared.coroutines.test)
+                implementation(shared.work.testing)
             }
         }
     }

@@ -53,6 +53,8 @@ The Android project follows an MCP-first validation policy in [android/AGENTS.md
 When MCP is available:
 
 - Prefer JetBrains MCP tools for project-aware queries and inspections
+- Inspect changed Kotlin and Gradle files with `get_file_problems` or `lint_files`, including changed test sources. After dependency or source-set changes, sync Gradle and wait for indexing. Select the app's `autotest` build variant to include `app/src/androidTest` in the IDE model.
+- An excluded file, `notAnalyzedReason`, timeout, or incomplete batch is not a clean inspection result. Resolve the model issue or report the unverified files. Report version-catalog update notices separately from source warnings; inspection cleanup alone does not authorize dependency upgrades.
 - Prefer `execute_terminal_command` for Gradle validation run from the IDE context
 - Prefer the JetBrains MCP terminal for local Android UI-test builds and Marathon runs. In this repo, the IDE terminal is the preferred execution path for agent-driven UI validation because it uses the Android IDE environment directly and is more reliable for SDK-dependent, long-running commands than bouncing between shells
 - For Marathon, run the repo script `.\scripts\run-marathon.ps1` from the Android project root instead of hand-writing `ANDROID_SDK_ROOT` setup inline. The script resolves the SDK from env vars or `android/local.properties`, exports the SDK vars for the current PowerShell process, builds the autotest APKs, and launches Marathon
