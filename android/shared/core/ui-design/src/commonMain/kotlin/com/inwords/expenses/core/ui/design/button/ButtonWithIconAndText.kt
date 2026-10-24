@@ -16,7 +16,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.inwords.expenses.core.ui.design.preview.ComponentPreviews
 import com.inwords.expenses.core.ui.design.theme.CommonExTheme
@@ -30,8 +29,8 @@ fun ButtonWithIconAndText(
     modifier: Modifier = Modifier,
     contentDescription: String? = null,
     enabled: Boolean = true,
-    minHeight: Dp = ButtonDefaults.MinHeight,
 ) {
+    val minHeight = ButtonDefaults.MediumContainerHeight
     Button(
         onClick = onClick,
         shapes = ButtonDefaults.shapes(),
@@ -77,23 +76,6 @@ private fun ButtonWithIconAndTextEnabledPreview() {
                 text = "Add expense",
                 imageVector = Icons.Outlined.Add,
                 enabled = true,
-            )
-        }
-    }
-}
-
-@Preview(name = "Medium", widthDp = 360)
-@Composable
-private fun ButtonWithIconAndTextMediumEnabledPreview() {
-    CommonExTheme {
-        Surface {
-            ButtonWithIconAndText(
-                modifier = Modifier.padding(16.dp),
-                onClick = {},
-                text = "Add expense",
-                imageVector = Icons.Outlined.Add,
-                enabled = true,
-                minHeight = ButtonDefaults.MediumContainerHeight
             )
         }
     }

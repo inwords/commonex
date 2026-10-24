@@ -18,7 +18,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Check
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -96,7 +95,6 @@ internal fun AddParticipantsToEventPane(
                         enabled = state.isConfirmEnabled,
                         text = stringResource(Res.string.events_continue_button),
                         imageVector = Icons.Outlined.Check,
-                        minHeight = ButtonDefaults.MediumContainerHeight,
                     )
                 }
             }

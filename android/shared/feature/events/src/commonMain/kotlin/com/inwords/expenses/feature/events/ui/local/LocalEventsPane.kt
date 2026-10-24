@@ -46,7 +46,6 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
 import androidx.compose.runtime.Composable
@@ -76,6 +75,7 @@ import androidx.compose.ui.unit.dp
 import androidx.window.core.layout.WindowSizeClass
 import com.inwords.expenses.core.ui.design.appbar.TopAppBarWithText
 import com.inwords.expenses.core.ui.design.button.ButtonWithIconAndText
+import com.inwords.expenses.core.ui.design.button.TextButtonWithText
 import com.inwords.expenses.core.ui.design.layout.AdaptiveButtonsRow
 import com.inwords.expenses.core.ui.design.layout.RevealState
 import com.inwords.expenses.core.ui.design.layout.SwipeToRevealBox
@@ -190,7 +190,6 @@ fun LocalEventsPane(
     }
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun LocalEventsActions(
     onCreateEventClick: () -> Unit,
@@ -199,9 +198,6 @@ private fun LocalEventsActions(
 ) {
     val createLabel = stringResource(Res.string.events_create)
     val joinLabel = stringResource(Res.string.events_join)
-    val buttonHeight = ButtonDefaults.MinHeight
-    val textStyle = ButtonDefaults.textStyleFor(buttonHeight)
-    val buttonPadding = ButtonDefaults.contentPaddingFor(buttonHeight)
 
     AdaptiveButtonsRow(
         modifier = modifier.fillMaxWidth(),
@@ -214,13 +210,11 @@ private fun LocalEventsActions(
             text = createLabel,
             imageVector = Icons.Outlined.Add,
         )
-        TextButton(
+        TextButtonWithText(
             modifier = Modifier.testTag("events_join"),
             onClick = onJoinEventClick,
-            contentPadding = buttonPadding,
-        ) {
-            Text(text = joinLabel, style = textStyle)
-        }
+            text = joinLabel,
+        )
     }
 }
 

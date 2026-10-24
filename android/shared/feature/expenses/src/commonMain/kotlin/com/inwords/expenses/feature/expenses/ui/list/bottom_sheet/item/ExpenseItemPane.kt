@@ -26,6 +26,7 @@ import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -118,6 +119,7 @@ internal fun ExpenseItemPane(
     }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun ExpenseItemPaneSuccess(
     state: ExpenseItemPaneUiModel,
@@ -220,18 +222,27 @@ private fun ExpenseItemPaneSuccess(
             )
         }
         item(key = "revert", contentType = "action") {
+            val minHeight = ButtonDefaults.MediumContainerHeight
             TextButton(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 8.dp)
+                    .heightIn(min = minHeight)
                     .testTag("expense_item_revert_action"),
                 onClick = onRevertExpenseClick,
                 colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
+                contentPadding = ButtonDefaults.contentPaddingFor(minHeight),
             ) {
-                Icon(imageVector = Icons.AutoMirrored.Filled.Undo, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(text = stringResource(Res.string.expenses_revert_operation))
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.Undo,
+                    contentDescription = null,
+                    modifier = Modifier.size(ButtonDefaults.iconSizeFor(minHeight)),
+                )
+                Spacer(modifier = Modifier.width(ButtonDefaults.iconSpacingFor(minHeight)))
+                Text(
+                    text = stringResource(Res.string.expenses_revert_operation),
+                    style = ButtonDefaults.textStyleFor(minHeight),
+                )
             }
         }
     }

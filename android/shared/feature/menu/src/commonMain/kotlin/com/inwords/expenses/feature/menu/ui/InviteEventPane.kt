@@ -14,7 +14,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Share
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
@@ -133,7 +132,6 @@ internal fun InviteEventPane(
                         text = stringResource(Res.string.menu_share_action),
                         imageVector = Icons.Outlined.Share,
                         enabled = state.shareState.canShare,
-                        minHeight = ButtonDefaults.MediumContainerHeight,
                         modifier = Modifier.fillMaxWidth().testTag("event_invite_share"),
                     )
                     OutlinedButtonWithText(

@@ -30,6 +30,8 @@ Draft a prototype before implementing each new or redesigned screen; align it wi
 
 Give secondary actions less emphasis. Use progress steps only for actual stages in the same task. Explanations earn their space by helping someone decide or complete an unfamiliar action. Prefer useful labels and examples over repeating the title or describing a later screen.
 
+Use the shared 56dp minimum size for standalone screen and sheet action buttons, with matching typography, icon size, and padding. Express action emphasis through filled, tonal, outlined, or text styling rather than different sizes. Allow buttons to grow with wrapped or scaled text. Inline links, dialog actions, app-bar controls, and floating actions retain their component-specific sizing.
+
 ## Calm forms
 
 Keep required inputs easy to find. Offer optional inputs through clearly labeled, discoverable actions when revealing them progressively reduces initial effort. Preserve a straightforward way to add or edit them.
