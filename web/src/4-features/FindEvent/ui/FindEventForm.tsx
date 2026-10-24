@@ -22,7 +22,11 @@ export const FindEventForm = observer(() => {
     <Box display="flex" justifyContent="center" marginTop={'20px'}>
       <FormContainer<FindEventFormValues>
         onSuccess={async (d) => {
-          await eventService.getEventInfo(d.eventId, {pinCode: d.pinCode});
+          try {
+            await eventService.getEventInfo(d.eventId, {pinCode: d.pinCode}, 'manual');
+          } catch {
+            return;
+          }
 
           navigate(ROUTES.Event(d.eventId), {state: 'navigateFromMainForm'});
         }}

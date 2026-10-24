@@ -1,3 +1,5 @@
+import {track} from '@/6-shared/analytics';
+import {AnalyticsConsent} from '@/3-widgets/AnalyticsConsent/AnalyticsConsent';
 import {Box, Container, Link, Stack, Typography} from '@mui/material';
 import {observer} from 'mobx-react-lite';
 import {languageStore} from '@/6-shared/i18n/languageStore';
@@ -18,6 +20,7 @@ export const AppFooter = observer(() => {
           </Typography>
           <Stack direction="row" useFlexGap flexWrap="wrap" justifyContent="center" gap={2}>
             <Link
+              onClick={() => track({name: 'store_link_clicked', params: {store: 'app_store'}})}
               href="https://apps.apple.com/app/id6761690923"
               target="_blank"
               rel="noopener noreferrer"
@@ -37,6 +40,7 @@ export const AppFooter = observer(() => {
               />
             </Link>
             <Link
+              onClick={() => track({name: 'store_link_clicked', params: {store: 'rustore'}})}
               href="https://www.rustore.ru/catalog/app/ru.commonex"
               target="_blank"
               rel="noopener noreferrer"
@@ -56,6 +60,7 @@ export const AppFooter = observer(() => {
               />
             </Link>
           </Stack>
+          <AnalyticsConsent />
         </Stack>
       </Container>
     </Box>

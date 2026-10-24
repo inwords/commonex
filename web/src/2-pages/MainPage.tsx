@@ -1,3 +1,4 @@
+import {track} from '@/6-shared/analytics';
 import {CreateEventButton} from '@/4-features/CreateEvent/ui/CreateEventButton';
 import {Box, Stack, Typography, Container} from '@mui/material';
 import {useEffect, useState} from 'react';
@@ -31,7 +32,12 @@ export const MainPage = observer(() => {
 
           <Box display="flex" justifyContent="center" marginTop={'16px'}>
             <Stack minWidth={300}>
-              <CreateEventButton onClick={() => setIsDialogOpen(true)} />
+              <CreateEventButton
+                onClick={() => {
+                  track({name: 'trip_create_opened'});
+                  setIsDialogOpen(true);
+                }}
+              />
             </Stack>
           </Box>
         </Box>

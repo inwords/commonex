@@ -1,3 +1,6 @@
+import {track} from '@/6-shared/analytics';
+import type {AnalyticsEvent} from '@/6-shared/analytics/analytics-event';
+import {analyticsFailureReason} from '@/6-shared/analytics/analytics-failure';
 import {
   createEvent,
   getEventInfo as getEventInfoApi,
@@ -11,12 +14,31 @@ import {ulid} from 'ulid';
 import {ApiError} from '@/6-shared/api/errors';
 
 export class EventService {
-  private createEventKey: string | null = null;
-  async getEventInfo(eventId: string, params: {pinCode?: string; token?: string}) {
-    const resp = await getEventInfoApi(eventId, params);
+  private emit: (event: AnalyticsEvent) => void;
 
-    userStore.setUsers(resp.users);
-    eventStore.setCurrentEvent(resp);
+  constructor(emit: (event: AnalyticsEvent) => void = track) {
+    this.emit = (event) => {
+      try {
+        emit(event);
+      } catch {
+        /* Optional analytics. */
+      }
+    };
+  }
+
+  private createEventKey: string | null = null;
+  async getEventInfo(eventId: string, params: {pinCode?: string; token?: string}, entryMethod: 'token' | 'manual') {
+    this.emit({name: 'join_started', params: {entry_method: entryMethod}});
+    try {
+      const resp = await getEventInfoApi(eventId, params);
+      userStore.setUsers(resp.users);
+      eventStore.setCurrentEvent(resp);
+      eventStore.setEntryMethod(entryMethod);
+      this.emit({name: 'join_succeeded', params: {entry_method: entryMethod}});
+    } catch (error) {
+      this.emit({name: 'join_failed', params: {entry_method: entryMethod, reason: analyticsFailureReason(error)}});
+      throw error;
+    }
   }
 
   async createEvent(data: CreateEvent) {
@@ -41,7 +63,12 @@ export class EventService {
       userStore.setUsers(resp.users);
       eventStore.setCurrentEvent(resp);
 
+      eventStore.setEntryMethod('created');
+      this.emit({name: 'trip_created'});
       return resp.id;
+    } catch (error) {
+      this.emit({name: 'trip_create_failed', params: {reason: analyticsFailureReason(error)}});
+      throw error;
     } finally {
       this.createEventKey = null;
       eventStore.setIsCreatingEvent(false);

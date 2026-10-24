@@ -1,8 +1,14 @@
 import {makeAutoObservable} from 'mobx';
-import {Event} from "@/5-entities/event/types/types";
+import {Event} from '@/5-entities/event/types/types';
 
 export class EventStore {
   currentEvent?: Event = undefined;
+  entryMethod: 'created' | 'token' | 'manual' = 'created';
+
+  setEntryMethod(value: 'created' | 'token' | 'manual') {
+    this.entryMethod = value;
+  }
+
   isCreatingEvent: boolean = false;
 
   constructor() {

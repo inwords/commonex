@@ -10,16 +10,10 @@ export const createEvent = async (event: CreateEvent, idempotencyKey: string) =>
 };
 
 export const getEventInfo = async (eventId: string, params: {pinCode?: string; token?: string}) => {
-  try {
-    const fetchUrl = `/v2/user/event/${eventId}`;
-
-    return await httpClient.request(fetchUrl, {
-      method: 'POST',
-      body: JSON.stringify(params),
-    });
-  } catch (error) {
-    console.error('An error occurred:', error);
-  }
+  return await httpClient.request(`/v2/user/event/${eventId}`, {
+    method: 'POST',
+    body: JSON.stringify(params),
+  });
 };
 
 export const createEventShareToken = async (
