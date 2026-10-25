@@ -5,23 +5,40 @@ import {UseCase} from '#packages/use-case';
 
 import {EventServiceAbstract} from '#domain/abstracts/event-service/event-service';
 import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-service/relational-data-service';
-import {EventDeletedError, EventNotFoundError, InvalidPinCodeError} from '#domain/errors/errors';
+import {
+  ClientUpdateRequiredError,
+  EventDeletedError,
+  EventNotFoundError,
+  InvalidPinCodeError,
+} from '#domain/errors/errors';
 import {EventShareTokenValueObject} from '#domain/value-objects/event-share-token.value-object';
 
+import {CheckEventVersionSharedUseCase} from '#usecases/shared/check-event-version.usecase';
+
 interface Input {
+  userAgent?: string | undefined;
   eventId: string;
   pinCode: string;
 }
-type Output = Result<{token: string; expiresAt: string}, EventNotFoundError | EventDeletedError | InvalidPinCodeError>;
+type Output = Result<
+  {token: string; expiresAt: string},
+  ClientUpdateRequiredError | EventNotFoundError | EventDeletedError | InvalidPinCodeError
+>;
 
 @Injectable()
 export class CreateEventShareTokenV2UseCase implements UseCase<Input, Output> {
   constructor(
     private readonly rDataService: RelationalDataServiceAbstract,
     private readonly eventService: EventServiceAbstract,
+    private readonly checkEventVersionUseCase: CheckEventVersionSharedUseCase,
   ) {}
 
-  public async execute({eventId, pinCode}: Input): Promise<Output> {
+  public async execute({eventId, pinCode, userAgent}: Input): Promise<Output> {
+    const compatibility = await this.checkEventVersionUseCase.execute({eventId, userAgent});
+    if (isError(compatibility)) {
+      return compatibility;
+    }
+
     return this.rDataService.transaction('READ COMMITTED', async (trx) => {
       const [event] = await this.rDataService.event.findById(eventId, {...trx, lock: 'pessimistic_write'});
 

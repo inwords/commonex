@@ -11,6 +11,7 @@ import {
   IdempotencyHashMismatchError,
 } from '#domain/errors/errors';
 
+import {CheckEventVersionSharedUseCase} from '#usecases/shared/check-event-version.usecase';
 import {IdempotencySharedUseCase} from '#usecases/shared/idempotency.usecase';
 
 import {EventService} from '#frameworks/event-service/event-service';
@@ -51,6 +52,7 @@ describe('SaveEventExpenseUseCase', () => {
       eventService,
       new SupportedCurrencyService(),
       idempotencySharedUseCase,
+      new CheckEventVersionSharedUseCase(relationalDataService),
     );
 
     await relationalDataService.initialize();

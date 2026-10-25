@@ -4,6 +4,8 @@ import {EventServiceAbstract} from '#domain/abstracts/event-service/event-servic
 import {ExpenseType} from '#domain/entities/expense.entity';
 import {EventDeletedError, EventNotFoundError, InvalidPinCodeError} from '#domain/errors/errors';
 
+import {CheckEventVersionSharedUseCase} from '#usecases/shared/check-event-version.usecase';
+
 import {EventService} from '#frameworks/event-service/event-service';
 import {appDbConfig} from '#frameworks/relational-data-service/postgres/config';
 import {RelationalDataService} from '#frameworks/relational-data-service/postgres/relational-data-service';
@@ -27,7 +29,11 @@ describe('GetEventExpensesV2UseCase', () => {
     });
 
     eventService = new EventService();
-    useCase = new GetEventExpensesV2UseCase(relationalDataService, eventService);
+    useCase = new GetEventExpensesV2UseCase(
+      relationalDataService,
+      eventService,
+      new CheckEventVersionSharedUseCase(relationalDataService),
+    );
 
     await relationalDataService.initialize();
   });
