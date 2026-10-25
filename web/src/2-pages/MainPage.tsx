@@ -1,4 +1,4 @@
-import {track} from '@/6-shared/analytics';
+import {analyticsService} from '@/6-shared/analytics/analytics-service';
 import {CreateEventButton} from '@/4-features/CreateEvent/ui/CreateEventButton';
 import {Box, Stack, Typography, Container} from '@mui/material';
 import {useEffect, useState} from 'react';
@@ -34,7 +34,7 @@ export const MainPage = observer(() => {
             <Stack minWidth={300}>
               <CreateEventButton
                 onClick={() => {
-                  track({name: 'trip_create_opened'});
+                  analyticsService.track({name: 'trip_create_opened'});
                   setIsDialogOpen(true);
                 }}
               />

@@ -84,7 +84,9 @@ test('bounded queue expires and stops after revocation even during script load',
   const s = setup();
   s.service.initialize();
   s.service.pageview('/', '');
-  for (let i = 0; i < 100; i++) s.service.track({name: 'trip_created'});
+  for (let i = 0; i < 100; i++) {
+    s.service.track({name: 'trip_created'});
+  }
   s.resolve();
   await Promise.resolve();
   assert.equal(s.calls.filter((c) => c[1] === 'reachGoal').length, 49);
@@ -139,7 +141,9 @@ test('blocked script or throwing SDK never breaks product actions', async () => 
 test('pageviews also obey queue bounds while the script is loading', async () => {
   const s = setup();
   s.service.initialize();
-  for (let i = 0; i < 100; i++) s.service.pageview('/support', '');
+  for (let i = 0; i < 100; i++) {
+    s.service.pageview('/support', '');
+  }
   s.resolve();
   await Promise.resolve();
   assert.equal(s.calls.filter((c) => c[1] === 'hit').length, 50);

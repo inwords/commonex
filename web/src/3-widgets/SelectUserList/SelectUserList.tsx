@@ -1,4 +1,4 @@
-import {track} from '@/6-shared/analytics';
+import {analyticsService} from '@/6-shared/analytics/analytics-service';
 import {eventStore} from '@/5-entities/event/stores/event-store';
 import {Box, Stack, Select, MenuItem, FormControl, InputLabel} from '@mui/material';
 import {observer} from 'mobx-react-lite';
@@ -29,7 +29,7 @@ export const SelectUserList = observer(() => {
               const selectedUser = userStore.users.find((u) => u.id === e.target.value);
               if (selectedUser) {
                 userStore.setCurrentUser(selectedUser);
-                track({name: 'participant_claimed', params: {entry_method: eventStore.entryMethod}});
+                analyticsService.track({name: 'participant_claimed', params: {entry_method: eventStore.entryMethod}});
               }
             }}
           >

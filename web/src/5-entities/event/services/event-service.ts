@@ -1,6 +1,5 @@
-import {track} from '@/6-shared/analytics';
+import {analyticsService} from '@/6-shared/analytics/analytics-service';
 import type {AnalyticsEvent} from '@/6-shared/analytics/analytics-event';
-import {analyticsFailureReason} from '@/6-shared/analytics/analytics-failure';
 import {
   createEvent,
   getEventInfo as getEventInfoApi,
@@ -16,7 +15,7 @@ import {ApiError} from '@/6-shared/api/errors';
 export class EventService {
   private emit: (event: AnalyticsEvent) => void;
 
-  constructor(emit: (event: AnalyticsEvent) => void = track) {
+  constructor(emit: (event: AnalyticsEvent) => void = analyticsService.track) {
     this.emit = (event) => {
       try {
         emit(event);
@@ -36,7 +35,10 @@ export class EventService {
       eventStore.setEntryMethod(entryMethod);
       this.emit({name: 'join_succeeded', params: {entry_method: entryMethod}});
     } catch (error) {
-      this.emit({name: 'join_failed', params: {entry_method: entryMethod, reason: analyticsFailureReason(error)}});
+      this.emit({
+        name: 'join_failed',
+        params: {entry_method: entryMethod, reason: analyticsService.failureReason(error)},
+      });
       throw error;
     }
   }
@@ -67,7 +69,7 @@ export class EventService {
       this.emit({name: 'trip_created'});
       return resp.id;
     } catch (error) {
-      this.emit({name: 'trip_create_failed', params: {reason: analyticsFailureReason(error)}});
+      this.emit({name: 'trip_create_failed', params: {reason: analyticsService.failureReason(error)}});
       throw error;
     } finally {
       this.createEventKey = null;

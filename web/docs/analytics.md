@@ -38,7 +38,7 @@ All send `schema_version=1`, `platform=web`; only event-specific enum values fro
 
 External campaign example: `https://commonex.ru/?utm_source=telegram&utm_medium=messenger&utm_campaign=travel_launch`.
 
-The whitelist is in `analytics-url.ts`: extend registered public campaign/content codes there when launching another campaign. Unknown values become `other`; arbitrary UTM text is never forwarded. `utm_term` and unlisted query/hash parameters are removed. Dynamic event paths become `/event`. Only the first hit retains allowed campaign tags; Metrica reads source tags from the first view in a visit.
+The whitelist is in `analytics-service.ts`: extend registered public campaign/content codes there when launching another campaign. Unknown values become `other`; arbitrary UTM text is never forwarded. `utm_term` and unlisted query/hash parameters are removed. Dynamic event paths become `/event`. Only the first hit retains allowed campaign tags; Metrica reads source tags from the first view in a visit.
 
 Copied invitation links use `commonex/referral/trip_invite`, independently of the organizer's acquisition campaign. Clipboard sharing does not reveal the receiving messenger. Missing UTM/referrer may remain direct/unknown.
 
@@ -53,7 +53,7 @@ Keep the chosen attribution model and funnel window in the saved report descript
 
 ## Privacy and browser verification
 
-The SDK is loaded only after permission, with an official-style `ym` bootstrap queue. It initializes only after a safe first pageview is available. `defer:true` alone is insufficient: the current official SDK emits technical `nohit` requests containing the original URL unless its initial `url` and `referrer` are explicitly overridden. We seed both with the sanitized landing view, send explicit safe `hit` URL/referrer/title, and disable automatic features including `disableYtm`.
+The SDK is loaded only after permission, with an official-style `ym` bootstrap queue. The counter ID and hostname configuration are embedded in the application bundle at build time. A static SDK script tag in exported HTML would load before consent; loading remains owned by the single `analyticsService`. It initializes only after a safe first pageview is available. `defer:true` alone is insufficient: the current official SDK emits technical `nohit` requests containing the original URL unless its initial `url` and `referrer` are explicitly overridden. We seed both with the sanitized landing view, send explicit safe `hit` URL/referrer/title, and disable automatic features including `disableYtm`.
 
 **Compatibility caveat:** `url`/`referrer` are supported by the current [official SDK source](https://mc.yandex.ru/metrika/tag.js), but absent from the current public initialization table. Live network regression checks are a release gate, including after counter settings or SDK changes. Never bypass a failing gate by enabling production collection anyway.
 
@@ -77,3 +77,7 @@ Implementation started 23 October 2026 from `origin/main` `c3a64f02` on `feat/we
 ## Rollback
 
 Remove `WEB_YANDEX_METRICA_ID`, rebuild and deploy the frontend. Runtime environment changes do not remove code/configuration from an existing static artifact, and deployment does not stop already open tabs. Verify any provider-side emergency disable mechanism under the actual owner account before rollout; do not assume one is available. Visitors can revoke permission locally immediately.
+
+## Module structure
+
+`src/6-shared/analytics/analytics-service.ts` owns SDK loading, configuration, consent, navigation, URL minimization, failure classification and event delivery. Callers use the `analyticsService` singleton. `analytics-event.ts` holds the event contract and runtime parameter allowlist. The two React widgets remain separate because they handle routing and consent UI; neither owns another analytics service. All web conditionals require braces through ESLint `curly`.

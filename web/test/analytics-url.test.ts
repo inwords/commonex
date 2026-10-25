@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {sanitizeAnalyticsUrl, sanitizeAnalyticsReferrer} from '../src/6-shared/analytics/analytics-url.ts';
+import {sanitizeAnalyticsUrl, sanitizeAnalyticsReferrer} from '../src/6-shared/analytics/analytics-service.ts';
 const origin = 'https://commonex.ru';
 test('removes credentials and dynamic object IDs while retaining registered landing campaigns', () => {
   assert.equal(sanitizeAnalyticsUrl('/event/PRIVATE?token=SECRET#PIN', origin, true), `${origin}/event`);

@@ -35,11 +35,15 @@ export type AnalyticsEvent = {
 }[keyof Schema];
 
 export function safeEventParams(event: AnalyticsEvent): Record<string, string | number> | null {
-  if (!Object.hasOwn(eventParameters, event.name)) return null;
+  if (!Object.hasOwn(eventParameters, event.name)) {
+    return null;
+  }
   const result: Record<string, string | number> = {schema_version: 1, platform: 'web'};
   for (const [key, allowed] of Object.entries(eventParameters[event.name])) {
     const value = (event.params as Record<string, unknown> | undefined)?.[key];
-    if (typeof value !== 'string' || !(allowed as readonly string[]).includes(value)) return null;
+    if (typeof value !== 'string' || !(allowed as readonly string[]).includes(value)) {
+      return null;
+    }
     result[key] = value;
   }
   return result;

@@ -20,7 +20,9 @@ const draft = {name: trip.name, currencyId: trip.currencyId, pinCode: trip.pinCo
 test('create reports once after retries and never invents a join', async () => {
   let attempts = 0;
   httpClient.request = async () => {
-    if (++attempts < 3) throw {statusCode: 500};
+    if (++attempts < 3) {
+      throw {statusCode: 500};
+    }
     return trip;
   };
   const events: AnalyticsEvent[] = [];

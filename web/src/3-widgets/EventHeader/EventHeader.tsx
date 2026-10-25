@@ -1,5 +1,4 @@
-import {track} from '@/6-shared/analytics';
-import {analyticsFailureReason} from '@/6-shared/analytics/analytics-failure';
+import {analyticsService} from '@/6-shared/analytics/analytics-service';
 import {Button, Stack, Typography, Box} from '@mui/material';
 import {observer} from 'mobx-react-lite';
 import {useState} from 'react';
@@ -27,7 +26,7 @@ export const EventHeader = observer(() => {
   };
 
   const handleShareLink = async () => {
-    track({name: 'invitation_requested'});
+    analyticsService.track({name: 'invitation_requested'});
     try {
       if (!eventStore.currentEvent) {
         return;
@@ -42,14 +41,14 @@ export const EventHeader = observer(() => {
       const shareUrl = `${location.origin}/event/${eventStore.currentEvent.id}?token=${encodeURIComponent(token)}&utm_source=commonex&utm_medium=referral&utm_campaign=trip_invite`;
 
       if (!copy(shareUrl)) {
-        track({name: 'invitation_failed', params: {reason: 'unknown'}});
+        analyticsService.track({name: 'invitation_failed', params: {reason: 'unknown'}});
         return;
       }
-      track({name: 'invitation_copied'});
+      analyticsService.track({name: 'invitation_copied'});
 
       notificationStore.setNotification(content.EventHeader.linkCopied, 'success');
     } catch (error) {
-      track({name: 'invitation_failed', params: {reason: analyticsFailureReason(error)}});
+      analyticsService.track({name: 'invitation_failed', params: {reason: analyticsService.failureReason(error)}});
     }
   };
 

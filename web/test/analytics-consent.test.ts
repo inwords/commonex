@@ -1,6 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {AnalyticsConsent} from '../src/6-shared/analytics/analytics-consent.ts';
+import {AnalyticsService} from '../src/6-shared/analytics/analytics-service.ts';
+function createService(storage: () => Pick<Storage, 'getItem' | 'setItem'>) {
+  return new AnalyticsService(
+    {production: false, counterId: '', hostname: '', allowedHosts: '', origin: 'https://commonex.ru', storage},
+    {load: async () => {}, send() {}, now: Date.now},
+  );
+}
 test('consent survives reload and can be revoked', () => {
   const data = new Map<string, string>();
   const storage = () => ({
@@ -9,23 +15,23 @@ test('consent survives reload and can be revoked', () => {
       data.set(key, value);
     },
   });
-  const consent = new AnalyticsConsent(storage);
-  assert.equal(consent.getSnapshot(), 'unknown');
+  const consent = createService(storage);
+  assert.equal(consent.getConsent(), 'unknown');
   let changes = 0;
-  const unsubscribe = consent.subscribe(() => changes++);
-  consent.set('granted');
-  assert.equal(new AnalyticsConsent(storage).getSnapshot(), 'granted');
-  consent.set('denied');
-  assert.equal(new AnalyticsConsent(storage).getSnapshot(), 'denied');
+  const unsubscribe = consent.subscribeConsent(() => changes++);
+  consent.changeConsent('granted');
+  assert.equal(createService(storage).getConsent(), 'granted');
+  consent.changeConsent('denied');
+  assert.equal(createService(storage).getConsent(), 'denied');
   assert.equal(changes, 2);
   unsubscribe();
 });
 test('unavailable or malformed storage never grants analytics implicitly', () => {
-  const consent = new AnalyticsConsent(() => {
+  const consent = createService(() => {
     throw new Error('disabled');
   });
-  assert.equal(consent.getSnapshot(), 'unknown');
-  assert.doesNotThrow(() => consent.set('denied'));
-  assert.equal(consent.getSnapshot(), 'denied');
-  assert.equal(new AnalyticsConsent(() => ({getItem: () => 'true', setItem() {}})).getSnapshot(), 'unknown');
+  assert.equal(consent.getConsent(), 'unknown');
+  assert.doesNotThrow(() => consent.changeConsent('denied'));
+  assert.equal(consent.getConsent(), 'denied');
+  assert.equal(createService(() => ({getItem: () => 'true', setItem() {}})).getConsent(), 'unknown');
 });

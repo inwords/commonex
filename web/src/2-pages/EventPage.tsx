@@ -1,4 +1,4 @@
-import {track} from '@/6-shared/analytics';
+import {analyticsService} from '@/6-shared/analytics/analytics-service';
 import {SelectUserList} from '@/3-widgets/SelectUserList/SelectUserList';
 import {EventTabs} from '@/3-widgets/EventTabs/EventTabs';
 import {EventHeader} from '@/3-widgets/EventHeader';
@@ -31,7 +31,7 @@ export const EventPage = observer(() => {
 
     lastEntry.current = location.key;
     if (!navigatedFromMainForm && token) {
-      track({name: 'invitation_opened'});
+      analyticsService.track({name: 'invitation_opened'});
       void currencyService.fetchCurrencies();
 
       const params: {pinCode?: string; token?: string} = {};
