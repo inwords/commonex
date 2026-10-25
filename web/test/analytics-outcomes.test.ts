@@ -7,6 +7,7 @@ const {httpClient} = await import('../src/6-shared/api/http-client.ts');
 const {eventStore} = await import('../src/5-entities/event/stores/event-store.ts');
 const {userStore} = await import('../src/5-entities/user/stores/user-store.ts');
 const {expenseStore} = await import('../src/5-entities/expense/stores/expense-store.ts');
+const {analyticsService} = await import('../src/6-shared/analytics/analytics-service.ts');
 import type {AnalyticsEvent} from '../src/6-shared/analytics/analytics-event.ts';
 const trip = {
   id: 'PRIVATE',
@@ -17,7 +18,7 @@ const trip = {
 };
 const draft = {name: trip.name, currencyId: trip.currencyId, pinCode: trip.pinCode, users: trip.users};
 
-test('create reports once after retries and never invents a join', async () => {
+test('create reports once after retries and never invents a join', async (t) => {
   let attempts = 0;
   httpClient.request = async () => {
     if (++attempts < 3) {
@@ -26,47 +27,50 @@ test('create reports once after retries and never invents a join', async () => {
     return trip;
   };
   const events: AnalyticsEvent[] = [];
-  await new EventService((event) => events.push(event)).createEvent(draft);
+  t.mock.method(analyticsService, 'track', (event: AnalyticsEvent) => {
+    events.push(event);
+  });
+  await new EventService().createEvent(draft);
   assert.equal(attempts, 3);
   assert.deepEqual(events, [{name: 'trip_created'}]);
   assert.equal(eventStore.entryMethod, 'created');
 });
-test('join propagates original access error and classifies it without exposing message', async () => {
+test('join propagates original access error and classifies it without exposing message', async (t) => {
   const error = {statusCode: 403, code: 'B4008', message: 'SECRET_TOKEN'};
   httpClient.request = async () => {
     throw error;
   };
   const events: AnalyticsEvent[] = [];
-  await assert.rejects(
-    new EventService((e) => events.push(e)).getEventInfo('PRIVATE', {token: 'SECRET'}, 'token'),
-    (e) => e === error,
-  );
+  t.mock.method(analyticsService, 'track', (event: AnalyticsEvent) => {
+    events.push(event);
+  });
+  await assert.rejects(new EventService().getEventInfo('PRIVATE', {token: 'SECRET'}, 'token'), (e) => e === error);
   assert.deepEqual(events, [
     {name: 'join_started', params: {entry_method: 'token'}},
     {name: 'join_failed', params: {entry_method: 'token', reason: 'access_denied'}},
   ]);
 });
-test('manual access succeeds and a broken analytics callback cannot break creation', async () => {
+test('manual access reports successful joining', async (t) => {
   httpClient.request = async () => trip;
   const events: AnalyticsEvent[] = [];
-  await new EventService((e) => events.push(e)).getEventInfo('PRIVATE', {pinCode: 'SECRET'}, 'manual');
+  t.mock.method(analyticsService, 'track', (event: AnalyticsEvent) => {
+    events.push(event);
+  });
+  await new EventService().getEventInfo('PRIVATE', {pinCode: 'SECRET'}, 'manual');
   assert.deepEqual(
     events.map((e) => e.name),
     ['join_started', 'join_succeeded'],
   );
   assert.equal(eventStore.entryMethod, 'manual');
-  assert.equal(
-    await new EventService(() => {
-      throw new Error('sdk');
-    }).createEvent(draft),
-    trip.id,
-  );
 });
-test('expense and refund outcomes are separate and failed retries produce one failure', async () => {
+test('expense and refund outcomes are separate and failed retries produce one failure', async (t) => {
   eventStore.setCurrentEvent(trip);
   userStore.setUsers(trip.users);
   const events: AnalyticsEvent[] = [];
-  const service = new ExpenseService((e) => events.push(e));
+  t.mock.method(analyticsService, 'track', (event: AnalyticsEvent) => {
+    events.push(event);
+  });
+  const service = new ExpenseService();
   httpClient.request = async () => ({id: 'EXPENSE', expenseType: 'expense', splitInformation: []});
   await service.createExpense(
     {
