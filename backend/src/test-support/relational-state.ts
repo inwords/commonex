@@ -1,4 +1,5 @@
 import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-service/relational-data-service';
+import {IBanner} from '#domain/entities/banner.entity';
 import {ICurrencyRate} from '#domain/entities/currency-rate.entity';
 import {ICurrency} from '#domain/entities/currency.entity';
 import {IEventShareToken} from '#domain/entities/event-share-token.entity';
@@ -10,6 +11,7 @@ import {IUserInfo} from '#domain/entities/user-info.entity';
 import {type StateChanges, applyChanges} from './apply-state-changes';
 
 interface RelationalEntities {
+  banners: IBanner;
   events: IEvent;
   userInfos: IUserInfo;
   eventShareTokens: IEventShareToken;
@@ -28,6 +30,15 @@ const entityOperations: {
     insert: InsertFn<RelationalEntities[K]>;
   };
 } = {
+  banners: {
+    findAll: async (rDataService) => {
+      const [result] = await rDataService.banner.findAll({});
+      return result;
+    },
+    insert: async (rDataService, values) => {
+      await rDataService.banner.insert(values);
+    },
+  },
   events: {
     findAll: async (rDataService) => {
       const [result] = await rDataService.event.findAll({limit: 10000});

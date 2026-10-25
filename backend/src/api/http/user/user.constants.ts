@@ -1,5 +1,6 @@
 export const UserRoutes = {
   root: '/user',
+  getBanner: '/banner',
   createEvent: '/event',
   getEventInfo: `/event/:eventId`,
   deleteEvent: `/event/:eventId`,

@@ -1,3 +1,4 @@
+import {BannerRepositoryAbstract} from '#domain/abstracts/relational-data-service/repositories/banner.repository';
 import {CurrencyRateRepositoryAbstract} from '#domain/abstracts/relational-data-service/repositories/currency-rate.repository';
 import {CurrencyRepositoryAbstract} from '#domain/abstracts/relational-data-service/repositories/currency.repository';
 import {EventShareTokenRepositoryAbstract} from '#domain/abstracts/relational-data-service/repositories/event-share-token.repository';
@@ -8,6 +9,7 @@ import {UserInfoRepositoryAbstract} from '#domain/abstracts/relational-data-serv
 import {IRelationalDataService} from '#domain/abstracts/relational-data-service/types';
 
 export abstract class RelationalDataServiceAbstract implements IRelationalDataService {
+  abstract banner: BannerRepositoryAbstract;
   abstract event: EventRepositoryAbstract;
   abstract userInfo: UserInfoRepositoryAbstract;
   abstract currency: CurrencyRepositoryAbstract;

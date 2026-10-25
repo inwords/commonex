@@ -12,6 +12,7 @@ import {IdempotencyKeyRepository} from '#frameworks/relational-data-service/post
 import {UserInfoRepository} from '#frameworks/relational-data-service/postgres/repositories/user-info.repository';
 
 import {DbConfig, createTypeormConfigDefault} from './config';
+import {BannerRepository} from './repositories/banner.repository';
 import {createTransactionHandle, invalidateTransactionHandle, requireTransactionManager} from './transaction-context';
 
 export class RelationalDataService implements RelationalDataServiceAbstract {
@@ -20,6 +21,7 @@ export class RelationalDataService implements RelationalDataServiceAbstract {
   readonly showQueryDetails: boolean;
 
   readonly event: EventRepository;
+  readonly banner: BannerRepository;
   readonly userInfo: UserInfoRepository;
   readonly currency: CurrencyRepository;
   readonly expense: ExpenseRepository;
@@ -31,6 +33,7 @@ export class RelationalDataService implements RelationalDataServiceAbstract {
     this.dbConfig = dbConfig;
     this.dataSource = new DataSource(createTypeormConfigDefault(dbConfig));
     this.showQueryDetails = showQueryDetails;
+    this.banner = new BannerRepository(this.dataSource, showQueryDetails);
 
     this.event = new EventRepository({dataSource: this.dataSource, showQueryDetails});
     this.userInfo = new UserInfoRepository({dataSource: this.dataSource, showQueryDetails});

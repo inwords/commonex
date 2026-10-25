@@ -1,0 +1,34 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`BannerRepository lists all configuration in descending ID order 1`] = `
+{
+  "queryParameters": {},
+  "queryString": "SELECT "banner"."id" AS "banner_id", "banner"."type" AS "banner_type", "banner"."text" AS "banner_text", "banner"."platform" AS "banner_platform", "banner"."min_version_code" AS "banner_min_version_code", "banner"."max_version_code" AS "banner_max_version_code", "banner"."enabled" AS "banner_enabled" FROM "banner" "banner" ORDER BY "banner"."id" DESC",
+}
+`;
+
+exports[`BannerRepository persists banner configuration and filters by enabled platform and version 1`] = `
+{
+  "queryParameters": {
+    "orm_param_0": 10,
+    "orm_param_1": "general_warning",
+    "orm_param_2": "Maintenance",
+    "orm_param_3": "Android",
+    "orm_param_4": 100,
+    "orm_param_5": 200,
+    "orm_param_6": true,
+  },
+  "queryString": "INSERT INTO "banner"("id", "type", "text", "platform", "min_version_code", "max_version_code", "enabled") VALUES (:orm_param_0, :orm_param_1, :orm_param_2, :orm_param_3, :orm_param_4, :orm_param_5, :orm_param_6)",
+}
+`;
+
+exports[`BannerRepository persists banner configuration and filters by enabled platform and version 2`] = `
+{
+  "queryParameters": {
+    "enabled": true,
+    "platform": "Android",
+    "versionCode": 150,
+  },
+  "queryString": "SELECT "banner"."id" AS "banner_id", "banner"."type" AS "banner_type", "banner"."text" AS "banner_text", "banner"."platform" AS "banner_platform", "banner"."min_version_code" AS "banner_min_version_code", "banner"."max_version_code" AS "banner_max_version_code", "banner"."enabled" AS "banner_enabled" FROM "banner" "banner" WHERE "banner"."enabled" = :enabled AND "banner"."platform" = :platform AND "banner"."min_version_code" <= :versionCode AND ("banner"."max_version_code" IS NULL OR "banner"."max_version_code" >= :versionCode) ORDER BY "banner"."id" DESC",
+}
+`;
