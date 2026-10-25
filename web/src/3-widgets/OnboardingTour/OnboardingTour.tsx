@@ -58,7 +58,15 @@ export const OnboardingTour = observer(() => {
     step.copy === 'amount' || step.copy === 'owner' || step.copy === 'split' || step.copy === 'save'
       ? content.expense[step.copy]
       : content[step.copy];
-  const guide = <OnboardingGuide key={step.slot || step.target} stage={step.stage} target={step.target} {...copy} />;
+  const guide = (
+    <OnboardingGuide
+      key={step.slot || step.target}
+      stage={step.stage}
+      target={step.target}
+      onShown={() => onboardingService.stepShown(step.copy)}
+      {...copy}
+    />
+  );
   if (!step.slot) {
     return guide;
   }

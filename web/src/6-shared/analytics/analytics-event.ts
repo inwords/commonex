@@ -1,4 +1,21 @@
+const onboardingSteps = [
+  'entry',
+  'createEvent',
+  'selectUser',
+  'addExpense',
+  'openExpenses',
+  'amount',
+  'owner',
+  'split',
+  'save',
+  'debts',
+] as const;
+
 export const eventParameters = {
+  onboarding_started: {source: ['automatic', 'manual']},
+  onboarding_step_viewed: {step: onboardingSteps},
+  onboarding_skipped: {step: onboardingSteps},
+  onboarding_completed: {},
   trip_create_opened: {},
   trip_created: {},
   trip_create_failed: {reason: ['network', 'access_denied', 'not_found', 'validation', 'server', 'unknown']},
