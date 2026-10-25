@@ -131,9 +131,6 @@ jobs:
         uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7
         with:
           context: ${{ matrix.service.context }}
-          build-args: |
-            ${{ matrix.service.name == 'frontend' && format('NEXT_PUBLIC_YANDEX_METRICA_ID={0}', vars.WEB_YANDEX_METRICA_ID) || '' }}
-            ${{ matrix.service.name == 'frontend' && format('NEXT_PUBLIC_ANALYTICS_ALLOWED_HOSTS={0}', vars.WEB_ANALYTICS_ALLOWED_HOSTS) || '' }}
           push: ${{ github.ref == 'refs/heads/main' }}
           cache-from: type=gha,scope=${{ matrix.service.name }},version=2
           cache-to: type=gha,scope=${{ matrix.service.name }},mode=max,version=2

@@ -1,6 +1,11 @@
 import {safeEventParams} from './analytics-event.ts';
 import type {AnalyticsEvent} from './analytics-event.ts';
 
+const metricaConfig = {
+  counterId: '113775783',
+  allowedHosts: 'commonex.ru,www.commonex.ru',
+};
+
 export class AnalyticsService {
   private active = false;
   private ready = false;
@@ -45,8 +50,8 @@ export class AnalyticsService {
     return (
       this.options ?? {
         production: process.env.NODE_ENV === 'production',
-        counterId: process.env.NEXT_PUBLIC_YANDEX_METRICA_ID ?? '',
-        allowedHosts: process.env.NEXT_PUBLIC_ANALYTICS_ALLOWED_HOSTS ?? '',
+        counterId: metricaConfig.counterId,
+        allowedHosts: metricaConfig.allowedHosts,
         hostname: typeof window === 'undefined' ? '' : window.location.hostname,
         origin: typeof window === 'undefined' ? 'https://commonex.ru' : window.location.origin,
       }
@@ -270,7 +275,7 @@ export class AnalyticsService {
         browser.ym = ym;
       }
       const script = document.createElement('script');
-      script.src = 'https://mc.yandex.ru/metrika/tag.js';
+      script.src = `https://mc.yandex.ru/metrika/tag.js?id=${this.config.counterId}`;
       script.async = true;
       script.referrerPolicy = 'no-referrer';
       const timeout = window.setTimeout(() => {
