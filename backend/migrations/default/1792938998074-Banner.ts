@@ -14,10 +14,10 @@ export class Banner1792938998074 implements MigrationInterface {
         "max_version_code" integer,
         "enabled" boolean NOT NULL DEFAULT false,
         CONSTRAINT "pk__banner__id" PRIMARY KEY ("id"),
-        CONSTRAINT "ck__banner__type" CHECK (type IN ('general_warning', 'update_required')),
-        CONSTRAINT "ck__banner__platform" CHECK (platform IN ('Android', 'iOS')),
-        CONSTRAINT "ck__banner__text" CHECK (text ~ '[^[:space:]]'),
-        CONSTRAINT "ck__banner__version_range" CHECK (
+        CONSTRAINT "CHK_f35f6d341841d060f3bc5da794" CHECK (type IN ('general_warning', 'update_required')),
+        CONSTRAINT "CHK_4c4e43032848a65a6824ea783f" CHECK (platform IN ('Android', 'iOS')),
+        CONSTRAINT "CHK_6bf2ecef8526ca1febf48c9e0c" CHECK (text ~ '[^[:space:]]'),
+        CONSTRAINT "CHK_b864d8406cd6681b09da8783e6" CHECK (
           min_version_code >= 0 AND (max_version_code IS NULL OR max_version_code >= min_version_code)
         )
       )

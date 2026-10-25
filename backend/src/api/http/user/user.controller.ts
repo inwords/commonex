@@ -1,7 +1,21 @@
-import {Body, Controller, Delete, Get, Headers, HttpCode, HttpStatus, Param, Post, Query} from '@nestjs/common';
-import {ApiResponse, ApiTags} from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Header,
+  Headers,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Post,
+  Query,
+  Res,
+} from '@nestjs/common';
+import {ApiHeader, ApiResponse, ApiTags} from '@nestjs/swagger';
 
 import {DeleteEventUseCase} from '#usecases/users/delete-event.usecase';
+import {GetBannerUseCase} from '#usecases/users/get-banner.usecase';
 import {GetEventExpensesUseCase} from '#usecases/users/get-event-expenses.usecase';
 import {GetEventInfoUseCase} from '#usecases/users/get-event-info.usecase';
 import {SaveEventExpenseUseCase} from '#usecases/users/save-event-expense.usecase';
@@ -18,9 +32,16 @@ import {
 import {CreateEventRequestDto, CreateEventResponseDto} from './dto/create-event.dto';
 import {CreateExpenseParamsDto, CreateExpenseRequestV1Dto, CreateExpenseResponseDto} from './dto/create-expense.dto';
 import {DeleteEventParamsDto, DeleteEventRequestDto, DeleteEventResponseDto} from './dto/delete-event.dto';
+import {GetBannerResponseDto} from './dto/get-banner.dto';
 import {GetEventExpensesParamsDto, GetEventExpensesResponseDto} from './dto/get-event-expenses.dto';
 import {GetEventInfoParamsDto, GetEventInfoRequestV1Dto, GetEventInfoResponseDto} from './dto/get-event-info.dto';
+import {parseClientVersion} from './parse-client-version';
 import {UserRoutes} from './user.constants';
+
+interface BannerReply {
+  code: (status: number) => BannerReply;
+  send: (payload?: GetBannerResponseDto) => void;
+}
 
 @Controller(UserRoutes.root)
 @ApiTags('User')
@@ -32,6 +53,7 @@ export class UserController {
     private readonly getEventInfoUseCase: GetEventInfoUseCase,
     private readonly saveUsersToEventUseCase: SaveUsersToEventUseCase,
     private readonly deleteEventUseCase: DeleteEventUseCase,
+    private readonly getBannerUseCase: GetBannerUseCase,
   ) {}
 
   @Post(UserRoutes.createEvent)
@@ -112,5 +134,22 @@ export class UserController {
     });
 
     return unwrapResult(result);
+  }
+
+  @Get(UserRoutes.getBanner)
+  @Header('Cache-Control', 'public, max-age=21600')
+  @Header('Vary', 'User-Agent')
+  @ApiHeader({name: 'User-Agent', required: false, example: 'CommonEx/123 (Android/r)'})
+  @ApiResponse({status: HttpStatus.OK, type: GetBannerResponseDto})
+  @ApiResponse({status: HttpStatus.NO_CONTENT, description: 'No matching banner or unrecognized client version'})
+  async getBanner(@Headers('user-agent') userAgent: string | undefined, @Res() response: BannerReply): Promise<void> {
+    const client = parseClientVersion(userAgent);
+    const banner = client == null ? null : await this.getBannerUseCase.execute(client);
+
+    if (banner == null) {
+      response.code(HttpStatus.NO_CONTENT).send();
+    } else {
+      response.code(HttpStatus.OK).send(banner);
+    }
   }
 }
