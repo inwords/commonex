@@ -20,7 +20,7 @@ import {SaveEventExpenseUseCase} from '#usecases/users/save-event-expense.usecas
 import {SaveEventUseCase} from '#usecases/users/save-event.usecase';
 import {SaveUsersToEventUseCase} from '#usecases/users/save-users-to-event.usecase';
 
-import {EventProtocolGuard} from '#api/guards/event-protocol.guard';
+import {EventVersionGuard} from '#api/guards/event-version.guard';
 import {unwrapResult} from '#api/unwrap-result';
 
 import {
@@ -35,7 +35,7 @@ import {GetEventExpensesParamsDto, GetEventExpensesResponseDto} from './dto/get-
 import {GetEventInfoParamsDto, GetEventInfoRequestV1Dto, GetEventInfoResponseDto} from './dto/get-event-info.dto';
 import {UserRoutes} from './user.constants';
 
-@UseGuards(EventProtocolGuard)
+@UseGuards(EventVersionGuard)
 @Controller(UserRoutes.root)
 @ApiTags('User')
 export class UserController {

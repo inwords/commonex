@@ -2,7 +2,7 @@ import {isError} from '#packages/result';
 
 import {ICurrencyRate} from '#domain/entities/currency-rate.entity';
 import {CurrencyCode, ICurrency} from '#domain/entities/currency.entity';
-import {EventProtocolVersion} from '#domain/entities/event-protocol-version.enum';
+import {EventVersion} from '#domain/entities/event-version.enum';
 import {IEvent} from '#domain/entities/event.entity';
 import {ExpenseType, IExpense} from '#domain/entities/expense.entity';
 import {CurrencyNotFoundError, ExpenseVersionConflictError, IdempotencyHashMismatchError} from '#domain/errors/errors';
@@ -27,7 +27,7 @@ describe('UpdateEventExpenseV4UseCase', () => {
     name: 'Dinner',
     currencyId: 'currency-2',
     pinCode: '1234',
-    version: EventProtocolVersion.ExpenseEditing,
+    version: EventVersion.ExpenseEditing,
     createdAt: new Date('2026-10-01T00:00:00Z'),
     updatedAt: new Date('2026-10-01T00:00:00Z'),
     deletedAt: null,
@@ -124,7 +124,7 @@ describe('UpdateEventExpenseV4UseCase', () => {
   });
 
   it('rejects expense editing for legacy events before idempotency replay', async () => {
-    await relationalDataService.event.update(event.id, {version: EventProtocolVersion.Legacy});
+    await relationalDataService.event.update(event.id, {version: EventVersion.Legacy});
 
     const result = await useCase.execute({...baseInput, idempotencyKey: 'legacy-event-revision'});
     const [history] = await relationalDataService.expense.findHistoryById(event.id, expense.id);

@@ -41,7 +41,7 @@ export class BusinessErrorFilter implements ExceptionFilter {
         code: exception.code,
         message: exception.message,
         ...('currentExpense' in exception ? {expense: exception.currentExpense} : {}),
-        ...('requiredProtocolVersion' in exception ? {requiredProtocolVersion: exception.requiredProtocolVersion} : {}),
+        ...('requiredVersion' in exception ? {requiredVersion: exception.requiredVersion} : {}),
       },
       statusCode,
     );

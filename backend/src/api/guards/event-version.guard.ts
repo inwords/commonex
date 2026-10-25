@@ -1,13 +1,11 @@
 import {Metadata} from '@grpc/grpc-js';
 import {CanActivate, ExecutionContext, Injectable} from '@nestjs/common';
 
-import {EventProtocolVersion} from '#domain/entities/event-protocol-version.enum';
-
-import {CheckEventProtocolUseCase} from '#usecases/shared/check-event-protocol.usecase';
+import {CheckEventVersionSharedUseCase} from '#usecases/shared/check-event-version.usecase';
 
 import {unwrapResult} from '#api/unwrap-result';
 
-interface EventProtocolHttpRequest {
+interface EventVersionHttpRequest {
   headers: Record<string, unknown>;
   params?: unknown;
   body?: unknown;
@@ -19,15 +17,15 @@ const readObject = (value: unknown): Record<string, unknown> =>
 const readString = (value: unknown): string | undefined => (typeof value === 'string' ? value : undefined);
 
 @Injectable()
-export class EventProtocolGuard implements CanActivate {
-  constructor(private readonly checkEventProtocolUseCase: CheckEventProtocolUseCase) {}
+export class EventVersionGuard implements CanActivate {
+  constructor(private readonly checkEventVersionUseCase: CheckEventVersionSharedUseCase) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     if (context.getType() === 'http') {
-      const request = context.switchToHttp().getRequest<EventProtocolHttpRequest>();
+      const request = context.switchToHttp().getRequest<EventVersionHttpRequest>();
       return this.check(
         readString(request.headers['user-agent']),
-        readString(request.headers['x-commonex-protocol-version']),
+        readString(request.headers['x-commonex-version']),
         readObject(request.params)['eventId'],
         readObject(request.body),
       );
@@ -40,7 +38,7 @@ export class EventProtocolGuard implements CanActivate {
       const payload = readObject(context.switchToRpc().getData<unknown>());
       return this.check(
         readString(metadata.get('user-agent')[0]),
-        readString(metadata.get('x-commonex-protocol-version')[0]),
+        readString(metadata.get('x-commonex-version')[0]),
         payload['eventId'],
         payload,
       );
@@ -50,24 +48,16 @@ export class EventProtocolGuard implements CanActivate {
 
   private async check(
     userAgent: string | undefined,
-    protocolHeader: string | undefined,
+    versionHeader: string | undefined,
     eventId: unknown,
     payload: Record<string, unknown>,
   ): Promise<boolean> {
-    if (!/(?:^|\s)CommonEx\/\d+ \((?:Android|iOS)\/[rd]\)(?:\s|$)/.test(userAgent ?? '')) {
-      return true;
-    }
-    const parsedVersion = protocolHeader && /^[1-9]\d*$/.test(protocolHeader) ? Number(protocolHeader) : NaN;
-    const clientProtocolVersion = Number.isSafeInteger(parsedVersion) ? parsedVersion : EventProtocolVersion.Legacy;
-    const requestedProtocolVersion =
-      payload['version'] === EventProtocolVersion.Legacy || payload['version'] === EventProtocolVersion.ExpenseEditing
-        ? payload['version']
-        : undefined;
     return unwrapResult(
-      await this.checkEventProtocolUseCase.execute({
-        ...(typeof eventId === 'string' ? {eventId} : {}),
-        ...(requestedProtocolVersion !== undefined ? {requestedProtocolVersion} : {}),
-        clientProtocolVersion,
+      await this.checkEventVersionUseCase.execute({
+        eventId,
+        requestedVersion: payload['version'],
+        userAgent,
+        clientVersion: versionHeader,
       }),
     );
   }

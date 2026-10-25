@@ -293,8 +293,8 @@ Notes:
 - Existing events and create requests omitting this field use protocol 1. Create accepts numeric 1 or 2; there is no public protocol-upgrade operation.
 - Expense editing is rejected for protocol-1 events on every client (HTTP 403, `B4021`). Other legacy operations remain available.
 - Mobile clients are identified only by the canonical CommonEx User-Agent above, including its token in gRPC user-agent metadata. Android browser User-Agents and unidentified clients are not treated as native mobile.
-- Identified mobile callers advertise their highest supported protocol with `X-CommonEx-Protocol-Version` (gRPC metadata key `x-commonex-protocol-version`). Missing, malformed or unsafe-integer values mean protocol 1. Future larger positive integer capabilities may access supported earlier event protocols.
-- Compatibility is enforced on all event-scoped HTTP V1/V2/V4 and gRPC user operations, including token joins, direct reads, mutations and event creation. HTTP returns 403 with `B4020` and `requiredProtocolVersion`; gRPC returns `FAILED_PRECONDITION` with `error-code: B4020` metadata.
+- Identified mobile callers advertise their highest supported protocol with `X-CommonEx-Version` (gRPC metadata key `x-commonex-version`). Missing, malformed or unsafe-integer values mean protocol 1. Future larger positive integer capabilities may access supported earlier event protocols.
+- Compatibility is enforced on all event-scoped HTTP V1/V2/V4 and gRPC user operations, including token joins, direct reads, mutations and event creation. HTTP returns 403 with `B4020` and `requiredVersion`; gRPC returns `FAILED_PRECONDITION` with `error-code: B4020` metadata.
 - Web and unidentified callers are not blocked by this mobile compatibility rule. This client declaration is not authentication; existing PIN/token validation still applies. The compatibility guard runs before request pipes and business authentication.
 - Client UI handling is a separate rollout; the backend cannot add a dialog to an already released mobile build. No mobile code is changed by this backend implementation.
 
