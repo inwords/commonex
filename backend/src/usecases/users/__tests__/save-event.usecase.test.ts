@@ -1,6 +1,7 @@
 import {error, success} from '#packages/result';
 
 import {CurrencyCode} from '#domain/entities/currency.entity';
+import {EventProtocolVersion} from '#domain/entities/event-protocol-version.enum';
 import {CurrencyNotFoundError, IdempotencyHashMismatchError} from '#domain/errors/errors';
 
 import {IdempotencySharedUseCase} from '#usecases/shared/idempotency.usecase';
@@ -79,6 +80,7 @@ describe('SaveEventUseCase', () => {
         name: 'New Event',
         currencyId: 'currency-usd',
         pinCode: '1234',
+        version: 1,
         createdAt: expect.any(Date),
         updatedAt: expect.any(Date),
         deletedAt: null,
@@ -107,6 +109,7 @@ describe('SaveEventUseCase', () => {
               name: 'New Event',
               currencyId: 'currency-usd',
               pinCode: '1234',
+              version: 1,
               createdAt: expect.any(Date),
               updatedAt: expect.any(Date),
               deletedAt: null,
@@ -203,6 +206,34 @@ describe('SaveEventUseCase', () => {
         });
       }
     });
+  });
+
+  it('creates an expense editing event when the protocol version is requested', async () => {
+    await prepareInitRelationalState({
+      rDataService: relationalDataService,
+      initState: {
+        currencies: [
+          {
+            id: 'currency-usd',
+            code: CurrencyCode.USD,
+            createdAt: new Date('2023-01-01T00:00:00Z'),
+            updatedAt: new Date('2023-01-01T00:00:00Z'),
+          },
+        ],
+      },
+    });
+
+    const result = await useCase.execute({
+      event: {
+        name: 'New Event',
+        currencyId: 'currency-usd',
+        pinCode: '1234',
+        version: EventProtocolVersion.ExpenseEditing,
+      },
+      users: [],
+    });
+
+    expect(result).toMatchObject({result: 'success', value: {version: EventProtocolVersion.ExpenseEditing}});
   });
 
   describe('idempotency', () => {

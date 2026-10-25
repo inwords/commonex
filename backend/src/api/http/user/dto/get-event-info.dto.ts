@@ -1,6 +1,8 @@
 import {ApiProperty} from '@nestjs/swagger';
 import {IsString, Length, ValidateIf} from 'class-validator';
 
+import {EventProtocolVersion} from '#domain/entities/event-protocol-version.enum';
+
 class UserInfo {
   @ApiProperty()
   id!: string;
@@ -39,6 +41,9 @@ class Event {
 
   @ApiProperty({nullable: true})
   deletedAt!: Date | null;
+
+  @ApiProperty()
+  version!: EventProtocolVersion;
 }
 
 export class GetEventInfoParamsDto {

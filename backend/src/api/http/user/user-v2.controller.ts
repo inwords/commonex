@@ -1,4 +1,4 @@
-import {Body, Controller, Headers, HttpCode, HttpStatus, Param, Post} from '@nestjs/common';
+import {Body, Controller, Headers, HttpCode, HttpStatus, Param, Post, UseGuards} from '@nestjs/common';
 import {ApiResponse, ApiTags} from '@nestjs/swagger';
 
 import {
@@ -9,6 +9,7 @@ import {
   SaveUsersToEventV2UseCase,
 } from '#usecases/users/v2';
 
+import {EventProtocolGuard} from '#api/guards/event-protocol.guard';
 import {unwrapResult} from '#api/unwrap-result';
 
 import {
@@ -30,6 +31,7 @@ import {
 import {GetEventInfoParamsDto, GetEventInfoRequestV2Dto, GetEventInfoResponseDto} from './dto/get-event-info.dto';
 import {UserV2Routes} from './user.constants';
 
+@UseGuards(EventProtocolGuard)
 @Controller(UserV2Routes.root)
 @ApiTags('User V2')
 export class UserV2Controller {

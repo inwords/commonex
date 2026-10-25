@@ -34,7 +34,7 @@ export const insertTodayRate = async (
 
 export const createEvent = async (
   app: NestFastifyApplication,
-  input: {name?: string; currencyId: string; pinCode?: string; users?: {name: string}[]},
+  input: {name?: string; currencyId: string; pinCode?: string; users?: {name: string}[]; version?: 1 | 2},
 ): Promise<CreateEventResponseDto> => {
   const response = await app.inject({
     method: 'POST',

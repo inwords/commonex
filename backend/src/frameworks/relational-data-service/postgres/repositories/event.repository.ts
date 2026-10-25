@@ -58,7 +58,11 @@ export class EventRepository extends BaseRepository implements EventRepositoryAb
     input: IEvent | IEvent[],
     trx,
   ): Promise<[result: undefined, queryDetails: IQueryDetails]> => {
-    const query = this.getRepository(this.dataSource, EventEntity, trx).createQueryBuilder().insert().values(input);
+    const query = this.getRepository(this.dataSource, EventEntity, trx)
+      .createQueryBuilder()
+      .insert()
+      .values(input)
+      .updateEntity(false);
     const queryDetails = this.getQueryDetails(query);
 
     await query.execute();
