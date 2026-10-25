@@ -1,7 +1,7 @@
 import {error, success} from '#packages/result';
 
 import {CurrencyCode} from '#domain/entities/currency.entity';
-import {EventProtocolVersion} from '#domain/entities/event-protocol-version.enum';
+import {EventVersion} from '#domain/entities/event-version.enum';
 import {CurrencyNotFoundError, IdempotencyHashMismatchError} from '#domain/errors/errors';
 
 import {IdempotencySharedUseCase} from '#usecases/shared/idempotency.usecase';
@@ -228,12 +228,12 @@ describe('SaveEventUseCase', () => {
         name: 'New Event',
         currencyId: 'currency-usd',
         pinCode: '1234',
-        version: EventProtocolVersion.ExpenseEditing,
+        version: EventVersion.ExpenseEditing,
       },
       users: [],
     });
 
-    expect(result).toMatchObject({result: 'success', value: {version: EventProtocolVersion.ExpenseEditing}});
+    expect(result).toMatchObject({result: 'success', value: {version: EventVersion.ExpenseEditing}});
   });
 
   describe('idempotency', () => {

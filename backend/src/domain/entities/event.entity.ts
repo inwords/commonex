@@ -1,11 +1,11 @@
-import {EventProtocolVersion} from './event-protocol-version.enum';
+import {EventVersion} from './event-version.enum';
 
 export interface IEvent {
   id: string;
   name: string;
   currencyId: string;
   pinCode: string;
-  version: EventProtocolVersion;
+  version: EventVersion;
   createdAt: Date;
   updatedAt: Date;
   deletedAt: Date | null;

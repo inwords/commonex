@@ -1,7 +1,6 @@
 import {randomUUID} from 'crypto';
 
 import {Init1792934624547} from '../migrations/default/1792934624547-init';
-import {Init1792936302199} from '../migrations/default/1792936302199-init';
 import {createTestRelationalDataService} from '../src/test-support/db';
 
 describe('Event protocol migration', () => {
@@ -34,9 +33,8 @@ describe('Event protocol migration', () => {
       const [original] = await runner.manager.query<Record<string, unknown>[]>('SELECT * FROM event');
 
       await new Init1792934624547().up(runner);
-      await runner.query(`INSERT INTO event (id, name, currency_id, pin_code, created_at, updated_at, protocol_version)
+      await runner.query(`INSERT INTO event (id, name, currency_id, pin_code, created_at, updated_at, version)
         VALUES ('new-event', 'New trip', 'USD', '1234', '2026-01-01', '2026-01-02', 2)`);
-      await new Init1792936302199().up(runner);
 
       const [migrated] = await runner.manager.query<Record<string, unknown>[]>(
         "SELECT * FROM event WHERE id = 'legacy-event'",
@@ -46,6 +44,12 @@ describe('Event protocol migration', () => {
         VALUES ('legacy-writer', 'Trip', 'USD', '1234', '2026-01-01', '2026-01-02')`);
       const versions = await runner.manager.query<{version: number}[]>('SELECT version FROM event ORDER BY id');
       expect(versions).toEqual([{version: 1}, {version: 1}, {version: 2}]);
+
+      await new Init1792934624547().down(runner);
+      const [rolledBack] = await runner.manager.query<Record<string, unknown>[]>(
+        "SELECT * FROM event WHERE id = 'legacy-event'",
+      );
+      expect(rolledBack).toEqual(original);
     } finally {
       await runner.rollbackTransaction();
       await runner.release();

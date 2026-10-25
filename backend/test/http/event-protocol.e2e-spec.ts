@@ -4,7 +4,7 @@ import {createEvent, findCurrencyIdByCode} from '../support/fixtures';
 import {TestApp, createTestApp} from '../support/test-app';
 
 const oldMobile = {'user-agent': 'CommonEx/123 (Android/r)'};
-const newMobile = {...oldMobile, 'x-commonex-protocol-version': '2'};
+const newMobile = {...oldMobile, 'x-commonex-version': '2'};
 
 describe('HTTP event protocol compatibility', () => {
   let testApp: TestApp;
@@ -57,7 +57,7 @@ describe('HTTP event protocol compatibility', () => {
       payload: {pinCode: '1234'},
     });
     expect(response.statusCode).toBe(403);
-    expect(response.json()).toMatchObject({code: 'B4020', requiredProtocolVersion: 2});
+    expect(response.json()).toMatchObject({code: 'B4020', requiredVersion: 2});
   });
 
   it('permits new mobile clients and browsers including Android browsers', async () => {
@@ -82,7 +82,7 @@ describe('HTTP event protocol compatibility', () => {
       payload: {name: 'New trip', currencyId, pinCode: '1234', users: [{name: 'Alice'}], version: 2},
     });
     expect(response.statusCode).toBe(403);
-    expect(response.json()).toMatchObject({code: 'B4020', requiredProtocolVersion: 2});
+    expect(response.json()).toMatchObject({code: 'B4020', requiredVersion: 2});
     const [events] = await testApp.rDataService.event.findAll({limit: 10});
     expect(events).toEqual([]);
   });
@@ -104,7 +104,7 @@ describe('HTTP event protocol compatibility', () => {
       const response = await testApp.app.inject({
         method: 'POST',
         url: `/v2/user/event/${event.id}`,
-        headers: {...oldMobile, 'x-commonex-protocol-version': version},
+        headers: {...oldMobile, 'x-commonex-version': version},
         payload: {pinCode: '1234'},
       });
       expect(response.statusCode).toBe(403);

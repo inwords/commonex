@@ -3,10 +3,10 @@ import {Module} from '@nestjs/common';
 import {UseCasesModule} from '#usecases/usecases.layer';
 
 import {UserController} from '#api/grpc/user/user.controller';
-import {EventProtocolGuard} from '#api/guards/event-protocol.guard';
+import {EventVersionGuard} from '#api/guards/event-version.guard';
 
 @Module({
-  providers: [EventProtocolGuard],
+  providers: [EventVersionGuard],
   imports: [UseCasesModule],
   controllers: [UserController],
 })

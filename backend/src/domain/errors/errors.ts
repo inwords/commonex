@@ -6,7 +6,7 @@ export class ClientUpdateRequiredError extends Error {
   override readonly name = 'ClientUpdateRequiredError' as const;
   readonly code = ErrorCode.CLIENT_UPDATE_REQUIRED;
 
-  constructor(readonly requiredProtocolVersion: number) {
+  constructor(readonly requiredVersion: number) {
     super('Client update required');
   }
 }

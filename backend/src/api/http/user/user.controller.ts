@@ -9,7 +9,7 @@ import {SaveEventExpenseUseCase} from '#usecases/users/save-event-expense.usecas
 import {SaveEventUseCase} from '#usecases/users/save-event.usecase';
 import {SaveUsersToEventUseCase} from '#usecases/users/save-users-to-event.usecase';
 
-import {EventProtocolGuard} from '#api/guards/event-protocol.guard';
+import {EventVersionGuard} from '#api/guards/event-version.guard';
 import {unwrapResult} from '#api/unwrap-result';
 
 import {
@@ -32,7 +32,7 @@ interface BannerReply {
   send: (payload?: GetBannerResponseDto) => void;
 }
 
-@UseGuards(EventProtocolGuard)
+@UseGuards(EventVersionGuard)
 @Controller(UserRoutes.root)
 @ApiTags('User')
 export class UserController {

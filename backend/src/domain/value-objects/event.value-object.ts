@@ -2,7 +2,7 @@ import {ulid} from 'ulid';
 
 import {PartialByKeys} from '#packages/types';
 
-import {EventProtocolVersion} from '#domain/entities/event-protocol-version.enum';
+import {EventVersion} from '#domain/entities/event-version.enum';
 import {IEvent} from '#domain/entities/event.entity';
 import {ValueObject} from '#domain/value-objects/value-object';
 
@@ -15,7 +15,7 @@ export const eventDefaultValues: {
   createdAt: () => new Date(),
   updatedAt: () => new Date(),
   deletedAt: () => null,
-  version: () => EventProtocolVersion.Legacy,
+  version: () => EventVersion.Legacy,
 } as const;
 Object.freeze(eventDefaultValues);
 

@@ -3,7 +3,7 @@ import {TerminusModule} from '@nestjs/terminus';
 
 import {UseCasesModule} from '#usecases/usecases.layer';
 
-import {EventProtocolGuard} from '#api/guards/event-protocol.guard';
+import {EventVersionGuard} from '#api/guards/event-version.guard';
 
 import {DevtoolsController} from './devtools/devtools.controller';
 import {HealthController} from './health/health.controller';
@@ -13,7 +13,7 @@ import {UserV4Controller} from './user/user-v4.controller';
 import {UserController} from './user/user.controller';
 
 @Module({
-  providers: [EventProtocolGuard],
+  providers: [EventVersionGuard],
   imports: [UseCasesModule, TerminusModule],
   controllers: [
     UserController,
