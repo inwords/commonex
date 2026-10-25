@@ -1,6 +1,17 @@
 import {createTheme} from '@mui/material/styles';
 
 export const theme = createTheme({
+  components: {
+    MuiDialogContent: {
+      styleOverrides: {
+        root: ({theme}) => ({
+          '.MuiDialogTitle-root + &': {
+            paddingTop: theme.spacing(2),
+          },
+        }),
+      },
+    },
+  },
   cssVariables: {
     colorSchemeSelector: '[data-mui-color-scheme="%s"]',
   },

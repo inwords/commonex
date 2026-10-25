@@ -36,11 +36,16 @@ export const OnboardingGuide = observer(({title, content: text, stage, target}: 
     measure();
     const resize = new ResizeObserver(measure);
     resize.observe(element);
+    const viewport = window.visualViewport;
+    viewport?.addEventListener('resize', measure);
+    viewport?.addEventListener('scroll', measure);
     window.addEventListener('resize', measure);
     document.addEventListener('scroll', measure, true);
     return () => {
       cancelAnimationFrame(frame);
       resize.disconnect();
+      viewport?.removeEventListener('resize', measure);
+      viewport?.removeEventListener('scroll', measure);
       window.removeEventListener('resize', measure);
       document.removeEventListener('scroll', measure, true);
     };

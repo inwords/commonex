@@ -43,7 +43,7 @@ function setup(overrides = {}) {
     },
   };
 }
-test('production, explicit consent, valid ID and exact hostname are all required', () => {
+test('production, enabled analytics, valid ID and exact hostname are all required', () => {
   for (const config of [
     {production: false},
     {counterId: ''},
