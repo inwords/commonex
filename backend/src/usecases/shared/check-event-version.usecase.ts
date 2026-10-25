@@ -6,7 +6,7 @@ import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-s
 import {EventVersion} from '#domain/entities/event-version.enum';
 import {ClientUpdateRequiredError} from '#domain/errors/errors';
 
-import {getMobileEventVersion} from './get-mobile-event-version';
+import {getMobileVersion} from './get-mobile-version';
 
 interface Input {
   eventId?: unknown;
@@ -19,10 +19,12 @@ export class CheckEventVersionSharedUseCase {
   constructor(private readonly rDataService: RelationalDataServiceAbstract) {}
 
   async execute(input: Input): Promise<Result<boolean, ClientUpdateRequiredError>> {
-    const clientVersion: number | undefined = getMobileEventVersion(input.userAgent);
-    if (clientVersion === undefined) {
+    const mobileVersion = getMobileVersion(input.userAgent);
+    if (mobileVersion === undefined) {
       return success(true);
     }
+    const clientVersion: number =
+      Number.isSafeInteger(mobileVersion) && mobileVersion >= 11 ? EventVersion.ExpenseEditing : EventVersion.Legacy;
     let requiredVersion: number =
       input.requestedVersion === EventVersion.ExpenseEditing ? EventVersion.ExpenseEditing : EventVersion.Legacy;
 
