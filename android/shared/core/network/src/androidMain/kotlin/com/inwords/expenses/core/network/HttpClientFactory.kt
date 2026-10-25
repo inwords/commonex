@@ -39,6 +39,7 @@ internal actual class HttpClientFactory(
 
         return CronetEngine.Builder(context)
             .setStoragePath(storagePath)
+            .enableHttpCache(CronetEngine.Builder.HTTP_CACHE_DISK, 10 * 1024 * 1024L)
             .enableHttp2(true)
             .enableQuic(true)
             .enableBrotli(true)

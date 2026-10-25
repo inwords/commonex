@@ -6,7 +6,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -34,6 +36,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.inwords.expenses.core.ui.design.preview.ComponentPreviews
 import com.inwords.expenses.core.ui.design.theme.CommonExTheme
+import com.inwords.expenses.feature.banner.domain.Banner
+import com.inwords.expenses.feature.banner.ui.BannerContent
 import expenses.shared.feature.expenses.generated.resources.Res
 import expenses.shared.feature.expenses.generated.resources.expenses_first_action
 import expenses.shared.feature.expenses.generated.resources.expenses_first_details
@@ -48,9 +52,12 @@ import org.jetbrains.compose.resources.stringResource
 @Composable
 internal fun FirstExpensePrompt(
     eventName: String,
+    banner: Banner?,
     currentPersonName: String,
     personCount: Int,
     currencyCode: String,
+    onBannerDismissClick: () -> Unit,
+    appStoreUrl: String,
     onAddExpenseClick: () -> Unit,
     onInviteClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -59,7 +66,6 @@ internal fun FirstExpensePrompt(
         modifier = modifier
             .testTag(ExpensesPaneTags.EMPTY_STATE)
             .padding(vertical = 24.dp),
-        verticalArrangement = Arrangement.spacedBy(32.dp),
     ) {
         Column(
             modifier = Modifier.padding(horizontal = 24.dp),
@@ -95,6 +101,15 @@ internal fun FirstExpensePrompt(
                 modifier = Modifier.testTag("expenses_current_person"),
             )
         }
+
+        BannerContent(
+            banner = banner,
+            onDismissClick = onBannerDismissClick,
+            appStoreUrl = appStoreUrl,
+            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 24.dp),
+        )
+        Spacer(modifier = Modifier.height(32.dp))
+
         val inviteLabel = stringResource(Res.string.expenses_first_invite)
         val textMeasurer = rememberTextMeasurer()
         // Keep the shorter action title on one line before allowing two columns.
@@ -189,9 +204,12 @@ private fun FirstExpensePromptPreview() {
         Surface {
             FirstExpensePrompt(
                 eventName = "Weekend in Lisbon",
+                banner = null,
                 currentPersonName = "Alex",
                 personCount = 3,
                 currencyCode = "EUR",
+                onBannerDismissClick = {},
+                appStoreUrl = "https://commonex.ru",
                 onAddExpenseClick = {},
                 onInviteClick = {},
             )

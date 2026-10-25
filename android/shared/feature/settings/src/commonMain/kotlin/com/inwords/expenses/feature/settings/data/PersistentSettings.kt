@@ -43,4 +43,12 @@ internal class SettingsRepositoryImpl(
         settingsLocalDataSource.setCurrentEventAndPerson(eventId = -1, personId = -1)
     }
 
+    override fun getBannerDismissals(): Flow<Map<String, Long>> {
+        return settingsLocalDataSource.getBannerDismissals()
+    }
+
+    override suspend fun setBannerDismissal(key: String, untilEpochMillis: Long) {
+        settingsLocalDataSource.setBannerDismissal(key, untilEpochMillis)
+    }
+
 }

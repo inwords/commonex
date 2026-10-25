@@ -221,8 +221,7 @@ Current Ktor client rules:
 - `expectSuccess = true`: non-2xx responses surface as exceptions and enter centralized error mapping
 - `followRedirects = false`: redirect responses are not automatically followed
 - `ContentNegotiation` uses Kotlinx Serialization JSON with `ignoreUnknownKeys = true`
-- Shared mobile does not currently install Ktor `HttpCache`
-- Android mobile does not currently enable Cronet HTTP response caching; the Cronet setup uses a storage path but not `enableHttpCache(...)`
+- Android enables Cronet's disk HTTP cache in the app cache directory; iOS uses the protocol cache policy for requests without explicit validators.
 - Current mobile conditional GET behavior for currencies is implemented explicitly in shared stores, with Room as the cache source of truth rather than a transport-layer response cache
 - Shared mobile core network exposes an explicit conditional GET helper for `If-None-Match` requests that classifies `200 OK` as modified data and `304 Not Modified` as validator confirmation; feature/domain code still owns persistence and cache-update policy
 

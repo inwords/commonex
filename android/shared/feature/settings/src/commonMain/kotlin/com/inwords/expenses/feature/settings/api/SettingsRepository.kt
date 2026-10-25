@@ -13,4 +13,7 @@ interface SettingsRepository {
     fun getCurrentPersonId(): Flow<Long?>
 
     suspend fun clearCurrentEventAndPerson()
+
+    fun getBannerDismissals(): Flow<Map<String, Long>>
+    suspend fun setBannerDismissal(key: String, untilEpochMillis: Long)
 }

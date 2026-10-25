@@ -5,6 +5,10 @@ import app.cash.turbine.test
 import com.inwords.expenses.core.navigation.NavigationController
 import com.inwords.expenses.core.ui.utils.SimpleScreenState
 import com.inwords.expenses.core.ui.utils.StringProvider
+import com.inwords.expenses.feature.banner.domain.Banner
+import com.inwords.expenses.feature.banner.domain.BannerType
+import com.inwords.expenses.feature.banner.domain.DismissBannerUseCase
+import com.inwords.expenses.feature.banner.domain.GetBannerUseCase
 import com.inwords.expenses.feature.events.api.EventDeletionStateManager
 import com.inwords.expenses.feature.events.domain.DeleteEventUseCase
 import com.inwords.expenses.feature.events.domain.EventsSyncStateHolder
@@ -61,7 +65,10 @@ import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Instant
 
@@ -185,6 +192,10 @@ internal class ExpensesViewModelTimelineTest {
     private val getExpensesDetailsUseCase = mockk<GetExpensesDetailsUseCase>(relaxed = true) {
         every { getExpensesDetails(any()) } returns flowOf(Fixtures.expensesDetails)
     }
+    private val getBannerUseCase = mockk<GetBannerUseCase> {
+        coEvery { getBanner() } returns null
+    }
+    private val dismissBannerUseCase = mockk<DismissBannerUseCase>(relaxed = true)
     private val requestExpensesRefreshUseCase = mockk<RequestExpensesRefreshUseCase>(relaxed = true)
     private val eventsSyncStateHolder = mockk<EventsSyncStateHolder>(relaxed = true) {
         every { getStateFor(any()) } returns MutableStateFlow(false)
@@ -434,6 +445,185 @@ internal class ExpensesViewModelTimelineTest {
         }
     }
 
+    @Test
+    fun `ready banner appears in the first expenses content`() = testScope.runTest {
+        val banner = Banner(BannerType.GeneralWarning, "Maintenance")
+        coEvery { getBannerUseCase.getBanner() } returns banner
+        currentEventFlow.value = null
+        val viewModel = createViewModel()
+        runCurrent()
+
+        viewModel.state.test {
+            runCurrent()
+            expectMostRecentItem()
+
+            currentEventFlow.value = Fixtures.eventDetails
+            runCurrent()
+
+            val initial = assertIs<Expenses>(assertIs<SimpleScreenState.Success<ExpensesPaneUiModel>>(awaitItem()).data)
+            assertEquals(banner, initial.banner)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `banner arriving within 80 ms of expenses readiness appears in the first content`() = testScope.runTest {
+        val banner = Banner(BannerType.GeneralWarning, "Maintenance")
+        val pendingBanner = CompletableDeferred<Banner?>()
+        coEvery { getBannerUseCase.getBanner() } coAnswers { pendingBanner.await() }
+        currentEventFlow.value = null
+        val viewModel = createViewModel()
+
+        viewModel.state.test {
+            runCurrent()
+            expectMostRecentItem()
+            advanceTimeBy(200.milliseconds)
+            currentEventFlow.value = Fixtures.eventDetails
+            runCurrent()
+            expectNoEvents()
+
+            advanceTimeBy(79.milliseconds)
+            runCurrent()
+            expectNoEvents()
+            pendingBanner.complete(banner)
+            runCurrent()
+
+            val initial = assertIs<Expenses>(assertIs<SimpleScreenState.Success<ExpensesPaneUiModel>>(awaitItem()).data)
+            assertEquals(banner, initial.banner)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `pending banner delays expenses by at most 80 ms and does not appear later`() = testScope.runTest {
+        val pendingBanner = CompletableDeferred<Banner?>()
+        coEvery { getBannerUseCase.getBanner() } coAnswers { pendingBanner.await() }
+        val expensesFlow = MutableStateFlow(Fixtures.expensesDetails)
+        every { getExpensesDetailsUseCase.getExpensesDetails(any()) } returns expensesFlow
+        val viewModel = createViewModel()
+
+        viewModel.state.test {
+            runCurrent()
+            assertIs<SimpleScreenState.Loading>(awaitItem())
+            advanceTimeBy(79.milliseconds)
+            runCurrent()
+            expectNoEvents()
+            advanceTimeBy(1.milliseconds)
+            runCurrent()
+            val initial = assertIs<Expenses>(assertIs<SimpleScreenState.Success<ExpensesPaneUiModel>>(expectMostRecentItem()).data)
+            assertNull(initial.banner)
+
+            pendingBanner.complete(Banner(BannerType.GeneralWarning, "Maintenance"))
+            runCurrent()
+            expectNoEvents()
+
+            expensesFlow.value = Fixtures.expensesDetails.copy(expenses = emptyList())
+            advanceTimeBy(500.milliseconds)
+            runCurrent()
+            val updated = assertIs<Expenses>(assertIs<SimpleScreenState.Success<ExpensesPaneUiModel>>(expectMostRecentItem()).data)
+            assertEquals(emptyList(), updated.daySections)
+            assertNull(updated.banner)
+            coVerify(exactly = 1) { getBannerUseCase.getBanner() }
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `banner snapshot survives timeline person day and refresh updates`() = testScope.runTest {
+        val banner = Banner(BannerType.UpdateRequired, "Update CommonEx")
+        coEvery { getBannerUseCase.getBanner() } returns banner
+        val expensesFlow = MutableStateFlow(Fixtures.expensesDetails)
+        every { getExpensesDetailsUseCase.getExpensesDetails(any()) } returns expensesFlow
+        val refreshing = MutableStateFlow(false)
+        every { eventsSyncStateHolder.getStateFor(any()) } returns refreshing
+        currentEventFlow.value = null
+        val viewModel = createViewModel()
+        runCurrent()
+
+        viewModel.state.test {
+            runCurrent()
+            expectMostRecentItem()
+            currentEventFlow.value = Fixtures.eventDetails
+            runCurrent()
+            val initial = assertIs<Expenses>(assertIs<SimpleScreenState.Success<ExpensesPaneUiModel>>(expectMostRecentItem()).data)
+            assertEquals(banner, initial.banner)
+
+            coEvery { getBannerUseCase.getBanner() } returns Banner(BannerType.GeneralWarning, "Changed message")
+            viewModel.onDayChipClick("2026-03-27")
+            runCurrent()
+            val afterDayChange = assertIs<Expenses>(assertIs<SimpleScreenState.Success<ExpensesPaneUiModel>>(expectMostRecentItem()).data)
+            assertEquals(banner, afterDayChange.banner)
+
+            currentPersonIdFlow.value = Fixtures.otherPerson.id
+            runCurrent()
+            val afterPersonChange = assertIs<Expenses>(assertIs<SimpleScreenState.Success<ExpensesPaneUiModel>>(expectMostRecentItem()).data)
+            assertEquals(banner, afterPersonChange.banner)
+
+            viewModel.onRefresh()
+            runCurrent()
+            val afterRefresh = assertIs<Expenses>(assertIs<SimpleScreenState.Success<ExpensesPaneUiModel>>(expectMostRecentItem()).data)
+            assertTrue(afterRefresh.isRefreshing)
+            assertEquals(banner, afterRefresh.banner)
+
+            refreshing.value = true
+            runCurrent()
+            refreshing.value = false
+            advanceTimeBy(2100.milliseconds)
+            runCurrent()
+            val afterRefreshStops = assertIs<Expenses>(assertIs<SimpleScreenState.Success<ExpensesPaneUiModel>>(expectMostRecentItem()).data)
+            assertFalse(afterRefreshStops.isRefreshing)
+            assertEquals(banner, afterRefreshStops.banner)
+
+            expensesFlow.value = Fixtures.expensesDetails.copy(expenses = emptyList())
+            advanceTimeBy(500.milliseconds)
+            runCurrent()
+            val afterTimelineChange = assertIs<Expenses>(assertIs<SimpleScreenState.Success<ExpensesPaneUiModel>>(expectMostRecentItem()).data)
+            assertEquals(banner, afterTimelineChange.banner)
+            coVerify(exactly = 1) { getBannerUseCase.getBanner() }
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `dismiss hides the current banner before persistence completes and persists once`() = testScope.runTest {
+        val banner = Banner(BannerType.GeneralWarning, "Maintenance")
+        coEvery { getBannerUseCase.getBanner() } returns banner
+        val dismissal = CompletableDeferred<Unit>()
+        coEvery { dismissBannerUseCase.dismissBanner(banner) } coAnswers { dismissal.await() }
+        currentEventFlow.value = null
+        val viewModel = createViewModel()
+        runCurrent()
+
+        viewModel.state.test {
+            runCurrent()
+            expectMostRecentItem()
+            currentEventFlow.value = Fixtures.eventDetails
+            runCurrent()
+            val initial = assertIs<Expenses>(assertIs<SimpleScreenState.Success<ExpensesPaneUiModel>>(expectMostRecentItem()).data)
+            assertEquals(banner, initial.banner)
+
+            viewModel.onBannerDismissClick()
+            viewModel.onBannerDismissClick()
+            runCurrent()
+            val dismissed = assertIs<Expenses>(assertIs<SimpleScreenState.Success<ExpensesPaneUiModel>>(expectMostRecentItem()).data)
+            assertNull(dismissed.banner)
+            viewModel.onBannerDismissClick()
+            runCurrent()
+            coVerify(exactly = 1) { dismissBannerUseCase.dismissBanner(banner) }
+
+            currentPersonIdFlow.value = Fixtures.otherPerson.id
+            runCurrent()
+            val afterPersonChange = assertIs<Expenses>(assertIs<SimpleScreenState.Success<ExpensesPaneUiModel>>(expectMostRecentItem()).data)
+            assertEquals(Fixtures.otherPerson.id, afterPersonChange.currentPersonId)
+            assertNull(afterPersonChange.banner)
+
+            dismissal.complete(Unit)
+            runCurrent()
+            expectNoEvents()
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
     private fun createViewModel(): ExpensesViewModel {
         return ExpensesViewModel(
             navigationController = navigationController,
@@ -447,6 +637,8 @@ internal class ExpensesViewModelTimelineTest {
             requestExpensesRefreshUseCase = requestExpensesRefreshUseCase,
             eventsSyncStateHolder = eventsSyncStateHolder,
             settingsRepository = settingsRepository,
+            getBannerUseCase = getBannerUseCase,
+            dismissBannerUseCase = dismissBannerUseCase,
             timelineUiModelFactory = ExpensesTimelineUiModelFactory(
                 stringProvider = object : StringProvider {
                     override suspend fun getString(stringResource: StringResource): String {

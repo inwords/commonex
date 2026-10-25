@@ -5,6 +5,8 @@ import app.cash.turbine.test
 import com.inwords.expenses.core.navigation.NavigationController
 import com.inwords.expenses.core.ui.utils.SimpleScreenState
 import com.inwords.expenses.core.ui.utils.StringProvider
+import com.inwords.expenses.feature.banner.domain.DismissBannerUseCase
+import com.inwords.expenses.feature.banner.domain.GetBannerUseCase
 import com.inwords.expenses.feature.events.api.EventDeletionStateManager
 import com.inwords.expenses.feature.events.api.EventDeletionStateManager.EventDeletionState
 import com.inwords.expenses.feature.events.domain.DeleteEventUseCase
@@ -123,6 +125,10 @@ internal class ExpensesViewModelRefreshTest {
     private val getExpensesDetailsUseCase = mockk<GetExpensesDetailsUseCase>(relaxed = true) {
         every { getExpensesDetails(any()) } returns flowOf(TestFixtures.expensesDetails)
     }
+    private val getBannerUseCase = mockk<GetBannerUseCase> {
+        coEvery { getBanner() } returns null
+    }
+    private val dismissBannerUseCase = mockk<DismissBannerUseCase>(relaxed = true)
     private val requestExpensesRefreshUseCase = mockk<RequestExpensesRefreshUseCase>(relaxed = true)
     private val settingsRepository = mockk<SettingsRepository>(relaxed = true) {
         coEvery { getCurrentPersonId() } returns currentPersonIdFlow
@@ -233,6 +239,8 @@ internal class ExpensesViewModelRefreshTest {
             requestExpensesRefreshUseCase = requestExpensesRefreshUseCase,
             eventsSyncStateHolder = eventsSyncStateHolder,
             settingsRepository = settingsRepository,
+            getBannerUseCase = getBannerUseCase,
+            dismissBannerUseCase = dismissBannerUseCase,
             timelineUiModelFactory = ExpensesTimelineUiModelFactory(
                 stringProvider = object : StringProvider {
                     override suspend fun getString(stringResource: StringResource): String {

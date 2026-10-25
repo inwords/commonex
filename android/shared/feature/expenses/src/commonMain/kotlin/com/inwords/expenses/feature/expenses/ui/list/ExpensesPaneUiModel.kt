@@ -1,5 +1,6 @@
 package com.inwords.expenses.feature.expenses.ui.list
 
+import com.inwords.expenses.feature.banner.domain.Banner
 import com.inwords.expenses.feature.events.ui.local.LocalEventsUiModel
 import com.inwords.expenses.feature.expenses.domain.model.ExpenseType
 import com.inwords.expenses.feature.expenses.ui.common.DebtShortUiModel
@@ -8,6 +9,7 @@ import kotlinx.collections.immutable.ImmutableList
 internal sealed interface ExpensesPaneUiModel {
 
     data class Expenses(
+        val banner: Banner?,
         val eventId: Long,
         val eventName: String,
         val currentPersonId: Long,

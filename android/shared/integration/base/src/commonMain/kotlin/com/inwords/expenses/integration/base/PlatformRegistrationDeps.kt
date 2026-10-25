@@ -11,6 +11,8 @@ import com.inwords.expenses.integration.databases.api.DatabasesComponent
 
 internal interface PlatformRegistrationDeps {
 
+    val appStoreUrl: String
+
     fun createSettingsComponent(): SettingsComponent
 
     fun createDatabaseComponent(): DatabasesComponent

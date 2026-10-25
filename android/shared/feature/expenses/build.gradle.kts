@@ -29,6 +29,7 @@ kotlin {
                 implementation(project(":shared:core:navigation"))
                 implementation(project(":shared:core:network"))
                 implementation(project(":shared:feature:events"))
+                implementation(project(":shared:feature:banner"))
                 implementation(project(":shared:feature:menu"))
                 implementation(project(":shared:feature:settings"))
 
