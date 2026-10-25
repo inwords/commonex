@@ -10,14 +10,22 @@ interface Props {
   content: string;
   stage: number;
   target?: string;
+  onShown: () => void;
 }
 
-export const OnboardingGuide = observer(({title, content: text, stage, target}: Props) => {
+export const OnboardingGuide = observer(({title, content: text, stage, target, onShown}: Props) => {
   const state = useOnboarding();
   const content = useContent().Onboarding;
   const titleId = useId();
   const [anchor, setAnchor] = useState<{element: HTMLElement; rect: DOMRect} | null>(null);
   const active = state.status === 'active';
+  const visible = active && (!target || anchor?.element.dataset.onboarding === target);
+
+  useEffect(() => {
+    if (visible) {
+      onShown();
+    }
+  }, [visible, onShown]);
 
   useEffect(() => {
     if (!target || !active) {

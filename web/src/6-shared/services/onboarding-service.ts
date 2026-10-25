@@ -1,3 +1,6 @@
+import type {AnalyticsEvent} from '../analytics/analytics-event.ts';
+import {analyticsService} from '../analytics/analytics-service.ts';
+import type {OnboardingHint} from '../analytics/onboarding-hint.ts';
 import type {OnboardingState} from './onboarding-state';
 
 const initialState: OnboardingState = {status: 'active', expenseEventId: null};
@@ -7,9 +10,17 @@ export class OnboardingService {
   private state: OnboardingState | undefined;
   private listeners = new Set<() => void>();
   private storage: () => Pick<Storage, 'getItem' | 'setItem'>;
+  private lastHint?: OnboardingHint;
+  private source: 'automatic' | 'manual' = 'automatic';
+  private started = false;
+  private track: (event: AnalyticsEvent) => void;
 
-  constructor(storage: () => Pick<Storage, 'getItem' | 'setItem'> = () => localStorage) {
+  constructor(
+    storage: () => Pick<Storage, 'getItem' | 'setItem'> = () => localStorage,
+    track: (event: AnalyticsEvent) => void = analyticsService.track,
+  ) {
     this.storage = storage;
+    this.track = track;
   }
 
   getSnapshot = (): OnboardingState => {
@@ -53,8 +64,34 @@ export class OnboardingService {
     this.listeners.forEach((listener) => listener());
   }
 
-  skip = () => this.save({...this.getSnapshot(), status: 'skipped'});
-  restart = () => this.save({...initialState});
+  stepShown(step: OnboardingHint) {
+    if (this.getSnapshot().status !== 'active' || this.lastHint === step) {
+      return;
+    }
+    if (!this.started) {
+      this.started = true;
+      this.track({name: 'onboarding_started', params: {source: this.source}});
+    }
+    this.lastHint = step;
+    this.track({name: 'onboarding_step_viewed', params: {step}});
+  }
+
+  skip = () => {
+    if (this.getSnapshot().status !== 'active') {
+      return;
+    }
+    this.save({...this.getSnapshot(), status: 'skipped'});
+    if (this.lastHint) {
+      this.track({name: 'onboarding_skipped', params: {step: this.lastHint}});
+    }
+  };
+
+  restart = () => {
+    this.started = false;
+    this.lastHint = undefined;
+    this.source = 'manual';
+    this.save({...initialState});
+  };
 
   expenseSaved(eventId: string) {
     if (this.getSnapshot().status === 'active') {
@@ -65,6 +102,7 @@ export class OnboardingService {
   complete(eventId: string) {
     if (this.getSnapshot().status === 'active' && this.getSnapshot().expenseEventId === eventId) {
       this.save({...this.getSnapshot(), status: 'completed'});
+      this.track({name: 'onboarding_completed'});
     }
   }
 }
