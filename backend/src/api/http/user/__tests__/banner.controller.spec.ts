@@ -9,6 +9,8 @@ import {SaveEventExpenseUseCase} from '#usecases/users/save-event-expense.usecas
 import {SaveEventUseCase} from '#usecases/users/save-event.usecase';
 import {SaveUsersToEventUseCase} from '#usecases/users/save-users-to-event.usecase';
 
+import {InternalErrorFilter} from '#api/http/filters/internal-error.filter';
+
 import {UserController} from '../user.controller';
 
 describe('UserController banner HTTP', () => {
@@ -28,7 +30,9 @@ describe('UserController banner HTTP', () => {
         {provide: DeleteEventUseCase, useValue: {}},
       ],
     }).compile();
-    app = module.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
+    const adapter = new FastifyAdapter();
+    app = module.createNestApplication<NestFastifyApplication>(adapter);
+    app.useGlobalFilters(new InternalErrorFilter(adapter));
     await app.init();
     await app.getHttpAdapter().getInstance().ready();
   });
@@ -70,6 +74,19 @@ describe('UserController banner HTTP', () => {
     expect(response.headers['cache-control']).toBe('public, max-age=21600');
     expect(response.headers.vary).toBe('User-Agent');
     expect(useCase.execute).toHaveBeenCalledWith({platform: 'iOS', versionCode: 123});
+  });
+
+  it('does not cache a failed banner lookup', async () => {
+    useCase.execute.mockRejectedValueOnce(new Error('Database unavailable'));
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/user/banner',
+      headers: {'user-agent': 'CommonEx/123 (Android/r)'},
+    });
+
+    expect(response.statusCode).toBe(500);
+    expect(response.headers['cache-control']).toBeUndefined();
   });
 
   it.each([undefined, 'CommonEx/invalid (Android/r)', 'Mozilla/5.0'])(
