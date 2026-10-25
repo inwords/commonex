@@ -161,3 +161,41 @@ test('seeds SDK initialization with sanitized landing URL and referrer before te
   assert.equal(init.disableYtm, true);
   assert.equal(JSON.stringify(s.calls).includes('SECRET'), false);
 });
+
+test('production website uses the public counter configuration without analytics environment variables', async () => {
+  const previousEnvironment = process.env.NODE_ENV;
+  const previousWindow = Object.getOwnPropertyDescriptor(globalThis, 'window');
+  const calls: unknown[][] = [];
+  try {
+    Reflect.set(process.env, 'NODE_ENV', 'production');
+    Object.defineProperty(globalThis, 'window', {
+      configurable: true,
+      value: {location: {hostname: 'commonex.ru', origin: 'https://commonex.ru'}},
+    });
+    const service = new AnalyticsService(undefined, {
+      load: async () => {},
+      send: (...args) => {
+        calls.push(args);
+      },
+      now: Date.now,
+    });
+    service.changeConsent('granted');
+    service.navigate('home', 'https://commonex.ru/', '');
+    await Promise.resolve();
+    assert.equal(service.isConfigured(), true);
+    assert.equal(calls[0][0], 113775783);
+    assert.equal(calls[0][1], 'init');
+    assert.equal((calls[0][2] as {webvisor: boolean}).webvisor, false);
+  } finally {
+    if (previousEnvironment === undefined) {
+      Reflect.deleteProperty(process.env, 'NODE_ENV');
+    } else {
+      Reflect.set(process.env, 'NODE_ENV', previousEnvironment);
+    }
+    if (previousWindow) {
+      Object.defineProperty(globalThis, 'window', previousWindow);
+    } else {
+      Reflect.deleteProperty(globalThis, 'window');
+    }
+  }
+});
