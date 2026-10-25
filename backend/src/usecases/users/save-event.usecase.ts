@@ -6,13 +6,14 @@ import {UseCase} from '#packages/use-case';
 import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-service/relational-data-service';
 import {ITransaction} from '#domain/abstracts/relational-data-service/types';
 import {SupportedCurrencyServiceAbstract} from '#domain/abstracts/supported-currency-service/supported-currency-service';
+import {EventVersion} from '#domain/entities/event-version.enum';
 import {IEvent} from '#domain/entities/event.entity';
 import {IUserInfo} from '#domain/entities/user-info.entity';
 import {CurrencyNotFoundError} from '#domain/errors/errors';
 import {EventValueObject} from '#domain/value-objects/event.value-object';
 import {UserInfoValueObject} from '#domain/value-objects/user-info.value-object';
 
-import {getMobileEventVersion} from '#usecases/shared/get-mobile-event-version';
+import {getMobileVersion} from '#usecases/shared/get-mobile-version';
 import {
   IdempotencyError,
   IdempotencyOperation,
@@ -37,9 +38,15 @@ export class SaveEventUseCase implements UseCase<Input, Output> {
 
   public async execute(input: Input): Promise<Output> {
     const {idempotencyKey, userAgent, ...core} = input;
-    const mobileVersion = getMobileEventVersion(userAgent);
+    const mobileVersion = getMobileVersion(userAgent);
     if (mobileVersion !== undefined) {
-      core.event = {...core.event, version: mobileVersion};
+      core.event = {
+        ...core.event,
+        version:
+          Number.isSafeInteger(mobileVersion) && mobileVersion >= 11
+            ? EventVersion.ExpenseEditing
+            : EventVersion.Legacy,
+      };
     }
     return this.idempotencyUseCase.execute(idempotencyKey, IdempotencyOperation.CREATE_EVENT_V1, core, (trx) =>
       this.executeCore(core, trx),
