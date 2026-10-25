@@ -1,5 +1,5 @@
 import {Metadata} from '@grpc/grpc-js';
-import {Body, Controller, UseFilters, UseGuards, UsePipes} from '@nestjs/common';
+import {Body, Controller, UseFilters, UsePipes} from '@nestjs/common';
 import {Ctx, GrpcMethod} from '@nestjs/microservices';
 
 import {DeleteEventUseCase} from '#usecases/users/delete-event.usecase';
@@ -16,7 +16,6 @@ import {
   SaveUsersToEventV2UseCase,
 } from '#usecases/users/v2';
 
-import {EventVersionGuard} from '#api/guards/event-version.guard';
 import {AddUsersToEventResponseWithUsersDto} from '#api/http/user/dto/add-users-to-event.dto';
 import {CreateEventShareTokenResponseDto} from '#api/http/user/dto/create-event-share-token.dto';
 import {CreateEventRequestDto, CreateEventResponseDto} from '#api/http/user/dto/create-event.dto';
@@ -53,7 +52,14 @@ const getIdempotencyKey = (context: unknown): string | undefined => {
   return typeof value === 'string' ? value : undefined;
 };
 
-@UseGuards(EventVersionGuard)
+const getUserAgent = (context: unknown): string | undefined => {
+  if (!(context instanceof Metadata)) {
+    throw new Error('Expected gRPC Metadata as the handler context');
+  }
+  const value = context.get('user-agent')[0];
+  return typeof value === 'string' ? value : undefined;
+};
+
 @Controller()
 @UsePipes(createValidationPipe())
 @UseFilters(GrpcInternalErrorFilter, GrpcValidationErrorFilter, GrpcBusinessErrorFilter)
@@ -77,27 +83,40 @@ export class UserController {
     const {users, ...event} = body;
 
     const result = await this.saveEventUseCase.execute({
+      userAgent: getUserAgent(context),
       users,
       event,
       idempotencyKey: getIdempotencyKey(context),
-      userAgent:
-        context instanceof Metadata ? context.get('user-agent').find((value) => typeof value === 'string') : undefined,
     });
 
     return unwrapResult(result);
   }
 
   @GrpcMethod('UserService', 'GetEventInfo')
-  async getEventInfo(@Body() {eventId, pinCode}: GetEventInfoGrpcRequestDto): Promise<GetEventInfoResponseDto> {
-    const result = await this.getEventInfoUseCase.execute({eventId, pinCode});
+  async getEventInfo(
+    @Body() {eventId, pinCode}: GetEventInfoGrpcRequestDto,
+    @Ctx() context: unknown,
+  ): Promise<GetEventInfoResponseDto> {
+    const result = await this.getEventInfoUseCase.execute({
+      userAgent: getUserAgent(context),
+      eventId,
+      pinCode,
+    });
 
     return unwrapResult(result);
   }
 
   @GrpcMethod('UserService', 'DeleteEvent')
-  async deleteEvent(@Body() body: DeleteEventGrpcRequestDto): Promise<DeleteEventGrpcResponseDto> {
+  async deleteEvent(
+    @Body() body: DeleteEventGrpcRequestDto,
+    @Ctx() context: unknown,
+  ): Promise<DeleteEventGrpcResponseDto> {
     const {eventId, pinCode} = body;
-    const result = await this.deleteEventUseCase.execute({eventId, pinCode});
+    const result = await this.deleteEventUseCase.execute({
+      userAgent: getUserAgent(context),
+      eventId,
+      pinCode,
+    });
 
     return toDeleteEventGrpcResponse(unwrapResult(result));
   }
@@ -110,6 +129,7 @@ export class UserController {
     const {eventId, ...rest} = body;
 
     const result = await this.saveUsersToEventUseCase.execute({
+      userAgent: getUserAgent(context),
       eventId,
       ...rest,
       idempotencyKey: getIdempotencyKey(context),
@@ -119,8 +139,14 @@ export class UserController {
   }
 
   @GrpcMethod('UserService', 'GetAllEventExpenses')
-  async getAllEventExpenses(@Body() {eventId}: GetEventExpensesGrpcRequestDto): Promise<ExpensesGrpcResponseDto> {
-    const result = await this.getEventExpensesUseCase.execute({eventId});
+  async getAllEventExpenses(
+    @Body() {eventId}: GetEventExpensesGrpcRequestDto,
+    @Ctx() context: unknown,
+  ): Promise<ExpensesGrpcResponseDto> {
+    const result = await this.getEventExpensesUseCase.execute({
+      userAgent: getUserAgent(context),
+      eventId,
+    });
 
     return {expenses: unwrapResult(result).map(toExpenseGrpcResponse)};
   }
@@ -131,6 +157,7 @@ export class UserController {
     @Ctx() context: unknown,
   ): Promise<ExpenseGrpcResponseDto> {
     const result = await this.saveEventExpenseUseCase.execute({
+      userAgent: getUserAgent(context),
       ...expense,
       isCustomRate: false,
       splitInformation: expense.splitInformation.map(({userId, amount}) => ({userId, amount, exchangedAmount: amount})),
@@ -143,8 +170,14 @@ export class UserController {
   @GrpcMethod('UserService', 'GetEventInfoV2')
   async getEventInfoV2(
     @Body() {eventId, pinCode, token}: GetEventInfoV2GrpcRequestDto,
+    @Ctx() context: unknown,
   ): Promise<GetEventInfoResponseDto> {
-    const result = await this.getEventInfoV2UseCase.execute({eventId, pinCode, token});
+    const result = await this.getEventInfoV2UseCase.execute({
+      userAgent: getUserAgent(context),
+      eventId,
+      pinCode,
+      token,
+    });
 
     return unwrapResult(result);
   }
@@ -157,6 +190,7 @@ export class UserController {
     const {eventId, ...rest} = body;
 
     const result = await this.saveUsersToEventV2UseCase.execute({
+      userAgent: getUserAgent(context),
       eventId,
       ...rest,
       idempotencyKey: getIdempotencyKey(context),
@@ -168,8 +202,13 @@ export class UserController {
   @GrpcMethod('UserService', 'GetAllEventExpensesV2')
   async getAllEventExpensesV2(
     @Body() {eventId, pinCode}: GetEventExpensesV2GrpcRequestDto,
+    @Ctx() context: unknown,
   ): Promise<ExpensesGrpcResponseDto> {
-    const result = await this.getEventExpensesV2UseCase.execute({eventId, pinCode});
+    const result = await this.getEventExpensesV2UseCase.execute({
+      userAgent: getUserAgent(context),
+      eventId,
+      pinCode,
+    });
 
     return {expenses: unwrapResult(result).map(toExpenseGrpcResponse)};
   }
@@ -180,6 +219,7 @@ export class UserController {
     @Ctx() context: unknown,
   ): Promise<ExpenseGrpcResponseDto> {
     const result = await this.saveEventExpenseV2UseCase.execute({
+      userAgent: getUserAgent(context),
       ...expense,
       idempotencyKey: getIdempotencyKey(context),
     });
@@ -190,8 +230,13 @@ export class UserController {
   @GrpcMethod('UserService', 'CreateEventShareTokenV2')
   async createEventShareTokenV2(
     @Body() {eventId, pinCode}: CreateEventShareTokenGrpcRequestDto,
+    @Ctx() context: unknown,
   ): Promise<CreateEventShareTokenResponseDto> {
-    const result = await this.createEventShareTokenV2UseCase.execute({eventId, pinCode});
+    const result = await this.createEventShareTokenV2UseCase.execute({
+      userAgent: getUserAgent(context),
+      eventId,
+      pinCode,
+    });
 
     return unwrapResult(result);
   }

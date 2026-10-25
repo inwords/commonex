@@ -1,6 +1,6 @@
 import {Injectable} from '@nestjs/common';
 
-import {Result, error, success} from '#packages/result';
+import {Result, error, isError, success} from '#packages/result';
 import {UseCase} from '#packages/use-case';
 
 import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-service/relational-data-service';
@@ -9,10 +9,11 @@ import {SupportedCurrencyServiceAbstract} from '#domain/abstracts/supported-curr
 import {EventVersion} from '#domain/entities/event-version.enum';
 import {IEvent} from '#domain/entities/event.entity';
 import {IUserInfo} from '#domain/entities/user-info.entity';
-import {CurrencyNotFoundError} from '#domain/errors/errors';
+import {ClientUpdateRequiredError, CurrencyNotFoundError} from '#domain/errors/errors';
 import {EventValueObject} from '#domain/value-objects/event.value-object';
 import {UserInfoValueObject} from '#domain/value-objects/user-info.value-object';
 
+import {CheckEventVersionSharedUseCase} from '#usecases/shared/check-event-version.usecase';
 import {getMobileVersion} from '#usecases/shared/get-mobile-version';
 import {
   IdempotencyError,
@@ -26,7 +27,10 @@ interface InputCore {
   event: Pick<IEvent, 'name' | 'currencyId' | 'pinCode'> & Partial<Pick<IEvent, 'version'>>;
 }
 type Input = InputCore & IdempotentInput & {userAgent?: string | undefined};
-type Output = Result<IEvent & {users: IUserInfo[]}, CurrencyNotFoundError | IdempotencyError>;
+type Output = Result<
+  IEvent & {users: IUserInfo[]},
+  ClientUpdateRequiredError | CurrencyNotFoundError | IdempotencyError
+>;
 
 @Injectable()
 export class SaveEventUseCase implements UseCase<Input, Output> {
@@ -34,9 +38,18 @@ export class SaveEventUseCase implements UseCase<Input, Output> {
     private readonly rDataService: RelationalDataServiceAbstract,
     private readonly supportedCurrencyService: SupportedCurrencyServiceAbstract,
     private readonly idempotencyUseCase: IdempotencySharedUseCase,
+    private readonly checkEventVersionUseCase: CheckEventVersionSharedUseCase,
   ) {}
 
   public async execute(input: Input): Promise<Output> {
+    const compatibility = await this.checkEventVersionUseCase.execute({
+      userAgent: input.userAgent,
+      requestedVersion: input.event.version,
+    });
+    if (isError(compatibility)) {
+      return compatibility;
+    }
+
     const {idempotencyKey, userAgent, ...core} = input;
     const mobileVersion = getMobileVersion(userAgent);
     if (mobileVersion !== undefined) {

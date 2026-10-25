@@ -10,6 +10,7 @@ import {ITransaction} from '#domain/abstracts/relational-data-service/types';
 import {SupportedCurrencyServiceAbstract} from '#domain/abstracts/supported-currency-service/supported-currency-service';
 import {IExpense, ISplitInfo} from '#domain/entities/expense.entity';
 import {
+  ClientUpdateRequiredError,
   CurrencyNotFoundError,
   CurrencyRateNotFoundError,
   EventDeletedError,
@@ -17,6 +18,7 @@ import {
 } from '#domain/errors/errors';
 import {ExpenseValueObject} from '#domain/value-objects/expense.value-object';
 
+import {CheckEventVersionSharedUseCase} from '#usecases/shared/check-event-version.usecase';
 import {
   IdempotencyError,
   IdempotencyOperation,
@@ -25,10 +27,15 @@ import {
 } from '#usecases/shared/idempotency.usecase';
 
 type InputCore = Omit<IExpense, 'createdAt' | 'id' | 'version' | 'updatedAt'> & Partial<Pick<IExpense, 'createdAt'>>;
-type Input = InputCore & IdempotentInput;
+type Input = InputCore & IdempotentInput & {userAgent?: string | undefined};
 type Output = Result<
   IExpense,
-  EventNotFoundError | EventDeletedError | CurrencyNotFoundError | CurrencyRateNotFoundError | IdempotencyError
+  | ClientUpdateRequiredError
+  | EventNotFoundError
+  | EventDeletedError
+  | CurrencyNotFoundError
+  | CurrencyRateNotFoundError
+  | IdempotencyError
 >;
 
 @Injectable()
@@ -38,10 +45,19 @@ export class SaveEventExpenseUseCase implements UseCase<Input, Output> {
     private readonly eventService: EventServiceAbstract,
     private readonly supportedCurrencyService: SupportedCurrencyServiceAbstract,
     private readonly idempotencyUseCase: IdempotencySharedUseCase,
+    private readonly checkEventVersionUseCase: CheckEventVersionSharedUseCase,
   ) {}
 
   public async execute(input: Input): Promise<Output> {
-    const {idempotencyKey, ...core} = input;
+    const {idempotencyKey, userAgent, ...core} = input;
+    const compatibility = await this.checkEventVersionUseCase.execute({
+      userAgent,
+      eventId: input.eventId,
+    });
+    if (isError(compatibility)) {
+      return compatibility;
+    }
+
     return this.idempotencyUseCase.execute(idempotencyKey, IdempotencyOperation.CREATE_EVENT_EXPENSE_V1, core, (trx) =>
       this.executeCore(core, trx),
     );

@@ -4,6 +4,7 @@ import {CurrencyCode} from '#domain/entities/currency.entity';
 import {EventVersion} from '#domain/entities/event-version.enum';
 import {CurrencyNotFoundError, IdempotencyHashMismatchError} from '#domain/errors/errors';
 
+import {CheckEventVersionSharedUseCase} from '#usecases/shared/check-event-version.usecase';
 import {IdempotencySharedUseCase} from '#usecases/shared/idempotency.usecase';
 
 import {appDbConfig} from '#frameworks/relational-data-service/postgres/config';
@@ -29,7 +30,12 @@ describe('SaveEventUseCase', () => {
     });
 
     idempotencySharedUseCase = new IdempotencySharedUseCase(relationalDataService);
-    useCase = new SaveEventUseCase(relationalDataService, new SupportedCurrencyService(), idempotencySharedUseCase);
+    useCase = new SaveEventUseCase(
+      relationalDataService,
+      new SupportedCurrencyService(),
+      idempotencySharedUseCase,
+      new CheckEventVersionSharedUseCase(relationalDataService),
+    );
 
     await relationalDataService.initialize();
   });
