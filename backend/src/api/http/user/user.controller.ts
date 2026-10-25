@@ -1,17 +1,4 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Header,
-  Headers,
-  HttpCode,
-  HttpStatus,
-  Param,
-  Post,
-  Query,
-  Res,
-} from '@nestjs/common';
+import {Body, Controller, Delete, Get, Headers, HttpCode, HttpStatus, Param, Post, Query, Res} from '@nestjs/common';
 import {ApiHeader, ApiResponse, ApiTags} from '@nestjs/swagger';
 
 import {DeleteEventUseCase} from '#usecases/users/delete-event.usecase';
@@ -40,6 +27,7 @@ import {UserRoutes} from './user.constants';
 
 interface BannerReply {
   code: (status: number) => BannerReply;
+  header: (name: string, value: string) => void;
   send: (payload?: GetBannerResponseDto) => void;
 }
 
@@ -137,8 +125,6 @@ export class UserController {
   }
 
   @Get(UserRoutes.getBanner)
-  @Header('Cache-Control', 'public, max-age=21600')
-  @Header('Vary', 'User-Agent')
   @ApiHeader({name: 'User-Agent', required: false, example: 'CommonEx/123 (Android/r)'})
   @ApiResponse({status: HttpStatus.OK, type: GetBannerResponseDto})
   @ApiResponse({status: HttpStatus.NO_CONTENT, description: 'No matching banner or unrecognized client version'})
@@ -146,6 +132,8 @@ export class UserController {
     const client = parseClientVersion(userAgent);
     const banner = client == null ? null : await this.getBannerUseCase.execute(client);
 
+    response.header('Cache-Control', 'public, max-age=21600');
+    response.header('Vary', 'User-Agent');
     if (banner == null) {
       response.code(HttpStatus.NO_CONTENT).send();
     } else {
