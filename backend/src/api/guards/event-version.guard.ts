@@ -25,7 +25,6 @@ export class EventVersionGuard implements CanActivate {
       const request = context.switchToHttp().getRequest<EventVersionHttpRequest>();
       return this.check(
         readString(request.headers['user-agent']),
-        readString(request.headers['x-commonex-version']),
         readObject(request.params)['eventId'],
         readObject(request.body),
       );
@@ -36,19 +35,13 @@ export class EventVersionGuard implements CanActivate {
         throw new Error('Expected gRPC Metadata as the handler context');
       }
       const payload = readObject(context.switchToRpc().getData<unknown>());
-      return this.check(
-        readString(metadata.get('user-agent')[0]),
-        readString(metadata.get('x-commonex-version')[0]),
-        payload['eventId'],
-        payload,
-      );
+      return this.check(readString(metadata.get('user-agent')[0]), payload['eventId'], payload);
     }
     return true;
   }
 
   private async check(
     userAgent: string | undefined,
-    versionHeader: string | undefined,
     eventId: unknown,
     payload: Record<string, unknown>,
   ): Promise<boolean> {
@@ -57,7 +50,6 @@ export class EventVersionGuard implements CanActivate {
         eventId,
         requestedVersion: payload['version'],
         userAgent,
-        clientVersion: versionHeader,
       }),
     );
   }
