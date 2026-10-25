@@ -1,4 +1,4 @@
-import {Body, Controller, Headers, HttpCode, HttpStatus, Param, Post, UseGuards} from '@nestjs/common';
+import {Body, Controller, Headers, HttpCode, HttpStatus, Param, Post} from '@nestjs/common';
 import {ApiResponse, ApiTags} from '@nestjs/swagger';
 
 import {
@@ -9,7 +9,6 @@ import {
   SaveUsersToEventV2UseCase,
 } from '#usecases/users/v2';
 
-import {EventVersionGuard} from '#api/guards/event-version.guard';
 import {unwrapResult} from '#api/unwrap-result';
 
 import {
@@ -31,7 +30,6 @@ import {
 import {GetEventInfoParamsDto, GetEventInfoRequestV2Dto, GetEventInfoResponseDto} from './dto/get-event-info.dto';
 import {UserV2Routes} from './user.constants';
 
-@UseGuards(EventVersionGuard)
 @Controller(UserV2Routes.root)
 @ApiTags('User V2')
 export class UserV2Controller {
@@ -49,8 +47,14 @@ export class UserV2Controller {
   async getEventInfo(
     @Param() {eventId}: GetEventInfoParamsDto,
     @Body() body: GetEventInfoRequestV2Dto,
+    @Headers('user-agent') userAgent: string | undefined,
   ): Promise<GetEventInfoResponseDto> {
-    const result = await this.getEventInfoV2UseCase.execute({eventId, pinCode: body.pinCode, token: body.token});
+    const result = await this.getEventInfoV2UseCase.execute({
+      userAgent,
+      eventId,
+      pinCode: body.pinCode,
+      token: body.token,
+    });
 
     return unwrapResult(result);
   }
@@ -62,8 +66,10 @@ export class UserV2Controller {
     @Param() {eventId}: AddUsersToEventParamsDto,
     @Body() body: AddUsersToEventRequestDto,
     @Headers('idempotency-key') idempotencyKey: string | undefined,
+    @Headers('user-agent') userAgent: string | undefined,
   ): Promise<AddUsersToEventResponseDto[]> {
     const result = await this.saveUsersToEventV2UseCase.execute({
+      userAgent,
       eventId,
       ...body,
       idempotencyKey,
@@ -78,8 +84,13 @@ export class UserV2Controller {
   async getAllEventExpenses(
     @Param() {eventId}: GetEventExpensesParamsDto,
     @Body() body: GetEventExpensesRequestV2Dto,
+    @Headers('user-agent') userAgent: string | undefined,
   ): Promise<GetEventExpensesResponseDto[]> {
-    const result = await this.getEventExpensesV2UseCase.execute({eventId, pinCode: body.pinCode});
+    const result = await this.getEventExpensesV2UseCase.execute({
+      userAgent,
+      eventId,
+      pinCode: body.pinCode,
+    });
 
     return unwrapResult(result);
   }
@@ -90,8 +101,10 @@ export class UserV2Controller {
     @Body() expense: CreateExpenseRequestV2Dto,
     @Param() {eventId}: CreateExpenseParamsDto,
     @Headers('idempotency-key') idempotencyKey: string | undefined,
+    @Headers('user-agent') userAgent: string | undefined,
   ): Promise<CreateExpenseResponseDto> {
     const result = await this.saveEventExpenseV2UseCase.execute({
+      userAgent,
       ...expense,
       eventId,
       idempotencyKey,
@@ -106,8 +119,13 @@ export class UserV2Controller {
   async createShareToken(
     @Param() {eventId}: CreateEventShareTokenParamsDto,
     @Body() body: CreateEventShareTokenRequestDto,
+    @Headers('user-agent') userAgent: string | undefined,
   ): Promise<CreateEventShareTokenResponseDto> {
-    const result = await this.createEventShareTokenV2UseCase.execute({eventId, pinCode: body.pinCode});
+    const result = await this.createEventShareTokenV2UseCase.execute({
+      userAgent,
+      eventId,
+      pinCode: body.pinCode,
+    });
 
     return unwrapResult(result);
   }

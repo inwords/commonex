@@ -8,9 +8,15 @@ import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-s
 import {ITransaction} from '#domain/abstracts/relational-data-service/types';
 import {IEvent} from '#domain/entities/event.entity';
 import {IUserInfo} from '#domain/entities/user-info.entity';
-import {EventDeletedError, EventNotFoundError, InvalidPinCodeError} from '#domain/errors/errors';
+import {
+  ClientUpdateRequiredError,
+  EventDeletedError,
+  EventNotFoundError,
+  InvalidPinCodeError,
+} from '#domain/errors/errors';
 import {UserInfoValueObject} from '#domain/value-objects/user-info.value-object';
 
+import {CheckEventVersionSharedUseCase} from '#usecases/shared/check-event-version.usecase';
 import {
   IdempotencyError,
   IdempotencyOperation,
@@ -22,8 +28,11 @@ type InputCore = {users: Omit<IUserInfo, 'id' | 'eventId'>[]} & {
   pinCode: IEvent['pinCode'];
   eventId: IEvent['id'];
 };
-type Input = InputCore & IdempotentInput;
-type Output = Result<IUserInfo[], EventNotFoundError | EventDeletedError | InvalidPinCodeError | IdempotencyError>;
+type Input = InputCore & IdempotentInput & {userAgent?: string | undefined};
+type Output = Result<
+  IUserInfo[],
+  ClientUpdateRequiredError | EventNotFoundError | EventDeletedError | InvalidPinCodeError | IdempotencyError
+>;
 
 @Injectable()
 export class SaveUsersToEventUseCase implements UseCase<Input, Output> {
@@ -31,10 +40,19 @@ export class SaveUsersToEventUseCase implements UseCase<Input, Output> {
     private readonly rDataService: RelationalDataServiceAbstract,
     private readonly eventService: EventServiceAbstract,
     private readonly idempotencyUseCase: IdempotencySharedUseCase,
+    private readonly checkEventVersionUseCase: CheckEventVersionSharedUseCase,
   ) {}
 
   public async execute(input: Input): Promise<Output> {
-    const {idempotencyKey, ...core} = input;
+    const {idempotencyKey, userAgent, ...core} = input;
+    const compatibility = await this.checkEventVersionUseCase.execute({
+      userAgent,
+      eventId: input.eventId,
+    });
+    if (isError(compatibility)) {
+      return compatibility;
+    }
+
     return this.idempotencyUseCase.execute(idempotencyKey, IdempotencyOperation.ADD_USERS_TO_EVENT_V1, core, (trx) =>
       this.executeCore(core, trx),
     );

@@ -9,6 +9,7 @@ import {ITransaction} from '#domain/abstracts/relational-data-service/types';
 import {SupportedCurrencyServiceAbstract} from '#domain/abstracts/supported-currency-service/supported-currency-service';
 import {IExpense} from '#domain/entities/expense.entity';
 import {
+  ClientUpdateRequiredError,
   CurrencyNotFoundError,
   CurrencyRateNotFoundError,
   EventDeletedError,
@@ -18,6 +19,7 @@ import {
   InvalidPinCodeError,
 } from '#domain/errors/errors';
 
+import {CheckEventVersionSharedUseCase} from '#usecases/shared/check-event-version.usecase';
 import {
   IdempotencyError,
   IdempotencyOperation,
@@ -27,9 +29,10 @@ import {
 import {SaveEventExpenseInput, SaveEventExpenseSharedUseCase} from '#usecases/shared/save-event-expense.usecase';
 
 type InputCore = SaveEventExpenseInput & {pinCode: string};
-type Input = InputCore & IdempotentInput;
+type Input = InputCore & IdempotentInput & {userAgent?: string | undefined};
 type Output = Result<
   IExpense,
+  | ClientUpdateRequiredError
   | EventNotFoundError
   | EventDeletedError
   | InvalidPinCodeError
@@ -48,10 +51,19 @@ export class SaveEventExpenseV4UseCase implements UseCase<Input, Output> {
     private readonly supportedCurrencyService: SupportedCurrencyServiceAbstract,
     private readonly saveEventExpenseSharedUseCase: SaveEventExpenseSharedUseCase,
     private readonly idempotencyUseCase: IdempotencySharedUseCase,
+    private readonly checkEventVersionUseCase: CheckEventVersionSharedUseCase,
   ) {}
 
   public async execute(input: Input): Promise<Output> {
-    const {idempotencyKey, ...core} = input;
+    const {idempotencyKey, userAgent, ...core} = input;
+    const compatibility = await this.checkEventVersionUseCase.execute({
+      userAgent,
+      eventId: input.eventId,
+    });
+    if (isError(compatibility)) {
+      return compatibility;
+    }
+
     const [event] = await this.rDataService.event.findById(core.eventId);
     const validation = this.eventService.isValidEvent(event, core.pinCode);
     if (isError(validation)) {

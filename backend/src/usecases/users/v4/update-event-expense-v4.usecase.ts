@@ -12,6 +12,7 @@ import {EventVersion} from '#domain/entities/event-version.enum';
 import {IEvent} from '#domain/entities/event.entity';
 import {IExpense, ISplitInfo} from '#domain/entities/expense.entity';
 import {
+  ClientUpdateRequiredError,
   CurrencyNotFoundError,
   CurrencyRateNotFoundError,
   EventDeletedError,
@@ -25,6 +26,7 @@ import {
 } from '#domain/errors/errors';
 import {ExpenseValueObject} from '#domain/value-objects/expense.value-object';
 
+import {CheckEventVersionSharedUseCase} from '#usecases/shared/check-event-version.usecase';
 import {
   IdempotencyError,
   IdempotencyOperation,
@@ -45,9 +47,10 @@ interface InputCore {
   createdAt: IExpense['createdAt'];
   isCustomRate?: boolean;
 }
-type Input = InputCore & IdempotentInput;
+type Input = InputCore & IdempotentInput & {userAgent?: string | undefined};
 type Output = Result<
   IExpense,
+  | ClientUpdateRequiredError
   | EventNotFoundError
   | EventDeletedError
   | InvalidPinCodeError
@@ -68,10 +71,19 @@ export class UpdateEventExpenseV4UseCase implements UseCase<Input, Output> {
     private readonly eventService: EventServiceAbstract,
     private readonly supportedCurrencyService: SupportedCurrencyServiceAbstract,
     private readonly idempotencyUseCase: IdempotencySharedUseCase,
+    private readonly checkEventVersionUseCase: CheckEventVersionSharedUseCase,
   ) {}
 
   public async execute(input: Input): Promise<Output> {
-    const {idempotencyKey, ...core} = input;
+    const {idempotencyKey, userAgent, ...core} = input;
+    const compatibility = await this.checkEventVersionUseCase.execute({
+      userAgent,
+      eventId: input.eventId,
+    });
+    if (isError(compatibility)) {
+      return compatibility;
+    }
+
     const [event] = await this.rDataService.event.findById(core.eventId);
     const validation = this.eventService.isValidEvent(event, core.pinCode);
     if (isError(validation)) {

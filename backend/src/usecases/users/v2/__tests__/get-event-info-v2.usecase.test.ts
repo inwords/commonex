@@ -9,6 +9,7 @@ import {
   TokenExpiredError,
 } from '#domain/errors/errors';
 
+import {CheckEventVersionSharedUseCase} from '#usecases/shared/check-event-version.usecase';
 import {GetEventInfoV2UseCase} from '#usecases/users/v2';
 
 import {EventService} from '#frameworks/event-service/event-service';
@@ -34,7 +35,11 @@ describe('GetEventInfoV2UseCase', () => {
     });
 
     eventService = new EventService();
-    useCase = new GetEventInfoV2UseCase(relationalDataService, eventService);
+    useCase = new GetEventInfoV2UseCase(
+      relationalDataService,
+      eventService,
+      new CheckEventVersionSharedUseCase(relationalDataService),
+    );
 
     await relationalDataService.initialize();
 

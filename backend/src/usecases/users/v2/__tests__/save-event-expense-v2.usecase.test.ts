@@ -13,6 +13,7 @@ import {
   InvalidPinCodeError,
 } from '#domain/errors/errors';
 
+import {CheckEventVersionSharedUseCase} from '#usecases/shared/check-event-version.usecase';
 import {IdempotencySharedUseCase} from '#usecases/shared/idempotency.usecase';
 import {SaveEventExpenseSharedUseCase} from '#usecases/shared/save-event-expense.usecase';
 import {SaveEventExpenseV2UseCase} from '#usecases/users/v2';
@@ -53,6 +54,7 @@ describe('SaveEventExpenseV2UseCase', () => {
       eventService,
       new SaveEventExpenseSharedUseCase(relationalDataService, new SupportedCurrencyService()),
       idempotencySharedUseCase,
+      new CheckEventVersionSharedUseCase(relationalDataService),
     );
 
     await relationalDataService.initialize();

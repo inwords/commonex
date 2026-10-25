@@ -127,7 +127,11 @@ describe('HTTP event protocol compatibility', () => {
       {method: 'GET' as const, url: `/user/event/${event.id}/expenses`},
       {method: 'POST' as const, url: `/v2/user/event/${event.id}/expenses`, payload: {pinCode: '1234'}},
       {method: 'POST' as const, url: `/v4/user/event/${event.id}/expenses`, payload: {pinCode: '1234'}},
-      {method: 'POST' as const, url: `/user/event/${event.id}/users`, payload: {users: [{name: 'Bob'}]}},
+      {
+        method: 'POST' as const,
+        url: `/user/event/${event.id}/users`,
+        payload: {pinCode: '1234', users: [{name: 'Bob'}]},
+      },
       {
         method: 'POST' as const,
         url: `/v2/user/event/${event.id}/users`,
@@ -170,7 +174,18 @@ describe('HTTP event protocol compatibility', () => {
         method: 'POST',
         url: `/v4/user/event/${event.id}/expense/any-expense/${suffix}`,
         headers: oldMobile,
-        payload: {pinCode: '1234'},
+        payload:
+          suffix === 'history'
+            ? {pinCode: '1234'}
+            : {
+                pinCode: '1234',
+                expectedVersion: 1,
+                description: 'Dinner',
+                userWhoPaidId: event.users[0]?.id,
+                currencyId,
+                createdAt: '2026-10-01T00:00:00Z',
+                splitInformation: [{userId: event.users[0]?.id, amount: 10}],
+              },
       });
       expect(response.statusCode).toBe(403);
     }

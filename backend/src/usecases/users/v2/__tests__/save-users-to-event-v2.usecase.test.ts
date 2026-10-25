@@ -8,6 +8,7 @@ import {
   InvalidPinCodeError,
 } from '#domain/errors/errors';
 
+import {CheckEventVersionSharedUseCase} from '#usecases/shared/check-event-version.usecase';
 import {IdempotencySharedUseCase} from '#usecases/shared/idempotency.usecase';
 import {SaveUsersToEventV2UseCase} from '#usecases/users/v2';
 
@@ -34,7 +35,12 @@ describe('SaveUsersToEventV2UseCase', () => {
 
     eventService = new EventService();
     idempotencySharedUseCase = new IdempotencySharedUseCase(relationalDataService);
-    useCase = new SaveUsersToEventV2UseCase(relationalDataService, eventService, idempotencySharedUseCase);
+    useCase = new SaveUsersToEventV2UseCase(
+      relationalDataService,
+      eventService,
+      idempotencySharedUseCase,
+      new CheckEventVersionSharedUseCase(relationalDataService),
+    );
 
     await relationalDataService.initialize();
   });

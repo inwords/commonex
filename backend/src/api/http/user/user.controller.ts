@@ -1,16 +1,4 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Headers,
-  HttpCode,
-  HttpStatus,
-  Param,
-  Post,
-  Query,
-  UseGuards,
-} from '@nestjs/common';
+import {Body, Controller, Delete, Get, Headers, HttpCode, HttpStatus, Param, Post, Query} from '@nestjs/common';
 import {ApiResponse, ApiTags} from '@nestjs/swagger';
 
 import {DeleteEventUseCase} from '#usecases/users/delete-event.usecase';
@@ -20,7 +8,6 @@ import {SaveEventExpenseUseCase} from '#usecases/users/save-event-expense.usecas
 import {SaveEventUseCase} from '#usecases/users/save-event.usecase';
 import {SaveUsersToEventUseCase} from '#usecases/users/save-users-to-event.usecase';
 
-import {EventVersionGuard} from '#api/guards/event-version.guard';
 import {unwrapResult} from '#api/unwrap-result';
 
 import {
@@ -35,7 +22,6 @@ import {GetEventExpensesParamsDto, GetEventExpensesResponseDto} from './dto/get-
 import {GetEventInfoParamsDto, GetEventInfoRequestV1Dto, GetEventInfoResponseDto} from './dto/get-event-info.dto';
 import {UserRoutes} from './user.constants';
 
-@UseGuards(EventVersionGuard)
 @Controller(UserRoutes.root)
 @ApiTags('User')
 export class UserController {
@@ -58,7 +44,12 @@ export class UserController {
   ): Promise<CreateEventResponseDto> {
     const {users, ...event} = body;
 
-    const result = await this.saveEventUseCase.execute({users, event, idempotencyKey, userAgent});
+    const result = await this.saveEventUseCase.execute({
+      userAgent,
+      users,
+      event,
+      idempotencyKey,
+    });
 
     return unwrapResult(result);
   }
@@ -68,8 +59,13 @@ export class UserController {
   async getEventInfo(
     @Param() {eventId}: GetEventInfoParamsDto,
     @Query() query: GetEventInfoRequestV1Dto,
+    @Headers('user-agent') userAgent: string | undefined,
   ): Promise<GetEventInfoResponseDto> {
-    const result = await this.getEventInfoUseCase.execute({eventId, pinCode: query.pinCode});
+    const result = await this.getEventInfoUseCase.execute({
+      userAgent,
+      eventId,
+      pinCode: query.pinCode,
+    });
 
     return unwrapResult(result);
   }
@@ -80,8 +76,13 @@ export class UserController {
   async deleteEvent(
     @Param() {eventId}: DeleteEventParamsDto,
     @Body() body: DeleteEventRequestDto,
+    @Headers('user-agent') userAgent: string | undefined,
   ): Promise<DeleteEventResponseDto> {
-    const result = await this.deleteEventUseCase.execute({eventId, pinCode: body.pinCode});
+    const result = await this.deleteEventUseCase.execute({
+      userAgent,
+      eventId,
+      pinCode: body.pinCode,
+    });
 
     return unwrapResult(result);
   }
@@ -93,8 +94,10 @@ export class UserController {
     @Param() {eventId}: AddUsersToEventParamsDto,
     @Body() body: AddUsersToEventRequestDto,
     @Headers('idempotency-key') idempotencyKey: string | undefined,
+    @Headers('user-agent') userAgent: string | undefined,
   ): Promise<AddUsersToEventResponseDto[]> {
     const result = await this.saveUsersToEventUseCase.execute({
+      userAgent,
       eventId,
       ...body,
       idempotencyKey,
@@ -105,8 +108,14 @@ export class UserController {
 
   @Get(UserRoutes.getAllEventExpenses)
   @ApiResponse({status: HttpStatus.OK, type: [GetEventExpensesResponseDto]})
-  async getAllEventExpenses(@Param() {eventId}: GetEventExpensesParamsDto): Promise<GetEventExpensesResponseDto[]> {
-    const result = await this.getEventExpensesUseCase.execute({eventId});
+  async getAllEventExpenses(
+    @Param() {eventId}: GetEventExpensesParamsDto,
+    @Headers('user-agent') userAgent: string | undefined,
+  ): Promise<GetEventExpensesResponseDto[]> {
+    const result = await this.getEventExpensesUseCase.execute({
+      userAgent,
+      eventId,
+    });
 
     return unwrapResult(result);
   }
@@ -117,8 +126,10 @@ export class UserController {
     @Body() expense: CreateExpenseRequestV1Dto,
     @Param() {eventId}: CreateExpenseParamsDto,
     @Headers('idempotency-key') idempotencyKey: string | undefined,
+    @Headers('user-agent') userAgent: string | undefined,
   ): Promise<CreateExpenseResponseDto> {
     const result = await this.saveEventExpenseUseCase.execute({
+      userAgent,
       ...expense,
       eventId,
       isCustomRate: false,

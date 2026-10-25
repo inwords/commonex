@@ -1,7 +1,14 @@
 import {error, success} from '#packages/result';
 
 import {EventServiceAbstract} from '#domain/abstracts/event-service/event-service';
-import {EventDeletedError, EventNotFoundError, InvalidPinCodeError} from '#domain/errors/errors';
+import {
+  ClientUpdateRequiredError,
+  EventDeletedError,
+  EventNotFoundError,
+  InvalidPinCodeError,
+} from '#domain/errors/errors';
+
+import {CheckEventVersionSharedUseCase} from '#usecases/shared/check-event-version.usecase';
 
 import {EventService} from '#frameworks/event-service/event-service';
 import {appDbConfig} from '#frameworks/relational-data-service/postgres/config';
@@ -26,7 +33,11 @@ describe('GetEventInfoUseCase', () => {
     });
 
     eventService = new EventService();
-    useCase = new GetEventInfoUseCase(relationalDataService, eventService);
+    useCase = new GetEventInfoUseCase(
+      relationalDataService,
+      eventService,
+      new CheckEventVersionSharedUseCase(relationalDataService),
+    );
 
     await relationalDataService.initialize();
   });
@@ -41,6 +52,25 @@ describe('GetEventInfoUseCase', () => {
   });
 
   const testCases: GetEventInfoTestCase[] = [
+    {
+      name: 'rejects an incompatible mobile client when called without an HTTP or gRPC adapter',
+      initRelationalState: {
+        events: [
+          {
+            id: 'event-2',
+            name: 'Editing',
+            currencyId: 'currency-1',
+            pinCode: '1234',
+            version: 2,
+            createdAt: new Date('2026-10-01T00:00:00Z'),
+            updatedAt: new Date('2026-10-01T00:00:00Z'),
+            deletedAt: null,
+          },
+        ],
+      },
+      input: {eventId: 'event-2', pinCode: '1234', userAgent: 'CommonEx/10 (Android/r)'},
+      output: error(new ClientUpdateRequiredError(2)),
+    },
     {
       name: 'returns event info with users',
       initRelationalState: {

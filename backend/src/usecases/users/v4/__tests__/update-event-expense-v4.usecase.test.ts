@@ -7,6 +7,7 @@ import {IEvent} from '#domain/entities/event.entity';
 import {ExpenseType, IExpense} from '#domain/entities/expense.entity';
 import {CurrencyNotFoundError, ExpenseVersionConflictError, IdempotencyHashMismatchError} from '#domain/errors/errors';
 
+import {CheckEventVersionSharedUseCase} from '#usecases/shared/check-event-version.usecase';
 import {IdempotencySharedUseCase} from '#usecases/shared/idempotency.usecase';
 
 import {EventService} from '#frameworks/event-service/event-service';
@@ -86,6 +87,7 @@ describe('UpdateEventExpenseV4UseCase', () => {
       new EventService(),
       new SupportedCurrencyService(),
       new IdempotencySharedUseCase(relationalDataService),
+      new CheckEventVersionSharedUseCase(relationalDataService),
     );
     await relationalDataService.initialize();
   });

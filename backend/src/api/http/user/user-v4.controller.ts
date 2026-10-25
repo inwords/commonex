@@ -1,10 +1,9 @@
-import {Body, Controller, Headers, HttpCode, HttpStatus, Param, Post, UseGuards} from '@nestjs/common';
+import {Body, Controller, Headers, HttpCode, HttpStatus, Param, Post} from '@nestjs/common';
 import {ApiResponse, ApiTags} from '@nestjs/swagger';
 
 import {GetEventExpensesV2UseCase} from '#usecases/users/v2';
 import {GetExpenseHistoryV4UseCase, SaveEventExpenseV4UseCase, UpdateEventExpenseV4UseCase} from '#usecases/users/v4';
 
-import {EventVersionGuard} from '#api/guards/event-version.guard';
 import {unwrapResult} from '#api/unwrap-result';
 
 import {
@@ -17,7 +16,6 @@ import {
 } from './dto/expense-v4.dto';
 import {UserV4Routes} from './user.constants';
 
-@UseGuards(EventVersionGuard)
 @Controller(UserV4Routes.root)
 @ApiTags('User V4')
 export class UserV4Controller {
@@ -34,8 +32,13 @@ export class UserV4Controller {
   async getAllEventExpenses(
     @Param() {eventId}: GetEventExpensesV4ParamsDto,
     @Body() {pinCode}: ExpenseV4PinCodeDto,
+    @Headers('user-agent') userAgent: string | undefined,
   ): Promise<ExpenseV4ResponseDto[]> {
-    const result = await this.getEventExpensesV2UseCase.execute({eventId, pinCode});
+    const result = await this.getEventExpensesV2UseCase.execute({
+      userAgent,
+      eventId,
+      pinCode,
+    });
     return unwrapResult(result);
   }
 
@@ -45,8 +48,10 @@ export class UserV4Controller {
     @Param() {eventId}: GetEventExpensesV4ParamsDto,
     @Body() body: CreateExpenseV4RequestDto,
     @Headers('idempotency-key') idempotencyKey: string | undefined,
+    @Headers('user-agent') userAgent: string | undefined,
   ): Promise<ExpenseV4ResponseDto> {
     const result = await this.saveEventExpenseV4UseCase.execute({
+      userAgent,
       ...body,
       eventId,
       idempotencyKey,
@@ -60,8 +65,10 @@ export class UserV4Controller {
     @Param() {eventId, id}: ExpenseV4ParamsDto,
     @Body() body: ReviseExpenseV4RequestDto,
     @Headers('idempotency-key') idempotencyKey: string | undefined,
+    @Headers('user-agent') userAgent: string | undefined,
   ): Promise<ExpenseV4ResponseDto> {
     const result = await this.updateEventExpenseV4UseCase.execute({
+      userAgent,
       ...body,
       eventId,
       id,
@@ -76,8 +83,14 @@ export class UserV4Controller {
   async getExpenseHistory(
     @Param() {eventId, id}: ExpenseV4ParamsDto,
     @Body() {pinCode}: ExpenseV4PinCodeDto,
+    @Headers('user-agent') userAgent: string | undefined,
   ): Promise<ExpenseV4ResponseDto[]> {
-    const result = await this.getExpenseHistoryV4UseCase.execute({eventId, id, pinCode});
+    const result = await this.getExpenseHistoryV4UseCase.execute({
+      userAgent,
+      eventId,
+      id,
+      pinCode,
+    });
     return unwrapResult(result);
   }
 }

@@ -3,6 +3,8 @@ import {error, success} from '#packages/result';
 import {EventServiceAbstract} from '#domain/abstracts/event-service/event-service';
 import {EventDeletedError, EventNotFoundError, InvalidPinCodeError} from '#domain/errors/errors';
 
+import {CheckEventVersionSharedUseCase} from '#usecases/shared/check-event-version.usecase';
+
 import {EventService} from '#frameworks/event-service/event-service';
 import {appDbConfig} from '#frameworks/relational-data-service/postgres/config';
 import {RelationalDataService} from '#frameworks/relational-data-service/postgres/relational-data-service';
@@ -48,7 +50,11 @@ describe('CreateEventShareTokenV2UseCase', () => {
     });
 
     eventService = new EventService();
-    useCase = new CreateEventShareTokenV2UseCase(relationalDataService, eventService);
+    useCase = new CreateEventShareTokenV2UseCase(
+      relationalDataService,
+      eventService,
+      new CheckEventVersionSharedUseCase(relationalDataService),
+    );
 
     await relationalDataService.initialize();
 
