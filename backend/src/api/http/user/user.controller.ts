@@ -1,4 +1,16 @@
-import {Body, Controller, Delete, Get, Headers, HttpCode, HttpStatus, Param, Post, Query} from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Headers,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import {ApiResponse, ApiTags} from '@nestjs/swagger';
 
 import {DeleteEventUseCase} from '#usecases/users/delete-event.usecase';
@@ -8,6 +20,7 @@ import {SaveEventExpenseUseCase} from '#usecases/users/save-event-expense.usecas
 import {SaveEventUseCase} from '#usecases/users/save-event.usecase';
 import {SaveUsersToEventUseCase} from '#usecases/users/save-users-to-event.usecase';
 
+import {EventProtocolGuard} from '#api/guards/event-protocol.guard';
 import {unwrapResult} from '#api/unwrap-result';
 
 import {
@@ -22,6 +35,7 @@ import {GetEventExpensesParamsDto, GetEventExpensesResponseDto} from './dto/get-
 import {GetEventInfoParamsDto, GetEventInfoRequestV1Dto, GetEventInfoResponseDto} from './dto/get-event-info.dto';
 import {UserRoutes} from './user.constants';
 
+@UseGuards(EventProtocolGuard)
 @Controller(UserRoutes.root)
 @ApiTags('User')
 export class UserController {

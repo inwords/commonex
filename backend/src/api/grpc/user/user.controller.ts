@@ -1,5 +1,5 @@
 import {Metadata} from '@grpc/grpc-js';
-import {Body, Controller, UseFilters, UsePipes} from '@nestjs/common';
+import {Body, Controller, UseFilters, UseGuards, UsePipes} from '@nestjs/common';
 import {Ctx, GrpcMethod} from '@nestjs/microservices';
 
 import {DeleteEventUseCase} from '#usecases/users/delete-event.usecase';
@@ -16,6 +16,7 @@ import {
   SaveUsersToEventV2UseCase,
 } from '#usecases/users/v2';
 
+import {EventProtocolGuard} from '#api/guards/event-protocol.guard';
 import {AddUsersToEventResponseWithUsersDto} from '#api/http/user/dto/add-users-to-event.dto';
 import {CreateEventShareTokenResponseDto} from '#api/http/user/dto/create-event-share-token.dto';
 import {CreateEventRequestDto, CreateEventResponseDto} from '#api/http/user/dto/create-event.dto';
@@ -52,6 +53,7 @@ const getIdempotencyKey = (context: unknown): string | undefined => {
   return typeof value === 'string' ? value : undefined;
 };
 
+@UseGuards(EventProtocolGuard)
 @Controller()
 @UsePipes(createValidationPipe())
 @UseFilters(GrpcInternalErrorFilter, GrpcValidationErrorFilter, GrpcBusinessErrorFilter)

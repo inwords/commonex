@@ -1,7 +1,7 @@
-import {DataSource} from 'typeorm';
+import {DataSource, SelectQueryBuilder} from 'typeorm';
 
 import {ExpenseRepositoryAbstract} from '#domain/abstracts/relational-data-service/repositories/expense.repository';
-import {IQueryDetails} from '#domain/abstracts/relational-data-service/types';
+import {IQueryDetails, ITransaction} from '#domain/abstracts/relational-data-service/types';
 import {IExpense} from '#domain/entities/expense.entity';
 
 import {ExpenseEntity} from '#frameworks/relational-data-service/postgres/entities/expense.entity';
@@ -21,12 +21,7 @@ export class ExpenseRepository extends BaseRepository implements ExpenseReposito
     eventId: IExpense['eventId'],
     trx,
   ): Promise<[result: IExpense[], queryDetails: IQueryDetails]> => {
-    const query = this.getRepository(this.dataSource, ExpenseEntity, trx)
-      .createQueryBuilder(this.queryName)
-      .distinctOn([`${this.queryName}.id`])
-      .where(`${this.queryName}.event_id = :eventId`, {eventId})
-      .orderBy(`${this.queryName}.id`, 'ASC')
-      .addOrderBy(`${this.queryName}.version`, 'DESC');
+    const query = this.createLatestVersionsQuery(trx).where(`${this.queryName}.event_id = :eventId`, {eventId});
 
     const queryDetails = this.getQueryDetails(query);
     const result = await query.getMany();
@@ -35,10 +30,7 @@ export class ExpenseRepository extends BaseRepository implements ExpenseReposito
   };
 
   readonly findLatestById: ExpenseRepositoryAbstract['findLatestById'] = async (eventId, id, trx) => {
-    const query = this.getRepository(this.dataSource, ExpenseEntity, trx)
-      .createQueryBuilder(this.queryName)
-      .where(`${this.queryName}.event_id = :eventId`, {eventId})
-      .andWhere(`${this.queryName}.id = :id`, {id})
+    const query = this.createExpenseVersionsQuery(eventId, id, trx)
       .orderBy(`${this.queryName}.version`, 'DESC')
       .limit(1);
     if (trx?.lock) {
@@ -50,11 +42,7 @@ export class ExpenseRepository extends BaseRepository implements ExpenseReposito
   };
 
   readonly findHistoryById: ExpenseRepositoryAbstract['findHistoryById'] = async (eventId, id, trx) => {
-    const query = this.getRepository(this.dataSource, ExpenseEntity, trx)
-      .createQueryBuilder(this.queryName)
-      .where(`${this.queryName}.event_id = :eventId`, {eventId})
-      .andWhere(`${this.queryName}.id = :id`, {id})
-      .orderBy(`${this.queryName}.version`, 'ASC');
+    const query = this.createExpenseVersionsQuery(eventId, id, trx).orderBy(`${this.queryName}.version`, 'ASC');
     const queryDetails = this.getQueryDetails(query);
     const result = await query.getMany();
     return [result, queryDetails];
@@ -62,12 +50,7 @@ export class ExpenseRepository extends BaseRepository implements ExpenseReposito
 
   public findAll: ExpenseRepositoryAbstract['findAll'] = async (input, trx) => {
     const {limit} = input;
-    const query = this.getRepository(this.dataSource, ExpenseEntity, trx)
-      .createQueryBuilder(this.queryName)
-      .distinctOn([`${this.queryName}.id`])
-      .orderBy(`${this.queryName}.id`, 'ASC')
-      .addOrderBy(`${this.queryName}.version`, 'DESC')
-      .limit(limit);
+    const query = this.createLatestVersionsQuery(trx).limit(limit);
 
     const queryDetails = this.getQueryDetails(query);
     const result = await query.getMany();
@@ -86,4 +69,23 @@ export class ExpenseRepository extends BaseRepository implements ExpenseReposito
 
     return [undefined, queryDetails];
   };
+
+  private createLatestVersionsQuery(trx?: ITransaction): SelectQueryBuilder<ExpenseEntity> {
+    return this.getRepository(this.dataSource, ExpenseEntity, trx)
+      .createQueryBuilder(this.queryName)
+      .distinctOn([`${this.queryName}.id`])
+      .orderBy(`${this.queryName}.id`, 'ASC')
+      .addOrderBy(`${this.queryName}.version`, 'DESC');
+  }
+
+  private createExpenseVersionsQuery(
+    eventId: IExpense['eventId'],
+    id: IExpense['id'],
+    trx?: ITransaction,
+  ): SelectQueryBuilder<ExpenseEntity> {
+    return this.getRepository(this.dataSource, ExpenseEntity, trx)
+      .createQueryBuilder(this.queryName)
+      .where(`${this.queryName}.event_id = :eventId`, {eventId})
+      .andWhere(`${this.queryName}.id = :id`, {id});
+  }
 }

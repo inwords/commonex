@@ -2,10 +2,11 @@ import {ulid} from 'ulid';
 
 import {PartialByKeys} from '#packages/types';
 
+import {EventProtocolVersion} from '#domain/entities/event-protocol-version.enum';
 import {IEvent} from '#domain/entities/event.entity';
 import {ValueObject} from '#domain/value-objects/value-object';
 
-export type TEventDefaultKeys = keyof Pick<IEvent, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'>;
+export type TEventDefaultKeys = keyof Pick<IEvent, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt' | 'version'>;
 
 export const eventDefaultValues: {
   [K in TEventDefaultKeys]: () => IEvent[K];
@@ -14,6 +15,7 @@ export const eventDefaultValues: {
   createdAt: () => new Date(),
   updatedAt: () => new Date(),
   deletedAt: () => null,
+  version: () => EventProtocolVersion.Legacy,
 } as const;
 Object.freeze(eventDefaultValues);
 
@@ -30,6 +32,7 @@ export class EventValueObject extends ValueObject<IEvent> {
       createdAt: ValueObject.getValueOrDefault(objectValues.createdAt, eventDefaultValues.createdAt),
       updatedAt: ValueObject.getValueOrDefault(objectValues.updatedAt, eventDefaultValues.updatedAt),
       deletedAt: ValueObject.getValueOrDefault(objectValues.deletedAt, eventDefaultValues.deletedAt),
+      version: ValueObject.getValueOrDefault(objectValues.version, eventDefaultValues.version),
     };
     super(valueObject);
     this.value = valueObject;

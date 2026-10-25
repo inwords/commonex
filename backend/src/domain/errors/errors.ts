@@ -2,6 +2,24 @@ import {IExpense} from '#domain/entities/expense.entity';
 
 import {ErrorCode} from './error-codes.enum';
 
+export class ClientUpdateRequiredError extends Error {
+  override readonly name = 'ClientUpdateRequiredError' as const;
+  readonly code = ErrorCode.CLIENT_UPDATE_REQUIRED;
+
+  constructor(readonly requiredProtocolVersion: number) {
+    super('Client update required');
+  }
+}
+
+export class ExpenseEditingNotSupportedError extends Error {
+  override readonly name = 'ExpenseEditingNotSupportedError' as const;
+  readonly code = ErrorCode.EXPENSE_EDITING_NOT_SUPPORTED;
+
+  constructor() {
+    super('Expense editing is not supported for this event');
+  }
+}
+
 export class EventNotFoundError extends Error {
   override readonly name = 'EventNotFoundError' as const;
   readonly code = ErrorCode.EVENT_NOT_FOUND;
@@ -134,6 +152,8 @@ export const BUSINESS_ERROR_CLASSES = [
   ExpenseVersionConflictError,
   ExpenseNotFoundError,
   ExpenseParticipantsInvalidError,
+  ClientUpdateRequiredError,
+  ExpenseEditingNotSupportedError,
 ] as const;
 
 export type BusinessError = InstanceType<(typeof BUSINESS_ERROR_CLASSES)[number]>;

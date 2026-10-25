@@ -21,7 +21,7 @@ import {
 
 interface InputCore {
   users: Omit<IUserInfo, 'id' | 'eventId'>[];
-  event: Pick<IEvent, 'name' | 'currencyId' | 'pinCode'>;
+  event: Pick<IEvent, 'name' | 'currencyId' | 'pinCode'> & Partial<Pick<IEvent, 'version'>>;
 }
 type Input = InputCore & IdempotentInput;
 type Output = Result<IEvent & {users: IUserInfo[]}, CurrencyNotFoundError | IdempotencyError>;

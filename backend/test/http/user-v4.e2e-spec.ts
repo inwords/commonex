@@ -24,7 +24,7 @@ describe('HTTP /v4/user expenses', () => {
   });
 
   it('creates version one and returns the complete revision history', async () => {
-    const event = await createEvent(testApp.app, {currencyId: usdId});
+    const event = await createEvent(testApp.app, {currencyId: usdId, version: 2});
     const [alice] = event.users;
     const createResponse = await testApp.app.inject({
       method: 'POST',
@@ -86,7 +86,7 @@ describe('HTTP /v4/user expenses', () => {
   });
 
   it('rejects unsupported currencies even when custom exchanged amounts are supplied', async () => {
-    const event = await createEvent(testApp.app, {currencyId: usdId});
+    const event = await createEvent(testApp.app, {currencyId: usdId, version: 2});
     const [alice] = event.users;
     const response = await testApp.app.inject({
       method: 'POST',
@@ -106,7 +106,7 @@ describe('HTTP /v4/user expenses', () => {
   });
 
   it('rejects null optional expense fields without inserting expenses or revisions', async () => {
-    const event = await createEvent(testApp.app, {currencyId: usdId});
+    const event = await createEvent(testApp.app, {currencyId: usdId, version: 2});
     const [alice] = event.users;
     const createExpense: (extra?: object) => ReturnType<typeof testApp.app.inject> = (extra = {}) =>
       testApp.app.inject({
@@ -165,7 +165,7 @@ describe('HTTP /v4/user expenses', () => {
   });
 
   it('returns the current snapshot for a stale version and rejects immutable fields and duplicate participants', async () => {
-    const event = await createEvent(testApp.app, {currencyId: usdId});
+    const event = await createEvent(testApp.app, {currencyId: usdId, version: 2});
     const [alice, bob] = event.users;
     const created = await testApp.app.inject({
       method: 'POST',

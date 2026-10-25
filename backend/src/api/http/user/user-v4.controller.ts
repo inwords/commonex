@@ -1,9 +1,10 @@
-import {Body, Controller, Headers, HttpCode, HttpStatus, Param, Post} from '@nestjs/common';
+import {Body, Controller, Headers, HttpCode, HttpStatus, Param, Post, UseGuards} from '@nestjs/common';
 import {ApiResponse, ApiTags} from '@nestjs/swagger';
 
 import {GetEventExpensesV2UseCase} from '#usecases/users/v2';
 import {GetExpenseHistoryV4UseCase, SaveEventExpenseV4UseCase, UpdateEventExpenseV4UseCase} from '#usecases/users/v4';
 
+import {EventProtocolGuard} from '#api/guards/event-protocol.guard';
 import {unwrapResult} from '#api/unwrap-result';
 
 import {
@@ -16,6 +17,7 @@ import {
 } from './dto/expense-v4.dto';
 import {UserV4Routes} from './user.constants';
 
+@UseGuards(EventProtocolGuard)
 @Controller(UserV4Routes.root)
 @ApiTags('User V4')
 export class UserV4Controller {

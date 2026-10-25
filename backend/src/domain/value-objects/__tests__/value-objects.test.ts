@@ -28,6 +28,7 @@ describe('value objects', () => {
       name: 'Trip',
       currencyId: 'c-usd',
       pinCode: '1234',
+      version: 1,
       createdAt: now,
       updatedAt: now,
       deletedAt: null,

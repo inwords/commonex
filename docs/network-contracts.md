@@ -78,8 +78,8 @@ Current contract:
 
 - There is no general `Authorization: Bearer ...` application-auth layer in the user-facing clients covered here.
 - Event-scoped access is granted by request data:
-    - `pinCode` for event-protected operations
-    - `token` for share-token based event reads where supported
+  - `pinCode` for event-protected operations
+  - `token` for share-token based event reads where supported
 - For V2 event-info reads, exactly one of `pinCode` or `token` must be provided.
 
 Operational consequences:
@@ -159,17 +159,17 @@ Current shared mobile KMM behavior:
 - Sync mutations build keys from that UUID plus the operation name and durable client-side mutation identity.
 - Backend owns request-body hashing and same-key/different-body rejection. Mobile does not add client-side payload fingerprints to idempotency keys.
 - Covered mobile mutation routes:
-    - `POST /api/user/event`
-    - `POST /api/v2/user/event/:eventId/users`
-    - `POST /api/v2/user/event/:eventId/expense`
+  - `POST /api/user/event`
+  - `POST /api/v2/user/event/:eventId/users`
+  - `POST /api/v2/user/event/:eventId/expense`
 - Current mobile key shapes:
-    - event create: `mobile:<install-id>:event.create:<event.clientCreateId>`
-    - add persons: `mobile:<install-id>:event.persons.add:<event.serverId>:<person.clientCreateId>...`
-    - add expense: `mobile:<install-id>:event.expense.add:<event.serverId>:<expense.clientCreateId>`
+  - event create: `mobile:<install-id>:event.create:<event.clientCreateId>`
+  - add persons: `mobile:<install-id>:event.persons.add:<event.serverId>:<person.clientCreateId>...`
+  - add expense: `mobile:<install-id>:event.expense.add:<event.serverId>:<expense.clientCreateId>`
 - Mobile key-length behavior:
-    - the shared generator first projects raw key length without concatenating all parts
-    - if projected length is within the current budget (`255`), mobile sends the raw key
-    - if projected length exceeds the budget, mobile keeps `mobile:<install-id>:<operation>:` and appends a deterministic `h:<sha256>` digest of the full logical key parts
+  - the shared generator first projects raw key length without concatenating all parts
+  - if projected length is within the current budget (`255`), mobile sends the raw key
+  - if projected length exceeds the budget, mobile keeps `mobile:<install-id>:<operation>:` and appends a deterministic `h:<sha256>` digest of the full logical key parts
 - Remote event deletion, read-style `POST` requests, and share-token creation do not currently send idempotency keys from mobile.
 
 Do not derive mobile idempotency keys from local numeric Room IDs. They can collide across installs and can be reused after local deletion; use persisted durable client-side create or mutation IDs instead.
@@ -286,6 +286,17 @@ Notes:
 
 - The shared KMM network layer builds this value centrally so Android and iOS stay aligned.
 - If additional clients start sending the same logical contract, update this document first and then align implementations.
+
+## Event Protocol Compatibility
+
+- `event.version` is independent of expense revision `version` and HTTP API versions. Protocol 1 is the legacy mode; protocol 2 enables expense editing.
+- Existing events and create requests omitting this field use protocol 1. Create accepts numeric 1 or 2; there is no public protocol-upgrade operation.
+- Expense editing is rejected for protocol-1 events on every client (HTTP 403, `B4021`). Other legacy operations remain available.
+- Mobile clients are identified only by the canonical CommonEx User-Agent above, including its token in gRPC user-agent metadata. Android browser User-Agents and unidentified clients are not treated as native mobile.
+- Identified mobile callers advertise their highest supported protocol with `X-CommonEx-Protocol-Version` (gRPC metadata key `x-commonex-protocol-version`). Missing, malformed or unsafe-integer values mean protocol 1. Future larger positive integer capabilities may access supported earlier event protocols.
+- Compatibility is enforced on all event-scoped HTTP V1/V2/V4 and gRPC user operations, including token joins, direct reads, mutations and event creation. HTTP returns 403 with `B4020` and `requiredProtocolVersion`; gRPC returns `FAILED_PRECONDITION` with `error-code: B4020` metadata.
+- Web and unidentified callers are not blocked by this mobile compatibility rule. This client declaration is not authentication; existing PIN/token validation still applies. The compatibility guard runs before request pipes and business authentication.
+- Client UI handling is a separate rollout; the backend cannot add a dialog to an already released mobile build. No mobile code is changed by this backend implementation.
 
 ## Ingress And Protocol Notes
 

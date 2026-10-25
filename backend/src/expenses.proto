@@ -35,6 +35,7 @@ message CreateEventRequest {
   string currencyId = 2;
   repeated User users = 3;
   string pinCode = 4;
+  optional int32 version = 5;
 }
 
 message User {
@@ -53,6 +54,7 @@ message EventResponse {
   string currencyId = 3;
   repeated UserResponse users = 4;
   string pinCode = 5;
+  int32 version = 6;
 }
 
 message GetEventInfoRequest {
@@ -67,6 +69,7 @@ message EventInfoResponse {
   string currencyId = 3;
   repeated UserResponse users = 4;
   string pinCode = 5;
+  int32 version = 6;
 }
 
 message DeleteEventRequest {

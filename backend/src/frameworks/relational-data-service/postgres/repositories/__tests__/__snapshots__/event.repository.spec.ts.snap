@@ -3,14 +3,14 @@
 exports[`EventRepository findAll should find all events with limit 1`] = `
 {
   "queryParameters": {},
-  "queryString": "SELECT "event"."id" AS "event_id", "event"."name" AS "event_name", "event"."currency_id" AS "event_currency_id", "event"."pin_code" AS "event_pin_code", "event"."created_at" AS "event_created_at", "event"."updated_at" AS "event_updated_at", "event"."deleted_at" AS "event_deleted_at" FROM "event" "event" LIMIT 10",
+  "queryString": "SELECT "event"."id" AS "event_id", "event"."name" AS "event_name", "event"."currency_id" AS "event_currency_id", "event"."pin_code" AS "event_pin_code", "event"."version" AS "event_version", "event"."created_at" AS "event_created_at", "event"."updated_at" AS "event_updated_at", "event"."deleted_at" AS "event_deleted_at" FROM "event" "event" LIMIT 10",
 }
 `;
 
 exports[`EventRepository findAll should respect limit parameter 1`] = `
 {
   "queryParameters": {},
-  "queryString": "SELECT "event"."id" AS "event_id", "event"."name" AS "event_name", "event"."currency_id" AS "event_currency_id", "event"."pin_code" AS "event_pin_code", "event"."created_at" AS "event_created_at", "event"."updated_at" AS "event_updated_at", "event"."deleted_at" AS "event_deleted_at" FROM "event" "event" LIMIT 2",
+  "queryString": "SELECT "event"."id" AS "event_id", "event"."name" AS "event_name", "event"."currency_id" AS "event_currency_id", "event"."pin_code" AS "event_pin_code", "event"."version" AS "event_version", "event"."created_at" AS "event_created_at", "event"."updated_at" AS "event_updated_at", "event"."deleted_at" AS "event_deleted_at" FROM "event" "event" LIMIT 2",
 }
 `;
 
@@ -19,7 +19,7 @@ exports[`EventRepository findById should find event by id 1`] = `
   "queryParameters": {
     "id": "event-1",
   },
-  "queryString": "SELECT "event"."id" AS "event_id", "event"."name" AS "event_name", "event"."currency_id" AS "event_currency_id", "event"."pin_code" AS "event_pin_code", "event"."created_at" AS "event_created_at", "event"."updated_at" AS "event_updated_at", "event"."deleted_at" AS "event_deleted_at" FROM "event" "event" WHERE "event"."id" = :id",
+  "queryString": "SELECT "event"."id" AS "event_id", "event"."name" AS "event_name", "event"."currency_id" AS "event_currency_id", "event"."pin_code" AS "event_pin_code", "event"."version" AS "event_version", "event"."created_at" AS "event_created_at", "event"."updated_at" AS "event_updated_at", "event"."deleted_at" AS "event_deleted_at" FROM "event" "event" WHERE "event"."id" = :id",
 }
 `;
 
@@ -28,7 +28,7 @@ exports[`EventRepository findById should find event by id with pessimistic_write
   "queryParameters": {
     "id": "event-1",
   },
-  "queryString": "SELECT "event"."id" AS "event_id", "event"."name" AS "event_name", "event"."currency_id" AS "event_currency_id", "event"."pin_code" AS "event_pin_code", "event"."created_at" AS "event_created_at", "event"."updated_at" AS "event_updated_at", "event"."deleted_at" AS "event_deleted_at" FROM "event" "event" WHERE "event"."id" = :id FOR UPDATE",
+  "queryString": "SELECT "event"."id" AS "event_id", "event"."name" AS "event_name", "event"."currency_id" AS "event_currency_id", "event"."pin_code" AS "event_pin_code", "event"."version" AS "event_version", "event"."created_at" AS "event_created_at", "event"."updated_at" AS "event_updated_at", "event"."deleted_at" AS "event_deleted_at" FROM "event" "event" WHERE "event"."id" = :id FOR UPDATE",
 }
 `;
 
@@ -37,7 +37,7 @@ exports[`EventRepository findById should return null for non-existent event 1`] 
   "queryParameters": {
     "id": "non-existent",
   },
-  "queryString": "SELECT "event"."id" AS "event_id", "event"."name" AS "event_name", "event"."currency_id" AS "event_currency_id", "event"."pin_code" AS "event_pin_code", "event"."created_at" AS "event_created_at", "event"."updated_at" AS "event_updated_at", "event"."deleted_at" AS "event_deleted_at" FROM "event" "event" WHERE "event"."id" = :id",
+  "queryString": "SELECT "event"."id" AS "event_id", "event"."name" AS "event_name", "event"."currency_id" AS "event_currency_id", "event"."pin_code" AS "event_pin_code", "event"."version" AS "event_version", "event"."created_at" AS "event_created_at", "event"."updated_at" AS "event_updated_at", "event"."deleted_at" AS "event_deleted_at" FROM "event" "event" WHERE "event"."id" = :id",
 }
 `;
 
@@ -48,11 +48,12 @@ exports[`EventRepository insert should insert event correctly 1`] = `
     "orm_param_1": "Test Event",
     "orm_param_2": "currency-1",
     "orm_param_3": "1234",
-    "orm_param_4": 2023-01-01T00:00:00.000Z,
+    "orm_param_4": 1,
     "orm_param_5": 2023-01-01T00:00:00.000Z,
-    "orm_param_6": null,
+    "orm_param_6": 2023-01-01T00:00:00.000Z,
+    "orm_param_7": null,
   },
-  "queryString": "INSERT INTO "event" AS "EventEntity"("id", "name", "currency_id", "pin_code", "created_at", "updated_at", "deleted_at") VALUES (:orm_param_0, :orm_param_1, :orm_param_2, :orm_param_3, :orm_param_4, :orm_param_5, :orm_param_6)",
+  "queryString": "INSERT INTO "event" AS "EventEntity"("id", "name", "currency_id", "pin_code", "version", "created_at", "updated_at", "deleted_at") VALUES (:orm_param_0, :orm_param_1, :orm_param_2, :orm_param_3, :orm_param_4, :orm_param_5, :orm_param_6, :orm_param_7)",
 }
 `;
 
