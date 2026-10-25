@@ -12,7 +12,9 @@ registerHooks({
         : new URL(specifier, context.parentURL);
       for (const suffix of ['', '.ts', '/index.ts']) {
         const url = `${base.href}${suffix}`;
-        if (url.endsWith('.ts') && existsSync(fileURLToPath(url))) return {url, shortCircuit: true};
+        if (url.endsWith('.ts') && existsSync(fileURLToPath(url))) {
+          return {url, shortCircuit: true};
+        }
       }
     }
     return nextResolve(specifier, context);

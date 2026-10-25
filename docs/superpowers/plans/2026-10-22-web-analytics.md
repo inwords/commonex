@@ -125,3 +125,7 @@
 - [ ] Task 5 account-dependent: QA counter delivery, goals/reports, фактические retention/settings и production activation — доступа к кабинету и ID нет, сбор выключен по умолчанию.
 
 Дельты: API getEventInfo больше не скрывает исходную ошибку; LanguageStore переносит отказ browser storage; init дополнительно получает безопасные url/referrer. Бизнес-контракты backend и Android не изменены.
+
+## Дельта 25 октября: упрощение структуры
+
+Историческое разбиение задач выше заменено: один `analytics-service.ts` объединяет configuration, consent, navigation, SDK loading, URL minimization и failure classification; `analytics-event.ts` остаётся контрактом. Пять вспомогательных файлов и index wrapper удалены. Сервисы и UI обращаются к `analyticsService`. Тесты согласия и навигации теперь проверяют этот же сервис. Поведение сбора и защиты данных сохраняется. Build-time конфигурация не требует безусловного script tag в HTML: SDK загружается после согласия. В web ESLint закреплены обязательные фигурные скобки.

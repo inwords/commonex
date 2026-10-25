@@ -5,6 +5,7 @@ import prettier from 'eslint-config-prettier/flat';
 const eslintConfig = defineConfig([
   ...nextVitals,
   prettier,
+  {rules: {curly: ['error', 'all']}},
   globalIgnores([
     '.next/**',
     'out/**',
