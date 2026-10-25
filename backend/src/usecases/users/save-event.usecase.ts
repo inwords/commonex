@@ -12,6 +12,7 @@ import {CurrencyNotFoundError} from '#domain/errors/errors';
 import {EventValueObject} from '#domain/value-objects/event.value-object';
 import {UserInfoValueObject} from '#domain/value-objects/user-info.value-object';
 
+import {getMobileEventVersion} from '#usecases/shared/get-mobile-event-version';
 import {
   IdempotencyError,
   IdempotencyOperation,
@@ -23,7 +24,7 @@ interface InputCore {
   users: Omit<IUserInfo, 'id' | 'eventId'>[];
   event: Pick<IEvent, 'name' | 'currencyId' | 'pinCode'> & Partial<Pick<IEvent, 'version'>>;
 }
-type Input = InputCore & IdempotentInput;
+type Input = InputCore & IdempotentInput & {userAgent?: string | undefined};
 type Output = Result<IEvent & {users: IUserInfo[]}, CurrencyNotFoundError | IdempotencyError>;
 
 @Injectable()
@@ -35,7 +36,11 @@ export class SaveEventUseCase implements UseCase<Input, Output> {
   ) {}
 
   public async execute(input: Input): Promise<Output> {
-    const {idempotencyKey, ...core} = input;
+    const {idempotencyKey, userAgent, ...core} = input;
+    const mobileVersion = getMobileEventVersion(userAgent);
+    if (mobileVersion !== undefined) {
+      core.event = {...core.event, version: mobileVersion};
+    }
     return this.idempotencyUseCase.execute(idempotencyKey, IdempotencyOperation.CREATE_EVENT_V1, core, (trx) =>
       this.executeCore(core, trx),
     );

@@ -290,7 +290,7 @@ Notes:
 ## Event Protocol Compatibility
 
 - `event.version` is independent of expense revision `version` and HTTP API versions. Protocol 1 is the legacy mode; protocol 2 enables expense editing.
-- Existing events and create requests omitting this field use protocol 1. Create accepts numeric 1 or 2; there is no public protocol-upgrade operation.
+- Existing events retain version 1. On creation, mobile releases 11+ automatically get version 2 and earlier mobile releases get version 1, using User-Agent rather than the payload version. Web and unidentified callers may explicitly request version 1 or 2; omitting the field defaults to 1. There is no public version-upgrade operation.
 - Expense editing is rejected for protocol-1 events on every client (HTTP 403, `B4021`). Other legacy operations remain available.
 - Mobile clients are identified only by the canonical CommonEx User-Agent above, including its token in gRPC user-agent metadata. Android browser User-Agents and unidentified clients are not treated as native mobile.
 - Mobile compatibility is derived from the release number in `User-Agent: CommonEx/<release> (Android/r)` or `(iOS/r)` (debug `/d` is also supported). Releases below 11 support event version 1; release 11 and above support event versions 1 and 2. Unsafe-integer release numbers are treated as legacy. No extra capability header is required. The CommonEx token may appear within the gRPC user agent.

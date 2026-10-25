@@ -224,4 +224,30 @@ describe('HTTP event protocol compatibility', () => {
     expect(response.statusCode).toBe(201);
     expect(response.json()).toMatchObject({version: 2});
   });
+
+  it.each([
+    ['CommonEx/10 (Android/r)', undefined, 1],
+    ['CommonEx/10 (iOS/r)', undefined, 1],
+    ['CommonEx/11 (Android/r)', undefined, 2],
+    ['CommonEx/11 (iOS/r)', undefined, 2],
+    ['CommonEx/12 (Android/d)', 1, 2],
+  ])('selects event version from %s when the requested version is %s', async (userAgent, version, expectedVersion) => {
+    const response = await testApp.app.inject({
+      method: 'POST',
+      url: '/user/event',
+      headers: {'user-agent': userAgent},
+      payload: {
+        name: 'Trip',
+        currencyId,
+        pinCode: '1234',
+        users: [{name: 'Alice'}],
+        ...(version === undefined ? {} : {version}),
+      },
+    });
+    expect(response.statusCode).toBe(201);
+    const event = response.json<{id: string; version: number}>();
+    expect(event.version).toBe(expectedVersion);
+    const [stored] = await testApp.rDataService.event.findById(event.id);
+    expect(stored?.version).toBe(expectedVersion);
+  });
 });

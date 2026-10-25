@@ -89,4 +89,18 @@ describe('gRPC event protocol compatibility', () => {
     });
     expect(legacy.version).toBe(1);
   });
+
+  it('creates version two automatically for mobile release eleven without a version field', async () => {
+    const response = await callUnary<{id: string; version: number}>(compatible, 'CreateEvent', {
+      name: 'Trip',
+      currencyId,
+      pinCode: '1234',
+      users: [{name: 'Alice'}],
+    });
+    expect(response.version).toBe(2);
+    const [stored] = await testApp.rDataService.event.findById(response.id);
+    expect(stored?.version).toBe(2);
+    const error = await expectGrpcError(callUnary(mobile, 'GetEventInfoV2', {eventId: response.id, pinCode: '1234'}));
+    expect(error).toMatchObject({code: status.FAILED_PRECONDITION, errorCode: 'B4020'});
+  });
 });

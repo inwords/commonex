@@ -54,10 +54,11 @@ export class UserController {
   async createEvent(
     @Body() body: CreateEventRequestDto,
     @Headers('idempotency-key') idempotencyKey: string | undefined,
+    @Headers('user-agent') userAgent: string | undefined,
   ): Promise<CreateEventResponseDto> {
     const {users, ...event} = body;
 
-    const result = await this.saveEventUseCase.execute({users, event, idempotencyKey});
+    const result = await this.saveEventUseCase.execute({users, event, idempotencyKey, userAgent});
 
     return unwrapResult(result);
   }

@@ -80,6 +80,8 @@ export class UserController {
       users,
       event,
       idempotencyKey: getIdempotencyKey(context),
+      userAgent:
+        context instanceof Metadata ? context.get('user-agent').find((value) => typeof value === 'string') : undefined,
     });
 
     return unwrapResult(result);
