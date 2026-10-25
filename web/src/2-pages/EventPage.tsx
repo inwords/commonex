@@ -48,7 +48,7 @@ export const EventPage = observer(() => {
         }
       };
 
-      void fn().catch(() => {});
+      void fn();
     } else {
       if (eventStore.currentEvent?.pinCode) {
         void expenseService.fetchExpenses(id, eventStore.currentEvent.pinCode);

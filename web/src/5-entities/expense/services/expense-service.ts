@@ -1,5 +1,4 @@
 import {analyticsService} from '@/6-shared/analytics/analytics-service';
-import type {AnalyticsEvent} from '@/6-shared/analytics/analytics-event';
 import {
   CreateExpenseForm,
   CreateExpenseRefundForm,
@@ -18,18 +17,6 @@ import {ulid} from 'ulid';
 import {ApiError} from '@/6-shared/api/errors';
 
 export class ExpenseService {
-  private emit: (event: AnalyticsEvent) => void;
-
-  constructor(emit: (event: AnalyticsEvent) => void = analyticsService.track) {
-    this.emit = (event) => {
-      try {
-        emit(event);
-      } catch {
-        /* Optional analytics. */
-      }
-    };
-  }
-
   private createExpenseKey: string | null = null;
   private createExpenseRefundKey: string | null = null;
 
@@ -109,9 +96,9 @@ export class ExpenseService {
         {retries: 2, factor: 2, minTimeout: 200},
       );
       expenseStore.addCreatedExpense(resp);
-      this.emit({name: 'expense_submitted'});
+      analyticsService.track({name: 'expense_submitted'});
     } catch (error) {
-      this.emit({name: 'expense_failed', params: {reason: analyticsService.failureReason(error)}});
+      analyticsService.track({name: 'expense_failed', params: {reason: analyticsService.failureReason(error)}});
       throw error;
     } finally {
       this.createExpenseKey = null;
@@ -155,9 +142,9 @@ export class ExpenseService {
         {retries: 2, factor: 2, minTimeout: 200},
       );
       expenseStore.setExpenseRefunds([...expenseStore.expenseRefunds, resp]);
-      this.emit({name: 'settlement_recorded'});
+      analyticsService.track({name: 'settlement_recorded'});
     } catch (error) {
-      this.emit({name: 'settlement_failed', params: {reason: analyticsService.failureReason(error)}});
+      analyticsService.track({name: 'settlement_failed', params: {reason: analyticsService.failureReason(error)}});
       throw error;
     } finally {
       this.createExpenseRefundKey = null;
