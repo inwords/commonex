@@ -48,6 +48,18 @@ internal class SettingsLocalDataSource(settingsDataStoreLazy: Lazy<DataStore<Set
         }
     }
 
+    fun getBannerDismissals(): Flow<Map<String, Long>> {
+        return settingsDataStore.data
+            .map { settings -> settings.banner_dismissals }
+            .distinctUntilChanged()
+    }
+
+    suspend fun setBannerDismissal(key: String, untilEpochMillis: Long) {
+        settingsDataStore.updateData { currentSettings ->
+            currentSettings.copy(banner_dismissals = currentSettings.banner_dismissals + (key to untilEpochMillis))
+        }
+    }
+
 }
 
 internal const val settingsDsFileName = "expenses_settings.pb"

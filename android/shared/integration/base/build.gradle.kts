@@ -43,6 +43,7 @@ kotlin {
                 api(project(":shared:core:navigation"))
                 implementation(project(":shared:core:network"))
                 implementation(project(":shared:feature:events"))
+                implementation(project(":shared:feature:banner"))
                 implementation(project(":shared:feature:expenses"))
                 implementation(project(":shared:feature:sync"))
                 implementation(project(":shared:feature:share"))

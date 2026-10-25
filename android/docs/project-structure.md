@@ -15,6 +15,7 @@ shared/                       # Kotlin Multiplatform shared code
   │   ├── ui-utils/           # Compose UI utilities
   │   └── ktor-client-cronet/ # Custom Cronet Engine implementation for Ktor
   ├── feature/                # Feature modules
+  │   ├── banner/             # Version-targeted banners, caching, and update reminders
   │   ├── events/             # Event management (create, join, add participants to existing event or during event creation)
   │   │   └── ui/
   │   │       ├── add_persons/        # Add participants during event creation

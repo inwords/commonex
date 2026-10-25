@@ -18,7 +18,7 @@ internal fun ExpensesComponent.getExpensesPaneNavModule(
 ): NavModule {
     return NavModule(ExpensesPaneDestination.serializer()) {
         entry<ExpensesPaneDestination> {
-            val viewModel = viewModel<ExpensesViewModel>(factory = viewModelFactory {
+            val expensesViewModel = viewModel<ExpensesViewModel>(factory = viewModelFactory {
                 initializer {
                     ExpensesViewModel(
                         navigationController = navigationController,
@@ -30,29 +30,33 @@ internal fun ExpensesComponent.getExpensesPaneNavModule(
                         deleteEventUseCase = deleteEventUseCaseLazy.value,
                         getExpensesDetailsUseCase = getExpensesDetailsUseCaseLazy.value,
                         requestExpensesRefreshUseCase = requestExpensesRefreshUseCaseLazy.value,
+                        getBannerUseCase = getBannerUseCaseLazy.value,
+                        dismissBannerUseCase = dismissBannerUseCaseLazy.value,
                         eventsSyncStateHolder = eventsSyncStateHolderLazy.value,
                         settingsRepository = settingsRepositoryLazy.value,
                     )
                 }
             })
             ExpensesPane(
-                state = viewModel.state.collectAsStateWithLifecycle().value,
-                onMenuClick = viewModel::onMenuClick,
-                onOpenEventsListClick = viewModel::onOpenEventsListClick,
-                onInviteClick = viewModel::onInviteClick,
-                onAddExpenseClick = viewModel::onAddExpenseClick,
-                onExpenseClick = viewModel::onExpenseClick,
-                onDebtsDetailsClick = viewModel::onDebtsDetailsClick,
-                onReplenishmentClick = viewModel::onReplenishmentClick,
-                onDayChipClick = viewModel::onDayChipClick,
-                onVisibleDayChanged = viewModel::onVisibleDayChanged,
-                onCreateEventClick = viewModel::onCreateEventClick,
-                onJoinEventClick = viewModel::onJoinEventClick,
-                onJoinLocalEventClick = viewModel::onJoinLocalEventClick,
-                onDeleteEventClick = viewModel::onDeleteEventClick,
-                onDeleteOnlyLocalEventClick = viewModel::onDeleteOnlyLocalEventClick,
-                onKeepLocalEventClick = viewModel::onKeepLocalEventClick,
-                onRefresh = viewModel::onRefresh,
+                state = expensesViewModel.state.collectAsStateWithLifecycle().value,
+                appStoreUrl = appStoreUrl,
+                onBannerDismissClick = expensesViewModel::onBannerDismissClick,
+                onMenuClick = expensesViewModel::onMenuClick,
+                onOpenEventsListClick = expensesViewModel::onOpenEventsListClick,
+                onInviteClick = expensesViewModel::onInviteClick,
+                onAddExpenseClick = expensesViewModel::onAddExpenseClick,
+                onExpenseClick = expensesViewModel::onExpenseClick,
+                onDebtsDetailsClick = expensesViewModel::onDebtsDetailsClick,
+                onReplenishmentClick = expensesViewModel::onReplenishmentClick,
+                onDayChipClick = expensesViewModel::onDayChipClick,
+                onVisibleDayChanged = expensesViewModel::onVisibleDayChanged,
+                onCreateEventClick = expensesViewModel::onCreateEventClick,
+                onJoinEventClick = expensesViewModel::onJoinEventClick,
+                onJoinLocalEventClick = expensesViewModel::onJoinLocalEventClick,
+                onDeleteEventClick = expensesViewModel::onDeleteEventClick,
+                onDeleteOnlyLocalEventClick = expensesViewModel::onDeleteOnlyLocalEventClick,
+                onKeepLocalEventClick = expensesViewModel::onKeepLocalEventClick,
+                onRefresh = expensesViewModel::onRefresh,
             )
         }
     }

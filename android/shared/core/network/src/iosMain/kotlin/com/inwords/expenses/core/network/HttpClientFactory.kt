@@ -3,6 +3,8 @@ package com.inwords.expenses.core.network
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.darwin.Darwin
 import io.ktor.client.plugins.UserAgent
+import io.ktor.http.HttpHeaders
+import platform.Foundation.NSURLRequestUseProtocolCachePolicy
 
 internal actual class HttpClientFactory(
     private val userAgent: String,
@@ -16,6 +18,13 @@ internal actual class HttpClientFactory(
             }
             engine {
                 this.pipelining = true
+                configureRequest {
+                    if (valueForHTTPHeaderField(HttpHeaders.IfNoneMatch) == null &&
+                        valueForHTTPHeaderField(HttpHeaders.IfModifiedSince) == null
+                    ) {
+                        setCachePolicy(NSURLRequestUseProtocolCachePolicy)
+                    }
+                }
             }
         }
     }

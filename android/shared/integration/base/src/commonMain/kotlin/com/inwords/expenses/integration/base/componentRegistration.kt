@@ -4,6 +4,7 @@ import com.inwords.expenses.core.locator.ComponentsMap
 import com.inwords.expenses.core.locator.registerComponent
 import com.inwords.expenses.core.network.NetworkComponent
 import com.inwords.expenses.core.utils.SuspendLazy
+import com.inwords.expenses.feature.banner.api.BannerComponent
 import com.inwords.expenses.feature.events.api.EventHooks
 import com.inwords.expenses.feature.events.api.EventsComponent
 import com.inwords.expenses.feature.events.api.EventsComponentFactory
@@ -51,8 +52,18 @@ internal fun registerCommonComponents(
             syncComponentProvider = { checkNotNull(syncComponent) },
         )
 
+        val bannerComponent = lazy {
+            BannerComponent(deps = object : BannerComponent.Deps {
+                override val client get() = networkClientLazy
+                override val hostConfig get() = networkComponent.value.hostConfig
+                override val settingsRepositoryLazy get() = this@with.settingsRepositoryLazy
+            })
+        }
+
         val expensesComponent = buildExpensesComponent(
             eventsComponent = eventsComponent,
+            bannerComponent = bannerComponent,
+            appStoreUrl = platformDeps.appStoreUrl,
         )
 
         val menuComponent = buildMenuComponent(
@@ -134,9 +145,13 @@ private fun buildEventsComponent(
 context(context: RegistrationContext)
 private fun buildExpensesComponent(
     eventsComponent: Lazy<EventsComponent>,
+    bannerComponent: Lazy<BannerComponent>,
+    appStoreUrl: String,
 ): Lazy<ExpensesComponent> = lazy {
     ExpensesComponent(
         deps = object : ExpensesComponent.Deps {
+            override val appStoreUrl get() = appStoreUrl
+
             override val expensesDao get() = context.dbComponent.value.expensesDao
 
             override val client get() = context.networkClientLazy
@@ -156,6 +171,9 @@ private fun buildExpensesComponent(
 
             override val eventDeletionStateManagerLazy get() = eventsComponent.value.eventDeletionStateManagerLazy
             override val eventsSyncStateHolderLazy get() = eventsComponent.value.eventsSyncStateHolderLazy
+
+            override val getBannerUseCaseLazy get() = bannerComponent.value.getBannerUseCaseLazy
+            override val dismissBannerUseCaseLazy get() = bannerComponent.value.dismissBannerUseCaseLazy
 
             override val settingsRepositoryLazy get() = context.settingsRepositoryLazy
         }

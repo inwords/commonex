@@ -58,6 +58,7 @@ internal class ExpensesTimelineUiModelFactory(
             locale = locale,
         )
         return Expenses(
+            banner = null,
             eventId = expensesDetails.event.event.id,
             eventName = expensesDetails.event.event.name,
             currentPersonId = currentPersonId,

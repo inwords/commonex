@@ -25,6 +25,9 @@ fun registerComponents(appContext: Context, versionCode: Int, production: Boolea
 
     registerCommonComponents(
         platformDeps = object : PlatformRegistrationDeps {
+
+            override val appStoreUrl = "https://www.rustore.ru/catalog/app/ru.commonex"
+
             override fun createSettingsComponent(): SettingsComponent {
                 return SettingsComponentFactory(deps = platformFactoryDeps).create()
             }

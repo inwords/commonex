@@ -20,6 +20,9 @@ fun registerComponents() {
 
     registerCommonComponents(
         platformDeps = object : PlatformRegistrationDeps {
+
+            override val appStoreUrl = "https://apps.apple.com/app/id6761690923"
+
             override fun createSettingsComponent(): SettingsComponent {
                 return SettingsComponentFactory(deps = platformFactoryDeps).create()
             }

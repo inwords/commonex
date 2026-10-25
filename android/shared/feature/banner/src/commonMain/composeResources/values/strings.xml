@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="banner_update_required_title">Please update the app</string>
+    <string name="banner_not_now">Not now</string>
+    <string name="banner_update">Update app</string>
+    <string name="banner_general_warning_title">Notice</string>
+    <string name="banner_got_it">Got it</string>
+</resources>

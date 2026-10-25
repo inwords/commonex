@@ -12,6 +12,9 @@ import com.inwords.expenses.core.utils.debounceAfterInitial
 import com.inwords.expenses.core.utils.flatMapLatestNoBuffer
 import com.inwords.expenses.core.utils.shareInWhileSubscribed
 import com.inwords.expenses.core.utils.stateInWhileSubscribed
+import com.inwords.expenses.feature.banner.domain.BannerResult
+import com.inwords.expenses.feature.banner.domain.DismissBannerUseCase
+import com.inwords.expenses.feature.banner.domain.GetBannerUseCase
 import com.inwords.expenses.feature.events.api.EventDeletionStateManager
 import com.inwords.expenses.feature.events.api.EventDeletionStateManager.EventDeletionState
 import com.inwords.expenses.feature.events.domain.DeleteEventUseCase
@@ -47,6 +50,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -57,6 +61,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.plus
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.coroutines.ContinuationInterceptor
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -70,6 +75,8 @@ internal class ExpensesViewModel(
     private val deleteEventUseCase: DeleteEventUseCase,
     private val getExpensesDetailsUseCase: GetExpensesDetailsUseCase,
     private val requestExpensesRefreshUseCase: RequestExpensesRefreshUseCase,
+    getBannerUseCase: GetBannerUseCase,
+    private val dismissBannerUseCase: DismissBannerUseCase,
     eventsSyncStateHolder: EventsSyncStateHolder,
     settingsRepository: SettingsRepository,
     private val timelineUiModelFactory: ExpensesTimelineUiModelFactory = ExpensesTimelineUiModelFactory(),
@@ -85,6 +92,9 @@ internal class ExpensesViewModel(
     private val pullToRefreshStateManager = PullToRefreshStateManager(eventsSyncStateHolder)
     private val recentlyRemovedEventName = MutableStateFlow<String?>(null)
     private val selectedDayKey = MutableStateFlow<SelectedDayKey?>(null)
+    private val savedBannerResult = MutableStateFlow<BannerResult?>(null)
+
+    private val bannerDeferred = viewModelScope.async { getBannerUseCase.getBanner() }
 
     private val localEventsState = flow<SimpleScreenState<ExpensesPaneUiModel>> {
         var previousEvents = emptyList<Event>()
@@ -141,9 +151,10 @@ internal class ExpensesViewModel(
     val state: StateFlow<SimpleScreenState<ExpensesPaneUiModel>> = combine(
         expensesDetailsFlow,
         settingsRepository.getCurrentPersonId(),
-    ) { expensesDetails, currentPersonId ->
-        expensesDetails to currentPersonId
-    }.flatMapLatestNoBuffer { (expensesDetails, currentPersonId) ->
+        savedBannerResult,
+    ) { expensesDetails, currentPersonId, bannerResult ->
+        Triple(expensesDetails, currentPersonId, bannerResult)
+    }.flatMapLatestNoBuffer { (expensesDetails, currentPersonId, bannerResult) ->
         val currentPerson = expensesDetails?.event?.persons?.firstOrNull { it.id == currentPersonId }
         if (expensesDetails == null || currentPerson == null) {
             // local events branch
@@ -169,7 +180,10 @@ internal class ExpensesViewModel(
             debts = debts,
         )
 
-        flowOf(SimpleScreenState.Success(timelineData))
+        val resolvedBannerResult = bannerResult ?: BannerResult(
+            withTimeoutOrNull(80.milliseconds) { bannerDeferred.await() }
+        ).also { savedBannerResult.value = it }
+        flowOf(SimpleScreenState.Success(timelineData.copy(banner = resolvedBannerResult.banner)))
     }
         .flowOn(viewModelScope.coroutineContext[ContinuationInterceptor] ?: IO)
         .combine(selectedDayKey) { state, selected ->
@@ -207,6 +221,16 @@ internal class ExpensesViewModel(
             initialValue = SimpleScreenState.Loading,
             replayExpirationMillis = 1500L,
         )
+
+    fun onBannerDismissClick() {
+        val currentState = state.value
+        if (currentState !is SimpleScreenState.Success || currentState.data !is ExpensesPaneUiModel.Expenses) return
+
+        val banner = savedBannerResult.value?.banner ?: return
+        savedBannerResult.value = BannerResult(null)
+
+        viewModelScope.launch { dismissBannerUseCase.dismissBanner(banner) }
+    }
 
     fun onMenuClick() {
         navigationController.navigateTo(MenuDialogDestination)

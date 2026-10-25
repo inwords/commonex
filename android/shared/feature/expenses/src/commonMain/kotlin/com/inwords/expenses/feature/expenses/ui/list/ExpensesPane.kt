@@ -38,6 +38,7 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -61,6 +62,7 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.window.core.layout.WindowSizeClass
 import com.inwords.expenses.core.ui.design.appbar.TopAppBarWithText
@@ -70,6 +72,9 @@ import com.inwords.expenses.core.ui.design.preview.ComponentPreviews
 import com.inwords.expenses.core.ui.design.preview.ScreenPreviews
 import com.inwords.expenses.core.ui.design.theme.CommonExTheme
 import com.inwords.expenses.core.ui.utils.SimpleScreenState
+import com.inwords.expenses.feature.banner.domain.Banner
+import com.inwords.expenses.feature.banner.domain.BannerType
+import com.inwords.expenses.feature.banner.ui.BannerContent
 import com.inwords.expenses.feature.events.ui.common.EventInfoBlock
 import com.inwords.expenses.feature.events.ui.local.LocalEventsEmptyPane
 import com.inwords.expenses.feature.events.ui.local.LocalEventsPane
@@ -162,11 +167,13 @@ private fun rememberExpensesTimelineListLayout(
     }
 }
 
-private const val STATIC_ITEMS_BEFORE_DAY_TIMELINE = 3
+private const val STATIC_ITEMS_BEFORE_DAY_TIMELINE = 4
 
 @Composable
 internal fun ExpensesPane(
     state: SimpleScreenState<ExpensesPaneUiModel>,
+    appStoreUrl: String,
+    onBannerDismissClick: () -> Unit,
     onMenuClick: () -> Unit,
     onOpenEventsListClick: () -> Unit,
     onInviteClick: () -> Unit,
@@ -191,6 +198,8 @@ internal fun ExpensesPane(
                 is ExpensesPaneUiModel.Expenses -> if (state.daySections.isEmpty()) {
                     FirstExpensePane(
                         state = state,
+                        appStoreUrl = appStoreUrl,
+                        onBannerDismissClick = onBannerDismissClick,
                         onMenuClick = onMenuClick,
                         onOpenEventsListClick = onOpenEventsListClick,
                         onInviteClick = onInviteClick,
@@ -201,6 +210,8 @@ internal fun ExpensesPane(
                 } else {
                     ExpensesPaneSuccess(
                         state = state,
+                        appStoreUrl = appStoreUrl,
+                        onBannerDismissClick = onBannerDismissClick,
                         onMenuClick = onMenuClick,
                         onAddExpenseClick = onAddExpenseClick,
                         onExpenseClick = onExpenseClick,
@@ -244,6 +255,8 @@ internal fun ExpensesPane(
 @Composable
 private fun ExpensesPaneSuccess(
     state: ExpensesPaneUiModel.Expenses,
+    appStoreUrl: String,
+    onBannerDismissClick: () -> Unit,
     onMenuClick: () -> Unit,
     onAddExpenseClick: () -> Unit,
     onExpenseClick: (expense: ExpenseUiModel) -> Unit,
@@ -355,6 +368,14 @@ private fun ExpensesPaneSuccess(
                                 personCount = state.personCount,
                             )
                         }
+                        item(key = "banner", contentType = "banner") {
+                            BannerContent(
+                                banner = state.banner,
+                                appStoreUrl = appStoreUrl,
+                                onDismissClick = onBannerDismissClick,
+                                modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 24.dp),
+                            )
+                        }
                         item(key = "personal_debts", contentType = "personal_debts") {
                             DebtsBlock(
                                 modifier = Modifier
@@ -444,6 +465,14 @@ private fun ExpensesPaneSuccess(
                                 )
                             }
 
+                            item(key = "banner", contentType = "banner") {
+                                BannerContent(
+                                    banner = state.banner,
+                                    appStoreUrl = appStoreUrl,
+                                    onDismissClick = onBannerDismissClick,
+                                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 24.dp),
+                                )
+                            }
                             item(key = "personal_debts", contentType = "personal_debts") {
                                 DebtsBlock(
                                     modifier = Modifier
@@ -720,11 +749,22 @@ private fun ExpensesPaneErrorPreview() {
 }
 
 @Composable
-private fun ExpensesPaneSample(state: SimpleScreenState<ExpensesPaneUiModel>, darkTheme: Boolean) {
+private fun ExpensesPaneSample(
+    state: SimpleScreenState<ExpensesPaneUiModel>,
+    darkTheme: Boolean,
+    banner: Banner? = null,
+) {
+    val data = (state as? SimpleScreenState.Success)?.data
     CommonExTheme(darkTheme = darkTheme) {
         Surface {
             ExpensesPane(
-                state = state,
+                state = if (data is ExpensesPaneUiModel.Expenses) {
+                    SimpleScreenState.Success(data.copy(banner = banner))
+                } else {
+                    state
+                },
+                onBannerDismissClick = {},
+                appStoreUrl = "https://commonex.ru",
                 onMenuClick = {},
                 onOpenEventsListClick = {},
                 onInviteClick = {},
@@ -746,8 +786,82 @@ private fun ExpensesPaneSample(state: SimpleScreenState<ExpensesPaneUiModel>, da
     }
 }
 
+@ScreenPreviews
+@Preview(name = "Expanded banner", widthDp = 1000, heightDp = 800)
+@Composable
+private fun ExpensesPaneUpdateBannerPreview() {
+    ExpensesPaneSample(
+        state = SimpleScreenState.Success(mockExpensesPaneUiModel(withDebts = true)),
+        darkTheme = false,
+        banner = Banner(
+            type = BannerType.UpdateRequired,
+            text = "People in your group may use new features that this version can’t display correctly",
+        ),
+    )
+}
+
+@ScreenPreviews
+@Composable
+private fun ExpensesPaneWarningBannerPreview() {
+    ExpensesPaneSample(
+        state = SimpleScreenState.Success(mockExpensesPaneUiModel(withDebts = true)),
+        darkTheme = false,
+        banner = Banner(
+            type = BannerType.GeneralWarning,
+            text = "Some features are temporarily unavailable. You can continue using your saved groups.",
+        ),
+    )
+}
+
+@Preview(name = "Update banner / Russian / dark", locale = "ru", widthDp = 360, heightDp = 800)
+@Composable
+private fun ExpensesPaneRussianDarkBannerPreview() {
+    ExpensesPaneSample(
+        state = SimpleScreenState.Success(mockExpensesPaneUiModel(withDebts = true)),
+        darkTheme = true,
+        banner = Banner(
+            type = BannerType.UpdateRequired,
+            text = "Участники группы могут использовать новые возможности, которые некорректно отображаются в этой версии",
+        ),
+    )
+}
+
+@Preview(name = "Update banner / RTL", locale = "ar", widthDp = 360, heightDp = 800)
+@Composable
+private fun ExpensesPaneRtlBannerPreview() {
+    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+        ExpensesPaneSample(
+            state = SimpleScreenState.Success(mockExpensesPaneUiModel(withDebts = true)),
+            darkTheme = false,
+            banner = Banner(
+                type = BannerType.UpdateRequired,
+                text = "قد يستخدم أعضاء مجموعتك ميزات جديدة لا يعرضها هذا الإصدار بشكل صحيح",
+            ),
+        )
+    }
+}
+
+@ScreenPreviews
+@Composable
+private fun FirstExpenseUpdateBannerPreview() {
+    ExpensesPaneSample(
+        state = SimpleScreenState.Success(
+            mockExpensesPaneUiModel(withDebts = false).copy(
+                dayChips = persistentListOf(),
+                daySections = persistentListOf(),
+            ),
+        ),
+        darkTheme = false,
+        banner = Banner(
+            type = BannerType.UpdateRequired,
+            text = "People in your group may use new features that this version can’t display correctly",
+        ),
+    )
+}
+
 internal fun mockExpensesPaneUiModel(withDebts: Boolean): ExpensesPaneUiModel.Expenses {
     return ExpensesPaneUiModel.Expenses(
+        banner = null,
         eventId = 1,
         eventName = "France trip",
         currentPersonId = 1,

@@ -40,6 +40,8 @@ import org.jetbrains.compose.resources.stringResource
 @Composable
 internal fun FirstExpensePane(
     state: ExpensesPaneUiModel.Expenses,
+    onBannerDismissClick: () -> Unit,
+    appStoreUrl: String,
     onMenuClick: () -> Unit,
     onOpenEventsListClick: () -> Unit,
     onInviteClick: () -> Unit,
@@ -107,6 +109,9 @@ internal fun FirstExpensePane(
                 contentAlignment = Alignment.TopCenter,
             ) {
                 FirstExpensePrompt(
+                    banner = state.banner,
+                    onBannerDismissClick = onBannerDismissClick,
+                    appStoreUrl = appStoreUrl,
                     eventName = state.eventName,
                     currentPersonName = state.currentPersonName,
                     personCount = state.personCount,
@@ -130,6 +135,8 @@ internal fun FirstExpensePane(
 private fun FirstExpensePanePreview() {
     CommonExTheme {
         FirstExpensePane(
+            onBannerDismissClick = {},
+            appStoreUrl = "https://commonex.ru",
             state = mockExpensesPaneUiModel(withDebts = false).copy(
                 dayChips = persistentListOf(),
                 daySections = persistentListOf(),

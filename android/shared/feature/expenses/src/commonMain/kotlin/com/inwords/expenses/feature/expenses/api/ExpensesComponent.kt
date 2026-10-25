@@ -9,6 +9,8 @@ import com.inwords.expenses.core.utils.ClientCreateIdGenerator
 import com.inwords.expenses.core.utils.Component
 import com.inwords.expenses.core.utils.SuspendLazy
 import com.inwords.expenses.core.utils.UuidClientCreateIdGenerator
+import com.inwords.expenses.feature.banner.domain.DismissBannerUseCase
+import com.inwords.expenses.feature.banner.domain.GetBannerUseCase
 import com.inwords.expenses.feature.events.api.EventDeletionStateManager
 import com.inwords.expenses.feature.events.domain.DeleteEventUseCase
 import com.inwords.expenses.feature.events.domain.EventsSyncStateHolder
@@ -47,6 +49,8 @@ class ExpensesComponent(private val deps: Deps) : Component {
 
     interface Deps {
 
+        val appStoreUrl: String
+
         val expensesDao: ExpensesDao
 
         val client: SuspendLazy<HttpClient>
@@ -67,9 +71,13 @@ class ExpensesComponent(private val deps: Deps) : Component {
         val eventDeletionStateManagerLazy: Lazy<EventDeletionStateManager>
         val eventsSyncStateHolderLazy: Lazy<EventsSyncStateHolder>
 
+        val getBannerUseCaseLazy: Lazy<GetBannerUseCase>
+        val dismissBannerUseCaseLazy: Lazy<DismissBannerUseCase>
+
         val settingsRepositoryLazy: Lazy<SettingsRepository>
     }
 
+    internal val appStoreUrl get() = deps.appStoreUrl
     internal val getCurrentEventStateUseCaseLazy get() = deps.getCurrentEventStateUseCaseLazy
     internal val eventDeletionStateManagerLazy get() = deps.eventDeletionStateManagerLazy
     internal val getEventsUseCaseLazy get() = deps.getEventsUseCaseLazy
@@ -77,6 +85,8 @@ class ExpensesComponent(private val deps: Deps) : Component {
     internal val eventsSyncStateHolderLazy get() = deps.eventsSyncStateHolderLazy
     internal val joinEventUseCaseLazy get() = deps.joinEventUseCaseLazy
     internal val leaveEventUseCaseLazy get() = deps.leaveEventUseCaseLazy
+    internal val getBannerUseCaseLazy get() = deps.getBannerUseCaseLazy
+    internal val dismissBannerUseCaseLazy get() = deps.dismissBannerUseCaseLazy
     internal val settingsRepositoryLazy get() = deps.settingsRepositoryLazy
 
     val expensesLocalStore: Lazy<ExpensesLocalStore> = lazy {

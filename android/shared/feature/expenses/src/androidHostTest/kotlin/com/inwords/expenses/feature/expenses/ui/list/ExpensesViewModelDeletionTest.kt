@@ -3,6 +3,8 @@ package com.inwords.expenses.feature.expenses.ui.list
 import app.cash.turbine.test
 import com.inwords.expenses.core.navigation.NavigationController
 import com.inwords.expenses.core.ui.utils.SimpleScreenState
+import com.inwords.expenses.feature.banner.domain.DismissBannerUseCase
+import com.inwords.expenses.feature.banner.domain.GetBannerUseCase
 import com.inwords.expenses.feature.events.api.EventDeletionStateManager
 import com.inwords.expenses.feature.events.api.EventDeletionStateManager.EventDeletionState
 import com.inwords.expenses.feature.events.domain.DeleteEventUseCase
@@ -116,6 +118,10 @@ internal class ExpensesViewModelDeletionTest {
     private val joinEventUseCase = mockk<JoinEventUseCase>(relaxed = true)
     private val deleteEventUseCase = mockk<DeleteEventUseCase>(relaxed = true)
     private val getExpensesDetailsUseCase = mockk<GetExpensesDetailsUseCase>(relaxed = true)
+    private val getBannerUseCase = mockk<GetBannerUseCase> {
+        coEvery { getBanner() } returns null
+    }
+    private val dismissBannerUseCase = mockk<DismissBannerUseCase>(relaxed = true)
     private val requestExpensesRefreshUseCase = mockk<RequestExpensesRefreshUseCase>(relaxed = true)
     private val eventsSyncStateHolder = mockk<EventsSyncStateHolder>(relaxed = true) {
         every { getStateFor(any()) } returns MutableStateFlow(false)
@@ -442,6 +448,8 @@ internal class ExpensesViewModelDeletionTest {
             requestExpensesRefreshUseCase = requestExpensesRefreshUseCase,
             eventsSyncStateHolder = eventsSyncStateHolder,
             settingsRepository = settingsRepository,
+            getBannerUseCase = getBannerUseCase,
+            dismissBannerUseCase = dismissBannerUseCase,
             unconfinedDispatcher = testDispatcher,
             viewModelScope = this.testScope.backgroundScope,
         )
