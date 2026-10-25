@@ -110,7 +110,7 @@ This document defines core domain terms and the primary sources of truth for the
 ### Expense Corrections
 
 - V4 corrects an existing expense with an event PIN, the full corrected payload, and `expectedVersion`. Editing requires event protocol 2 for both web and mobile.
-- Old mobile clients can access protocol-1 events; access to protocol-2 events requires an advertised compatible client protocol. Web remains available for both; see [network contracts](network-contracts.md#event-protocol-compatibility).
+- Mobile releases below 11 can access version-1 events; release 11 and above can also access version-2 events. Backend reads the release from User-Agent. Web remains available for both; see [network contracts](network-contracts.md#event-protocol-compatibility).
 - A stale version returns `409` with the current expense. Event and expense type cannot be changed by a correction.
 - Corrections reuse `Idempotency-Key`; replay within the cache TTL returns the accepted snapshot, and an expired-key retry with a stale version conflicts.
 - Description/payer-only corrections preserve confirmed converted amounts; financial changes use the requested automatic/custom conversion mode.

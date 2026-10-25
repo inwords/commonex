@@ -29,16 +29,18 @@ describe('CheckEventVersionSharedUseCase', () => {
     await truncateAllTables(relationalDataService.dataSource);
   });
 
-  it.each([undefined, '', '0', '-1', 'invalid', '2.0', '9007199254740992'])(
-    'requires an update for a mobile client with unsupported version %s',
-    async (clientVersion) => {
-      await expect(
-        useCase.execute({
-          userAgent: 'CommonEx/1 (Android/r)',
-          clientVersion,
-          requestedVersion: EventVersion.ExpenseEditing,
-        }),
-      ).resolves.toEqual(error(new ClientUpdateRequiredError(EventVersion.ExpenseEditing)));
+  it.each(['0', '9', '10', '9007199254740992'])('requires an update for mobile release %s', async (release) => {
+    await expect(
+      useCase.execute({userAgent: `CommonEx/${release} (Android/r)`, requestedVersion: EventVersion.ExpenseEditing}),
+    ).resolves.toEqual(error(new ClientUpdateRequiredError(EventVersion.ExpenseEditing)));
+  });
+
+  it.each(['CommonEx/11 (Android/r)', 'CommonEx/11 (iOS/r)', 'CommonEx/12 (iOS/d)'])(
+    'allows expense editing events for compatible user agent %s',
+    async (userAgent) => {
+      await expect(useCase.execute({userAgent, requestedVersion: EventVersion.ExpenseEditing})).resolves.toEqual(
+        success(true),
+      );
     },
   );
 
@@ -58,7 +60,10 @@ describe('CheckEventVersionSharedUseCase', () => {
         error(new ClientUpdateRequiredError(EventVersion.ExpenseEditing)),
       );
       await expect(
-        useCase.execute({userAgent, clientVersion: '3', requestedVersion: EventVersion.ExpenseEditing}),
+        useCase.execute({
+          userAgent: userAgent.replace('CommonEx/1 ', 'CommonEx/11 '),
+          requestedVersion: EventVersion.ExpenseEditing,
+        }),
       ).resolves.toEqual(success(true));
     },
   );
@@ -92,15 +97,15 @@ describe('CheckEventVersionSharedUseCase', () => {
       },
     });
 
-    await expect(
-      useCase.execute({eventId: 'legacy-event', userAgent: 'CommonEx/1 (Android/r)', clientVersion: '1'}),
-    ).resolves.toEqual(success(true));
-    await expect(
-      useCase.execute({eventId: 'editing-event', userAgent: 'CommonEx/1 (Android/r)', clientVersion: '1'}),
-    ).resolves.toEqual(error(new ClientUpdateRequiredError(EventVersion.ExpenseEditing)));
-    await expect(
-      useCase.execute({eventId: 'editing-event', userAgent: 'CommonEx/1 (Android/r)', clientVersion: '2'}),
-    ).resolves.toEqual(success(true));
+    await expect(useCase.execute({eventId: 'legacy-event', userAgent: 'CommonEx/1 (Android/r)'})).resolves.toEqual(
+      success(true),
+    );
+    await expect(useCase.execute({eventId: 'editing-event', userAgent: 'CommonEx/1 (Android/r)'})).resolves.toEqual(
+      error(new ClientUpdateRequiredError(EventVersion.ExpenseEditing)),
+    );
+    await expect(useCase.execute({eventId: 'editing-event', userAgent: 'CommonEx/11 (Android/r)'})).resolves.toEqual(
+      success(true),
+    );
   });
 
   it('checks requested creation protocol versions and treats missing or deleted events as compatible', async () => {
@@ -126,17 +131,14 @@ describe('CheckEventVersionSharedUseCase', () => {
       useCase.execute({
         requestedVersion: EventVersion.ExpenseEditing,
         userAgent: 'CommonEx/1 (Android/r)',
-        clientVersion: '1',
       }),
     ).resolves.toEqual(error(new ClientUpdateRequiredError(EventVersion.ExpenseEditing)));
-    await expect(useCase.execute({userAgent: 'CommonEx/1 (Android/r)', clientVersion: '1'})).resolves.toEqual(
+    await expect(useCase.execute({userAgent: 'CommonEx/1 (Android/r)'})).resolves.toEqual(success(true));
+    await expect(useCase.execute({eventId: 'missing-event', userAgent: 'CommonEx/1 (Android/r)'})).resolves.toEqual(
       success(true),
     );
-    await expect(
-      useCase.execute({eventId: 'missing-event', userAgent: 'CommonEx/1 (Android/r)', clientVersion: '1'}),
-    ).resolves.toEqual(success(true));
-    await expect(
-      useCase.execute({eventId: 'deleted-event', userAgent: 'CommonEx/1 (Android/r)', clientVersion: '1'}),
-    ).resolves.toEqual(success(true));
+    await expect(useCase.execute({eventId: 'deleted-event', userAgent: 'CommonEx/1 (Android/r)'})).resolves.toEqual(
+      success(true),
+    );
   });
 });
