@@ -7,6 +7,7 @@ import {UserServiceClient, callUnary, createUserServiceClient, expectGrpcError} 
 import {TestApp, createTestApp} from '../support/test-app';
 
 interface EventResponse {
+  version: number;
   id: string;
   name: string;
   currencyId: string;
@@ -294,6 +295,7 @@ describe('gRPC UserService', () => {
     const httpEvent = first.json<EventResponse>();
     expect(replay).toEqual({
       id: httpEvent.id,
+      version: httpEvent.version,
       name: 'Trip',
       currencyId: usdId,
       pinCode: '1234',

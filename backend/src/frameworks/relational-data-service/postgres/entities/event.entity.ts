@@ -16,6 +16,9 @@ export class EventEntity implements IEvent {
   @Column({type: 'varchar'})
   pinCode!: IEvent['pinCode'];
 
+  @Column({type: 'integer', default: 1})
+  version!: IEvent['version'];
+
   @Column({type: 'timestamptz'})
   createdAt!: IEvent['createdAt'];
 

@@ -1,4 +1,11 @@
-import {Metadata, ServiceClientConstructor, ServiceError, credentials, loadPackageDefinition} from '@grpc/grpc-js';
+import {
+  ChannelOptions,
+  Metadata,
+  ServiceClientConstructor,
+  ServiceError,
+  credentials,
+  loadPackageDefinition,
+} from '@grpc/grpc-js';
 import {loadSync} from '@grpc/proto-loader';
 
 import {GRPC_PROTO_LOADER_OPTIONS} from '../../src/app.factory';
@@ -25,11 +32,11 @@ type UnaryMethod = (
 
 export type UserServiceClient = Record<UserServiceMethod, UnaryMethod> & {close: () => void};
 
-export const createUserServiceClient = (url: string): UserServiceClient => {
+export const createUserServiceClient = (url: string, options: ChannelOptions = {}): UserServiceClient => {
   const definition = loadSync(PROTO_PATH, GRPC_PROTO_LOADER_OPTIONS);
   const proto = loadPackageDefinition(definition) as unknown as {user: {UserService: ServiceClientConstructor}};
 
-  return new proto.user.UserService(url, credentials.createInsecure()) as unknown as UserServiceClient;
+  return new proto.user.UserService(url, credentials.createInsecure(), options) as unknown as UserServiceClient;
 };
 
 export const callUnary = <TResponse>(

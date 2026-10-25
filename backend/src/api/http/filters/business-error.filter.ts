@@ -18,6 +18,8 @@ const HTTP_STATUS_BY_ERROR_CODE = {
   [ErrorCode.EXPENSE_VERSION_CONFLICT]: HttpStatus.CONFLICT,
   [ErrorCode.EXPENSE_NOT_FOUND]: HttpStatus.NOT_FOUND,
   [ErrorCode.EXPENSE_PARTICIPANTS_INVALID]: HttpStatus.BAD_REQUEST,
+  [ErrorCode.CLIENT_UPDATE_REQUIRED]: HttpStatus.FORBIDDEN,
+  [ErrorCode.EXPENSE_EDITING_NOT_SUPPORTED]: HttpStatus.FORBIDDEN,
 } satisfies Record<BusinessError['code'], HttpStatus>;
 
 const getHttpStatus = (exception: BusinessError): HttpStatus => {
@@ -39,6 +41,7 @@ export class BusinessErrorFilter implements ExceptionFilter {
         code: exception.code,
         message: exception.message,
         ...('currentExpense' in exception ? {expense: exception.currentExpense} : {}),
+        ...('requiredProtocolVersion' in exception ? {requiredProtocolVersion: exception.requiredProtocolVersion} : {}),
       },
       statusCode,
     );

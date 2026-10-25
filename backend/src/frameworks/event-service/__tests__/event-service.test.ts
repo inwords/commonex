@@ -10,6 +10,7 @@ const event: IEvent = {
   name: 'Trip',
   currencyId: 'c-usd',
   pinCode: '1234',
+  version: 1,
   createdAt: new Date('2023-01-01T00:00:00Z'),
   updatedAt: new Date('2023-01-01T00:00:00Z'),
   deletedAt: null,

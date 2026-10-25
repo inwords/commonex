@@ -15,4 +15,6 @@ export {
   ExpenseVersionConflictError,
   ExpenseNotFoundError,
   ExpenseParticipantsInvalidError,
+  ClientUpdateRequiredError,
+  ExpenseEditingNotSupportedError,
 } from './errors';

@@ -1,7 +1,8 @@
 import {ApiProperty} from '@nestjs/swagger';
 import {Type} from 'class-transformer';
-import {IsString, Length, ValidateNested} from 'class-validator';
+import {IsEnum, IsInt, IsString, Length, ValidateIf, ValidateNested} from 'class-validator';
 
+import {EventProtocolVersion} from '#domain/entities/event-protocol-version.enum';
 import {IUserInfo} from '#domain/entities/user-info.entity';
 
 class UserDto {
@@ -48,9 +49,18 @@ class Event {
 
   @ApiProperty({nullable: true})
   deletedAt!: Date | null;
+
+  @ApiProperty()
+  version!: EventProtocolVersion;
 }
 
 export class CreateEventRequestDto {
+  @ApiProperty({enum: EventProtocolVersion, required: false})
+  @ValidateIf((_object: CreateEventRequestDto, value: unknown) => value !== undefined)
+  @IsInt()
+  @IsEnum(EventProtocolVersion)
+  version?: EventProtocolVersion;
+
   @ApiProperty()
   @IsString()
   name!: string;

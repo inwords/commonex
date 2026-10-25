@@ -33,9 +33,10 @@ Mobile domain identifiers are `Event` and `Person`; `participant` and `owner` na
 ### Event
 
 - The shared context containing participants, expenses, currencies, and access credentials. “Group” is a UI label for an event.
-- Fields: id, name, currencyId, pinCode, createdAt, updatedAt, deletedAt.
+- Fields: id, name, currencyId, pinCode, version, createdAt, updatedAt, deletedAt.
 - `deletedAt` is soft delete; non-null means the event is considered deleted.
 - ID and timestamps default to new values (ULID + now) via value objects.
+- `version = 1` preserves legacy behavior; `2` enables expense editing. Existing events and creation without an explicit protocol remain at 1; no public upgrade is provided.
 - Canonical model: `backend/src/domain/entities/event.entity.ts`.
 
 ### User Info (Person)
@@ -117,7 +118,8 @@ Mobile domain identifiers are `Event` and `Person`; `participant` and `owner` na
 
 ### Expense Corrections
 
-- V4 corrects an existing expense with an event PIN, the full corrected payload, and `expectedVersion`.
+- V4 corrects an existing expense with an event PIN, the full corrected payload, and `expectedVersion`. Editing requires event protocol 2 for both web and mobile.
+- Old mobile clients can access protocol-1 events; access to protocol-2 events requires an advertised compatible client protocol. Web remains available for both; see [network contracts](network-contracts.md#event-protocol-compatibility).
 - A stale version returns `409` with the current expense. Event and expense type cannot be changed by a correction.
 - Corrections reuse `Idempotency-Key`; replay within the cache TTL returns the accepted snapshot, and an expired-key retry with a stale version conflicts.
 - Description/payer-only corrections preserve confirmed converted amounts; financial changes use the requested automatic/custom conversion mode.
@@ -216,4 +218,6 @@ Mobile domain identifiers are `Event` and `Person`; `participant` and `owner` na
 - B4017 EXPENSE_VERSION_CONFLICT
 - B4018 EXPENSE_NOT_FOUND
 - B4019 EXPENSE_PARTICIPANTS_INVALID
+- B4020 CLIENT_UPDATE_REQUIRED
+- B4021 EXPENSE_EDITING_NOT_SUPPORTED
 - See `backend/src/domain/errors/` for full mapping and HTTP status codes.
