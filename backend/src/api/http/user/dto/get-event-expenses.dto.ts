@@ -32,6 +32,9 @@ export class GetEventExpensesResponseDto {
   id!: string;
 
   @ApiProperty()
+  version!: number;
+
+  @ApiProperty()
   description!: string;
 
   @ApiProperty()

@@ -12,6 +12,7 @@ import {
   SaveUsersToEventV2UseCase,
 } from './v2';
 import {GetAllCurrenciesWithRatesUseCaseV3, GetCurrenciesV3VersionUseCase} from './v3';
+import {GetExpenseHistoryV4UseCase, SaveEventExpenseV4UseCase, UpdateEventExpenseV4UseCase} from './v4';
 
 export const allUsersUseCases = [
   GetAllCurrenciesWithRatesUseCaseV3,
@@ -27,4 +28,7 @@ export const allUsersUseCases = [
   SaveEventExpenseV2UseCase,
   GetEventExpensesV2UseCase,
   CreateEventShareTokenV2UseCase,
+  SaveEventExpenseV4UseCase,
+  UpdateEventExpenseV4UseCase,
+  GetExpenseHistoryV4UseCase,
 ];

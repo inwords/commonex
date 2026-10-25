@@ -12,4 +12,7 @@ export {
   InconsistentExchangedAmountError,
   IdempotencyHashMismatchError,
   IdempotencyRequestInProgressError,
+  ExpenseVersionConflictError,
+  ExpenseNotFoundError,
+  ExpenseParticipantsInvalidError,
 } from './errors';

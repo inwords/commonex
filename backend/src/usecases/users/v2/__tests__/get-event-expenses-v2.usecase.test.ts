@@ -59,6 +59,7 @@ describe('GetEventExpensesV2UseCase', () => {
         expenses: [
           {
             id: 'expense-1',
+            version: 1,
             eventId: 'event-1',
             currencyId: 'currency-1',
             description: 'Lunch',
@@ -74,6 +75,7 @@ describe('GetEventExpensesV2UseCase', () => {
           },
           {
             id: 'expense-2',
+            version: 1,
             eventId: 'event-1',
             currencyId: 'currency-1',
             description: 'Dinner',
@@ -96,6 +98,7 @@ describe('GetEventExpensesV2UseCase', () => {
       output: success([
         {
           id: 'expense-1',
+          version: 1,
           eventId: 'event-1',
           currencyId: 'currency-1',
           description: 'Lunch',
@@ -111,6 +114,7 @@ describe('GetEventExpensesV2UseCase', () => {
         },
         {
           id: 'expense-2',
+          version: 1,
           eventId: 'event-1',
           currencyId: 'currency-1',
           description: 'Dinner',

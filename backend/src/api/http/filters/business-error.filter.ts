@@ -15,6 +15,9 @@ const HTTP_STATUS_BY_ERROR_CODE = {
   [ErrorCode.TOKEN_EXPIRED]: HttpStatus.UNAUTHORIZED,
   [ErrorCode.IDEMPOTENCY_HASH_MISMATCH]: HttpStatus.UNPROCESSABLE_ENTITY,
   [ErrorCode.IDEMPOTENCY_REQUEST_IN_PROGRESS]: HttpStatus.CONFLICT,
+  [ErrorCode.EXPENSE_VERSION_CONFLICT]: HttpStatus.CONFLICT,
+  [ErrorCode.EXPENSE_NOT_FOUND]: HttpStatus.NOT_FOUND,
+  [ErrorCode.EXPENSE_PARTICIPANTS_INVALID]: HttpStatus.BAD_REQUEST,
 } satisfies Record<BusinessError['code'], HttpStatus>;
 
 const getHttpStatus = (exception: BusinessError): HttpStatus => {
@@ -35,6 +38,7 @@ export class BusinessErrorFilter implements ExceptionFilter {
         statusCode,
         code: exception.code,
         message: exception.message,
+        ...('currentExpense' in exception ? {expense: exception.currentExpense} : {}),
       },
       statusCode,
     );
