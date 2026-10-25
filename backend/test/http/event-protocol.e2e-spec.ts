@@ -3,8 +3,8 @@ import {CurrencyCode} from '#domain/entities/currency.entity';
 import {createEvent, findCurrencyIdByCode} from '../support/fixtures';
 import {TestApp, createTestApp} from '../support/test-app';
 
-const oldMobile = {'user-agent': 'CommonEx/123 (Android/r)'};
-const newMobile = {...oldMobile, 'x-commonex-version': '2'};
+const oldMobile = {'user-agent': 'CommonEx/9 (Android/r)'};
+const newMobile = {'user-agent': 'CommonEx/11 (Android/r)'};
 
 describe('HTTP event protocol compatibility', () => {
   let testApp: TestApp;
@@ -46,8 +46,8 @@ describe('HTTP event protocol compatibility', () => {
   });
 
   it.each([
-    ['Android', 'CommonEx/123 (Android/r)'],
-    ['iOS', 'CommonEx/456 (iOS/d)'],
+    ['Android', 'CommonEx/9 (Android/r)'],
+    ['iOS', 'CommonEx/10 (iOS/r)'],
   ])('blocks old %s clients from new events', async (_platform, userAgent) => {
     const event = await createNewEvent();
     const response = await testApp.app.inject({
@@ -98,9 +98,9 @@ describe('HTTP event protocol compatibility', () => {
     }
   });
 
-  it('does not allow an invalid capability header to unlock new events', async () => {
+  it('does not allow a capability header to override an old mobile release', async () => {
     const event = await createNewEvent();
-    for (const version of ['0', '-1', 'two', '2,1', '9007199254740992']) {
+    for (const version of ['2', '11', '999', 'invalid']) {
       const response = await testApp.app.inject({
         method: 'POST',
         url: `/v2/user/event/${event.id}`,

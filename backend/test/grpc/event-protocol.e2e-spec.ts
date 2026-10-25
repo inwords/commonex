@@ -1,4 +1,4 @@
-import {Metadata, status} from '@grpc/grpc-js';
+import {status} from '@grpc/grpc-js';
 
 import {CurrencyCode} from '#domain/entities/currency.entity';
 
@@ -10,6 +10,7 @@ describe('gRPC event protocol compatibility', () => {
   let testApp: TestApp;
   let mobile: UserServiceClient;
   let generic: UserServiceClient;
+  let compatible: UserServiceClient;
   let currencyId: string;
 
   beforeAll(async () => {
@@ -17,13 +18,15 @@ describe('gRPC event protocol compatibility', () => {
     if (!testApp.grpcUrl) {
       throw new Error('Missing gRPC URL');
     }
-    mobile = createUserServiceClient(testApp.grpcUrl, {'grpc.primary_user_agent': 'CommonEx/123 (Android/r)'});
+    mobile = createUserServiceClient(testApp.grpcUrl, {'grpc.primary_user_agent': 'CommonEx/9 (Android/r)'});
     generic = createUserServiceClient(testApp.grpcUrl);
+    compatible = createUserServiceClient(testApp.grpcUrl, {'grpc.primary_user_agent': 'CommonEx/11 (iOS/r)'});
   });
 
   afterAll(async () => {
     mobile.close();
     generic.close();
+    compatible.close();
     await testApp.close();
   });
 
@@ -42,14 +45,10 @@ describe('gRPC event protocol compatibility', () => {
     expect(legacyResponse).toMatchObject({id: legacy.id, version: 1});
     const error = await expectGrpcError(callUnary(mobile, 'GetEventInfoV2', {eventId: current.id, pinCode: '1234'}));
     expect(error).toMatchObject({code: status.FAILED_PRECONDITION, errorCode: 'B4020'});
-    const compatible = new Metadata();
-    compatible.set('x-commonex-version', '2');
-    const currentResponse = await callUnary<{id: string; version: number}>(
-      mobile,
-      'GetEventInfoV2',
-      {eventId: current.id, pinCode: '1234'},
-      compatible,
-    );
+    const currentResponse = await callUnary<{id: string; version: number}>(compatible, 'GetEventInfoV2', {
+      eventId: current.id,
+      pinCode: '1234',
+    });
     expect(currentResponse).toMatchObject({id: current.id, version: 2});
     const genericResponse = await callUnary<{id: string}>(generic, 'GetEventInfoV2', {
       eventId: current.id,
@@ -76,13 +75,11 @@ describe('gRPC event protocol compatibility', () => {
     expect(stored?.deletedAt).toBeNull();
   });
 
-  it('accepts protocol two only when the mobile caller advertises support', async () => {
+  it('accepts event version two starting with mobile release eleven', async () => {
     const request = {name: 'Trip', currencyId, pinCode: '1234', users: [{name: 'Alice'}], version: 2};
     const error = await expectGrpcError(callUnary(mobile, 'CreateEvent', request));
     expect(error).toMatchObject({code: status.FAILED_PRECONDITION, errorCode: 'B4020'});
-    const compatible = new Metadata();
-    compatible.set('x-commonex-version', '2');
-    const response = await callUnary<{version: number}>(mobile, 'CreateEvent', request, compatible);
+    const response = await callUnary<{version: number}>(compatible, 'CreateEvent', request);
     expect(response.version).toBe(2);
     const legacy = await callUnary<{version: number}>(mobile, 'CreateEvent', {
       name: 'Old trip',
