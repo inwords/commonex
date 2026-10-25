@@ -2,11 +2,13 @@
 
 import {useEffect} from 'react';
 import {useColorScheme} from '@mui/material/styles';
-import {IconButton} from '@mui/material';
-import {DarkMode, LightMode} from '@mui/icons-material';
+import {FormControlLabel, Switch} from '@mui/material';
+import {observer} from 'mobx-react-lite';
+import {useContent} from '@/6-shared/i18n/useContent';
 
-export function ThemeSwitcher() {
+export const ThemeSwitcher = observer(() => {
   const {mode, setMode, systemMode} = useColorScheme();
+  const content = useContent().Settings;
 
   useEffect(() => {
     if (mode === 'system' && systemMode) {
@@ -16,13 +18,18 @@ export function ThemeSwitcher() {
 
   const resolvedMode = mode === 'system' ? systemMode : mode;
 
-  const handleToggle = () => {
-    setMode(resolvedMode === 'dark' ? 'light' : 'dark');
-  };
-
   return (
-    <IconButton onClick={handleToggle} size="small">
-      {resolvedMode === 'dark' ? <LightMode fontSize="small" /> : <DarkMode fontSize="small" />}
-    </IconButton>
+    <FormControlLabel
+      label={content.darkTheme}
+      labelPlacement="start"
+      sx={{m: 0, justifyContent: 'space-between', '& .MuiFormControlLabel-label': {fontSize: '0.875rem'}}}
+      control={
+        <Switch
+          checked={resolvedMode === 'dark'}
+          disabled={!mode}
+          onChange={(_, checked) => setMode(checked ? 'dark' : 'light')}
+        />
+      }
+    />
   );
-}
+});

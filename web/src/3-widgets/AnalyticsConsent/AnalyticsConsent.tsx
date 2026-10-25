@@ -1,5 +1,5 @@
-import {useState, useSyncExternalStore} from 'react';
-import {Box, Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Link} from '@mui/material';
+import {useSyncExternalStore} from 'react';
+import {Button, Divider, Link, Stack, Typography} from '@mui/material';
 import {observer} from 'mobx-react-lite';
 import {analyticsService} from '@/6-shared/analytics/analytics-service';
 import {useContent} from '@/6-shared/i18n/useContent';
@@ -8,54 +8,41 @@ import {languageStore} from '@/6-shared/i18n/languageStore';
 export const AnalyticsConsent = observer(() => {
   const content = useContent().Analytics;
   const consent = useSyncExternalStore(analyticsService.subscribeConsent, analyticsService.getConsent, () => 'unknown');
-  const [editing, setEditing] = useState(false);
-  if (!analyticsService.isConfigured()) {
-    return null;
-  }
-  const choose = (value: 'granted' | 'denied') => {
-    setEditing(false);
-    analyticsService.changeConsent(value);
-  };
-  const actions = (
-    <>
-      <Button onClick={() => choose('denied')}>{content.decline}</Button>
-      <Button onClick={() => choose('granted')}>{content.allow}</Button>
-    </>
-  );
-  const explanation = (
-    <>
-      {content.description}{' '}
-      <Link
-        href={languageStore.language === 'ru' ? '/privacy-ru.html' : '/privacy.html'}
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        {content.privacy}
-      </Link>
-    </>
-  );
+
   return (
-    <>
-      <Button onClick={() => setEditing(true)}>{content.settings}</Button>
-      {consent === 'unknown' && !editing && (
-        <Box
-          component="section"
-          aria-label={content.title}
-          sx={{p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1, maxWidth: 640}}
+    <Stack component="section" aria-label={content.title} spacing={1.5}>
+      <Divider />
+      <Typography component="h3" variant="subtitle2">
+        {content.title}
+      </Typography>
+      <Typography variant="body2" color="text.secondary">
+        {content.description}{' '}
+        <Link
+          href={languageStore.language === 'ru' ? '/privacy-ru.html' : '/privacy.html'}
+          target="_blank"
+          rel="noopener noreferrer"
         >
-          <Box component="p" sx={{mt: 0}}>
-            {explanation}
-          </Box>
-          {actions}
-        </Box>
-      )}
-      <Dialog open={editing} onClose={() => setEditing(false)} aria-labelledby="analytics-title">
-        <DialogTitle id="analytics-title">{content.title}</DialogTitle>
-        <DialogContent>
-          <DialogContentText component="div">{explanation}</DialogContentText>
-        </DialogContent>
-        <DialogActions>{actions}</DialogActions>
-      </Dialog>
-    </>
+          {content.privacy}
+        </Link>
+      </Typography>
+      <Stack direction="row" spacing={1}>
+        <Button
+          fullWidth
+          variant={consent === 'denied' ? 'contained' : 'outlined'}
+          aria-pressed={consent === 'denied'}
+          onClick={() => analyticsService.changeConsent('denied')}
+        >
+          {content.decline}
+        </Button>
+        <Button
+          fullWidth
+          variant={consent === 'granted' ? 'contained' : 'outlined'}
+          aria-pressed={consent === 'granted'}
+          onClick={() => analyticsService.changeConsent('granted')}
+        >
+          {content.allow}
+        </Button>
+      </Stack>
+    </Stack>
   );
 });

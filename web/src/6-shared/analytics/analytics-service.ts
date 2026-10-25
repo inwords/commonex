@@ -64,7 +64,11 @@ export class AnalyticsService {
     }
     try {
       const stored = this.storage().getItem('commonex_analytics_consent_v1');
-      this.consentValue = stored === 'granted' || stored === 'denied' ? stored : 'unknown';
+      if (stored === null) {
+        this.consentValue = 'granted';
+      } else {
+        this.consentValue = stored === 'granted' || stored === 'denied' ? stored : 'unknown';
+      }
     } catch {
       this.consentValue = 'unknown';
     }

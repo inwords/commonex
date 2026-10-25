@@ -7,14 +7,21 @@ const en: Locale = {
   CreateEventButton: {
     btn: 'Create trip',
   },
+  Validation: {required: 'This field is required'},
+  Settings: {
+    title: 'Settings',
+    close: 'Close settings',
+    language: 'Language',
+    darkTheme: 'Dark theme',
+  },
   Analytics: {
     title: 'Website analytics',
     settings: 'Analytics settings',
     description:
-      'Allow Yandex Metrica to collect visits and actions to help us improve CommonEx? Trip and expense contents are not sent. You can use the site without analytics and change your choice at any time.',
+      'Analytics is enabled by default. Yandex Metrica collects visits and actions to help us improve CommonEx. Trip and expense contents are not sent. You can disable analytics at any time.',
     privacy: 'Privacy policy',
-    allow: 'Allow',
-    decline: 'Decline',
+    allow: 'Enable',
+    decline: 'Disable',
   },
   AppFooter: {
     title: 'CommonEx on your phone',

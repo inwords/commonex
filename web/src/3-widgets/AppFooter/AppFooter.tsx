@@ -1,5 +1,4 @@
 import {analyticsService} from '@/6-shared/analytics/analytics-service';
-import {AnalyticsConsent} from '@/3-widgets/AnalyticsConsent/AnalyticsConsent';
 import {Box, Container, Link, Stack, Typography} from '@mui/material';
 import {observer} from 'mobx-react-lite';
 import {languageStore} from '@/6-shared/i18n/languageStore';
@@ -60,7 +59,6 @@ export const AppFooter = observer(() => {
               />
             </Link>
           </Stack>
-          <AnalyticsConsent />
         </Stack>
       </Container>
     </Box>
