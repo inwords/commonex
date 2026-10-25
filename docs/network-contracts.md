@@ -287,6 +287,13 @@ Notes:
 - The shared KMM network layer builds this value centrally so Android and iOS stay aligned.
 - If additional clients start sending the same logical contract, update this document first and then align implementations.
 
+## In-app Banner Caching
+
+- `GET /api/user/banner` selects by canonical mobile `User-Agent`: Android/iOS and integer build code (`0`–`2147483647`).
+- Returns `200 {type, text}` or empty `204` for no match or missing/invalid client metadata.
+- Both outcomes: `Cache-Control: public, max-age=21600`, `Vary: User-Agent`; database changes may take six hours to reach cached clients.
+- [PostgreSQL configuration](../backend/docs/banners.md).
+
 ## Ingress And Protocol Notes
 
 Production Nginx is configured for:

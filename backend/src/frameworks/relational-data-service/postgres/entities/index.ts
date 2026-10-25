@@ -1,3 +1,4 @@
+import {BannerEntity} from './banner.entity';
 import {CurrencyRateEntity} from './currency-rate.entity';
 import {CurrencyEntity} from './currency.entity';
 import {EventShareTokenEntity} from './event-share-token.entity';
@@ -7,6 +8,7 @@ import {IdempotencyKeyEntity} from './idempotency-key.entity';
 import {UserInfoEntity} from './user-info.entity';
 
 export const allEntities = [
+  BannerEntity,
   CurrencyEntity,
   EventEntity,
   CurrencyRateEntity,
