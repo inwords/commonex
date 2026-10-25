@@ -8,7 +8,7 @@ import {EventServiceAbstract} from '#domain/abstracts/event-service/event-servic
 import {RelationalDataServiceAbstract} from '#domain/abstracts/relational-data-service/relational-data-service';
 import {ITransaction} from '#domain/abstracts/relational-data-service/types';
 import {SupportedCurrencyServiceAbstract} from '#domain/abstracts/supported-currency-service/supported-currency-service';
-import {EventProtocolVersion} from '#domain/entities/event-protocol-version.enum';
+import {EventVersion} from '#domain/entities/event-version.enum';
 import {IEvent} from '#domain/entities/event.entity';
 import {IExpense, ISplitInfo} from '#domain/entities/expense.entity';
 import {
@@ -77,7 +77,7 @@ export class UpdateEventExpenseV4UseCase implements UseCase<Input, Output> {
     if (isError(validation)) {
       return validation;
     }
-    if (event && event.version < EventProtocolVersion.ExpenseEditing) {
+    if (event && event.version < EventVersion.ExpenseEditing) {
       return error(new ExpenseEditingNotSupportedError());
     }
     return this.idempotencyUseCase.execute(idempotencyKey, IdempotencyOperation.REVISE_EVENT_EXPENSE_V4, core, (trx) =>
@@ -94,7 +94,7 @@ export class UpdateEventExpenseV4UseCase implements UseCase<Input, Output> {
     if (isError(validation)) {
       return validation;
     }
-    if (event.version < EventProtocolVersion.ExpenseEditing) {
+    if (event.version < EventVersion.ExpenseEditing) {
       return error(new ExpenseEditingNotSupportedError());
     }
 

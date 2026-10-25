@@ -66,7 +66,7 @@ describe('BusinessErrorFilter', () => {
 
     expect(reply).toHaveBeenCalledWith(
       response,
-      {statusCode: HttpStatus.FORBIDDEN, code: 'B4020', message: 'Client update required', requiredProtocolVersion: 2},
+      {statusCode: HttpStatus.FORBIDDEN, code: 'B4020', message: 'Client update required', requiredVersion: 2},
       HttpStatus.FORBIDDEN,
     );
   });

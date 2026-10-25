@@ -43,7 +43,7 @@ describe('gRPC event protocol compatibility', () => {
     const error = await expectGrpcError(callUnary(mobile, 'GetEventInfoV2', {eventId: current.id, pinCode: '1234'}));
     expect(error).toMatchObject({code: status.FAILED_PRECONDITION, errorCode: 'B4020'});
     const compatible = new Metadata();
-    compatible.set('x-commonex-protocol-version', '2');
+    compatible.set('x-commonex-version', '2');
     const currentResponse = await callUnary<{id: string; version: number}>(
       mobile,
       'GetEventInfoV2',
@@ -81,7 +81,7 @@ describe('gRPC event protocol compatibility', () => {
     const error = await expectGrpcError(callUnary(mobile, 'CreateEvent', request));
     expect(error).toMatchObject({code: status.FAILED_PRECONDITION, errorCode: 'B4020'});
     const compatible = new Metadata();
-    compatible.set('x-commonex-protocol-version', '2');
+    compatible.set('x-commonex-version', '2');
     const response = await callUnary<{version: number}>(mobile, 'CreateEvent', request, compatible);
     expect(response.version).toBe(2);
     const legacy = await callUnary<{version: number}>(mobile, 'CreateEvent', {
