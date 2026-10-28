@@ -5,6 +5,7 @@ import io.ktor.client.engine.darwin.Darwin
 import io.ktor.client.plugins.UserAgent
 import io.ktor.http.HttpHeaders
 import platform.Foundation.NSURLRequestUseProtocolCachePolicy
+import platform.Foundation.valueForHTTPHeaderField
 
 internal actual class HttpClientFactory(
     private val userAgent: String,
