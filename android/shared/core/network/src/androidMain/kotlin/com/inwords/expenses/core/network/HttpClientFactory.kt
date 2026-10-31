@@ -5,6 +5,7 @@ import androidx.annotation.OptIn
 import com.inwords.expenses.core.ktor_client_cronet.Cronet
 import com.inwords.expenses.core.utils.IO
 import io.ktor.client.HttpClient
+import io.ktor.client.plugins.UserAgent
 import kotlinx.coroutines.withContext
 import org.chromium.net.ConnectionMigrationOptions
 import org.chromium.net.CronetEngine
@@ -66,6 +67,9 @@ internal actual class HttpClientFactory(
 
     private fun createKtor(cronetEngine: CronetEngine): HttpClient {
         return createKtor(Cronet(cronetEngine), enableLogging = enableLogging) {
+            install(UserAgent) {
+                agent = this@HttpClientFactory.userAgent
+            }
             engine {
                 this.pipelining = true
                 this.followRedirects = false

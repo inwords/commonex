@@ -58,4 +58,5 @@ dependencies {
     add("androidHostTestImplementation", shared.kotlin.test)
     add("androidHostTestImplementation", shared.coroutines.test)
     add("androidHostTestImplementation", shared.ktor.client.mock)
+    add("androidHostTestImplementation", shared.mockk)
 }
