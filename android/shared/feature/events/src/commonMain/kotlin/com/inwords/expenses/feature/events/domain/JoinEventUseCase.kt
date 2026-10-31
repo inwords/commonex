@@ -30,6 +30,7 @@ class JoinEventUseCase internal constructor(
             data object InvalidAccessCode : Error
             data object InvalidToken : Error
             data object TokenExpired : Error
+            data object UpdateRequired : Error
             data object EventNotFound : Error
             data object OtherError : Error
         }
@@ -79,6 +80,7 @@ class JoinEventUseCase internal constructor(
             JoinEventResult.Error.InvalidAccessCode,
             JoinEventResult.Error.InvalidToken,
             JoinEventResult.Error.TokenExpired,
+            JoinEventResult.Error.UpdateRequired,
             JoinEventResult.Error.OtherError -> Unit
         }
 
@@ -125,6 +127,7 @@ class JoinEventUseCase internal constructor(
                 EventNetworkError.InvalidAccessCode -> JoinEventResult.Error.InvalidAccessCode
                 EventNetworkError.InvalidToken -> JoinEventResult.Error.InvalidToken
                 EventNetworkError.TokenExpired -> JoinEventResult.Error.TokenExpired
+                EventNetworkError.UpdateRequired -> JoinEventResult.Error.UpdateRequired
                 EventNetworkError.NotFound -> JoinEventResult.Error.EventNotFound
 
                 EventNetworkError.Gone -> {

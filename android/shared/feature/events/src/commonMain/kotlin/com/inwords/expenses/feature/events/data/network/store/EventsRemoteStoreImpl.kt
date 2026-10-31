@@ -259,9 +259,14 @@ internal class EventsRemoteStoreImpl(
         )
     }
 
-    private fun NetworkResult.Error.Http.Client.toEventNetworkErrorByAccessCode(): EventNetworkError.ByAccessCode {
+    private suspend fun NetworkResult.Error.Http.Client.toEventNetworkErrorByAccessCode(): EventNetworkError.ByAccessCode {
         return when (exception.response.status) {
-            HttpStatusCode.Forbidden -> EventNetworkError.InvalidAccessCode
+            HttpStatusCode.Forbidden -> {
+                when (getErrorCode()) {
+                    DomainErrorCodes.CLIENT_UPDATE_REQUIRED -> EventNetworkError.UpdateRequired
+                    else -> EventNetworkError.InvalidAccessCode
+                }
+            }
             HttpStatusCode.NotFound -> EventNetworkError.NotFound
             HttpStatusCode.Gone -> EventNetworkError.Gone
             else -> EventNetworkError.OtherError
@@ -278,7 +283,12 @@ internal class EventsRemoteStoreImpl(
                 }
             }
 
-            HttpStatusCode.Forbidden -> EventNetworkError.InvalidToken
+            HttpStatusCode.Forbidden -> {
+                when (getErrorCode()) {
+                    DomainErrorCodes.CLIENT_UPDATE_REQUIRED -> EventNetworkError.UpdateRequired
+                    else -> EventNetworkError.InvalidToken
+                }
+            }
             HttpStatusCode.NotFound -> EventNetworkError.NotFound
             HttpStatusCode.Gone -> EventNetworkError.Gone
             else -> EventNetworkError.OtherError

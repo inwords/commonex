@@ -42,6 +42,7 @@ class EventPullPersonsTask internal constructor(
             is EventsRemoteStore.GetEventResult.Error -> when (remoteResult.error) {
                 EventNetworkError.NotFound,
                 EventNetworkError.Gone,
+                EventNetworkError.UpdateRequired,
                 EventNetworkError.InvalidAccessCode -> return@withContext IoResult.Error.Failure
 
                 EventNetworkError.OtherError -> return@withContext IoResult.Error.Retry

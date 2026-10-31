@@ -51,6 +51,7 @@
     <string name="events_join_error_invalid_credentials">Check the group ID and access code, then try again</string>
     <string name="events_join_error_invalid_token">Invalid link</string>
     <string name="events_join_error_expired_token">This link has expired. Ask for a new link or use the group ID and access code</string>
+    <string name="events_join_error_update_required">Update the app to join this group</string>
 
     <string name="events_choose_person_title">Choose your name</string>
     <string name="events_choose_person_heading">Which name is yours?</string>

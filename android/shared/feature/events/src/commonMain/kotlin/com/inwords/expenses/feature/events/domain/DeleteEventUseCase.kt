@@ -52,6 +52,7 @@ class DeleteEventUseCase internal constructor(
                         DeleteEventResult.RemoteFailed
                     }
 
+                    EventNetworkError.UpdateRequired,
                     EventNetworkError.OtherError -> DeleteEventResult.RemoteFailed
                 }
             }
