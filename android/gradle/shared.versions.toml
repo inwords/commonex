@@ -116,8 +116,8 @@ kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", versi
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 room = { id = "androidx.room", version.ref = "room" }
 wire = { id = "com.squareup.wire", version = "6.4.7" } # https://square.github.io/wire/changelog/
-gradle-versions-checker = { id = "io.github.ben-manes.versions", version = "0.61.0" }
-android-junit5 = { id = "de.mannodermaus.android-junit", version = "2.0.1" } # https://github.com/mannodermaus/android-junit5/releases
+gradle-versions-checker = { id = "io.github.ben-manes.versions", version = "0.67.0" }
+android-junit5 = { id = "de.mannodermaus.android-junit", version = "2.0.2" } # https://github.com/mannodermaus/android-junit5/releases
 # https://github.com/getsentry/sentry-kotlin-multiplatform?tab=readme-ov-file#cocoa-sdk-version-compatibility-table
 sentry-kotlin-multiplatform = { id = "io.sentry.kotlin.multiplatform.gradle", version = "0.27.0" } # https://github.com/getsentry/sentry-kotlin-multiplatform/blob/main/CHANGELOG.md
 sentry-android-gradle = { id = "io.sentry.android.gradle", version = "6.19.0" } # https://github.com/getsentry/sentry-android-gradle-plugin/blob/main/CHANGELOG.md
