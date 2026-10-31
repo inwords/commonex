@@ -11,7 +11,7 @@ cronet = "500.0.2"
 
 coroutines = "1.11.0" # https://github.com/Kotlin/kotlinx.coroutines/releases
 
-kotlinx-serialization = "1.11.0" # https://github.com/Kotlin/kotlinx.serialization/releases
+kotlinx-serialization = "1.12.0" # https://github.com/Kotlin/kotlinx.serialization/releases
 kotlinx-atomicfu = "0.33.0" # https://github.com/Kotlin/kotlinx-atomicfu/releases
 okio = "3.18.2" # https://square.github.io/okio/changelog/
 
