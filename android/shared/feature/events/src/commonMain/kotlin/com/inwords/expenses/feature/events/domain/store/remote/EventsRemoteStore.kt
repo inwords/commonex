@@ -16,6 +16,7 @@ internal interface EventsRemoteStore {
         data object InvalidAccessCode : ByAccessCode
         data object InvalidToken : ByToken
         data object TokenExpired : ByToken
+        data object UpdateRequired : ByAccessCode, ByToken
         data object NotFound : ByAccessCode, ByToken
         data object Gone : ByAccessCode, ByToken
         data object OtherError : ByAccessCode, ByToken

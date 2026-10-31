@@ -16,6 +16,7 @@ import expenses.shared.feature.events.generated.resources.Res
 import expenses.shared.feature.events.generated.resources.events_join_error_expired_token
 import expenses.shared.feature.events.generated.resources.events_join_error_invalid_credentials
 import expenses.shared.feature.events.generated.resources.events_join_error_invalid_token
+import expenses.shared.feature.events.generated.resources.events_join_error_update_required
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
@@ -118,6 +119,7 @@ internal class JoinEventViewModel(
 
                             JoinEventResult.Error.InvalidToken -> Res.string.events_join_error_invalid_token
                             JoinEventResult.Error.TokenExpired -> Res.string.events_join_error_expired_token
+                            JoinEventResult.Error.UpdateRequired -> Res.string.events_join_error_update_required
 
                             JoinEventResult.Error.OtherError -> DesignRes.string.error_other
                         }

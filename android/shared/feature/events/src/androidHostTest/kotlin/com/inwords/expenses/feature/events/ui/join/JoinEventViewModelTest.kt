@@ -11,6 +11,8 @@ import com.inwords.expenses.feature.events.domain.model.EventDetails
 import com.inwords.expenses.feature.events.domain.model.Person
 import com.inwords.expenses.feature.events.ui.join_invitation.JoinInvitationPaneDestination
 import com.ionspin.kotlin.bignum.decimal.BigDecimal
+import expenses.shared.feature.events.generated.resources.Res
+import expenses.shared.feature.events.generated.resources.events_join_error_update_required
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.justRun
@@ -44,7 +46,9 @@ internal class JoinEventViewModelTest {
     }
     private val joinEventUseCase = mockk<JoinEventUseCase>(relaxed = true)
     private val stringProvider = object : StringProvider {
-        override suspend fun getString(stringResource: StringResource): String = "error_message"
+        override suspend fun getString(stringResource: StringResource): String =
+            if (stringResource == Res.string.events_join_error_update_required) "update_required_message" else "error_message"
+
         override suspend fun getString(stringResource: StringResource, vararg formatArgs: Any): String = "error_message"
     }
 
@@ -167,6 +171,36 @@ internal class JoinEventViewModelTest {
         val state = viewModel.state.value
         val joining = assertIs<JoinEventPaneUiModel.EventJoiningState.Error>(state.joiningState)
         assertEquals("error_message", joining.message)
+    }
+
+    @Test
+    fun onConfirmClicked_pinJoinRequiresUpdate_showsUpdateMessageWithoutNavigating() = runTest {
+        coEvery { joinEventUseCase.joinEvent("01EV", "1234", null) } returns JoinEventResult.Error.UpdateRequired
+        val viewModel = createViewModel(viewModelScope = backgroundScope)
+        viewModel.onEventIdChanged("01EV")
+        viewModel.onEventAccessCodeChanged("1234")
+
+        viewModel.onConfirmClicked()
+        runCurrent()
+
+        val joining = assertIs<JoinEventPaneUiModel.EventJoiningState.Error>(viewModel.state.value.joiningState)
+        assertEquals("update_required_message", joining.message)
+        verify(exactly = 0) { navigationController.navigateTo(any()) }
+    }
+
+    @Test
+    fun initialToken_joinRequiresUpdate_showsUpdateMessageWithoutNavigating() = runTest {
+        coEvery { joinEventUseCase.joinEvent("01ABC", null, "abc123") } returns JoinEventResult.Error.UpdateRequired
+        val viewModel = createViewModel(
+            initialEventId = "01ABC",
+            initialToken = "abc123",
+            viewModelScope = backgroundScope,
+        )
+        runCurrent()
+
+        val joining = assertIs<JoinEventPaneUiModel.EventJoiningState.Error>(viewModel.state.value.joiningState)
+        assertEquals("update_required_message", joining.message)
+        verify(exactly = 0) { navigationController.navigateTo(any()) }
     }
 
     @Test

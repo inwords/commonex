@@ -53,6 +53,7 @@
     <string name="events_join_error_invalid_credentials">Проверьте ID группы и код доступа и попробуйте ещё раз</string>
     <string name="events_join_error_invalid_token">Недействительная ссылка</string>
     <string name="events_join_error_expired_token">Срок действия ссылки истёк. Попросите новую ссылку или используйте ID группы и код доступа</string>
+    <string name="events_join_error_update_required">Обновите приложение, чтобы присоединиться к этой группе</string>
 
     <string name="events_choose_person_title">Выберите своё имя</string>
     <string name="events_choose_person_heading">Кто вы в группе?</string>

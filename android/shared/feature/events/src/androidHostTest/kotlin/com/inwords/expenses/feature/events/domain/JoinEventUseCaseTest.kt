@@ -130,6 +130,38 @@ internal class JoinEventUseCaseTest {
     }
 
     @Test
+    fun joinEvent_whenPinJoinRequiresUpdate_preservesSelectionAndDoesNotInsertEvent() = runTest {
+        coEvery { eventsLocalStore.getEventWithDetailsByServerId("ev-1") } returns null
+        coEvery { currenciesLocalStore.getCurrencies() } returns flowOf(listOf(currency))
+        coEvery {
+            eventsRemoteStore.getEventByAccessCode(0L, "ev-1", "1234", listOf(currency), null)
+        } returns GetEventResult.Error(EventsRemoteStore.EventNetworkError.UpdateRequired)
+
+        val result = useCase.joinEvent("ev-1", "1234", null)
+
+        assertEquals(JoinEventUseCase.JoinEventResult.Error.UpdateRequired, result)
+        coVerify(exactly = 0) { settingsRepository.setCurrentEventId(any()) }
+        coVerify(exactly = 0) { eventsLocalStore.deepInsert(any(), any(), any(), any()) }
+        coVerify(exactly = 0) { deleteEventUseCase.deleteLocalEventByServerId(any()) }
+    }
+
+    @Test
+    fun joinEvent_whenTokenJoinRequiresUpdate_preservesSelectionAndDoesNotInsertEvent() = runTest {
+        coEvery { eventsLocalStore.getEventWithDetailsByServerId("ev-1") } returns null
+        coEvery { currenciesLocalStore.getCurrencies() } returns flowOf(listOf(currency))
+        coEvery {
+            eventsRemoteStore.getEventByToken(0L, "ev-1", "token", listOf(currency), null)
+        } returns GetEventResult.Error(EventsRemoteStore.EventNetworkError.UpdateRequired)
+
+        val result = useCase.joinEvent("ev-1", null, "token")
+
+        assertEquals(JoinEventUseCase.JoinEventResult.Error.UpdateRequired, result)
+        coVerify(exactly = 0) { settingsRepository.setCurrentEventId(any()) }
+        coVerify(exactly = 0) { eventsLocalStore.deepInsert(any(), any(), any(), any()) }
+        coVerify(exactly = 0) { deleteEventUseCase.deleteLocalEventByServerId(any()) }
+    }
+
+    @Test
     fun joinEvent_whenRemoteReturnsEventNotFound_returnsEventNotFound() = runTest {
         coEvery { eventsLocalStore.getEventWithDetailsByServerId("ev-1") } returns null
         coEvery { currenciesLocalStore.getCurrencies() } returns flowOf(listOf(currency))

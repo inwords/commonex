@@ -117,6 +117,39 @@ internal class EventsRemoteStoreImplTest {
     }
 
     @Test
+    fun `getEventByAccessCode distinguishes update required from other forbidden errors`() = runTest {
+        val cases = listOf(
+            clientUpdateRequiredResponseJson() to EventNetworkError.UpdateRequired,
+            errorResponseJson(HttpStatusCode.Forbidden, "B4002") to EventNetworkError.InvalidAccessCode,
+            errorResponseJson(HttpStatusCode.Forbidden, "UNKNOWN_CODE") to EventNetworkError.InvalidAccessCode,
+            errorResponseJsonWithoutCode(HttpStatusCode.Forbidden) to EventNetworkError.InvalidAccessCode,
+        )
+
+        cases.forEach { (payload, expectedError) ->
+            val client = createClient {
+                respond(
+                    content = payload,
+                    status = HttpStatusCode.Forbidden,
+                    headers = headersOf(HttpHeaders.ContentType to listOf(ContentType.Application.Json.toString())),
+                )
+            }
+
+            client.use { httpClient ->
+                val result = store(httpClient).getEventByAccessCode(
+                    localId = 77L,
+                    serverId = "srv-event",
+                    pinCode = "1234",
+                    currencies = currencies(),
+                    localPersons = null,
+                )
+
+                val error = assertIs<EventsRemoteStore.GetEventResult.Error<EventNetworkError.ByAccessCode>>(result)
+                assertEquals(expectedError, error.error)
+            }
+        }
+    }
+
+    @Test
     fun `getEventByToken posts token and maps event details`() = runTest {
         val client = createClient { request ->
             assertEquals(HttpMethod.Post, request.method)
@@ -160,6 +193,39 @@ internal class EventsRemoteStoreImplTest {
                 respond(
                     content = payload,
                     status = HttpStatusCode.Unauthorized,
+                    headers = headersOf(HttpHeaders.ContentType to listOf(ContentType.Application.Json.toString())),
+                )
+            }
+
+            client.use { httpClient ->
+                val result = store(httpClient).getEventByToken(
+                    localId = 88L,
+                    serverId = "srv-event",
+                    token = "token-123",
+                    currencies = currencies(),
+                    localPersons = null,
+                )
+
+                val error = assertIs<EventsRemoteStore.GetEventResult.Error<EventNetworkError.ByToken>>(result)
+                assertEquals(expectedError, error.error)
+            }
+        }
+    }
+
+    @Test
+    fun `getEventByToken distinguishes update required from other forbidden errors`() = runTest {
+        val cases = listOf(
+            clientUpdateRequiredResponseJson() to EventNetworkError.UpdateRequired,
+            errorResponseJson(HttpStatusCode.Forbidden, DomainErrorCodes.INVALID_TOKEN) to EventNetworkError.InvalidToken,
+            errorResponseJson(HttpStatusCode.Forbidden, "UNKNOWN_CODE") to EventNetworkError.InvalidToken,
+            errorResponseJsonWithoutCode(HttpStatusCode.Forbidden) to EventNetworkError.InvalidToken,
+        )
+
+        cases.forEach { (payload, expectedError) ->
+            val client = createClient {
+                respond(
+                    content = payload,
+                    status = HttpStatusCode.Forbidden,
                     headers = headersOf(HttpHeaders.ContentType to listOf(ContentType.Application.Json.toString())),
                 )
             }
@@ -477,6 +543,17 @@ internal class EventsRemoteStoreImplTest {
                 {"name":"Alice","eventId":"srv-event","id":"srv-user-1"},
                 {"name":"Bob","eventId":"srv-event","id":"srv-user-2"}
               ]
+            }
+        """.trimIndent()
+    }
+
+    private fun clientUpdateRequiredResponseJson(): String {
+        return """
+            {
+              "statusCode": 403,
+              "code": "B4020",
+              "message": "Client update required",
+              "requiredVersion": 2
             }
         """.trimIndent()
     }
