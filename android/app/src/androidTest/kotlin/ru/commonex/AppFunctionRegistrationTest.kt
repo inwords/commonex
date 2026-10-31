@@ -62,7 +62,7 @@ class AppFunctionRegistrationTest {
             }
             assertEquals("AppFunctionAppMetadata", parser.name)
             assertTrue(
-                parser.getAttributeValue(APP_FUNCTION_NAMESPACE, "description").contains("listCurrencies"),
+                parser.getAttributeValue(APP_FUNCTION_NAMESPACE, "instructions").contains("listCurrencies"),
             )
             val displayDescription = parser.getAttributeResourceValue(
                 APP_FUNCTION_NAMESPACE,
