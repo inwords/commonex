@@ -13,7 +13,7 @@ coroutines = "1.11.0" # https://github.com/Kotlin/kotlinx.coroutines/releases
 
 kotlinx-serialization = "1.11.0" # https://github.com/Kotlin/kotlinx.serialization/releases
 kotlinx-atomicfu = "0.33.0" # https://github.com/Kotlin/kotlinx-atomicfu/releases
-okio = "3.18.1" # https://square.github.io/okio/changelog/
+okio = "3.18.2" # https://square.github.io/okio/changelog/
 
 # Match version with BOM https://developer.android.com/develop/ui/compose/bom/bom-mapping
 compose-bom = "2026.08.00" # https://developer.android.com/jetpack/androidx/releases/compose
@@ -51,7 +51,7 @@ coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-
 
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
 kotlinx-datetime = { group = "org.jetbrains.kotlinx", name = "kotlinx-datetime", version = "0.7.1" } # https://github.com/Kotlin/kotlinx-datetime/releases
-kotlinx-collections-immutable = { group = "org.jetbrains.kotlinx", name = "kotlinx-collections-immutable", version = "0.5.1" } # https://github.com/Kotlin/kotlinx.collections.immutable/releases
+kotlinx-collections-immutable = { group = "org.jetbrains.kotlinx", name = "kotlinx-collections-immutable", version = "0.5.2" } # https://github.com/Kotlin/kotlinx.collections.immutable/releases
 kotlinx-atomicfu = { group = "org.jetbrains.kotlinx", name = "atomicfu", version.ref = "kotlinx-atomicfu" } # https://github.com/Kotlin/kotlinx-atomicfu/releases
 
 lifecycle-runtime-compose-multiplatform = { group = "org.jetbrains.androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "lifecycle-multiplatform" } # https://mvnrepository.com/artifact/org.jetbrains.androidx.lifecycle/lifecycle-runtime-compose
@@ -67,7 +67,7 @@ annotation = { group = "androidx.annotation", name = "annotation", version = "1.
 androidx-appfunctions = { group = "androidx.appfunctions", name = "appfunctions", version.ref = "appfunctions" }
 androidx-appfunctions-compiler = { group = "androidx.appfunctions", name = "appfunctions-compiler", version.ref = "appfunctions" }
 
-guava = { group = "com.google.guava", name = "guava", version = "33.6.0-android" }
+guava = { group = "com.google.guava", name = "guava", version = "33.7.2-android" }
 
 appmetrica-analytics = { group = "io.appmetrica.analytics", name = "analytics", version = "8.5.1" } # https://appmetrica.yandex.com/docs/en/sdk/android/analytics/quick-start
 
