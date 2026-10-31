@@ -6,7 +6,7 @@ room = "2.8.5" # https://developer.android.com/jetpack/androidx/releases/room
 work = "2.12.0" # https://developer.android.com/jetpack/androidx/releases/work
 datastore = "1.3.0" # https://developer.android.com/jetpack/androidx/releases/datastore
 
-ktor = "3.5.2" # https://github.com/ktorio/ktor/releases
+ktor = "3.6.1" # https://github.com/ktorio/ktor/releases
 cronet = "500.0.2"
 
 coroutines = "1.11.0" # https://github.com/Kotlin/kotlinx.coroutines/releases
