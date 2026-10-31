@@ -69,7 +69,7 @@ androidx-appfunctions-compiler = { group = "androidx.appfunctions", name = "appf
 
 guava = { group = "com.google.guava", name = "guava", version = "33.7.2-android" }
 
-appmetrica-analytics = { group = "io.appmetrica.analytics", name = "analytics", version = "8.5.1" } # https://appmetrica.yandex.com/docs/en/sdk/android/analytics/quick-start
+appmetrica-analytics = { group = "io.appmetrica.analytics", name = "analytics", version = "8.6.0" } # https://appmetrica.yandex.com/docs/en/sdk/android/analytics/quick-start
 
 profileinstaller = { group = "androidx.profileinstaller", name = "profileinstaller", version = "1.4.1" }
 
