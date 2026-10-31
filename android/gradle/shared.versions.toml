@@ -2,7 +2,7 @@
 kotlin = "2.4.20" # https://github.com/jetbrains/kotlin/releases https://kotlinlang.org/docs/releases.html#release-details
 ksp = "2.3.13" # https://github.com/google/ksp/releases
 
-room = "2.8.4" # https://developer.android.com/jetpack/androidx/releases/room
+room = "2.8.5" # https://developer.android.com/jetpack/androidx/releases/room
 work = "2.11.2" # https://developer.android.com/jetpack/androidx/releases/work
 datastore = "1.2.1" # https://developer.android.com/jetpack/androidx/releases/datastore
 
@@ -31,7 +31,7 @@ mockk = "1.14.11" # https://github.com/mockk/mockk/releases
 room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
 room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
 room-testing = { group = "androidx.room", name = "room-testing", version.ref = "room" }
-sqlite-bundled = { group = "androidx.sqlite", name = "sqlite-bundled", version = "2.6.2" } # https://developer.android.com/jetpack/androidx/releases/sqlite
+sqlite-bundled = { group = "androidx.sqlite", name = "sqlite-bundled", version = "2.7.1" } # https://developer.android.com/jetpack/androidx/releases/sqlite
 datastore-core-okio = { group = "androidx.datastore", name = "datastore-core-okio", version.ref = "datastore" }
 datastore-android = { group = "androidx.datastore", name = "datastore", version.ref = "datastore" }
 okio = { group = "com.squareup.okio", name = "okio", version.ref = "okio" }
