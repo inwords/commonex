@@ -7,7 +7,7 @@ work = "2.12.0" # https://developer.android.com/jetpack/androidx/releases/work
 datastore = "1.3.0" # https://developer.android.com/jetpack/androidx/releases/datastore
 
 ktor = "3.6.1" # https://github.com/ktorio/ktor/releases
-cronet = "500.0.2"
+cronet = "500.1.0"
 
 coroutines = "1.11.0" # https://github.com/Kotlin/kotlinx.coroutines/releases
 
