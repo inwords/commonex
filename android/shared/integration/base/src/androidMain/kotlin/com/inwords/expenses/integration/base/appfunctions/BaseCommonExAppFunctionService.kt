@@ -1,7 +1,7 @@
 package com.inwords.expenses.integration.base.appfunctions
 
 import androidx.annotation.RequiresApi
-import androidx.appfunctions.AppFunction
+import androidx.appfunctions.AppFunctionDeclaration
 import androidx.appfunctions.AppFunctionAppUnknownException
 import androidx.appfunctions.AppFunctionElementAlreadyExistsException
 import androidx.appfunctions.AppFunctionElementNotFoundException
@@ -46,7 +46,7 @@ abstract class BaseCommonExAppFunctionService : AppFunctionService() {
      *
      * @return All available currencies, sorted by currency code.
      */
-    @AppFunction(isDescribedByKDoc = true)
+    @AppFunctionDeclaration(isDescribedByKDoc = true)
     @AppFunctionInstruction("Lists supported currency codes for createEvent.")
     internal suspend fun listCurrencies(): List<AppFunctionCurrency> = withContext(IO) {
         loadAvailableCurrencies().map { currency ->
@@ -64,7 +64,7 @@ abstract class BaseCommonExAppFunctionService : AppFunctionService() {
      * @throws AppFunctionInvalidArgumentException If the event name or owner name is invalid.
      * @throws AppFunctionElementNotFoundException If the requested currency is unavailable.
      */
-    @AppFunction(isDescribedByKDoc = true)
+    @AppFunctionDeclaration(isDescribedByKDoc = true)
     @AppFunctionInstruction(
         "Creates an expense-sharing event. Required workflow: call listCurrencies first when the primary currency code is unknown.",
     )
@@ -92,7 +92,7 @@ abstract class BaseCommonExAppFunctionService : AppFunctionService() {
      *
      * @return All local events with participant counts and primary currency codes when available.
      */
-    @AppFunction(isDescribedByKDoc = true)
+    @AppFunctionDeclaration(isDescribedByKDoc = true)
     @AppFunctionInstruction("Lists local expense-sharing events and the details needed to select an event by name.")
     internal suspend fun listEvents(): List<AppFunctionEvent> = withContext(IO) {
         val events = eventsComponent.getEventsUseCaseLazy.value.getEvents().first()
@@ -114,7 +114,7 @@ abstract class BaseCommonExAppFunctionService : AppFunctionService() {
      * @throws AppFunctionInvalidArgumentException If the event name is blank.
      * @throws AppFunctionElementNotFoundException If the event is missing.
      */
-    @AppFunction(isDescribedByKDoc = true)
+    @AppFunctionDeclaration(isDescribedByKDoc = true)
     @AppFunctionInstruction("Calculates net debts for one uniquely named local event.")
     internal suspend fun getDebts(
         eventName: String,
@@ -148,7 +148,7 @@ abstract class BaseCommonExAppFunctionService : AppFunctionService() {
      * @throws AppFunctionElementNotFoundException If the event is missing.
      * @throws AppFunctionElementAlreadyExistsException If the participant already exists in the event.
      */
-    @AppFunction(isDescribedByKDoc = true)
+    @AppFunctionDeclaration(isDescribedByKDoc = true)
     @AppFunctionInstruction("Adds one uniquely named participant to one uniquely named local event.")
     internal suspend fun addParticipant(
         eventName: String,
@@ -194,7 +194,7 @@ abstract class BaseCommonExAppFunctionService : AppFunctionService() {
      * @throws AppFunctionInvalidArgumentException If the names or description are blank or amount is not positive.
      * @throws AppFunctionElementNotFoundException If the event or payer cannot be found.
      */
-    @AppFunction(isDescribedByKDoc = true)
+    @AppFunctionDeclaration(isDescribedByKDoc = true)
     @AppFunctionInstruction(
         "Adds a positive expense in the event primary currency and splits it equally among all current participants.",
     )
