@@ -37,17 +37,31 @@ This document reconciles CommonEx iOS app behavior with the privacy policy, Appl
 
 ## App Store Connect Privacy Questionnaire
 
-When filling the App Privacy section in App Store Connect for the current iOS binary, use these answers based on actual repo behavior and confirm them against the generated Xcode privacy report:
+When filling the App Privacy section in App Store Connect for the current iOS binary, use these answers. The SDK rows match the Xcode privacy report of the 2026.10.1 (10) archive; every data type an SDK manifest declares is declared in App Store Connect as the manifest states it, even when the app's runtime config disables the SDK feature behind it.
 
-| Question / Data Type            | Answer                                                                                                 |
-|---------------------------------|--------------------------------------------------------------------------------------------------------|
-| **Crash data**                  | Yes - collected via Sentry for app functionality and stability                                         |
-| **Product interaction / usage** | Yes - limited mobile lifecycle/session analytics via AppMetrica for product improvement                |
-| **User ID / identifiers**       | No persistent user accounts today; analytics stays anonymous unless future identified events are added |
-| **Device ID**                   | Treat as Yes if the archive privacy report shows AppMetrica- or Sentry-provided device/app identifiers |
-| **User-generated content**      | Yes – event names, participant names, expense data; used for app functionality (sync)                  |
-| **Advertising / tracking**      | No – no ads, no cross-context third-party tracking                                                     |
-| **Data linked to identity**     | Crash diagnostics and analytics may include device-level identifiers; user content is functional data  |
-| **Data used for tracking**      | No                                                                                                     |
+Data types declared by bundled SDKs:
+
+| Data type             | Collected | Declared by                           | Purposes                     | Linked to user | Used for tracking |
+|-----------------------|-----------|---------------------------------------|------------------------------|----------------|-------------------|
+| Crash Data            | Yes       | Sentry                                | App Functionality            | No             | No                |
+| Performance Data      | Yes       | Sentry                                | App Functionality            | No             | No                |
+| Other Diagnostic Data | Yes       | Sentry                                | App Functionality            | No             | No                |
+| Product Interaction   | Yes       | AppMetrica Core, AppMetrica HostState | Analytics, App Functionality | No             | No                |
+| Other Data Types      | Yes       | AppMetrica Core, AppMetrica HostState | Analytics, App Functionality | No             | No                |
+| Coarse Location       | Yes       | AppMetrica Core                       | Analytics                    | No             | No                |
+| Purchase History      | Yes       | AppMetrica Core                       | Analytics                    | No             | No                |
+
+Coarse Location and Purchase History are declared by the AppMetrica Core manifest although the app sets `locationTracking = false` and `revenueAutoTrackingEnabled = false`.
+
+Other answers:
+
+| Question / Data Type       | Answer                                                                                                 |
+|----------------------------|--------------------------------------------------------------------------------------------------------|
+| **User-generated content** | Yes – event names, participant names, expense data; used for app functionality (sync)                  |
+| **User ID**                | No – no persistent user accounts today; analytics stays anonymous unless identified events are added   |
+| **Device ID**              | No – no bundled SDK manifest declares device identifiers                                               |
+| **Advertising / tracking** | No – no ads, no cross-context third-party tracking                                                     |
+
+If a new archive's privacy report differs from the SDK table, update the table and the App Store Connect answers together.
 
 Confirm age rating aligns with the privacy policy (16+ for intended audience).
