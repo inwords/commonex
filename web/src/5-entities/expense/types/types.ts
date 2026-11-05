@@ -9,6 +9,7 @@ export interface CreateExpenseForm {
   amount: number;
   splitOption: string;
   exchangeRate?: number;
+  isCustomRate?: boolean;
 }
 
 export interface CreateExpenseRefundForm {
@@ -32,6 +33,8 @@ export interface SplitInfo {
 
 export interface ExpenseBase {
   id: string;
+  version?: number;
+  updatedAt?: string;
   description: string;
   userWhoPaidId: string;
   currencyId: string;
@@ -50,3 +53,13 @@ export interface ExpenseRefund extends ExpenseBase {
 }
 
 export type Tabs = 0 | 1 | 2 | 3 | 4;
+
+export interface ReviseExpense {
+  expectedVersion: number;
+  description: string;
+  userWhoPaidId: string;
+  currencyId: string;
+  splitInformation: Array<Omit<SplitInfo, 'exchangedAmount'> & {exchangedAmount?: number}>;
+  createdAt: string;
+  isCustomRate: boolean;
+}

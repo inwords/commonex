@@ -6,7 +6,7 @@ import {
   ExpenseRefund,
   Tabs,
 } from '@/5-entities/expense/types/types';
-import {createExpense as createExpenseApi, getEventExpenses} from '@/5-entities/expense/services/api';
+import {createExpense as createExpenseApi, getEventExpenses, reviseExpense} from '@/5-entities/expense/services/api';
 import {expenseStore} from '@/5-entities/expense/stores/expense-store';
 import {ExpenseType} from '@/5-entities/expense/constants';
 import {userStore} from '@/5-entities/user/stores/user-store';
@@ -14,7 +14,8 @@ import {currencyStore} from '@/5-entities/currency/stores/currency-store';
 import {eventStore} from '@/5-entities/event/stores/event-store';
 import retry from 'async-retry';
 import {ulid} from 'ulid';
-import {ApiError} from '@/6-shared/api/errors';
+import {ApiError, ApiErrorCode} from '@/6-shared/api/errors';
+import {buildExpenseRevision, canEditExpense} from '@/5-entities/expense/lib/expense-editing';
 
 export class ExpenseService {
   private createExpenseKey: string | null = null;
@@ -150,6 +151,61 @@ export class ExpenseService {
       this.createExpenseRefundKey = null;
       expenseStore.setIsCreatingExpenseRefund(false);
     }
+  }
+
+  async updateExpense(expense: Expense, data: CreateExpenseForm, pinCode: string) {
+    if (!canEditExpense(eventStore.currentEvent, expense)) {
+      throw {statusCode: 403, code: ApiErrorCode.EXPENSE_EDITING_NOT_SUPPORTED, message: 'Expense editing unavailable'};
+    }
+    if (expenseStore.isUpdatingExpense) {
+      throw {statusCode: 409, code: ApiErrorCode.IDEMPOTENCY_REQUEST_IN_PROGRESS, message: 'Save in progress'};
+    }
+    const revision = buildExpenseRevision(
+      expense,
+      data,
+      eventStore.currentEvent!.currencyId,
+      userStore.users.map(({id}) => id),
+    );
+    const key = ulid();
+    expenseStore.setIsUpdatingExpense(true);
+    try {
+      const updated = await retry(
+        async (bail) => {
+          try {
+            return await reviseExpense(expense.eventId, expense.id, revision, pinCode, key);
+          } catch (error) {
+            const apiError = error as ApiError;
+            if (apiError.statusCode && apiError.statusCode < 500) {
+              bail(error as Error);
+              // bail rejects the outer promise; throwing here would still schedule a background retry.
+              return;
+            }
+            throw error;
+          }
+        },
+        {retries: 2, factor: 2, minTimeout: 200},
+      );
+      if (updated) {
+        expenseStore.replaceExpense(updated);
+      }
+    } finally {
+      expenseStore.setIsUpdatingExpense(false);
+    }
+  }
+
+  async reloadExpense(expense: Expense, pinCode: string) {
+    const expenses = await getEventExpenses(expense.eventId, pinCode);
+    const current = expenses.find(
+      (item): item is Expense => item.id === expense.id && item.expenseType === ExpenseType.Expense,
+    );
+    if (!current) {
+      throw {statusCode: 404, code: ApiErrorCode.EXPENSE_NOT_FOUND, message: 'Expense not found'};
+    }
+    expenseStore.setExpenses(expenses.filter((item): item is Expense => item.expenseType === ExpenseType.Expense));
+    expenseStore.setExpenseRefunds(
+      expenses.filter((item): item is ExpenseRefund => item.expenseType === ExpenseType.Refund),
+    );
+    expenseStore.setSelectedExpenseForDetails(current);
   }
 
   setSplitOption(splitOption: '1' | '2' | '3') {

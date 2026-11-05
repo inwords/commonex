@@ -14,6 +14,7 @@ export class ExpenseStore {
   selectedExpenseForDetails: Expense | null = null;
   isCreatingExpense: boolean = false;
   isCreatingExpenseRefund: boolean = false;
+  isUpdatingExpense: boolean = false;
 
   constructor() {
     makeAutoObservable(this);
@@ -122,6 +123,17 @@ export class ExpenseStore {
 
   setExpenses(expenses: Array<Expense>) {
     this.expenses = expenses;
+  }
+
+  replaceExpense(expense: Expense) {
+    this.expenses = this.expenses.map((current) => (current.id === expense.id ? expense : current));
+    if (this.selectedExpenseForDetails?.id === expense.id) {
+      this.selectedExpenseForDetails = expense;
+    }
+  }
+
+  setIsUpdatingExpense(value: boolean) {
+    this.isUpdatingExpense = value;
   }
 
   setExpenseRefunds(expenseRefunds: Array<ExpenseRefund>) {

@@ -1,9 +1,9 @@
-import {FormContainer, TextFieldElement, useFieldArray, useFormContext} from 'react-hook-form-mui';
-import {Button, Stack} from '@mui/material';
+import {CheckboxElement, FormContainer, TextFieldElement, useFieldArray, useFormContext} from 'react-hook-form-mui';
+import {Button, Stack, Typography} from '@mui/material';
 import {ExpenseDescriptionInput} from '@/4-features/AddExpense/ui/ExpenseNameInput';
 import {ExpenseAmountInput} from '@/4-features/AddExpense/ui/ExpenseAmountInput';
 import {SelectExpenseOwner} from '@/4-features/AddExpense/ui/SelectExpenseOwner';
-import React, {useEffect} from 'react';
+import React, {useEffect, useRef} from 'react';
 import {SplitOptions} from '@/4-features/AddExpense/ui/SplitOption';
 import {SplitByPercentageFields} from '@/4-features/AddExpense/ui/SplitByPercentageFields';
 import {useParams} from 'react-router';
@@ -22,6 +22,11 @@ interface Props {
   onSuccess?: (isModalOpen: boolean, data: CreateExpenseForm, id: string) => void | Promise<void>;
   readOnly?: boolean;
   expenseData?: Partial<CreateExpenseForm>;
+  editing?: boolean;
+  busy?: boolean;
+  submitDisabled?: boolean;
+  submitLabel?: string;
+  onCancel?: () => void;
 }
 
 type ExpenseSplitDraft = Partial<Omit<CreateExpenseForm['splitInformation'][number], 'exchangedAmount'>>;
@@ -62,131 +67,205 @@ const normalizeExpenseFormValues = ({splitInformation, ...rest}: ExpenseFormValu
   };
 };
 
-const ExpenseFormContent = observer(({readOnly = false}: Omit<Props, 'expenseData'>) => {
-  const {control, watch, setValue} = useFormContext<ExpenseFormValues>();
-  const {fields, append, remove} = useFieldArray<ExpenseFormValues>({
-    control,
-    name: 'splitInformation',
-  });
-  const content = useContent();
-  const c = content.AddExpense.manualSplit;
+const ExpenseFormContent = observer(
+  ({
+    readOnly = false,
+    editing = false,
+    busy = false,
+    submitDisabled = false,
+    submitLabel,
+    onCancel,
+    expenseData,
+  }: Props) => {
+    const {control, watch, setValue} = useFormContext<ExpenseFormValues>();
+    const {fields, append, remove} = useFieldArray<ExpenseFormValues>({
+      control,
+      name: 'splitInformation',
+    });
+    const content = useContent();
+    const c = content.AddExpense.manualSplit;
 
-  const isSplitEqually = expenseStore.splitOption === '1';
-  const currencyId = watch('currencyId');
-  const eventCurrencyId = eventStore.currentEvent?.currencyId;
+    const splitOption = watch('splitOption');
+    const isSplitEqually = splitOption === '1';
+    const splits = watch('splitInformation');
+    const isCustomRate = watch('isCustomRate');
+    const disabled = readOnly || busy;
+    const currencyId = watch('currencyId');
+    const eventCurrencyId = eventStore.currentEvent?.currencyId;
+    const previousCurrencyId = useRef(currencyId);
 
-  useEffect(() => {
-    if (!isSplitEqually && fields.length === 0) {
-      // Добавляем одно поле при переключении на "вручную"
-      append({});
-    } else if (isSplitEqually && fields.length > 0) {
-      // Удаляем все поля при переключении обратно на "поровну"
-      for (let i = fields.length - 1; i >= 0; i--) {
-        remove(i);
+    useEffect(() => {
+      if (editing && splitOption === '2') {
+        setValue(
+          'amount',
+          (splits ?? []).reduce((sum, split) => sum + (Number(split.amount) || 0), 0),
+        );
       }
-    }
-  }, [append, fields.length, isSplitEqually, remove]);
+    }, [editing, splitOption, splits, setValue]);
 
-  // Устанавливаем автоматический курс при смене валюты (только если не readOnly)
-  useEffect(() => {
-    if (readOnly) {
-      return;
-    }
+    useEffect(() => {
+      if (!isSplitEqually && fields.length === 0) {
+        // Добавляем одно поле при переключении на "вручную"
+        append({});
+      } else if (isSplitEqually && fields.length > 0) {
+        // Удаляем все поля при переключении обратно на "поровну"
+        for (let i = fields.length - 1; i >= 0; i--) {
+          remove(i);
+        }
+      }
+    }, [append, fields.length, isSplitEqually, remove]);
 
-    if (!currencyId || !eventCurrencyId || currencyId === eventCurrencyId) {
-      setValue('exchangeRate', undefined);
-      return;
-    }
+    // Устанавливаем автоматический курс при смене валюты (только если не readOnly)
+    useEffect(() => {
+      if (readOnly) {
+        return;
+      }
 
-    const autoRate = currencyStore.calculateExchangeRate(currencyId, eventCurrencyId);
-    if (autoRate > 0) {
-      setValue('exchangeRate', Number(autoRate.toFixed(2)));
-    }
-  }, [currencyId, eventCurrencyId, readOnly, setValue]);
+      if (editing) {
+        if (currencyId !== previousCurrencyId.current) {
+          previousCurrencyId.current = currencyId;
+          setValue('isCustomRate', false);
+          setValue('exchangeRate', undefined);
+        }
+        return;
+      }
 
-  return (
-    <>
-      <fieldset disabled={readOnly} style={{border: 'none', padding: 0, margin: 0}}>
-        <Stack spacing={2} maxWidth={600}>
-          <ExpenseDescriptionInput disabled={readOnly} />
+      if (!currencyId || !eventCurrencyId || currencyId === eventCurrencyId) {
+        setValue('exchangeRate', undefined);
+        return;
+      }
 
-          <Stack data-onboarding="expense-amount">
-            <ExpenseAmountInput disabled={readOnly} />
-          </Stack>
+      const autoRate = currencyStore.calculateExchangeRate(currencyId, eventCurrencyId);
+      if (autoRate > 0) {
+        setValue('exchangeRate', Number(autoRate.toFixed(2)));
+      }
+    }, [currencyId, eventCurrencyId, readOnly, editing, setValue]);
 
-          <Stack data-onboarding="expense-owner">
-            <SelectExpenseOwner disabled={readOnly} />
-          </Stack>
+    return (
+      <>
+        <fieldset disabled={disabled} style={{border: 'none', padding: 0, margin: 0}}>
+          <Stack spacing={2} maxWidth={600}>
+            <ExpenseDescriptionInput disabled={disabled} />
 
-          <SelectCurrency disabled={readOnly} />
+            <Stack data-onboarding="expense-amount">
+              <ExpenseAmountInput disabled={disabled || (editing && splitOption === '2')} />
+            </Stack>
 
-          <ExchangeRateInput disabled={readOnly} />
+            <Stack data-onboarding="expense-owner">
+              <SelectExpenseOwner disabled={disabled} />
+            </Stack>
 
-          <Stack data-onboarding="expense-split">
-            <SplitOptions disabled={readOnly} />
-          </Stack>
+            <SelectCurrency disabled={disabled} />
 
-          {expenseStore.splitOption === '2' && (
-            <>
-              {fields.map((field, index) => (
-                <React.Fragment key={field.id}>
-                  <TextFieldElement
-                    name={`splitInformation.${index}.amount`}
-                    label={c.amountLabel}
+            {editing && currencyId !== eventCurrencyId ? (
+              <>
+                <CheckboxElement name="isCustomRate" label={content.ExpenseDetails.customRate} disabled={disabled} />
+                {isCustomRate ? (
+                  <ExchangeRateInput
+                    disabled={disabled}
                     required
-                    disabled={readOnly}
-                    type="number"
+                    allowEmpty={expenseData?.isCustomRate === true && expenseData.exchangeRate === undefined}
                   />
+                ) : (
+                  <Typography variant="body2" color="text.secondary">
+                    {content.ExpenseDetails.automaticRate}
+                  </Typography>
+                )}
+              </>
+            ) : (
+              <ExchangeRateInput disabled={disabled} />
+            )}
 
-                  <SelectUser
-                    label={c.whoOwesLabel}
-                    name={`splitInformation.${index}.userId`}
-                    disabled={readOnly}
-                    required
-                  />
+            <Stack data-onboarding="expense-split">
+              <SplitOptions disabled={disabled} />
+            </Stack>
 
-                  {fields.length > 1 && (
-                    <Button onClick={() => remove(index)} variant="text" color="error" size="small" disabled={readOnly}>
-                      {c.remove}
-                    </Button>
-                  )}
-                </React.Fragment>
-              ))}
+            {splitOption === '2' && (
+              <>
+                {fields.map((field, index) => (
+                  <React.Fragment key={field.id}>
+                    <TextFieldElement
+                      name={`splitInformation.${index}.amount`}
+                      label={c.amountLabel}
+                      required
+                      disabled={disabled}
+                      type="number"
+                    />
 
-              <Button onClick={() => append({})} variant={'outlined'} disabled={readOnly}>
-                {c.addPerson}
+                    <SelectUser
+                      label={c.whoOwesLabel}
+                      name={`splitInformation.${index}.userId`}
+                      disabled={disabled}
+                      required
+                    />
+
+                    {fields.length > 1 && (
+                      <Button
+                        onClick={() => remove(index)}
+                        variant="text"
+                        color="error"
+                        size="small"
+                        disabled={disabled}
+                      >
+                        {c.remove}
+                      </Button>
+                    )}
+                  </React.Fragment>
+                ))}
+
+                <Button onClick={() => append({})} variant={'outlined'} disabled={disabled}>
+                  {c.addPerson}
+                </Button>
+              </>
+            )}
+
+            {splitOption === '3' && (
+              <SplitByPercentageFields fields={fields} append={append} remove={remove} disabled={disabled} />
+            )}
+          </Stack>
+        </fieldset>
+
+        {!readOnly && (
+          <Stack
+            data-onboarding={editing ? undefined : 'expense-save'}
+            direction="row"
+            spacing={1}
+            justifyContent="end"
+            marginTop={'16px'}
+          >
+            {onCancel && (
+              <Button onClick={onCancel} disabled={busy}>
+                {content.ExpenseDetails.cancel}
               </Button>
-            </>
-          )}
+            )}
+            <Button
+              type={'submit'}
+              variant="contained"
+              loading={busy || expenseStore.isCreatingExpense}
+              disabled={submitDisabled}
+            >
+              {submitLabel ?? content.AddExpense.submit}
+            </Button>
+          </Stack>
+        )}
+      </>
+    );
+  },
+);
 
-          {expenseStore.splitOption === '3' && (
-            <SplitByPercentageFields fields={fields} append={append} remove={remove} disabled={readOnly} />
-          )}
-        </Stack>
-      </fieldset>
-
-      {!readOnly && (
-        <Stack data-onboarding="expense-save" justifyContent="end" marginTop={'16px'}>
-          <Button type={'submit'} variant="contained" loading={expenseStore.isCreatingExpense}>
-            {content.AddExpense.submit}
-          </Button>
-        </Stack>
-      )}
-    </>
-  );
-});
-
-export const ExpenseForm = observer(({onSuccess, readOnly = false, expenseData}: Props) => {
+export const ExpenseForm = observer(({onSuccess, readOnly = false, expenseData, ...options}: Props) => {
   const {id} = useParams();
-  const initialValues = (expenseData || {
+  const initialValues = {
     userWhoPaidId: userStore.currentUser?.id,
     splitOption: '1',
-  }) as CreateExpenseForm;
+    splitInformation: [],
+    ...expenseData,
+  } as CreateExpenseForm;
 
   return (
     <FormContainer<ExpenseFormValues>
       onSuccess={async (d) => {
-        if (id && !readOnly) {
+        if (id && !readOnly && !options.busy && !options.submitDisabled) {
           const normalizedValues = normalizeExpenseFormValues(d);
 
           if (normalizedValues) {
@@ -196,7 +275,7 @@ export const ExpenseForm = observer(({onSuccess, readOnly = false, expenseData}:
       }}
       defaultValues={initialValues}
     >
-      <ExpenseFormContent onSuccess={onSuccess} readOnly={readOnly} />
+      <ExpenseFormContent readOnly={readOnly} expenseData={expenseData} {...options} />
     </FormContainer>
   );
 });

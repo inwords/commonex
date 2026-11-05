@@ -97,6 +97,17 @@ const en: Locale = {
     refundDebtPrefix: 'Debt repayment to',
   },
   ExpenseDetails: {
+    savedRateHint: 'Enter a rate when changing amounts. Otherwise, the saved conversion is preserved.',
+    edit: 'Edit',
+    editTitle: 'Edit expense',
+    save: 'Save changes',
+    cancel: 'Cancel',
+    close: 'Close',
+    reload: 'Load latest version',
+    conflict:
+      'Another participant has changed this expense. Your changes have not been saved. Load the latest version to continue. This will replace your draft.',
+    customRate: 'Use a custom exchange rate',
+    automaticRate: 'The automatic exchange rate for the expense date is calculated when saving.',
     modalTitle: 'Expense details',
   },
   ExpensesList: {
@@ -181,6 +192,12 @@ const en: Locale = {
     },
   },
   Errors: {
+    expenseConflict: 'This expense has changed. Load the latest version before saving.',
+    expenseNotFound: 'Expense not found. Refresh the expense list.',
+    expenseParticipantsInvalid: 'Select a payer and participants from this trip.',
+    expenseEditingNotSupported: 'Editing is unavailable for this trip.',
+    clientUpdateRequired: 'This trip requires a newer app version.',
+    saveInProgress: 'Saving is already in progress. Please wait.',
     eventNotFound: 'Event not found. Check the event ID.',
     eventDeleted: 'Event has already been deleted.',
     invalidPin: 'Invalid PIN code. Check your input.',
